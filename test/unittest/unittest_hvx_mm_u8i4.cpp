@@ -33,6 +33,10 @@
 #include <AEEStdErr.h>
 #include <remote.h>
 
+#include <htp_backend/htp_conv_opts.h>
+#include <htp_backend/htp_fc_opts.h>
+#include <htp_backend/htp_qs2_gemv_opts.h>
+#include <htp_backend/htp_qs2_lut_layout.h>
 #include <htp_wh_layout.h>
 
 #include "nntr_hvx.h"
@@ -701,6 +705,709 @@ protected:
   }
 };
 
+/** Native WH weights, an independent FC-by-FC reference, and state carried
+ *  across prefill/decode calls. All dimensions differ to expose bad strides. */
+TEST_F(HmxMmU8I4Layer, ConvBlockNativeWhPrefillAndContinuation) {
+  constexpr uint32_t M = 131, K = 64, C = 96, N = 128;
+  auto alloc =
+    (void *(*)(int, uint32_t, int))dlsym(RTLD_DEFAULT, "rpcmem_alloc");
+  auto rfree = (void (*)(void *))dlsym(RTLD_DEFAULT, "rpcmem_free");
+  auto to_fd = (int (*)(void *))dlsym(RTLD_DEFAULT, "rpcmem_to_fd");
+  using Map = int (*)(int, int, void *, int, size_t, int);
+  using Unmap = int (*)(int, int, void *, size_t);
+  auto map = (Map)dlsym(RTLD_DEFAULT, "fastrpc_mmap");
+  auto unmap = (Unmap)dlsym(RTLD_DEFAULT, "fastrpc_munmap");
+  ASSERT_TRUE(alloc && rfree && to_fd && map && unmap);
+
+  // Own the borrowed mapping through fatal assertions as well as success.
+  struct Arena {
+    remote_handle64 session;
+    void (*free_mem)(void *);
+    Unmap unmap;
+    void *data = nullptr;
+    int fd = -1;
+    size_t bytes = 0;
+    bool mapped = false;
+    uint32_t id = 0xFFFFFFFFu;
+    std::vector<uint32_t> handles;
+    ~Arena() {
+      for (auto h : handles)
+        nntr_hvx_weight_release_u8i4(session, h);
+      if (id != 0xFFFFFFFFu)
+        nntr_hvx_arena_detach(session, id);
+      if (mapped)
+        unmap(CDSP_DOMAIN_ID, fd, data, bytes);
+      if (data)
+        free_mem(data);
+    }
+  } arena{handle_, rfree, unmap};
+  const uint32_t stride_in = round_up(nntrainer::whBytes(K, C), 4096);
+  const uint32_t stride_out = round_up(nntrainer::whBytes(C, N), 4096);
+  arena.bytes = 3u * stride_in + stride_out;
+  arena.data = alloc(25, 0, static_cast<int>(arena.bytes));
+  ASSERT_NE(arena.data, nullptr);
+  arena.fd = to_fd(arena.data);
+  ASSERT_GE(arena.fd, 0);
+  ASSERT_EQ(map(CDSP_DOMAIN_ID, arena.fd, arena.data, 0, arena.bytes,
+                static_cast<int>(FASTRPC_MAP_FD)),
+            0);
+  arena.mapped = true;
+  ASSERT_EQ(nntr_hvx_arena_attach(handle_, arena.fd, arena.bytes, &arena.id),
+            AEE_SUCCESS);
+
+  std::vector<Weight> weights(4);
+  for (uint32_t i = 0; i < 4; ++i) {
+    const uint32_t k = i == 3 ? C : K, n = i == 3 ? N : C;
+    auto &w = weights[i];
+    ASSERT_NO_FATAL_FAILURE(MakeAndRegister(k, n, 0xCB000000u + i, w));
+    // Production QS4CX_WH bypasses the DSP bake: use the offline packer.
+    whPack(w.q_w.data(), k, n,
+           static_cast<uint8_t *>(arena.data) + i * stride_in);
+    ASSERT_EQ(nntr_hvx_weight_release_u8i4(handle_, w.handle), AEE_SUCCESS);
+    ASSERT_EQ(nntr_hvx_weight_register_u8i4_arena(
+                handle_, k, n, arena.id, i * stride_in, w.d.data(), n,
+                w.colsum.data(), n, w.bias.data(), n, &w.handle),
+              AEE_SUCCESS);
+    arena.handles.push_back(w.handle);
+  }
+  std::vector<float> x(M * K), conv(3 * C), initial(2 * C);
+  fill_deterministic(x, 0xCB010000u);
+  fill_deterministic(conv, 0xCB020000u);
+  fill_deterministic(initial, 0xCB030000u);
+  for (auto &v : conv)
+    v *= 0.001f;
+
+  auto compare = [](const std::vector<float> &got,
+                    const std::vector<float> &want) {
+    ASSERT_EQ(got.size(), want.size());
+    for (size_t i = 0; i < got.size(); ++i) {
+      ASSERT_TRUE(std::isfinite(got[i])) << "element " << i;
+      ASSERT_NEAR(got[i], want[i], 2e-5f * (1.f + std::abs(want[i])))
+        << "element " << i;
+    }
+  };
+  // Exercise zero-history prefill and nonzero initial history separately.
+  for (bool with_history : {false, true}) {
+    uint32_t applied = 0;
+    ASSERT_EQ(nntr_hvx_moe_set_opts(handle_, 0u, &applied), AEE_SUCCESS);
+    SCOPED_TRACE(with_history ? "nonzero history" : "zero history");
+    if (!with_history)
+      std::fill(initial.begin(), initial.end(), 0.f);
+    else
+      fill_deterministic(initial, 0xCB030000u);
+    std::vector<float> abc(M * 3u * C);
+    ASSERT_EQ(nntr_hvx_mm_u8i4_layer(handle_, M, K, arena.handles.data(), 3,
+                                     x.data(), x.size(), abc.data(),
+                                     abc.size()),
+              AEE_SUCCESS);
+    std::vector<float> g((M + 2u) * C), z(M * C);
+    std::copy(initial.begin(), initial.end(), g.begin());
+    for (uint32_t row = 0; row < M; ++row) {
+      for (uint32_t j = 0; j < C; ++j) {
+        // The FC call concatenates weight outputs, each with M rows.
+        const size_t p = row * C + j;
+        g[(row + 2u) * C + j] = abc[p] * abc[2u * M * C + p];
+        volatile float p0 = conv[j] * g[(row + 2u) * C + j];
+        volatile float p1 = conv[C + j] * g[(row + 1u) * C + j];
+        volatile float p2 = conv[2u * C + j] * g[row * C + j];
+        volatile float sum = p0 + p1;
+        sum = sum + p2;
+        z[p] = abc[M * C + p] * sum;
+      }
+    }
+    std::vector<float> want(M * N), want_state(g.end() - 2u * C, g.end());
+    ASSERT_EQ(nntr_hvx_mm_u8i4_layer(handle_, M, C, &arena.handles[3], 1,
+                                     z.data(), z.size(), want.data(),
+                                     want.size()),
+              AEE_SUCCESS);
+    std::vector<float> whole(M * N), state = initial;
+    ASSERT_EQ(nntr_hvx_mm_u8i4_conv_block(
+                handle_, M, K, C, N, arena.handles.data(), 3, arena.handles[3],
+                conv.data(), conv.size(), x.data(), x.size(), whole.data(),
+                whole.size(), state.data(), state.size()),
+              AEE_SUCCESS);
+    ASSERT_NO_FATAL_FAILURE(compare(whole, want));
+    ASSERT_NO_FATAL_FAILURE(compare(state, want_state));
+
+    // Borrowed WH weights can bypass DSP caches without changing output
+    // or the convolution history. The split continuation below keeps it on.
+    ASSERT_EQ(nntr_hvx_moe_set_opts(handle_, 0x40000u, &applied), AEE_SUCCESS);
+    ASSERT_EQ(applied, 0x40000u);
+    std::vector<float> bypass(M * N), bypass_state = initial;
+    ASSERT_EQ(nntr_hvx_mm_u8i4_conv_block(
+                handle_, M, K, C, N, arena.handles.data(), 3, arena.handles[3],
+                conv.data(), conv.size(), x.data(), x.size(), bypass.data(),
+                bypass.size(), bypass_state.data(), bypass_state.size()),
+              AEE_SUCCESS);
+    EXPECT_EQ(std::memcmp(whole.data(), bypass.data(), M * N * sizeof(float)),
+              0);
+    EXPECT_EQ(
+      std::memcmp(state.data(), bypass_state.data(), 2u * C * sizeof(float)),
+      0);
+
+    // The 65-row prefill crosses the HMX block boundary; two M=1 calls
+    // catch loss/reversal of carry, and 2/33/29 exercise short worker tails.
+    ASSERT_EQ(
+      nntr_hvx_moe_set_opts(
+        handle_, 0x40000u | htp_conv_opts_flags(NULL, NULL, NULL), &applied),
+      AEE_SUCCESS);
+    const uint32_t chunks[] = {65, 1, 1, 2, 33, 29};
+    std::vector<float> split(M * N);
+    state = initial;
+    uint32_t row = 0;
+    for (auto rows : chunks) {
+      SCOPED_TRACE("chunk " + std::to_string(row) + ":" + std::to_string(rows));
+      ASSERT_EQ(nntr_hvx_mm_u8i4_conv_block(
+                  handle_, rows, K, C, N, arena.handles.data(), 3,
+                  arena.handles[3], conv.data(), conv.size(),
+                  x.data() + row * K, rows * K, split.data() + row * N,
+                  rows * N, state.data(), state.size()),
+                AEE_SUCCESS);
+      row += rows;
+      std::vector<float> expected_state(g.begin() + row * C,
+                                        g.begin() + (row + 2u) * C);
+      ASSERT_NO_FATAL_FAILURE(compare(state, expected_state));
+    }
+    ASSERT_EQ(row, M);
+    ASSERT_NO_FATAL_FAILURE(compare(split, whole));
+  }
+}
+
+/** Explicit opt-in timing at the LFM2 shape. Run the same client with the
+ *  baseline and optimized skels; the printed hashes must agree. Reset history
+ *  for every sample so both implementations see identical causal inputs. */
+TEST_F(HmxMmU8I4Layer, DISABLED_ConvBlockPrefillBenchmark) {
+  constexpr uint32_t M = 511, K = 2048, C = 2048, N = 2048;
+  auto alloc =
+    (void *(*)(int, uint32_t, int))dlsym(RTLD_DEFAULT, "rpcmem_alloc");
+  auto rfree = (void (*)(void *))dlsym(RTLD_DEFAULT, "rpcmem_free");
+  auto to_fd = (int (*)(void *))dlsym(RTLD_DEFAULT, "rpcmem_to_fd");
+  using Map = int (*)(int, int, void *, int, size_t, int);
+  using Unmap = int (*)(int, int, void *, size_t);
+  auto map = (Map)dlsym(RTLD_DEFAULT, "fastrpc_mmap");
+  auto unmap = (Unmap)dlsym(RTLD_DEFAULT, "fastrpc_munmap");
+  ASSERT_TRUE(alloc && rfree && to_fd && map && unmap);
+
+  // Own the borrowed mapping through fatal assertions as well as success.
+  struct Arena {
+    remote_handle64 session;
+    void (*free_mem)(void *);
+    Unmap unmap;
+    void *data = nullptr;
+    int fd = -1;
+    size_t bytes = 0;
+    bool mapped = false;
+    uint32_t id = 0xFFFFFFFFu;
+    std::vector<uint32_t> handles;
+    ~Arena() {
+      for (auto h : handles)
+        nntr_hvx_weight_release_u8i4(session, h);
+      if (id != 0xFFFFFFFFu)
+        nntr_hvx_arena_detach(session, id);
+      if (mapped)
+        unmap(CDSP_DOMAIN_ID, fd, data, bytes);
+      if (data)
+        free_mem(data);
+    }
+  } arena{handle_, rfree, unmap};
+  const uint32_t stride_in = round_up(nntrainer::whBytes(K, C), 4096);
+  const uint32_t stride_out = round_up(nntrainer::whBytes(C, N), 4096);
+  arena.bytes = 3u * stride_in + stride_out;
+  arena.data = alloc(25, 0, static_cast<int>(arena.bytes));
+  ASSERT_NE(arena.data, nullptr);
+  arena.fd = to_fd(arena.data);
+  ASSERT_GE(arena.fd, 0);
+  ASSERT_EQ(map(CDSP_DOMAIN_ID, arena.fd, arena.data, 0, arena.bytes,
+                static_cast<int>(FASTRPC_MAP_FD)),
+            0);
+  arena.mapped = true;
+  ASSERT_EQ(nntr_hvx_arena_attach(handle_, arena.fd, arena.bytes, &arena.id),
+            AEE_SUCCESS);
+
+  std::vector<Weight> weights(4);
+  for (uint32_t i = 0; i < 4; ++i) {
+    const uint32_t k = i == 3 ? C : K, n = i == 3 ? N : C;
+    auto &w = weights[i];
+    ASSERT_NO_FATAL_FAILURE(MakeAndRegister(k, n, 0xCB000000u + i, w));
+    // Production QS4CX_WH bypasses the DSP bake: use the offline packer.
+    whPack(w.q_w.data(), k, n,
+           static_cast<uint8_t *>(arena.data) + i * stride_in);
+    ASSERT_EQ(nntr_hvx_weight_release_u8i4(handle_, w.handle), AEE_SUCCESS);
+    ASSERT_EQ(nntr_hvx_weight_register_u8i4_arena(
+                handle_, k, n, arena.id, i * stride_in, w.d.data(), n,
+                w.colsum.data(), n, w.bias.data(), n, &w.handle),
+              AEE_SUCCESS);
+    arena.handles.push_back(w.handle);
+  }
+
+  std::vector<float> x(M * K), conv(3 * C), state(2 * C), out(M * N);
+  fill_deterministic(x, 0xCB010000u);
+  fill_deterministic(conv, 0xCB020000u);
+  for (auto &v : conv)
+    v *= 0.001f;
+  // Keep the API's stage array size/indexes in sync with MOE_N_STAGES.
+  constexpr int kStages = 31, kWarmup = 3, kReps = 30;
+  std::vector<float> reference, reference_state;
+  auto hash = [](const std::vector<float> &values) {
+    uint64_t result = 14695981039346656037ull;
+    for (float value : values) {
+      uint32_t bits;
+      std::memcpy(&bits, &value, sizeof(bits));
+      result = (result ^ bits) * 1099511628211ull;
+    }
+    return result;
+  };
+  std::vector<uint32_t> dsp_times, wall_times;
+  for (int rep = -kWarmup; rep < kReps; ++rep) {
+    std::fill(state.begin(), state.end(), 0.f);
+    uint32_t stage[kStages] = {};
+    const auto before = std::chrono::steady_clock::now();
+    const int err = nntr_hvx_mm_u8i4_conv_block_timed(
+      handle_, M, K, C, N, arena.handles.data(), 3, arena.handles[3],
+      conv.data(), conv.size(), x.data(), x.size(), out.data(), out.size(),
+      state.data(), state.size(), stage, kStages);
+    const auto after = std::chrono::steady_clock::now();
+    ASSERT_EQ(err, AEE_SUCCESS) << hex(err);
+    ASSERT_EQ(stage[9], 8u);
+    if (reference.empty()) {
+      for (float value : out)
+        ASSERT_TRUE(std::isfinite(value));
+      reference = out;
+      reference_state = state;
+      std::cout << "CONV_BENCH shape=511x2048x2048x2048 output_hash="
+                << hash(out) << " state_hash=" << hash(state) << std::endl;
+    } else {
+      ASSERT_EQ(
+        std::memcmp(out.data(), reference.data(), out.size() * sizeof(float)),
+        0);
+      ASSERT_EQ(std::memcmp(state.data(), reference_state.data(),
+                            state.size() * sizeof(float)),
+                0);
+    }
+    if (rep < 0)
+      continue;
+    const auto wall =
+      std::chrono::duration_cast<std::chrono::microseconds>(after - before)
+        .count();
+    dsp_times.push_back(stage[0]);
+    wall_times.push_back(static_cast<uint32_t>(wall));
+    std::cout << "CONV_BENCH rep=" << rep << " wall_us=" << wall
+              << " dsp_us=" << stage[0] << " stage_workers_us=" << stage[2]
+              << " requant_wait_us=" << stage[8] << " mm_us=" << stage[10]
+              << " copies_us=" << stage[17] << std::endl;
+  }
+  std::sort(dsp_times.begin(), dsp_times.end());
+  std::sort(wall_times.begin(), wall_times.end());
+  std::cout << "CONV_BENCH samples=" << kReps
+            << " dsp_median_us=" << dsp_times[kReps / 2]
+            << " wall_median_us=" << wall_times[kReps / 2]
+            << " dsp_min_us=" << dsp_times.front() << std::endl;
+}
+
+/** M=1 HVX and HMX see identical inputs, including successive carry rows.
+ * Unequal/tail dimensions exercise the compact feed pitch; LFM2's full shape
+ * also records interleaved kernel timings without a fragile speed assertion. */
+TEST_F(HmxMmU8I4Layer, ConvBlockHvxDecodeMatchesHmx) {
+  auto alloc =
+    (void *(*)(int, uint32_t, int))dlsym(RTLD_DEFAULT, "rpcmem_alloc");
+  auto rfree = (void (*)(void *))dlsym(RTLD_DEFAULT, "rpcmem_free");
+  auto to_fd = (int (*)(void *))dlsym(RTLD_DEFAULT, "rpcmem_to_fd");
+  using Map = int (*)(int, int, void *, int, size_t, int);
+  using Unmap = int (*)(int, int, void *, size_t);
+  auto map = (Map)dlsym(RTLD_DEFAULT, "fastrpc_mmap");
+  auto unmap = (Unmap)dlsym(RTLD_DEFAULT, "fastrpc_munmap");
+  ASSERT_TRUE(alloc && rfree && to_fd && map && unmap);
+
+  // Own the borrowed mapping through fatal assertions as well as success.
+  struct Arena {
+    remote_handle64 session;
+    void (*free_mem)(void *);
+    Unmap unmap;
+    void *data = nullptr;
+    int fd = -1;
+    size_t bytes = 0;
+    bool mapped = false;
+    uint32_t id = 0xFFFFFFFFu;
+    std::vector<uint32_t> handles;
+    ~Arena() {
+      for (auto h : handles)
+        nntr_hvx_weight_release_u8i4(session, h);
+      if (id != 0xFFFFFFFFu)
+        nntr_hvx_arena_detach(session, id);
+      if (mapped)
+        unmap(CDSP_DOMAIN_ID, fd, data, bytes);
+      if (data)
+        free_mem(data);
+    }
+  };
+
+  struct Shape {
+    uint32_t k, c, n;
+  };
+  for (const Shape shape :
+       {Shape{32, 32, 32}, Shape{64, 544, 1056}, Shape{2048, 2048, 2048}}) {
+    const auto K = shape.k, C = shape.c, N = shape.n;
+    SCOPED_TRACE(std::to_string(K) + "/" + std::to_string(C) + "/" +
+                 std::to_string(N));
+    Arena arena{handle_, rfree, unmap};
+    const uint32_t stride_in = round_up(nntrainer::whBytes(K, C), 4096);
+    const uint32_t stride_out = round_up(nntrainer::whBytes(C, N), 4096);
+    arena.bytes = 3u * stride_in + stride_out;
+    arena.data = alloc(25, 0, static_cast<int>(arena.bytes));
+    ASSERT_NE(arena.data, nullptr);
+    arena.fd = to_fd(arena.data);
+    ASSERT_GE(arena.fd, 0);
+    ASSERT_EQ(map(CDSP_DOMAIN_ID, arena.fd, arena.data, 0, arena.bytes,
+                  static_cast<int>(FASTRPC_MAP_FD)),
+              0);
+    arena.mapped = true;
+    ASSERT_EQ(nntr_hvx_arena_attach(handle_, arena.fd, arena.bytes, &arena.id),
+              AEE_SUCCESS);
+    std::vector<Weight> w(4);
+    uint32_t handles[4];
+    for (uint32_t i = 0; i < 4u; ++i) {
+      ASSERT_NO_FATAL_FAILURE(MakeAndRegister(i == 3u ? C : K, i == 3u ? N : C,
+                                              0xCB500000u + i, w[i]));
+      handles[i] = w[i].handle;
+      arena.handles.push_back(handles[i]);
+    }
+    std::vector<float> x(K), conv(3u * C), initial(2u * C), ref(N);
+    fill_deterministic(conv, 0xCB600000u);
+    fill_deterministic(initial, 0xCB700000u);
+    for (float &v : conv)
+      v *= 0.001f;
+    // Baseline and every candidate keep their own continuously advancing state.
+    std::vector<uint32_t> variants{0x40000u};
+    for (uint32_t code = 0; code < 4u; ++code)
+      for (uint32_t rows4 : {0u, HTP_CONV_FLAG_ROWS4})
+        for (uint32_t out_code = 0; out_code < 4u; ++out_code)
+          for (unsigned packed = 0; packed < 2u; ++packed)
+            variants.push_back(0x40000u | HTP_CONV_FLAG_M1_HVX |
+                               (code << HTP_CONV_CHUNK_SHIFT) | rows4 |
+                               (out_code << HTP_CONV_OUT_CHUNK_SHIFT));
+    std::vector<std::vector<float>> states(variants.size(), initial);
+    std::vector<std::vector<uint32_t>> times(variants.size());
+    constexpr int kStages = 31;
+    const int repeats = K == 2048u ? 20 : 3;
+    for (int row = 0; row < repeats; ++row) {
+      fill_deterministic(x, 0xCB800000u + row);
+      if (row == 0)
+        std::fill(x.begin(), x.end(), 0.f);
+      // Reverse candidates on alternating rows; HMX reference always goes
+      // first.
+      for (size_t step = 0; step < variants.size(); ++step) {
+        const size_t i =
+          step == 0 || row % 2 == 0 ? step : variants.size() - step;
+        uint32_t applied = 0, stage[kStages] = {};
+        ASSERT_EQ(nntr_hvx_moe_set_opts(handle_, variants[i], &applied),
+                  AEE_SUCCESS);
+        ASSERT_EQ(applied, variants[i]);
+        const bool packed = i != 0 && i % 2u == 0u;
+        for (uint32_t wi = 0; wi < 4u; ++wi) {
+          const uint32_t chunk = !packed ? 0u
+                                 : wi == 3u
+                                   ? htp_conv_out_chunk_tiles(variants[i])
+                                   : htp_conv_chunk_tiles(variants[i]);
+          ASSERT_EQ(nntr_hvx_weight_prepare_conv_decode(
+                      handle_, handles[wi], arena.id, wi * stride_in, chunk),
+                    AEE_SUCCESS);
+        }
+        if (packed && row == 0) {
+          // Independent byte-layout oracle: each slab contains exactly the
+          // corresponding rows of original WH, including a short final slab.
+          for (uint32_t wi = 0; wi < 4u; ++wi) {
+            const uint32_t k = wi == 3u ? C : K, n = wi == 3u ? N : C;
+            const uint32_t kt = k / 32u, nt = n / 32u;
+            const uint32_t chunk = wi == 3u
+                                     ? htp_conv_out_chunk_tiles(variants[i])
+                                     : htp_conv_chunk_tiles(variants[i]);
+            std::vector<uint8_t> wh(nntrainer::whBytes(k, n));
+            whPack(w[wi].q_w.data(), k, n, wh.data());
+            const auto *image =
+              static_cast<const uint8_t *>(arena.data) + wi * stride_in;
+            for (uint32_t n0 = 0; n0 < nt; n0 += chunk) {
+              const uint32_t cols = std::min(chunk, nt - n0);
+              for (uint32_t t = 0; t < kt; ++t)
+                ASSERT_EQ(
+                  std::memcmp(
+                    image + (static_cast<size_t>(n0) * kt + t * cols) * 512u,
+                    wh.data() + (static_cast<size_t>(t) * nt + n0) * 512u,
+                    cols * 512u),
+                  0);
+            }
+          }
+          ASSERT_NE(nntr_hvx_arena_detach(handle_, arena.id), AEE_SUCCESS);
+          ASSERT_NE(nntr_hvx_weight_prepare_conv_decode(handle_, handles[0],
+                                                        arena.id, 1u, 8u),
+                    AEE_SUCCESS);
+          ASSERT_NE(nntr_hvx_weight_prepare_conv_decode(
+                      handle_, handles[0], arena.id, arena.bytes, 8u),
+                    AEE_SUCCESS);
+          ASSERT_NE(nntr_hvx_weight_prepare_conv_decode(handle_, handles[0],
+                                                        arena.id, 0u, 3u),
+                    AEE_SUCCESS);
+          ASSERT_NE(nntr_hvx_weight_prepare_conv_decode(handle_, handles[1],
+                                                        arena.id, 0u, 8u),
+                    AEE_SUCCESS);
+        }
+        std::vector<float> got(N);
+        ASSERT_EQ(nntr_hvx_mm_u8i4_conv_block_timed(
+                    handle_, 1u, K, C, N, handles, 3, handles[3], conv.data(),
+                    conv.size(), x.data(), x.size(), got.data(), got.size(),
+                    states[i].data(), states[i].size(), stage, kStages),
+                  AEE_SUCCESS);
+        ASSERT_EQ(stage[29],
+                  i == 0 ? 0u : 1u); // Actual dispatch, not just echo.
+        ASSERT_EQ(stage[30], i == 0 ? 0u : 1u); // VTCM feed.
+        ASSERT_EQ(stage[9], i == 0 ? 1u : 0u);  // No padded HMX blocks on HVX.
+        if (K == 2048u)
+          ASSERT_EQ(stage[11], 8192u); // Weight payload is unchanged.
+        if (i == 0) {
+          ref = got;
+          for (float v : ref)
+            ASSERT_TRUE(std::isfinite(v));
+        } else {
+          ASSERT_EQ(std::memcmp(got.data(), ref.data(), N * sizeof(float)), 0)
+            << "flags=" << variants[i] << " row=" << row;
+          ASSERT_EQ(std::memcmp(states[i].data(), states[0].data(),
+                                2u * C * sizeof(float)),
+                    0)
+            << "carry flags=" << variants[i] << " row=" << row;
+        }
+        if (row > 1)
+          times[i].push_back(stage[0]);
+      }
+    }
+    if (K == 2048u) {
+      for (size_t i = 0; i < variants.size(); ++i) {
+        auto &t = times[i];
+        std::sort(t.begin(), t.end());
+        std::cout << "CONV_M1 flags=" << variants[i]
+                  << " packed=" << (i != 0 && i % 2u == 0u)
+                  << " tiles=" << htp_conv_chunk_tiles(variants[i])
+                  << " out_tiles=" << htp_conv_out_chunk_tiles(variants[i])
+                  << " dsp_median_us=" << t[t.size() / 2]
+                  << " dsp_min_us=" << t.front() << " samples=" << t.size()
+                  << std::endl;
+      }
+    }
+    // Release must drop the decode-arena borrow even for heap-owned weights.
+    for (uint32_t wi = 0; wi < 4u; ++wi)
+      ASSERT_EQ(nntr_hvx_weight_prepare_conv_decode(
+                  handle_, handles[wi], arena.id, wi * stride_in, 8u),
+                AEE_SUCCESS);
+    for (auto h : handles)
+      ASSERT_EQ(nntr_hvx_weight_release_u8i4(handle_, h), AEE_SUCCESS);
+    arena.handles.clear();
+    ASSERT_EQ(nntr_hvx_arena_detach(handle_, arena.id), AEE_SUCCESS);
+    arena.id = 0xFFFFFFFFu;
+  }
+  uint32_t applied = 0;
+  ASSERT_EQ(nntr_hvx_moe_set_opts(handle_, 0u, &applied), AEE_SUCCESS);
+}
+
+TEST_F(HmxMmU8I4Layer, FcHvxDecodeMatchesHmx) {
+  struct Shape {
+    uint32_t k;
+    std::vector<uint32_t> ns;
+  };
+  const std::vector<Shape> shapes = {
+    {64, {1056, 544, 32}},
+    {2048, {2048}},
+    {2048, {2048, 512, 512}},
+    {2048, {2048, 2048, 2048, 2048, 2048, 1536}},
+    {11776, {352, 352, 352, 352, 352, 288}}};
+  for (const auto &shape : shapes) {
+    // Keep one session across release/re-registration and changing shapes.
+    // This catches uninitialized quantization params after allocator reuse.
+    const uint32_t K = shape.k;
+    std::vector<Weight> ws(shape.ns.size());
+    std::vector<uint32_t> handles;
+    uint32_t N = 0;
+    for (size_t i = 0; i < ws.size(); ++i) {
+      ASSERT_NO_FATAL_FAILURE(
+        MakeAndRegister(K, shape.ns[i], 0xFC100001u + i, ws[i]));
+      handles.push_back(ws[i].handle);
+      N += shape.ns[i];
+    }
+    SCOPED_TRACE("K=" + std::to_string(K) + " N=" + std::to_string(N));
+    std::vector<uint32_t> variants{0x40000u};
+    for (uint32_t code = 0; code < 4; ++code)
+      variants.push_back(0x40000u | HTP_FC_FLAG_M1_HVX |
+                         (code << HTP_FC_CHUNK_SHIFT));
+    std::vector<std::vector<uint32_t>> times(variants.size());
+    std::vector<float> x(K), ref(N), got(N);
+    for (int row = 0; row < 16; ++row) {
+      fill_deterministic(x, 0xFC200000u + row);
+      if (row == 0)
+        std::fill(x.begin(), x.end(), 0.f);
+      if (row == 1)
+        std::fill(x.begin(), x.end(), 0.25f);
+      for (size_t step = 0; step < variants.size(); ++step) {
+        const size_t i =
+          step == 0 || row % 2 == 0 ? step : variants.size() - step;
+        uint32_t applied = 0, stages[9] = {};
+        ASSERT_EQ(nntr_hvx_moe_set_opts(handle_, variants[i], &applied),
+                  AEE_SUCCESS);
+        ASSERT_EQ(applied, variants[i]);
+        ASSERT_EQ(nntr_hvx_mm_u8i4_layer_timed(handle_, 1, K, handles.data(),
+                                               handles.size(), x.data(), K,
+                                               got.data(), N, stages, 9),
+                  AEE_SUCCESS);
+        EXPECT_EQ(stages[8], i == 0 ? 0u : 1u);
+        if (i == 0) {
+          ref = got;
+          for (float v : ref)
+            ASSERT_TRUE(std::isfinite(v));
+          if (row == 0) {
+            size_t off = 0;
+            for (const auto &w : ws) {
+              ASSERT_EQ(std::memcmp(ref.data() + off, w.bias.data(),
+                                    w.N * sizeof(float)),
+                        0)
+                << "zero-input projection must equal bias; offset=" << off;
+              off += w.N;
+            }
+          }
+        } else {
+          ASSERT_EQ(std::memcmp(got.data(), ref.data(), N * sizeof(float)), 0)
+            << "row=" << row << " flags=" << variants[i];
+          EXPECT_EQ(stages[3], 0u);  // No HMX accumulator read.
+          EXPECT_EQ(stages[6], 32u); // Compact HVX int32 row layout.
+        }
+        if (row > 1)
+          times[i].push_back(stages[0]);
+      }
+    }
+    for (size_t i = 0; i < variants.size(); ++i) {
+      auto &t = times[i];
+      std::sort(t.begin(), t.end());
+      std::cout << "FC_M1 K=" << K << " N=" << N
+                << " handles=" << handles.size() << " flags=" << variants[i]
+                << " tiles=" << htp_fc_chunk_tiles(variants[i])
+                << " dsp_median_us=" << t[t.size() / 2]
+                << " dsp_min_us=" << t.front() << " samples=" << t.size()
+                << std::endl;
+    }
+    // QKV norm/strided output and prepacked AH use the same M=1 dispatch.
+    if (K == 2048u && N == 3072u) {
+      std::vector<float> pre(K, 1.0f), post(128, 1.0f);
+      const uint32_t chunks[] = {64, 64, 0};
+      const uint32_t offsets[] = {1024, 0, 512};
+      const uint32_t strides[] = {N, N, N};
+      for (size_t i = 0; i < 2; ++i) {
+        uint32_t applied = 0;
+        ASSERT_EQ(nntr_hvx_moe_set_opts(handle_, i ? variants[2] : variants[0],
+                                        &applied),
+                  AEE_SUCCESS);
+        ASSERT_EQ(nntr_hvx_mm_u8i4_layer_norm_ld(
+                    handle_, 1, K, 1e-5f, pre.data(), pre.size(), chunks, 3,
+                    post.data(), post.size(), 0, 0, nullptr, 0, handles.data(),
+                    3, offsets, 3, strides, 3, x.data(), x.size(), got.data(),
+                    got.size()),
+                  AEE_SUCCESS);
+        if (i == 0)
+          ref = got;
+        else
+          ASSERT_EQ(std::memcmp(got.data(), ref.data(), N * sizeof(float)), 0);
+      }
+      std::vector<uint8_t> ah(64u * K, 0);
+      std::vector<float> scales(64, .01f);
+      std::vector<int32_t> zps(64, 123);
+      for (uint32_t k = 0; k < K; ++k)
+        ah[(k / 32u) * 2048u + k % 32u] = (k * 17u) & 255u;
+      for (size_t i = 0; i < 2; ++i) {
+        uint32_t applied = 0;
+        ASSERT_EQ(nntr_hvx_moe_set_opts(handle_, i ? variants[2] : variants[0],
+                                        &applied),
+                  AEE_SUCCESS);
+        ASSERT_EQ(nntr_hvx_mm_u8i4_layer_u8in(
+                    handle_, 1, K, handles.data(), 3, ah.data(), ah.size(),
+                    scales.data(), scales.size(), zps.data(), zps.size(),
+                    got.data(), got.size()),
+                  AEE_SUCCESS);
+        if (i == 0)
+          ref = got;
+        else
+          ASSERT_EQ(std::memcmp(got.data(), ref.data(), N * sizeof(float)), 0);
+      }
+    }
+    for (auto h : handles)
+      ASSERT_EQ(nntr_hvx_weight_release_u8i4(handle_, h), AEE_SUCCESS);
+  }
+  uint32_t applied = 0;
+  ASSERT_EQ(nntr_hvx_moe_set_opts(handle_, 0u, &applied), AEE_SUCCESS);
+}
+
+TEST_F(HmxMmU8I4Layer, Q4RouterFusionMatchesSeparateCalls) {
+  const uint32_t K = 2048;
+  for (uint32_t E : {32u, 64u, 128u}) {
+    Weight w;
+    std::vector<std::pair<uint32_t, float>> zero_bias;
+    for (uint32_t e = 0; e < E; ++e)
+      zero_bias.emplace_back(e, 0.0f);
+    MakeAndRegister(K, E, 187u + E, w, zero_bias);
+    std::vector<float> bias(E);
+    fill_deterministic(bias, 133u);
+    for (uint32_t M : {1u, 2u, 63u, 64u, 65u, 1024u}) {
+      SCOPED_TRACE("M=" + std::to_string(M) + " E=" + std::to_string(E));
+      std::vector<float> x(static_cast<size_t>(M) * K), logits(M * E);
+      fill_deterministic(x, 37u + M);
+      // Equal logits exercise deterministic tie breaking as well.
+      if (M == 2) {
+        std::fill(x.begin(), x.end(), 0.0f);
+        std::fill(bias.begin(), bias.end(), 0.0f);
+      } else {
+        fill_deterministic(bias, 133u);
+      }
+      for (uint32_t selected : {4u, 6u}) {
+        std::vector<uint32_t> ref(M * selected), got(M * selected);
+        std::vector<float> ref_weight(M * 4u), got_weight(M * 4u);
+        ASSERT_EQ(nntr_hvx_mm_u8i4_layer(handle_, M, K, &w.handle, 1, x.data(),
+                                         x.size(), logits.data(),
+                                         logits.size()),
+                  AEE_SUCCESS);
+        ASSERT_EQ(nntr_hvx_sigmoid_topk_f32(
+                    handle_, M, E, 4, selected, logits.data(), logits.size(),
+                    bias.data(), bias.size(), ref.data(), ref.size(),
+                    ref_weight.data(), ref_weight.size()),
+                  AEE_SUCCESS);
+        ASSERT_EQ(nntr_hvx_router_q4_prefill(
+                    handle_, M, K, E, w.handle, x.data(), x.size(), 4, selected,
+                    bias.data(), bias.size(), got.data(), got.size(),
+                    got_weight.data(), got_weight.size()),
+                  AEE_SUCCESS);
+        EXPECT_EQ(ref, got);
+        if (M == 2)
+          for (uint32_t r = 0; r < M; ++r)
+            for (uint32_t k = 0; k < selected; ++k)
+              EXPECT_EQ(got[r * selected + k], k);
+        EXPECT_EQ(0, std::memcmp(ref_weight.data(), got_weight.data(),
+                                 ref_weight.size() * sizeof(float)));
+      }
+    }
+    std::vector<float> x(K), weight(4);
+    std::vector<uint32_t> sel(6);
+    // Bounds must fail before scratch allocation or access to the weight.
+    EXPECT_NE(nntr_hvx_router_q4_prefill(handle_, 1, K, E, w.handle, x.data(),
+                                         x.size() - 1, 4, 6, bias.data(),
+                                         bias.size(), sel.data(), sel.size(),
+                                         weight.data(), weight.size()),
+              AEE_SUCCESS);
+    EXPECT_NE(nntr_hvx_router_q4_prefill(handle_, 1, K, E, UINT32_MAX, x.data(),
+                                         x.size(), 4, 6, bias.data(),
+                                         bias.size(), sel.data(), sel.size(),
+                                         weight.data(), weight.size()),
+              AEE_SUCCESS);
+    EXPECT_NE(nntr_hvx_router_q4_prefill(handle_, 1, K, E, w.handle, x.data(),
+                                         x.size(), 7, 6, bias.data(),
+                                         bias.size(), sel.data(), sel.size(),
+                                         weight.data(), weight.size()),
+              AEE_SUCCESS);
+    ASSERT_EQ(nntr_hvx_weight_release_u8i4(handle_, w.handle), AEE_SUCCESS);
+  }
+}
+
 TEST_F(HmxMmU8I4Layer, ThreeWeightsMatchPerWeightReference) {
   // A Q/K/V set: three weights, one shared activation, one call. The
   // shapes differ in N so a bug that assumes a uniform stride into
@@ -742,6 +1449,31 @@ TEST_F(HmxMmU8I4Layer, ThreeWeightsMatchPerWeightReference) {
     off += want.size();
   }
 
+  // The registered WH bytes are shared by prefill and decode.
+  // Sweep both cache policies and both row counts on actual DSP hardware.
+  for (uint32_t rows : {1u, M}) {
+    std::vector<float> reference(rows * n_total), fast(rows * n_total);
+    uint32_t applied = 0;
+    ASSERT_EQ(nntr_hvx_moe_set_opts(handle_, 0u, &applied), AEE_SUCCESS);
+    ASSERT_EQ(nntr_hvx_mm_u8i4_layer(handle_, rows, K, handles.data(), 3,
+                                     x.data(), rows * K, reference.data(),
+                                     reference.size()),
+              AEE_SUCCESS);
+    for (uint32_t flags :
+         {0x40000u, 0x40000u | htp_fc_opts_flags(nullptr, nullptr)}) {
+      ASSERT_EQ(nntr_hvx_moe_set_opts(handle_, flags, &applied), AEE_SUCCESS);
+      ASSERT_EQ(applied, flags);
+      ASSERT_EQ(nntr_hvx_mm_u8i4_layer(handle_, rows, K, handles.data(), 3,
+                                       x.data(), rows * K, fast.data(),
+                                       fast.size()),
+                AEE_SUCCESS);
+      EXPECT_EQ(
+        std::memcmp(reference.data(), fast.data(), fast.size() * sizeof(float)),
+        0)
+        << "rows=" << rows << " flags=" << flags;
+    }
+    ASSERT_EQ(nntr_hvx_moe_set_opts(handle_, 0u, &applied), AEE_SUCCESS);
+  }
   for (const auto &w : ws) {
     EXPECT_EQ(nntr_hvx_weight_release_u8i4(handle_, w.handle), AEE_SUCCESS);
   }
@@ -1011,6 +1743,19 @@ TEST_F(HmxMmU8I4Layer, FusedSwigluMatchesTwoCallReference) {
               << std::endl;
     EXPECT_GT(snr, 40.0)
       << "fused SwiGLU output below the u8 requantization floor, M=" << M;
+
+    uint32_t applied = 0;
+    ASSERT_EQ(nntr_hvx_moe_set_opts(handle_, 0x40000u, &applied), AEE_SUCCESS);
+    ASSERT_EQ(applied, 0x40000u);
+    std::vector<float> bypass(got.size());
+    ASSERT_EQ(nntr_hvx_mm_u8i4_layer_fused(handle_, M, K, handles, 2, x.data(),
+                                           x.size(), bypass.data(),
+                                           bypass.size()),
+              AEE_SUCCESS);
+    EXPECT_EQ(
+      std::memcmp(got.data(), bypass.data(), got.size() * sizeof(float)), 0)
+      << "fused weight DMA bypass M=" << M;
+    ASSERT_EQ(nntr_hvx_moe_set_opts(handle_, 0u, &applied), AEE_SUCCESS);
   } // M sweep
 
   EXPECT_EQ(nntr_hvx_weight_release_u8i4(handle_, gu.handle), AEE_SUCCESS);
@@ -1793,7 +2538,9 @@ TEST_F(HmxMmU8I4Layer, SwigluSurvivesExtremeNegativeGate) {
  * comfortably above the target so a device that can hold more still
  * terminates.
  */
-TEST_F(HmxMmU8I4Layer, RegistryCapacity) {
+// This probe deliberately exhausts the DSP heap and can reset the device.
+// Keep it opt-in via --gtest_also_run_disabled_tests and an explicit filter.
+TEST_F(HmxMmU8I4Layer, DISABLED_RegistryCapacity) {
   const uint32_t K = 2048, N = 3584; // gate_up: the model's largest weight
   Weight w;
   MakeAndRegister(K, N, 0xC0FFEEu, w);
@@ -2795,7 +3542,7 @@ TEST_F(HmxMmU8I4Layer, MoeLayerFromArenaMatchesHeap) {
   rfree(buf);
 }
 
-/* [#113] The moe_set_opts word for one cell of the (loop x lead) matrix:
+/** [#113] The moe_set_opts word for one cell of the (loop x lead) matrix:
    bit 0 takes the GEMV path, bit 7 makes bits [15:8] (the l2fetch lead in
    64 KB units) authoritative and bit 6 does the same for bit 16, the row
    loop (nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.h). One skel
@@ -2810,13 +3557,253 @@ static uint32_t MoeGemvOpts(uint32_t lead_kb, bool rows1, bool feed = false) {
          (rows1 ? 0x10000u : 0u) | (feed ? 0x20000u : 0u);
 }
 
-/* [#80] The M=1 GEMV path against the HMX block loop on silicon: the same
+/** [#80] The M=1 GEMV path against the HMX block loop on silicon: the same
    MoE layer call with moe_set_opts(0) and moe_set_opts(1), byte-compared.
    The host check (test/htp/host/moe_layer_host_check.c) holds the plumbing
    with scalar stand-ins; this is the one place the HVX GEMV's int32 and
    the HMX's are compared for real, through the same epilogues, and the
    weights are read from the arena as production reads them -- the mapping
    the GEMV's vector loads and l2fetch have never been measured against. */
+// Same palette weights through expanded int4 and compressed arena paths.
+TEST_F(HmxMmU8I4Layer, MoeCompactExpertsMatchExpanded) {
+  auto alloc =
+    (void *(*)(int, uint32_t, int))dlsym(RTLD_DEFAULT, "rpcmem_alloc");
+  auto rfree = (void (*)(void *))dlsym(RTLD_DEFAULT, "rpcmem_free");
+  auto to_fd = (int (*)(void *))dlsym(RTLD_DEFAULT, "rpcmem_to_fd");
+  using Map = int (*)(int, int, void *, int, size_t, int);
+  using Unmap = int (*)(int, int, void *, size_t);
+  auto map = (Map)dlsym(RTLD_DEFAULT, "fastrpc_mmap");
+  auto unmap = (Unmap)dlsym(RTLD_DEFAULT, "fastrpc_munmap");
+  ASSERT_TRUE(alloc && rfree && to_fd && map && unmap);
+  // Own the borrowed mapping through fatal assertions as well as success.
+  struct Arena {
+    remote_handle64 session;
+    void (*free_mem)(void *);
+    Unmap unmap;
+    void *data = nullptr;
+    int fd = -1;
+    size_t bytes = 0;
+    bool mapped = false;
+    uint32_t id = 0xFFFFFFFFu;
+    std::vector<uint32_t> handles;
+    ~Arena() {
+      for (auto h : handles)
+        nntr_hvx_weight_release_u8i4(session, h);
+      if (id != 0xFFFFFFFFu)
+        nntr_hvx_arena_detach(session, id);
+      if (mapped)
+        unmap(CDSP_DOMAIN_ID, fd, data, bytes);
+      if (data)
+        free_mem(data);
+    }
+  } arena{handle_, rfree, unmap};
+
+  const uint32_t K = 2048, I = 1536, N = 2048, E = 5;
+  auto stride = [](uint32_t k, uint32_t n) {
+    return round_up(
+      static_cast<uint32_t>(htp_qs2_lut_offset(k, n)) + k * n / 4u, 4096u);
+  };
+  const uint32_t gs = stride(K, 2 * I), ds = stride(I, N);
+  arena.bytes = E * (gs + ds);
+  arena.data = alloc(25, 0, static_cast<int>(arena.bytes));
+  ASSERT_NE(arena.data, nullptr);
+  arena.fd = to_fd(arena.data);
+  ASSERT_GE(arena.fd, 0);
+  ASSERT_EQ(map(CDSP_DOMAIN_ID, arena.fd, arena.data, 0, arena.bytes,
+                static_cast<int>(FASTRPC_MAP_FD)),
+            0);
+  arena.mapped = true;
+  ASSERT_EQ(nntr_hvx_arena_attach(handle_, arena.fd, arena.bytes, &arena.id),
+            AEE_SUCCESS);
+  auto *base = static_cast<uint8_t *>(arena.data);
+  std::vector<uint32_t> g4(E), d4(E), g2(E), d2(E), og(E, 0xFFFFFFFFu), od(og),
+    ar(E, arena.id), go(E), down(E);
+  for (uint32_t e = 0; e < E; ++e) {
+    go[e] = e * (gs + ds);
+    down[e] = go[e] + gs;
+  }
+  for (uint32_t generation = 0; generation < 5; ++generation) {
+    // Change palettes and codes while rebinding the same handles.
+    auto fill = [&](uint32_t k, uint32_t n, uint32_t off, uint32_t seed,
+                    uint32_t &h) {
+      const int8_t palettes[4][4] = {
+        {-8, -3, 1, 7}, {-7, -1, 2, 6}, {-8, 0, 3, 5}, {-4, -2, 1, 7}};
+      const int8_t *pal = palettes[(seed + generation) % 4];
+      const size_t compact = static_cast<size_t>(k) * n / 4u;
+      std::vector<uint8_t> codes(compact), wh(compact * 2);
+      for (size_t i = 0; i < compact; ++i) {
+        seed = seed * 1664525u + 1013904223u;
+        codes[i] = static_cast<uint8_t>(seed >> 24);
+      }
+      EXPECT_TRUE(nntrainer::wh2Expand(codes.data(), pal, k, n, wh.data()));
+      std::vector<int8_t> rm(static_cast<size_t>(k) * n);
+      nntrainer::whUnpack(wh.data(), k, n, rm.data());
+      std::vector<float> scales(n), bias(n, 0);
+      std::vector<int32_t> sums(n, 0);
+      for (uint32_t j = 0; j < n; ++j)
+        scales[j] = 0.002f * (1u + j % 7u);
+      for (uint32_t r = 0; r < k; ++r)
+        for (uint32_t j = 0; j < n; ++j)
+          sums[j] += rm[static_cast<size_t>(r) * n + j];
+      ASSERT_EQ(nntr_hvx_weight_register_u8i4(
+                  handle_, k, n, rm.data(), rm.size(), scales.data(), n,
+                  sums.data(), n, bias.data(), n, &h),
+                AEE_SUCCESS);
+      arena.handles.push_back(h);
+      std::memcpy(base + off, codes.data(), compact);
+      std::memcpy(base + off + compact, scales.data(), 4u * n);
+      std::memcpy(base + off + compact + 4u * n, sums.data(), 4u * n);
+      std::memcpy(base + off + compact + 8u * n, pal, 4);
+      uint8_t *prepared =
+        generation == 3 ? base + off : base + off + htp_qs2_lut_offset(k, n);
+      // Independent encoder, using the existing compact-WH coordinates.
+      for (uint32_t kt = 0; kt < k / 32u; ++kt)
+        for (uint32_t nt = 0; nt < n / 128u; ++nt)
+          for (uint32_t t = 0; t < 8u; ++t)
+            for (uint32_t j = 0; j < 128u; ++j) {
+              const uint32_t col = nt * 128u + (j % 4u) * 32u + j / 4u;
+              uint8_t value = 0;
+              for (uint32_t h = 0; h < 4u; ++h) {
+                const uint32_t r = 2u * t + h % 2u + h / 2u * 16u;
+                const uint32_t old = r / 8u * 128u + col % 32u * 4u + r % 4u;
+                const size_t index =
+                  ((size_t)kt * (n / 32u) + col / 32u) * 256u +
+                  old / 256u * 128u + old % 128u;
+                const uint32_t shift = 2u * (r / 4u % 2u) + 4u * (r / 8u % 2u);
+                value |= ((codes[index] >> shift) & 3u) << (2u * h);
+              }
+              prepared[((size_t)kt * (n / 128u) + nt) * 1024u + t * 128u + j] =
+                value;
+            }
+    };
+    for (uint32_t e = 0; e < E; ++e) {
+      ASSERT_NO_FATAL_FAILURE(fill(K, 2 * I, go[e], 19 + e, g4[e]));
+      ASSERT_NO_FATAL_FAILURE(fill(I, N, down[e], 31 + e, d4[e]));
+    }
+    uint32_t done = 0;
+    int32_t err = -1;
+    ASSERT_EQ((generation == 3   ? nntr_hvx_weight_swap_batch_u2lut_single_arena
+               : generation == 1 ? nntr_hvx_weight_swap_batch_u2lut_arena
+                                 : nntr_hvx_weight_swap_batch_u2i4_arena)(
+                handle_, K, I, N, og.data(), E, od.data(), E, ar.data(), E,
+                go.data(), E, down.data(), E, g2.data(), E, d2.data(), E, &done,
+                &err),
+              AEE_SUCCESS);
+    ASSERT_EQ(err, AEE_SUCCESS);
+    ASSERT_EQ(done, E);
+    if (generation == 0) {
+      arena.handles.insert(arena.handles.end(), g2.begin(), g2.end());
+      arena.handles.insert(arena.handles.end(), d2.begin(), d2.end());
+    } else {
+      EXPECT_EQ(g2, og);
+      EXPECT_EQ(d2, od);
+    }
+    og = g2;
+    od = d2;
+    // Reject a bad second weight before changing either retired handle.
+    const size_t dp = down[0] + static_cast<size_t>(I) * N / 4u + 8u * N;
+    const uint8_t saved = base[dp];
+    base[dp] = 9;
+    uint32_t unused_g, unused_d;
+    EXPECT_NE(nntr_hvx_weight_swap_u2i4_arena(handle_, g2[0], d2[0], K, I, N,
+                                              arena.id, go[0], down[0],
+                                              &unused_g, &unused_d),
+              AEE_SUCCESS);
+    EXPECT_NE(nntr_hvx_weight_swap_u2lut_single_arena(
+                handle_, g2[0], d2[0], K, I, N, arena.id, go[0], down[0],
+                &unused_g, &unused_d),
+              AEE_SUCCESS);
+    base[dp] = saved;
+    EXPECT_NE(nntr_hvx_weight_swap_u2lut_single_arena(
+                handle_, g2[0], d2[0], K, I, N, arena.id, go[0], go[0],
+                &unused_g, &unused_d),
+              AEE_SUCCESS);
+    EXPECT_NE(nntr_hvx_weight_swap_u2lut_arena(handle_, g2[0], d2[0], K, I, N,
+                                               arena.id, go[0], go[0],
+                                               &unused_g, &unused_d),
+              AEE_SUCCESS);
+
+    for (uint32_t M : {1u, 4u, 65u, 193u}) {
+      std::vector<uint32_t> count(E, M), index(E * M);
+      std::vector<float> weights(E * M, 0.2f), act(static_cast<size_t>(M) * K);
+      for (size_t j = 0; j < index.size(); ++j)
+        index[j] = j % M;
+      if (M == 193u) {
+        // Empty, one-block, and multi-block experts in the same pipeline.
+        count = {193u, 0u, 1u, 65u, 129u};
+        index.clear();
+        for (uint32_t e = 0; e < E; ++e)
+          for (uint32_t j = 0; j < count[e]; ++j)
+            index.push_back((j + 17u * e) % M);
+        weights.assign(index.size(), 0.2f);
+      }
+      fill_deterministic(act, 987u + M);
+      auto run = [&](const std::vector<uint32_t> &gh,
+                     const std::vector<uint32_t> &dh, uint32_t flags,
+                     std::vector<float> &out) {
+        uint32_t applied;
+        EXPECT_EQ(nntr_hvx_moe_set_opts(handle_, flags, &applied), AEE_SUCCESS);
+        EXPECT_EQ(applied, flags);
+        out.assign(static_cast<size_t>(M) * N, 0);
+        return nntr_hvx_mm_u8i4_moe_layer(
+          handle_, M, K, I, N, 0, gh.data(), E, dh.data(), E, index.data(),
+          index.size(), count.data(), E, weights.data(), weights.size(),
+          act.data(), act.size(), out.data(), out.size());
+      };
+      for (uint32_t flags :
+           {0u, MoeGemvOpts(0, true, true),
+            MoeGemvOpts(0, false, true) | 0x40000u, MoeGemvOpts(0, true, false),
+            MoeGemvOpts(0, true, true) | htp_qs2_gemv_flags("1"),
+            MoeGemvOpts(0, true, true) | htp_qs2_gemv_flags("2"),
+            MoeGemvOpts(0, true, false) | htp_qs2_gemv_flags("2"),
+            MoeGemvOpts(0, true, true) | htp_qs2_gemv_flags("3"),
+            MoeGemvOpts(0, true, true) | htp_qs2_gemv_flags("4"),
+            MoeGemvOpts(0, true, false) | htp_qs2_gemv_flags("4"),
+            MoeGemvOpts(0, true, true) | htp_qs2_gemv_flags("5"),
+            MoeGemvOpts(0, true, false) | htp_qs2_gemv_flags("5"),
+            MoeGemvOpts(0, true, true) | htp_qs2_gemv_flags("6"),
+            MoeGemvOpts(0, true, true) | htp_qs2_gemv_flags("7"),
+            MoeGemvOpts(0, true, false) | htp_qs2_gemv_flags("7")}) {
+        std::vector<float> ref, got;
+        ASSERT_EQ(run(g4, d4, flags, ref), AEE_SUCCESS);
+        // Prove mode 7 reads the appended image, rather than silently
+        // falling back to repacking WH. Only corrupt the unused WH codes;
+        // restore them before any prefill/fallback call.
+        const bool offline =
+          generation == 1 && M == 1u &&
+          (flags & HTP_QS2_GEMV_MASK) == htp_qs2_gemv_flags("7") &&
+          (flags & 0x20000u);
+        auto toggle_wh = [&] {
+          for (size_t i = 0; i < static_cast<size_t>(K) * 2u * I / 4u; ++i)
+            base[go[0] + i] ^= 0xffu;
+        };
+        if (offline)
+          toggle_wh();
+        const int got_rc = run(g2, d2, flags, got);
+        if (offline)
+          toggle_wh();
+        ASSERT_EQ(got_rc, AEE_SUCCESS);
+        EXPECT_EQ(
+          std::memcmp(ref.data(), got.data(), ref.size() * sizeof(float)), 0)
+          << "M=" << M << " flags=" << flags << " generation=" << generation;
+        if (generation == 3) {
+          // A QS4 expert alongside single-layout QS2 must take the safe
+          // expansion fallback, including when mode 7 was requested.
+          auto mixed_g = g2, mixed_d = d2;
+          mixed_g[0] = g4[0];
+          mixed_d[0] = d4[0];
+          ASSERT_EQ(run(mixed_g, mixed_d, flags, got), AEE_SUCCESS);
+          EXPECT_EQ(
+            std::memcmp(ref.data(), got.data(), ref.size() * sizeof(float)), 0)
+            << "mixed M=" << M << " flags=" << flags;
+        }
+      }
+    }
+  }
+  uint32_t applied;
+  EXPECT_EQ(nntr_hvx_moe_set_opts(handle_, 0, &applied), AEE_SUCCESS);
+}
+
 TEST_F(HmxMmU8I4Layer, MoeLayerM1GemvMatchesHmx) {
   const uint32_t K = 2048, I = 1792, N = 2048, NE = 4;
   MoeExperts x;
@@ -2906,7 +3893,7 @@ TEST_F(HmxMmU8I4Layer, MoeLayerM1GemvMatchesHmx) {
   ReleaseMoeExperts(x);
 }
 
-/* [#105] Where the M=1 GEMV's time goes: three cells through the same
+/** [#105] Where the M=1 GEMV's time goes: three cells through the same
    timed MoE layer call (moe_set_opts(1), M = 1, four experts, one warm-up
    + 20 reps). "arena" reads the production mapping (uncached rpcmem),
    "heap" the same experts' DSP-heap copies (cached), "hot" a small pair
@@ -3047,7 +4034,8 @@ TEST_F(HmxMmU8I4Layer, MoeM1GemvFeedVsCompute) {
   ReleaseMoeExperts(x);
 }
 
-TEST_F(HmxMmU8I4Layer, MemoryCeilings) {
+// Like RegistryCapacity, this exhausts device memory and requires opt-in.
+TEST_F(HmxMmU8I4Layer, DISABLED_MemoryCeilings) {
   const double need_gb = 4.10;
 
   // --- 1. the DSP's own heap, no payload -------------------------------
@@ -3412,7 +4400,8 @@ TEST_F(HmxMmU8I8Layer, ReportPerCallCostVsU8I4) {
  * Allocates and frees every buffer it takes; at 256 MiB a step it holds the
  * whole mapping budget at once, which is the point.
  */
-TEST_F(HmxMmU8I4Layer, ArenaCeilingThenHeapHeadroom) {
+// This fills both the mapping budget and the DSP heap; never run by default.
+TEST_F(HmxMmU8I4Layer, DISABLED_ArenaCeilingThenHeapHeadroom) {
   auto field = [](const char *k, const std::string &v) {
     std::cout << "U8I4_FIELD path=ceiling field=" << k << " value=" << v
               << "\n";

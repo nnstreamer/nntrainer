@@ -48,6 +48,10 @@
 #include <cstddef>
 #include <cstdint>
 
+#if defined(__aarch64__)
+#include <arm_neon.h>
+#endif
+
 namespace nntrainer {
 
 /** @brief Side of one WH tile, in weights. HEXKL_HMX_INT8_BLOCK_N_INNER and
@@ -124,6 +128,49 @@ inline void whUnpack(const uint8_t *wh, uint32_t K, uint32_t N, int8_t *rm) {
       }
     }
   }
+}
+
+/**
+ * @brief Expand palette-coded 2-bit WH tiles into signed i4 WH tiles.
+ *
+ * Four indices share a byte. Each 128-byte plane contains the low nibbles'
+ * two indices in bits 0..3 and the next i4 plane's indices in bits 4..7.
+ * The palette is per weight, shared by all tiles; scales are unchanged.
+ * This is a lossless layout conversion, not a second quantization.
+ * @return false for an invalid shape or a palette outside signed int4.
+ */
+inline bool wh2Expand(const uint8_t *packed, const int8_t *palette, uint32_t K,
+                      uint32_t N, uint8_t *out) {
+  if (!packed || !palette || !out || !K || !N || K % 32u || N % 32u)
+    return false;
+  for (unsigned int i = 0; i < 4; ++i)
+    if (palette[i] < -8 || palette[i] > 7)
+      return false;
+  uint8_t pairs[16];
+  for (unsigned int i = 0; i < 16; ++i)
+    pairs[i] = static_cast<uint8_t>((palette[i & 3u] & 15) |
+                                    ((palette[i >> 2u] & 15) << 4));
+#if defined(__aarch64__)
+  const uint8x16_t table = vld1q_u8(pairs);
+#endif
+  const size_t planes = whBytes(K, N) / 256u;
+  for (size_t plane = 0; plane < planes; ++plane) {
+    const uint8_t *src = packed + plane * 128u;
+    uint8_t *dst = out + plane * 256u;
+#if defined(__aarch64__)
+    for (size_t i = 0; i < 128u; i += 16u) {
+      const uint8x16_t value = vld1q_u8(src + i);
+      vst1q_u8(dst + i, vqtbl1q_u8(table, vandq_u8(value, vdupq_n_u8(15))));
+      vst1q_u8(dst + 128u + i, vqtbl1q_u8(table, vshrq_n_u8(value, 4)));
+    }
+#else
+    for (size_t i = 0; i < 128u; ++i) {
+      dst[i] = pairs[src[i] & 15u];
+      dst[128u + i] = pairs[src[i] >> 4u];
+    }
+#endif
+  }
+  return true;
 }
 
 /**

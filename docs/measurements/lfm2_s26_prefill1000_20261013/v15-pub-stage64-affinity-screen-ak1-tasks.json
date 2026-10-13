@@ -1,0 +1,202 @@
+{
+  "pid": "23271",
+  "phase": "after staging ACTIVE marker; diagnostic observer",
+  "tasks": [
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23271",
+      "Cpus_allowed": "40",
+      "Cpus_allowed_list": "6"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23273",
+      "Cpus_allowed": "40",
+      "Cpus_allowed_list": "6"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23274",
+      "Cpus_allowed": "40",
+      "Cpus_allowed_list": "6"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23275",
+      "Cpus_allowed": "40",
+      "Cpus_allowed_list": "6"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23276",
+      "Cpus_allowed": "40",
+      "Cpus_allowed_list": "6"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23277",
+      "Cpus_allowed": "40",
+      "Cpus_allowed_list": "6"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23278",
+      "Cpus_allowed": "40",
+      "Cpus_allowed_list": "6"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23279",
+      "Cpus_allowed": "40",
+      "Cpus_allowed_list": "6"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23280",
+      "Cpus_allowed": "40",
+      "Cpus_allowed_list": "6"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23283",
+      "Cpus_allowed": "40",
+      "Cpus_allowed_list": "6"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23284",
+      "Cpus_allowed": "40",
+      "Cpus_allowed_list": "6"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23285",
+      "Cpus_allowed": "40",
+      "Cpus_allowed_list": "6"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23286",
+      "Cpus_allowed": "40",
+      "Cpus_allowed_list": "6"
+    },
+    {
+      "Name": "POSIX timer 0",
+      "Tgid": "23271",
+      "Pid": "23297",
+      "Cpus_allowed": "40",
+      "Cpus_allowed_list": "6"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23329",
+      "Cpus_allowed": "bf",
+      "Cpus_allowed_list": "0-5,7"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23330",
+      "Cpus_allowed": "bf",
+      "Cpus_allowed_list": "0-5,7"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23331",
+      "Cpus_allowed": "bf",
+      "Cpus_allowed_list": "0-5,7"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23332",
+      "Cpus_allowed": "bf",
+      "Cpus_allowed_list": "0-5,7"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23333",
+      "Cpus_allowed": "bf",
+      "Cpus_allowed_list": "0-5,7"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23334",
+      "Cpus_allowed": "bf",
+      "Cpus_allowed_list": "0-5,7"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23335",
+      "Cpus_allowed": "bf",
+      "Cpus_allowed_list": "0-5,7"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23336",
+      "Cpus_allowed": "80",
+      "Cpus_allowed_list": "7"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23337",
+      "Cpus_allowed": "01",
+      "Cpus_allowed_list": "0"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23338",
+      "Cpus_allowed": "02",
+      "Cpus_allowed_list": "1"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23339",
+      "Cpus_allowed": "04",
+      "Cpus_allowed_list": "2"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23340",
+      "Cpus_allowed": "08",
+      "Cpus_allowed_list": "3"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23341",
+      "Cpus_allowed": "10",
+      "Cpus_allowed_list": "4"
+    },
+    {
+      "Name": "nntrainer_causa",
+      "Tgid": "23271",
+      "Pid": "23342",
+      "Cpus_allowed": "20",
+      "Cpus_allowed_list": "5"
+    }
+  ]
+}

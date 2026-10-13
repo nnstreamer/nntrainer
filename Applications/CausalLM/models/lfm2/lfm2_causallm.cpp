@@ -12,8 +12,11 @@
  */
 
 #include "lfm2_causallm.h"
+#include "htp_strict.h"
 #include <app_context.h>
 #include <engine.h>
+#include <generation_prefill_tail.h>
+#include <lfm2_moe_causallm.h>
 #include <llm_util.hpp>
 #include <model.h>
 #include <tensor_api.h>
@@ -21,9 +24,11 @@
 #include <algorithm>
 #include <chrono>
 #include <cpu_backend.h>
+#include <cstdio>
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
+#include <typeinfo>
 
 #include <causal_conv1d_layer.h>
 #include <conv_block_layer.h>
@@ -91,6 +96,13 @@ Tensor Lfm2Transformer::createAttention(const int layer_id, int seq_len,
   const std::string eng =
     projEngine(ATTN_PROJ_ENGINE, ATTN_PROJ_HTP_LAYERS, layer_id);
 
+  // Multi-row calls can rotate Q/K in the existing projection epilogue.
+  // Single-row decode retains its combined RoPE/KV conversion call.
+  const char *fuse_rope = std::getenv("NNTR_HTP_PREFILL_ROPE_FUSION");
+  const bool prefill_rope = htpStrictFusion() && eng == "htp" &&
+                            head_dim % 64 == 0 && fuse_rope &&
+                            std::atoi(fuse_rope) != 0;
+
   // q, k, v and the per-head q_norm / k_norm as one layer (qkv_layer,
   // doc 51 section 2.21): the three projections share one activation, so
   // an accelerator takes them as one call instead of three that each
@@ -103,7 +115,11 @@ Tensor Lfm2Transformer::createAttention(const int layer_id, int seq_len,
      withKey("q_unit", head_dim * n_heads),
      withKey("k_unit", head_dim * n_heads / GQA_SIZE),
      withKey("v_unit", head_dim * n_heads / GQA_SIZE),
+     withKey("weight_dtype", FC_LAYER_DTYPE),
      withKey("feature_size", std::to_string(head_dim)),
+     withKey("prefill_rope_fused", prefill_rope ? "true" : "false"),
+     withKey("rope_theta", ROPE_THETA),
+     withKey("max_timestep", std::to_string(MAX_SEQ_LEN)),
      withKey("epsilon", std::to_string(NORM_EPS)), withKey("engine", eng)}));
   Tensor qkv_out = qkv(query);
   Tensor q_normed = qkv_out.output(0);
@@ -118,6 +134,7 @@ Tensor Lfm2Transformer::createAttention(const int layer_id, int seq_len,
   LayerHandle mha(createAttentionCore(
     {withKey("name", "layer" + std::to_string(layer_id) + "_attention"),
      withKey("num_heads", n_heads), withKey("num_heads_kv", n_heads / GQA_SIZE),
+     withKey("prefill_rope_fused", prefill_rope ? "true" : "false"),
      withKey("max_timestep", std::to_string(MAX_SEQ_LEN)),
      withKey("sliding_window", SLIDING_WINDOW),
      withKey("rope_theta", ROPE_THETA),
@@ -131,6 +148,7 @@ Tensor Lfm2Transformer::createAttention(const int layer_id, int seq_len,
     "fully_connected",
     {withKey("name", "layer" + std::to_string(layer_id) + "_attention_out"),
      withKey("unit", DIM), withKey("disable_bias", "true"),
+     withKey("weight_dtype", FC_LAYER_DTYPE),
      withKey("weight_initializer", "ones"), withKey("engine", eng)}));
   return wo(a);
 }
@@ -141,11 +159,12 @@ Tensor Lfm2Transformer::createConvBlock(const int layer_id, Tensor input) {
 
   // Pre-conv normalization
   // Input/output: [B, 1, T, DIM]
-  LayerHandle conv_norm(
-    createLayer("rms_norm", {withKey("name", prefix + "_conv_norm"),
-                             withKey("epsilon", std::to_string(NORM_EPS)),
-                             withKey("packed", "false")}));
-  Tensor normed = conv_norm(input);
+  LayerHandle conv_norm(createLayer(
+    "rms_norm", {withKey("name", prefix + "_conv_norm"),
+                 withKey("defer_consumer", htpStrict() ? "conv" : "none"),
+                 withKey("epsilon", std::to_string(NORM_EPS)),
+                 withKey("packed", "false")}));
+  Tensor normed = normalizeBlockInput(conv_norm, input);
 
   // The block as one layer when conv_block_engine routes it (doc 51
   // section 2): in_proj, both gates, the conv and out_proj in one
@@ -156,20 +175,39 @@ Tensor Lfm2Transformer::createConvBlock(const int layer_id, Tensor input) {
   if (block_eng != "cpu" || htpForwardSwitch()) {
     LayerHandle conv_block(createLayer(
       "conv_block", {withKey("name", prefix + "_conv_block"),
+                     withKey("weight_dtype", FC_LAYER_DTYPE),
                      withKey("unit", CONV_DIM), withKey("engine", block_eng)}));
     Tensor block_out = conv_block(normed);
     // [#132] the residual first, the addend second (residual_add's
     // operand order; "addition" unless NNTR_HTP_FORWARD)
     LayerHandle add_b(
       createLayer(RESIDUAL_ADD_TYPE, {withKey("name", prefix + "_conv_add")}));
-    Tensor residual_b = add_b({input, block_out});
-    LayerHandle ffn_norm_b(
-      createLayer("rms_norm", {withKey("name", prefix + "_ffn_norm"),
-                               withKey("epsilon", std::to_string(NORM_EPS)),
-                               withKey("packed", "false")}));
-    Tensor ffn_normed_b = ffn_norm_b(residual_b);
+    Tensor residual_b;
+    if (!htpAddNormFusion())
+      residual_b = add_b({input, block_out});
+    LayerHandle ffn_norm_b(createLayer(
+      "rms_norm",
+      {withKey("name", prefix + "_ffn_norm"),
+       withKey("defer_consumer", htpStrictFusion() && fuseMoeInputNorm(layer_id)
+                                   ? "router"
+                                   : "none"),
+       withKey("epsilon", std::to_string(NORM_EPS)),
+       withKey("packed", "false")}));
+    Tensor ffn_normed_b;
+    if (htpAddNormFusion()) {
+      Tensor fused = ffn_norm_b({input, block_out});
+      ffn_normed_b = fused.output(0);
+      residual_b = fused.output(1);
+    } else {
+      ffn_normed_b = ffn_norm_b(residual_b);
+    }
     Tensor ffn_out_b =
       createMlp(layer_id, DIM, INTERMEDIATE_SIZE, ffn_normed_b);
+    if (defer_block_residual_) {
+      block_residual_ = residual_b;
+      has_block_residual_ = true;
+      return ffn_out_b;
+    }
     LayerHandle add_ffn_b(
       createLayer(RESIDUAL_ADD_TYPE, {withKey("name", prefix + "_ffn_add")}));
     return add_ffn_b({residual_b, ffn_out_b});
@@ -181,7 +219,7 @@ Tensor Lfm2Transformer::createConvBlock(const int layer_id, Tensor input) {
   LayerHandle conv_in_proj(createLayer(
     "fully_connected",
     {withKey("name", prefix + "_conv_in_proj"), withKey("unit", 3 * CONV_DIM),
-     withKey("disable_bias", "true"),
+     withKey("weight_dtype", FC_LAYER_DTYPE), withKey("disable_bias", "true"),
      withKey("engine", projEngine(CONV_IN_PROJ_ENGINE, CONV_IN_PROJ_HTP_LAYERS,
                                   layer_id))}));
   Tensor proj_out = conv_in_proj(normed);
@@ -220,7 +258,7 @@ Tensor Lfm2Transformer::createConvBlock(const int layer_id, Tensor input) {
   LayerHandle conv_out_proj(createLayer(
     "fully_connected",
     {withKey("name", prefix + "_conv_out_proj"), withKey("unit", DIM),
-     withKey("disable_bias", "true"),
+     withKey("weight_dtype", FC_LAYER_DTYPE), withKey("disable_bias", "true"),
      withKey("engine", projEngine(CONV_OUT_PROJ_ENGINE,
                                   CONV_OUT_PROJ_HTP_LAYERS, layer_id))}));
   Tensor proj_back = conv_out_proj(gated_out);
@@ -378,6 +416,38 @@ void Lfm2Transformer::setupLfm2Parameters(json &cfg, json &generation_cfg,
     FFN_ENGINE = nntr_cfg.value("dense_ffn_engine", std::string("cpu"));
     FFN_HTP_LAYERS =
       parseLayerIdList(nntr_cfg.value("dense_ffn_htp_layers", std::string("")));
+    if (htpStrict()) {
+      (void)htpStrictOps();
+      for (const char *name :
+           {"NNTR_MOE_DIFF", "NNTR_MOE_SHADOW", "NNTR_L2_DIFF",
+            "NNTR_L2_SHADOW", "NNTR_CONV_BLOCK_DIFF", "NNTR_CONV_BLOCK_SHADOW"})
+        if (std::getenv(name))
+          throw std::invalid_argument(
+            std::string("NNTR_HTP_STRICT forbids CPU diagnostics: ") + name);
+      if (htpForwardSwitch() || nntr_cfg.value("batch_size", 1) != 1 ||
+          (!ATTENTION_KV_DTYPE.empty() && ATTENTION_KV_DTYPE != "q8") ||
+          FC_LAYER_DTYPE != "QS4CX_WH" ||
+          nntr_cfg.value("lmhead_dtype", std::string()) != "Q4_0" ||
+          !TIE_WORD_EMBEDDINGS ||
+          nntr_cfg.value("model_tensor_type", std::string()) != "QS4CX-FP32")
+        throw std::invalid_argument(
+          "NNTR_HTP_STRICT requires QS4CX_WH/FP32 LFM2 with tied Q4_0 head "
+          "and FP16 or q8 KV cache; "
+          "disable NNTR_HTP_FORWARD and NNTR_HTP_E2E");
+      RESIDUAL_ADD_TYPE = "residual_add";
+      ATTN_PROJ_ENGINE = CONV_IN_PROJ_ENGINE = CONV_OUT_PROJ_ENGINE =
+        CONV_BLOCK_ENGINE = FFN_ENGINE = ATTENTION_ENGINE = "htp";
+      ATTN_PROJ_HTP_LAYERS.clear();
+      CONV_IN_PROJ_HTP_LAYERS.clear();
+      CONV_OUT_PROJ_HTP_LAYERS.clear();
+      CONV_BLOCK_HTP_LAYERS.clear();
+      FFN_HTP_LAYERS.clear();
+      std::fprintf(
+        stderr,
+        "[HTP STRICT] LFM2 prefill/decode math on HTP, LM head on %s; "
+        "embedding, sampling and expert loading remain on host\n",
+        htpCpuLmHead() ? "CPU" : "HTP");
+    }
   } catch (const std::exception &e) {
     throw std::runtime_error(
       std::string("Lfm2Transformer: config parsing error: ") + e.what());
@@ -385,6 +455,11 @@ void Lfm2Transformer::setupLfm2Parameters(json &cfg, json &generation_cfg,
 }
 
 std::pair<Tensor, Tensor> Lfm2CausalLM::constructModel() {
+
+  const char *cross_norm = std::getenv("NNTR_HTP_BLOCK_NORM_FUSION");
+  defer_block_residual_ =
+    htpAddNormFusion() && (!cross_norm || std::atoi(cross_norm) != 0);
+  has_block_residual_ = false;
 
   Tensor input_tensor;
   Tensor x;
@@ -434,7 +509,8 @@ std::pair<Tensor, Tensor> Lfm2CausalLM::constructModel() {
     createLayer("rms_norm", {withKey("name", "output_norm"),
                              withKey("epsilon", std::to_string(NORM_EPS)),
                              withKey("packed", "false")}));
-  Tensor norm_out = output_norm(x);
+  Tensor norm_out = normalizeBlockInput(output_norm, x);
+  defer_block_residual_ = false;
 
   // LM head
   const std::string lmhead_type =
@@ -499,6 +575,49 @@ void Lfm2CausalLM::run(const WSTR prompt, bool do_sample,
                        const WSTR system_prompt, const WSTR tail_prompt,
                        bool log_output) {
   if (!USE_EMBEDDING) {
+    // Only this generation entry point consumes the terminal last row. Keep
+    // graph dimensions and the full final Conv/cache update intact, and select
+    // the suffix by its actual layer contract rather than changing
+    // architecture.
+    const std::string prefix = "layer" + std::to_string(NUM_LAYERS - 1);
+    const auto *moe = dynamic_cast<const Lfm2MoeCausalLM *>(this);
+    bool tail_graph =
+      GenerationPrefillTailScope::requestedRows() &&
+      !GenerationPrefillTailScope::diagnostics() && is_initialized && model &&
+      typeid(*this) == typeid(Lfm2MoeCausalLM) && moe && NUM_LAYERS > 0 &&
+      BATCH_SIZE == 1 && !do_sample && !SKIP_PREFILL && !USE_KVCACHE &&
+      !logits_processor && htpStrict() &&
+      layer_types_.size() == static_cast<size_t>(NUM_LAYERS) &&
+      layer_types_.back() == "conv" && moe->fuseMoeInputNorm(NUM_LAYERS - 1);
+    if (tail_graph) {
+      unsigned contract = 0;
+      model->forEachLayer(
+        [&](ml::train::Layer &layer, nntrainer::RunLayerContext &context,
+            void *) {
+          const std::string name = layer.getName();
+          if (name == prefix + "_conv_block" && layer.getType() == "conv_block")
+            contract |= 1u;
+          if (name == prefix + "_ffn_norm" && layer.getType() == "rms_norm" &&
+              context.getNumInputs() == 2 && context.getNumOutputs() == 2)
+            contract |= 2u;
+          if (name == prefix + "_ffn_down" && layer.getType() == "lfm2_moe" &&
+              context.getNumInputs() == 1 && context.getNumOutputs() == 1 &&
+              context.getNumWeights() >= 4 &&
+              context.getNumWeights() % 2 == 0 &&
+              generationPrefillTailFitsExpertPool(
+                (context.getNumWeights() - 2) / 2))
+            contract |= 4u;
+          if (name == "output_norm" && layer.getType() == "rms_norm" &&
+              context.getNumInputs() == 2 && context.getNumOutputs() == 2)
+            contract |= 8u;
+        },
+        nullptr);
+      tail_graph = contract == 15u;
+    }
+    GenerationPrefillTailScope tail_scope(prefix, tail_graph);
+    if (generationPrefillTailState().rows)
+      std::fprintf(stderr, "[LFM2-TAIL] rows=%u terminal_layer=%d\n",
+                   generationPrefillTailState().rows, NUM_LAYERS - 1);
     CausalLM::run(prompt, do_sample, system_prompt, tail_prompt, log_output);
     return;
   }

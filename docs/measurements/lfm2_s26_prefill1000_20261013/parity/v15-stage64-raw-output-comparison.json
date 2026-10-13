@@ -1,0 +1,11 @@
+{
+  "baseline": "/home/jungone-lee/workspace/nntrainer/docs/measurements/lfm2_s26_prefill1000_20261013/parity/dumps-baseline-v1",
+  "candidate": "/home/jungone-lee/workspace/nntrainer/docs/measurements/lfm2_s26_prefill1000_20261013/parity/dumps-v15-stage64",
+  "files": 132,
+  "different": [],
+  "exact": true,
+  "host_staging_requested": 64,
+  "host_staging_read": 64,
+  "host_staging_consumed": 64,
+  "scope": "Cumulative v15 with timed 64-expert ordinary-memory staging. Raw 65 logits and tokens, prompt and manifest compared byte for byte."
+}

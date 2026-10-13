@@ -26,31 +26,33 @@ typedef struct {
   uint32_t M, n, ld, hd;
 } rows_ctx;
 
+void hvx_rope_row_f32(float *x, uint32_t n, uint32_t hd, const float *cs) {
+  const uint32_t half = hd / 2u;
+  const uint32_t nvec = half / LANES;
+  const uint32_t n_heads = n / hd;
+  const HVX_UVector *vc = (const HVX_UVector *)cs;
+  const HVX_UVector *vs = (const HVX_UVector *)(cs + hd);
+  for (uint32_t h = 0; h < n_heads; ++h) {
+    float *head = x + (size_t)h * hd;
+    HVX_UVector *va = (HVX_UVector *)head;
+    HVX_UVector *vb = (HVX_UVector *)(head + half);
+    for (uint32_t k = 0; k < nvec; ++k) {
+      const HVX_Vector a = va[k], b = vb[k];
+      va[k] = Q6_Vsf_vsub_VsfVsf(Q6_Vsf_vmpy_VsfVsf(a, vc[k]),
+                                 Q6_Vsf_vmpy_VsfVsf(b, vs[k]));
+      vb[k] = Q6_Vsf_vadd_VsfVsf(Q6_Vsf_vmpy_VsfVsf(a, vs[k]),
+                                 Q6_Vsf_vmpy_VsfVsf(b, vc[k]));
+    }
+  }
+}
+
 static void rows_worker(uint32_t n_threads, uint32_t i, void *v) {
   const rows_ctx *c = (const rows_ctx *)v;
   const uint32_t lo = (uint32_t)(((uint64_t)c->M * i) / n_threads);
   const uint32_t hi = (uint32_t)(((uint64_t)c->M * (i + 1u)) / n_threads);
-  const uint32_t half = c->hd / 2u;
-  const uint32_t nvec = half / LANES;
-  const uint32_t n_heads = c->n / c->hd;
   for (uint32_t r = lo; r < hi; ++r) {
-    const HVX_UVector *vc = (const HVX_UVector *)(c->cs + (size_t)r * 2u * c->hd);
-    const HVX_UVector *vs =
-      (const HVX_UVector *)(c->cs + (size_t)r * 2u * c->hd + c->hd);
-    for (uint32_t h = 0; h < n_heads; ++h) {
-      float *head = c->x + (size_t)r * c->ld + (size_t)h * c->hd;
-      HVX_UVector *va = (HVX_UVector *)head;
-      HVX_UVector *vb = (HVX_UVector *)(head + half);
-      for (uint32_t k = 0; k < nvec; ++k) {
-        const HVX_Vector a = va[k], b = vb[k];
-        /* a*cos - b*sin and a*sin + b*cos, each product rounded once as
-           the CPU's (no fused multiply-add there either) */
-        va[k] = Q6_Vsf_vsub_VsfVsf(Q6_Vsf_vmpy_VsfVsf(a, vc[k]),
-                                   Q6_Vsf_vmpy_VsfVsf(b, vs[k]));
-        vb[k] = Q6_Vsf_vadd_VsfVsf(Q6_Vsf_vmpy_VsfVsf(a, vs[k]),
-                                   Q6_Vsf_vmpy_VsfVsf(b, vc[k]));
-      }
-    }
+    hvx_rope_row_f32(c->x + (size_t)r * c->ld, c->n, c->hd,
+                     c->cs + (size_t)r * 2u * c->hd);
   }
 }
 

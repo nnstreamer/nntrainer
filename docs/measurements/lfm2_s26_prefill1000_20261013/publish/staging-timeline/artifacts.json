@@ -1,0 +1,79 @@
+{
+  "diagnostic_only": true,
+  "tps_eligible": false,
+  "base_commit": "9b2ced98f66f65506385d9bd71759fb58a7f534e",
+  "diagnostic_patch_sha256": "cc5da8c4c2c6e050f7168c4da63ca21686c78e972e22d117183b739b978154f6",
+  "source_verification": "/tmp/lfm2-prefill1000-20261013/attention-followup/staging-timeline-diagnostic/private-source-verification.json",
+  "compiler_result": {
+    "returncode": 0,
+    "elapsed_seconds": 171.79751376700005,
+    "log": "/tmp/lfm2-prefill1000-20261013/attention-followup/staging-timeline-diagnostic/private-core-build.log"
+  },
+  "command_manifest": "/tmp/lfm2-prefill1000-20261013/attention-followup/staging-timeline-diagnostic/private-build-command.json",
+  "source_review": "/tmp/lfm2-prefill1000-20261013/attention-followup/staging-timeline-diagnostic/review.json",
+  "baseline_v17_manifest": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/artifacts.json",
+  "artifacts": {
+    "libnntrainer.so": {
+      "source": "/tmp/lfm2-prefill1000-20261013/attention-followup/staging-timeline-diagnostic/build/core-libs/arm64-v8a/libnntrainer.so",
+      "frozen": "/tmp/lfm2-prefill1000-20261013/attention-followup/staging-timeline-diagnostic/artifacts/libnntrainer.so",
+      "sha256": "fb2b771423461c5b156a2b65e9bed54f83129c907e180ed1e29cd5c048efe002",
+      "bytes": 5289824,
+      "unchanged_v17": false
+    },
+    "libccapi-nntrainer.so": {
+      "source": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/artifacts/libccapi-nntrainer.so",
+      "frozen": "/tmp/lfm2-prefill1000-20261013/attention-followup/staging-timeline-diagnostic/artifacts/libccapi-nntrainer.so",
+      "sha256": "1fd18484dc116f2b75fdfcc1b7908bc00383258d534695a24802314ca9c83b74",
+      "bytes": 229512,
+      "unchanged_v17": true
+    },
+    "libc++_shared.so": {
+      "source": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/artifacts/libc++_shared.so",
+      "frozen": "/tmp/lfm2-prefill1000-20261013/attention-followup/staging-timeline-diagnostic/artifacts/libc++_shared.so",
+      "sha256": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+      "bytes": 9485032,
+      "unchanged_v17": true
+    },
+    "libsdkl.so": {
+      "source": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/artifacts/libsdkl.so",
+      "frozen": "/tmp/lfm2-prefill1000-20261013/attention-followup/staging-timeline-diagnostic/artifacts/libsdkl.so",
+      "sha256": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+      "bytes": 152240,
+      "unchanged_v17": true
+    },
+    "libcausallm_core.so": {
+      "source": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/artifacts/libcausallm_core.so",
+      "frozen": "/tmp/lfm2-prefill1000-20261013/attention-followup/staging-timeline-diagnostic/artifacts/libcausallm_core.so",
+      "sha256": "3a49594fd8400571bd78f7412ec9fce09c6eee18025513782413f851d17d1c71",
+      "bytes": 9505152,
+      "unchanged_v17": true
+    },
+    "nntrainer_causallm": {
+      "source": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/artifacts/nntrainer_causallm",
+      "frozen": "/tmp/lfm2-prefill1000-20261013/attention-followup/staging-timeline-diagnostic/artifacts/nntrainer_causallm",
+      "sha256": "b6b3810484a0573ece103af9701946be4da7dbfa83c413d0b76de913218c718d",
+      "bytes": 318544,
+      "unchanged_v17": true
+    },
+    "libnntr_hvx_skel.so": {
+      "source": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/artifacts/libnntr_hvx_skel.so",
+      "frozen": "/tmp/lfm2-prefill1000-20261013/attention-followup/staging-timeline-diagnostic/artifacts/libnntr_hvx_skel.so",
+      "sha256": "a403c2595e86494178e03f63a1b895fdacdf55e8ca4a3076777ee44cd8232ef1",
+      "bytes": 709712,
+      "unchanged_v17": true
+    }
+  },
+  "interface_check": {
+    "app_sources_match_v17": true,
+    "v17_app_ccapi_required_core_symbols_preserved": 205,
+    "DT_NEEDED_unchanged": true,
+    "idl_unchanged": true
+  },
+  "deployment": {
+    "status": "not deployed by subagent; parent owns device",
+    "required_observer_env": "NNTR_MOE_IO_PROFILE=1",
+    "app": "frozen v17 production app, no logits-dump patch",
+    "dsp": "unchanged accepted v17 DSP, MAX_WEIGHTS2048",
+    "root_PUB_PBUILD_mutations": false
+  }
+}

@@ -9,6 +9,7 @@
  * @bug    No known bugs except for NYI items
  */
 
+#include "htp_strict.h"
 #include <dense_ffn_layer.h>
 
 #include <compute_ops.h>
@@ -182,7 +183,8 @@ void DenseFfnLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
   const unsigned int N = down_w.width();
   const float epsilon = std::get<nntrainer::props::Epsilon>(dense_props).get();
   const float *in_gamma =
-    in_norm ? context.getWeight(weight_idx[IN_GAMMA]).getData<float>() : nullptr;
+    in_norm ? context.getWeight(weight_idx[IN_GAMMA]).getData<float>()
+            : nullptr;
   const float *out_gamma =
     out_norm ? context.getWeight(weight_idx[OUT_GAMMA]).getData<float>()
              : nullptr;
@@ -258,7 +260,11 @@ void DenseFfnLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       swiglu_det(inter, act_p + off, gate_p + off, up_p + off);
     }
   };
-  if (rows == 1) {
+  if (htpStrict()) {
+    htpStrictMath(gelu ? nntrainer::ComputeOps::InferenceMath::GeGLU
+                       : nntrainer::ComputeOps::InferenceMath::SwiGLU,
+                  rows, inter, 0, 0.0f, 1.0f, gate_p, up_p, nullptr, act_p);
+  } else if (rows == 1) {
     one_row(0);
   } else {
     nntrainer::ThreadManager::Global().parallel_for(

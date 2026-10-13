@@ -1,0 +1,276 @@
+{
+  "status": "REJECTED_FOR_ADOPTION_ARCHIVED",
+  "decision": "Restore v17 source; retain v18 patch and evidence for reproducibility. No further aligned count128 experiment.",
+  "reason": "All correctness gates passed, but same-binary clean ABBA gives only3.5ms mean difference within34ms control span; no measurable overall TPS benefit established.",
+  "source_base": "7493cca56abbb35859ecb65ca1b3b7c61494366d",
+  "candidate": "v18 aligned owned O_DIRECT envelopes for initial host expert staging only",
+  "activation": "NNTR_MOE_HOST_STAGE_EXPERTS=64 NNTR_MOE_HOST_STAGE_ALIGNED=1 NNTR_WEIGHT_IO=direct",
+  "default": "Aligned flag absent/0 retains accepted v17 heap path. Production begin requires direct weight I/O.",
+  "fixed_limits": {
+    "input_tokens": 1024,
+    "prefetch_readers": 7,
+    "compute_threads": 8,
+    "cache_experts_per_layer": 22,
+    "total_cache_slots": 836,
+    "dsp_weight_registry": 2048,
+    "max_host_staging_experts": 160,
+    "owned_payload_cap_bytes": 402653184
+  },
+  "clean_abba": {
+    "order": "off,on,on,off",
+    "records": [
+      {
+        "name": "v18-pub-stage64-aligned0-clean-ba1",
+        "aligned": 0,
+        "prefill_ms": 1061,
+        "prefill_tps_reported": 965.127,
+        "payload_bytes": 153616896,
+        "allocated_bytes": 153616896,
+        "read": 64,
+        "consumed": 64,
+        "before_AP_C": 26.6,
+        "after_AP_C": 28.5,
+        "runtime_sha256": {
+          "nntrainer_causallm": "b6b3810484a0573ece103af9701946be4da7dbfa83c413d0b76de913218c718d",
+          "libnntrainer.so": "5ec28f29325933ed863fdb401736833524f031cc62c8e9e3bc21f4f9a4aca946",
+          "libcausallm_core.so": "3a49594fd8400571bd78f7412ec9fce09c6eee18025513782413f851d17d1c71",
+          "libnntr_hvx_skel.so": "a403c2595e86494178e03f63a1b895fdacdf55e8ca4a3076777ee44cd8232ef1",
+          "libccapi-nntrainer.so": "1fd18484dc116f2b75fdfcc1b7908bc00383258d534695a24802314ca9c83b74",
+          "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+          "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe"
+        }
+      },
+      {
+        "name": "v18-pub-stage64-aligned1-clean-ba2",
+        "aligned": 1,
+        "prefill_ms": 1036,
+        "prefill_tps_reported": 988.417,
+        "payload_bytes": 153616896,
+        "allocated_bytes": 154140672,
+        "read": 64,
+        "consumed": 64,
+        "before_AP_C": 27.4,
+        "after_AP_C": 29.2,
+        "runtime_sha256": {
+          "nntrainer_causallm": "b6b3810484a0573ece103af9701946be4da7dbfa83c413d0b76de913218c718d",
+          "libnntrainer.so": "5ec28f29325933ed863fdb401736833524f031cc62c8e9e3bc21f4f9a4aca946",
+          "libcausallm_core.so": "3a49594fd8400571bd78f7412ec9fce09c6eee18025513782413f851d17d1c71",
+          "libnntr_hvx_skel.so": "a403c2595e86494178e03f63a1b895fdacdf55e8ca4a3076777ee44cd8232ef1",
+          "libccapi-nntrainer.so": "1fd18484dc116f2b75fdfcc1b7908bc00383258d534695a24802314ca9c83b74",
+          "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+          "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe"
+        }
+      },
+      {
+        "name": "v18-pub-stage64-aligned1-clean-ba3",
+        "aligned": 1,
+        "prefill_ms": 1045,
+        "prefill_tps_reported": 979.904,
+        "payload_bytes": 153616896,
+        "allocated_bytes": 154140672,
+        "read": 64,
+        "consumed": 64,
+        "before_AP_C": 27.8,
+        "after_AP_C": 29.5,
+        "runtime_sha256": {
+          "nntrainer_causallm": "b6b3810484a0573ece103af9701946be4da7dbfa83c413d0b76de913218c718d",
+          "libnntrainer.so": "5ec28f29325933ed863fdb401736833524f031cc62c8e9e3bc21f4f9a4aca946",
+          "libcausallm_core.so": "3a49594fd8400571bd78f7412ec9fce09c6eee18025513782413f851d17d1c71",
+          "libnntr_hvx_skel.so": "a403c2595e86494178e03f63a1b895fdacdf55e8ca4a3076777ee44cd8232ef1",
+          "libccapi-nntrainer.so": "1fd18484dc116f2b75fdfcc1b7908bc00383258d534695a24802314ca9c83b74",
+          "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+          "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe"
+        }
+      },
+      {
+        "name": "v18-pub-stage64-aligned0-clean-ba4",
+        "aligned": 0,
+        "prefill_ms": 1027,
+        "prefill_tps_reported": 997.079,
+        "payload_bytes": 153616896,
+        "allocated_bytes": 153616896,
+        "read": 64,
+        "consumed": 64,
+        "before_AP_C": 28.0,
+        "after_AP_C": 29.7,
+        "runtime_sha256": {
+          "nntrainer_causallm": "b6b3810484a0573ece103af9701946be4da7dbfa83c413d0b76de913218c718d",
+          "libnntrainer.so": "5ec28f29325933ed863fdb401736833524f031cc62c8e9e3bc21f4f9a4aca946",
+          "libcausallm_core.so": "3a49594fd8400571bd78f7412ec9fce09c6eee18025513782413f851d17d1c71",
+          "libnntr_hvx_skel.so": "a403c2595e86494178e03f63a1b895fdacdf55e8ca4a3076777ee44cd8232ef1",
+          "libccapi-nntrainer.so": "1fd18484dc116f2b75fdfcc1b7908bc00383258d534695a24802314ca9c83b74",
+          "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+          "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe"
+        }
+      }
+    ],
+    "only_changed_environment_variable": [
+      "NNTR_MOE_HOST_STAGE_ALIGNED"
+    ],
+    "same_runtime_hashes": true,
+    "off_ms": [
+      1061,
+      1027
+    ],
+    "on_ms": [
+      1036,
+      1045
+    ],
+    "off_mean_ms": 1044,
+    "on_mean_ms": 1040.5,
+    "mean_difference_ms": 3.5,
+    "control_span_ms": 34,
+    "all_runs_below_target1000TPS": true,
+    "speedup_claimed": false,
+    "limits": "Two samples per setting and integer-millisecond display; four-run spread exceeds mean difference. Observer/profile runs are excluded."
+  },
+  "copy_accounting": {
+    "staged_experts": 64,
+    "per_expert_GU_record_bytes": 1597444,
+    "per_expert_DN_record_bytes": 802820,
+    "removed_bounce_to_owned_memcpy_payload_bytes": 153616896,
+    "removed_bounce_to_owned_memcpy_payload_MiB": 146.50048828125,
+    "nominal_copy_read_plus_write_bytes": 307233792,
+    "nominal_copy_read_plus_write_MiB": 293.0009765625,
+    "interpretation": "Exact logical bytes removed from one memcpy pass by reading into owned aligned envelopes. Read+write counts are software traffic accounting, not measured physical DRAM traffic or a bandwidth/speed claim.",
+    "remaining_owned_to_arena_promotion_bytes": 153616896,
+    "io_calls_per_target_expert": "GU2+DN1 unchanged",
+    "metadata_validator_and_math": "unchanged",
+    "allocated_bytes_off": 153616896,
+    "allocated_bytes_on": 154140672,
+    "extra_requested_allocation_bytes": 523776,
+    "extra_requested_allocation_KiB": 511.5,
+    "note": "V16 had separately removed144MiB compact-code scratch copy for64experts; that is a prior accepted optimization and must not be counted again as v18 gain."
+  },
+  "correctness": {
+    "host_normal_and_asan_ubsan": {
+      "owned_envelope_assertions": 33662,
+      "host_staging_assertions": 3916,
+      "actual_backend_assertions": 859,
+      "portable_header_compile": true,
+      "original_direct_reader_suite": true
+    },
+    "android_actual_owned_check": {
+      "pass": true,
+      "assertions": 33662,
+      "binary_sha256": "e14545e8258328b8a13552b7091897ab5dff9f33769238fc47dfb373771f37b1",
+      "evidence": "moe/owned-envelope-device.json"
+    },
+    "full_model_raw_parity": {
+      "pass": true,
+      "files": 132,
+      "different": [],
+      "scope": "65 raw logits, 65 token IDs, prompt and manifest; diagnostic timing is excluded from TPS results.",
+      "aligned_active": 1,
+      "read": 64,
+      "consumed": 64,
+      "evidence": "parity/v18-pub-stage64-aligned-parity-az1-raw-output-comparison.json"
+    },
+    "matched_android_core_app_install": true,
+    "fresh_diagnostic_app_link": true,
+    "independent_production_review": "PASS"
+  },
+  "runtime_sha256": {
+    "libnntrainer.so": "5ec28f29325933ed863fdb401736833524f031cc62c8e9e3bc21f4f9a4aca946",
+    "libccapi-nntrainer.so": "1fd18484dc116f2b75fdfcc1b7908bc00383258d534695a24802314ca9c83b74",
+    "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+    "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+    "libcausallm_core.so": "3a49594fd8400571bd78f7412ec9fce09c6eee18025513782413f851d17d1c71",
+    "nntrainer_causallm": "b6b3810484a0573ece103af9701946be4da7dbfa83c413d0b76de913218c718d",
+    "libnntr_hvx_skel.so": "a403c2595e86494178e03f63a1b895fdacdf55e8ca4a3076777ee44cd8232ef1"
+  },
+  "diagnostic_runtime_sha256": {
+    "libnntrainer.so": "5ec28f29325933ed863fdb401736833524f031cc62c8e9e3bc21f4f9a4aca946",
+    "libccapi-nntrainer.so": "1fd18484dc116f2b75fdfcc1b7908bc00383258d534695a24802314ca9c83b74",
+    "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+    "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+    "libcausallm_core.so": "040627e0971750f8a2ae27113c6549d1dcdbb058827c72e428bc19d9343a9e89",
+    "nntrainer_causallm": "b6b3810484a0573ece103af9701946be4da7dbfa83c413d0b76de913218c718d",
+    "libnntr_hvx_skel.so": "a403c2595e86494178e03f63a1b895fdacdf55e8ca4a3076777ee44cd8232ef1"
+  },
+  "v17_timeline_context": {
+    "runs": [
+      {
+        "count": 64,
+        "source": "v17-timeline-stage64-diag-bb1.log",
+        "first_read_ms": 0.382,
+        "last_read_ms": 102.623,
+        "first_wait_begin_ms": 104.206,
+        "first_wait_end_ms": 104.206,
+        "first_wait_ms": 0.0,
+        "scope_cleanup_us": 7,
+        "diagnostic_only": true
+      },
+      {
+        "count": 128,
+        "source": "v17-timeline-stage128-diag-bb2.log",
+        "first_read_ms": 0.47,
+        "last_read_ms": 126.822,
+        "first_wait_begin_ms": 102.504,
+        "first_wait_end_ms": 126.833,
+        "first_wait_ms": 24.329,
+        "scope_cleanup_us": 4,
+        "diagnostic_only": true
+      }
+    ],
+    "conclusion": "Initial64 reads finish at102.623ms before first wait at104.206ms. Initial128 reads finish at126.822ms after first wait starts102.504ms, causing24.329ms barrier wait. Cleanup4\u20137us. These diagnostics provide no55ms idle-gap evidence and are not v18 TPS samples."
+  },
+  "io_order_audit": {
+    "path": "publish/aligned-owned/io-read-order-audit.json",
+    "sha256": "d9df7e4ce335512c131fa55624ec8fce3a5ca8c63477f4c3207c83e753a693d7",
+    "verdict": "GU/DN records are interleaved per expert; no separate distant GU/DN blocks. Do not implement GU-all then DN-all phase based on that false premise."
+  },
+  "archive": {
+    "directory": "publish/aligned-owned",
+    "manifest_sha256": "541d0820993f2f911d92f7e7d2f72a3d2aa1b973bbcb0ecb2f01e433cfd25dc0",
+    "production_patch_sha256": "1859079fe7493566c5defb5fa8ac40df9796ffc8263f9803871f3d66614ed5e7",
+    "tests_patch_sha256": "b8a9c3faec79e91e995923fc35cf1090e3150bb706f2ab5355cd75eb4388c1f7",
+    "source_reproducibility": "Base commit plus focused3production/4testfile patches; source hashes and exact build/checker commands archived. Frozen binaries remain in private paths listed in manifests.",
+    "historical_manifests": "Frozen private/build manifests retain the status as of their creation; this evaluation is the final adoption decision."
+  },
+  "cleanup": {
+    "status": "PUB_FREE",
+    "head": "7493cca56abbb35859ecb65ca1b3b7c61494366d",
+    "restored_tracked_files": [
+      "nntrainer/utils/weight_direct_file.h",
+      "nntrainer/tensor/htp_backend/htp_expert_host_staging.h",
+      "nntrainer/tensor/htp_backend/htp_compute_ops.cpp",
+      "test/htp/host/expert_host_staging_backend_check.cpp",
+      "test/htp/host/run_expert_host_staging_checks.py"
+    ],
+    "removed_only_new_files": [
+      "test/htp/host/owned_envelope_check.cpp",
+      "test/htp/host/run_owned_envelope_checks.py"
+    ],
+    "verified_source_before_restore": true,
+    "verified_tracked_bytes_equal_head": true,
+    "git_status_after": "",
+    "root_production_changed": false,
+    "build_outputs_changed_by_cleanup": false,
+    "build_note": "PBUILD outputs and exported headers remain the last v18 build; composite owner must refresh baseline headers and rebuild. Frozen v18 runtime bundles remain untouched."
+  },
+  "evidence_sha256_relative_to_measurement_dir": {
+    "v18-pub-stage64-aligned0-clean-ba1.json": "8d590315d8f4971d052db6e58913fb1ccb4f8a95e74c04966a8b16e5403c6967",
+    "v18-pub-stage64-aligned0-clean-ba1.log": "6bb4692b8f74665e12261160cb79c503f63bb8365b554ec2d6b19d7a07cdba73",
+    "v18-pub-stage64-aligned1-clean-ba2.json": "df2baa281400f26dd7bc4d4edc38878f9a7097879b2420f22231e723ee2669dd",
+    "v18-pub-stage64-aligned1-clean-ba2.log": "dde5b922dc4f58723608431f70ce5608774c0fedce517c08b640baed2512434e",
+    "v18-pub-stage64-aligned1-clean-ba3.json": "4ec3461b40ac1ac35e93825034e50daaf45dc1dfcbe05018000a6446202d7a75",
+    "v18-pub-stage64-aligned1-clean-ba3.log": "2ea6148d9fc696a5084e4ae0ffa09032bf96a0a02b587a7d2c9ab228a03a7123",
+    "v18-pub-stage64-aligned0-clean-ba4.json": "0a70b79d17287f3bfa9b48a4073379bb1b4480dbaf7fdb938a0720b73ae13801",
+    "v18-pub-stage64-aligned0-clean-ba4.log": "1a288cefb8d75b238d9e4f502130965c71954542392bd3049309046d0b5ed8ae",
+    "parity/v18-pub-stage64-aligned-parity-az1-raw-output-comparison.json": "a44632ce8b03fb1b507ae00fa136dc519f89be55a04313c53ef0de87b2575d4a",
+    "moe/owned-envelope-device.json": "d06e43cff3a8e3a1495f71e6ddf735fd7189b022df8ba335d1f1de6528319e6a",
+    "moe/owned-envelope-device.log": "3e141f3d5c7a1e4d67d068ca3a79b50bed95deda8301222af2231dd12048958d",
+    "v18-pub-stage64-aligned-parity-az1.json": "c5f663b4053bebba60c76bd56e8f9cbc0d5759e9972471937679f1ea6a36e9c9",
+    "v18-pub-stage64-aligned-parity-az1.log": "0132097b3635958daf930e378da479154eb7cafd82d813317ba8ded955ef008c",
+    "combined-v18-publish-artifacts.json": "87b3223e7fc710514b22bb836805f6ef8a54b9f9b3bb83b4440fce1a2df262c8",
+    "combined-v18-publish-diag-artifacts.json": "6077bf028bb2ead9b886388bc6f71ecd5aeae7305f12c4aaba7a1b5e14d9ae72",
+    "v17-timeline-stage64-diag-bb1.json": "0e595e9743efed5918d18355432a9b491a5a441c47c489f375ff0d59d167a143",
+    "v17-timeline-stage64-diag-bb1.log": "8beceed768afed089d08834cae237cb004e228425aa45453b907b0313f6786de",
+    "v17-timeline-stage128-diag-bb2.json": "72c89d36ded5783dc575746d4105b3626b6d7611116907aa67c65cfaf4a271e9",
+    "v17-timeline-stage128-diag-bb2.log": "0d7b7dbc80466466d9e21c08e0b02c1b0527832d051238918b3222497d66c395"
+  },
+  "root_production_modified_by_agent": false,
+  "benchmark_runner_aligned_support": "Retained by parent for archived reproducibility; not changed by this agent.",
+  "committed_or_pushed_by_agent": false
+}

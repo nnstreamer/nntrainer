@@ -1,0 +1,36 @@
+{
+  "status": "PASS",
+  "scope": "Six affected Android translation units compiled from exact staged sources and regenerated matching FastRPC stub; DSP linked separately. Full Android app link/CI not rerun for this commit snapshot.",
+  "results": [
+    {
+      "source": "nntrainer/tensor/htp_backend/htp_compute_ops.cpp",
+      "status": "PASS",
+      "object_sha256": "93a1a023d721a5104ec899b57a5e825a1cfa8672858e845226b563b13096c843"
+    },
+    {
+      "source": "nntrainer/tensor/htp_backend/generated/nntr_hvx_stub.c",
+      "status": "PASS",
+      "object_sha256": "206811125c322955c079686b0ca71056d42bcdebc7e75b596cc28ed8211042cd"
+    },
+    {
+      "source": "Applications/CausalLM/layers/mha_core.cpp",
+      "status": "PASS",
+      "object_sha256": "f01ac295bee31ff617aaba38abf1c76cd6d9cd81607b96cc58a34dbab030cdd5"
+    },
+    {
+      "source": "Applications/CausalLM/layers/rms_norm.cpp",
+      "status": "PASS",
+      "object_sha256": "4e8154f84f5e4a9c234aca3a7b3c24c4f261abb4a532ff50c2d069166dc54979"
+    },
+    {
+      "source": "Applications/CausalLM/models/lfm2/lfm2_causallm.cpp",
+      "status": "PASS",
+      "object_sha256": "ff11039cea3fef49891bb96206bd0b73b9edc3ed9faa406cf6cc41c3f1369844"
+    },
+    {
+      "source": "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp",
+      "status": "PASS",
+      "object_sha256": "9d801112d0a5d74eeb322f4020dc8068b0e11a6f338c8238626e1e61aacf9c81"
+    }
+  ]
+}

@@ -20,6 +20,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "htp_conv_opts.h"
+#include "htp_fc_opts.h"
+#include "htp_qs2_gemv_opts.h"
+
 /** @brief hexkl_mm_u8i4_moe.h's HEXKL_MOE_FLAG_M1_GEMV restated for the ARM
  *  side (the DSP header does not compile there): the moe_set_opts bit that
  *  lets a call of at most 4 rows take the HVX GEMV path. */
@@ -52,7 +56,9 @@
  *  bit 18 sets src_bypass on every arena expert weight descriptor, M = 1
  *  feed and M > 1 HMX path alike. On by default since the #158 sitting
  *  (user, 2026-09-29: decode +31..35 %, MoE dumps bit-identical), so an
- *  unset run's word is 0x703e1; NNTR_MOE_DMA_BYPASS=0 clears it (0x303e1). */
+ *  unset run's word is 0x703e1; NNTR_MOE_DMA_BYPASS=0 clears it (0x303e1).
+ *  FC and convolution weight DMA also honor this bit. Immutable heap
+ *  weights are eligible after a successful cache flush at registration. */
 #define HTP_MOE_FLAG_DMA_BYPASS 0x40000u
 
 /** @brief HTP_MOE_FLAG_DMA_BYPASS for getenv("NNTR_MOE_DMA_BYPASS"): set
@@ -63,13 +69,14 @@ static inline uint32_t htp_moe_opts_dma_bypass(const char *env) {
 
 /** @brief The bits of moe_set_opts' echo that must equal what was sent.
  *  With the GEMV on, all of them. With it off, the tune bits mean nothing
- *  on the HMX loop, so only bit 0 -- plus the bypass bit when it was asked
- *  for, because the HMX loop's weight DMA honours it (#158): a skel that
+ *  on the HMX loop, so bit 0, requested bypass, and the independent conv
+ *  options must match. A skel that
  *  predates it must fail the run, not measure the default. */
 static inline uint32_t htp_moe_opts_must_match(uint32_t flags) {
   if ((flags & HTP_MOE_FLAG_M1_GEMV) != 0u)
     return ~0u;
-  return HTP_MOE_FLAG_M1_GEMV | (flags & HTP_MOE_FLAG_DMA_BYPASS);
+  return HTP_MOE_FLAG_M1_GEMV | (flags & HTP_MOE_FLAG_DMA_BYPASS) |
+         (flags & (HTP_CONV_FLAGS_KNOWN | HTP_FC_FLAGS_KNOWN));
 }
 
 /**

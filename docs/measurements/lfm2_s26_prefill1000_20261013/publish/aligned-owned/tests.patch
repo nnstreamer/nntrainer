@@ -1,0 +1,652 @@
+--- a/test/htp/host/expert_host_staging_backend_check.cpp
++++ b/test/htp/host/expert_host_staging_backend_check.cpp
+@@ -2,6 +2,7 @@
+ #include "expert_host_staging_fixture.h"
+ #include <cstdio>
+ #if defined(__linux__) || defined(__ANDROID__)
++#include "weight_direct_file.h"
+ #include <unordered_map>
+ using namespace nntrainer;
+ using remote_handle64 = uint64_t;
+@@ -224,57 +225,76 @@
+   }
+   // Inject every actual beginExpertPrefetch queue failure: all slots and leases
+   // return, no jobs survive, and end() must never hang during stack unwinding.
+-  for (int failure = 0; failure < 4; ++failure) {
+-    Harness h;
+-    auto token = h.begin_qs2_host_prefetch(f.ds, &f, 4);
+-    h.waitHostExpertReads();
+-    h.releaseFinishedSlots(4);
+-    h.prefetch_jobs_.failure = failure;
+-    std::vector<Desc> four(f.ds.begin(), f.ds.begin() + 4);
+-    rejected([&] { h.beginExpertPrefetch(four, false); });
+-    require(h.prefetch_jobs_.empty() && h.prefetch_batches_.empty() &&
+-            h.free_expert_slots_.size() == 4);
+-    h.end_qs2_host_prefetch(token);
++  for (int aligned : {0, 1}) {
++    require(setenv("NNTR_MOE_HOST_STAGE_ALIGNED", aligned ? "1" : "0", 1) == 0);
++    for (int failure = 0; failure < 4; ++failure) {
++      Harness h;
++      auto token = h.begin_qs2_host_prefetch(f.ds, &f, 4);
++      h.waitHostExpertReads();
++      h.releaseFinishedSlots(4);
++      h.prefetch_jobs_.failure = failure;
++      std::vector<Desc> four(f.ds.begin(), f.ds.begin() + 4);
++      rejected([&] { h.beginExpertPrefetch(four, false); });
++      require(h.prefetch_jobs_.empty() && h.prefetch_batches_.empty() &&
++              h.free_expert_slots_.size() == 4);
++      h.end_qs2_host_prefetch(token);
++    }
+   }
+   // Profile actual in-place reads and the separate arena promotion. Failed GU
+   // skips DN; failed metadata in either part must publish no arena bytes.
+   require(setenv("NNTR_MOE_IO_PROFILE", "1", 1) == 0);
+   HtpProfile::global().enabled = 1;
+-  for (int failed_part : {-1, 0, 1}) {
+-    Fixture one(1);
+-    if (failed_part >= 0) {
+-      const auto &d = one.ds[0];
+-      const uint64_t offset = failed_part ? d.off_dn : d.off_gu;
+-      const size_t codes = failed_part ? size_t(d.inter) * d.N_out / 4
+-                                       : size_t(d.K) * 2u * d.inter / 4;
+-      const int8_t invalid = -9;
+-      require(pwrite(one.fd, &invalid, 1, offset + codes) == 1);
+-    }
+-    Harness h;
+-    HtpProfile::global().read_samples = 0;
+-    auto token = h.begin_qs2_host_prefetch(one.ds, &one, 1);
+-    require(token != 0);
+-    h.waitHostExpertReads();
+-    require(h.qs2_reads_ == (failed_part == 0 ? 1u : 2u));
+-    require(h.qs2_copy_us_ == 0 && h.qs2_copied_bytes_ == 0);
+-    require(HtpProfile::global().read_samples == 1);
+-    h.releaseFinishedSlots(1);
+-    require(h.beginExpertPrefetch(one.ds, false));
+-    {
+-      std::unique_lock<std::mutex> lock(h.prefetch_mutex_);
+-      auto &b = *h.prefetch_batches_.front();
+-      h.prefetch_done_cv_.wait(lock, [&] { return b.done == 1; });
+-      require(b.experts[0].rc == (failed_part < 0 ? 0 : EINVAL));
+-      require(h.host_expert_copy_bytes_ ==
+-              (failed_part < 0 ? one.expected[0].size() : 0));
+-      if (failed_part >= 0)
+-        require(std::all_of(h.arena_chunks_[0].buf->storage.begin(),
+-                            h.arena_chunks_[0].buf->storage.end(),
+-                            [](uint8_t c) { return c == 0xcd; }));
+-      h.prefetch_batches_.pop_front();
+-    }
+-    h.end_qs2_host_prefetch(token);
+-  }
++  for (int aligned : {0, 1}) {
++    require(setenv("NNTR_MOE_HOST_STAGE_ALIGNED", aligned ? "1" : "0", 1) == 0);
++    for (int failed_part : {-1, 0, 1}) {
++      Fixture one(1);
++      if (failed_part >= 0) {
++        const auto &d = one.ds[0];
++        const uint64_t offset = failed_part ? d.off_dn : d.off_gu;
++        const size_t codes = failed_part ? size_t(d.inter) * d.N_out / 4
++                                         : size_t(d.K) * 2u * d.inter / 4;
++        const int8_t invalid = -9;
++        require(pwrite(one.fd, &invalid, 1, offset + codes) == 1);
++      }
++      require(fsync(one.fd) == 0);
++      Harness h;
++      HtpProfile::global().read_samples = 0;
++      auto token = h.begin_qs2_host_prefetch(one.ds, &one, 1);
++      require(token != 0);
++      h.waitHostExpertReads();
++      require(h.qs2_reads_ == (failed_part == 0 ? 1u : 2u));
++      require(h.reads == (aligned ? 0u : (failed_part == 0 ? 1u : 2u)));
++      const auto staged_stats = h.hostExpertBank()->stats();
++      require(aligned ? staged_stats.allocated_bytes > staged_stats.bytes
++                      : staged_stats.allocated_bytes == staged_stats.bytes);
++      require(h.qs2_copy_us_ == 0 && h.qs2_copied_bytes_ == 0);
++      require(HtpProfile::global().read_samples == 1);
++      h.releaseFinishedSlots(1);
++      require(h.beginExpertPrefetch(one.ds, false));
++      {
++        std::unique_lock<std::mutex> lock(h.prefetch_mutex_);
++        auto &b = *h.prefetch_batches_.front();
++        h.prefetch_done_cv_.wait(lock, [&] { return b.done == 1; });
++        require(b.experts[0].rc == (failed_part < 0 ? 0 : EINVAL));
++        require(h.host_expert_copy_bytes_ ==
++                (failed_part < 0 ? one.expected[0].size() : 0));
++        if (failed_part < 0) {
++          require(std::equal(one.expected[0].begin(),
++                             one.expected[0].begin() + 1028,
++                             b.experts[0].base));
++          require(std::equal(one.expected[0].begin() + 1028,
++                             one.expected[0].end(), b.experts[0].base + 4096));
++        }
++        if (failed_part >= 0)
++          require(std::all_of(h.arena_chunks_[0].buf->storage.begin(),
++                              h.arena_chunks_[0].buf->storage.end(),
++                              [](uint8_t c) { return c == 0xcd; }));
++        h.prefetch_batches_.pop_front();
++      }
++      h.end_qs2_host_prefetch(token);
++    }
++  }
++  require(unsetenv("NNTR_MOE_HOST_STAGE_ALIGNED") == 0);
+   HtpProfile::global().enabled = 0;
+   require(unsetenv("NNTR_MOE_IO_PROFILE") == 0);
+   std::printf("PASS extracted backend: %zu assertions, disabled/stale scope, "
+--- a/test/htp/host/run_expert_host_staging_checks.py
++++ b/test/htp/host/run_expert_host_staging_checks.py
+@@ -22,7 +22,7 @@
+     "begin_qs2_host_prefetch", "end_qs2_host_prefetch", "beginExpertPrefetch",
+     "stageExpert", "readExpert", "readExpertPart", "hostExpertProfile",
+     "hostExpertBank", "hostExpertLease", "waitHostExpertReads",
+-    "readHostExpert", "prefetchReaderLoop",
++    "readHostExpert", "prefetchReaderLoop", "directWeightFiles",
+ )
+ 
+ 
+@@ -106,7 +106,7 @@
+         temporary = Path(path)
+         (temporary / "expert_host_staging_staged_type.inc").write_text(staged_type)
+         (temporary / "expert_host_staging_backend_methods.inc").write_text(methods)
+-        includes = ["-I" + str(p) for p in (temporary, here, backend)]
++        includes = ["-I" + str(p) for p in (temporary, here, backend, root / "nntrainer/utils")]
+         for name in ("expert_host_staging_host_check", "expert_host_staging_backend_check"):
+             binary = temporary / name
+             command = compiler + flags + includes + [str(here / (name + ".cpp")),
+--- /dev/null
++++ b/test/htp/host/owned_envelope_check.cpp
+@@ -0,0 +1,458 @@
++// SPDX-License-Identifier: Apache-2.0
++/** @file owned_envelope_check.cpp
++ * @brief Actual O_DIRECT envelope reads, metadata parity, bounds and ownership.
++ */
++#include "expert_host_staging_fixture.h"
++#include "weight_direct_file.h"
++#include <cstdio>
++#if defined(__linux__) || defined(__ANDROID__)
++#include <cmath>
++#include <tuple>
++using namespace nntrainer;
++
++extern "C" ssize_t __real_pread(int, void *, size_t, off_t);
++extern "C" void __real_free(void *);
++extern "C" int __real_posix_memalign(void **, size_t, size_t);
++struct ReadCall {
++  uintptr_t dst;
++  size_t bytes;
++  off_t offset;
++  int flags;
++};
++struct ReadProbe {
++  std::vector<ReadCall> calls;
++  enum Fault { none, interrupt, error, zero, short_read } fault = none;
++  size_t short_bytes = 0;
++};
++thread_local ReadProbe *read_probe;
++std::atomic<bool> fail_alloc{false};
++struct FreeProbe {
++  std::atomic<void *> target{nullptr};
++  std::mutex mutex;
++  std::condition_variable cv;
++  bool entered = false, release = false, freed = false;
++  std::atomic<unsigned> deletes{0}, frees{0};
++} free_probe;
++extern "C" ssize_t __wrap_pread(int fd, void *dst, size_t n, off_t off) {
++  auto *probe = read_probe;
++  if (probe) {
++    probe->calls.push_back(
++      {reinterpret_cast<uintptr_t>(dst), n, off, fcntl(fd, F_GETFL)});
++    auto fault = probe->fault;
++    probe->fault = ReadProbe::none;
++    if (fault == ReadProbe::interrupt) {
++      errno = EINTR;
++      return -1;
++    }
++    if (fault == ReadProbe::error) {
++      errno = EIO;
++      return -1;
++    }
++    if (fault == ReadProbe::zero)
++      return 0;
++    if (fault == ReadProbe::short_read) {
++      const auto got = __real_pread(fd, dst, n, off);
++      return got < 0 ? got : std::min<size_t>(got, probe->short_bytes);
++    }
++  }
++  return __real_pread(fd, dst, n, off);
++}
++extern "C" int __wrap_posix_memalign(void **p, size_t a, size_t n) {
++  if (fail_alloc.exchange(false))
++    return ENOMEM;
++  return __real_posix_memalign(p, a, n);
++}
++extern "C" void __wrap_free(void *p) {
++  const bool watched = p && p == free_probe.target.load();
++  if (watched) {
++    ++free_probe.frees;
++    std::unique_lock<std::mutex> lock(free_probe.mutex);
++    free_probe.entered = true;
++    free_probe.cv.notify_all();
++    free_probe.cv.wait(lock, [] { return free_probe.release; });
++  }
++  __real_free(p);
++  if (watched) {
++    std::lock_guard<std::mutex> lock(free_probe.mutex);
++    free_probe.freed = true;
++    free_probe.cv.notify_all();
++  }
++}
++void *operator new[](size_t bytes) { return ::operator new(bytes); }
++void operator delete[](void *p) noexcept {
++  if (p && p == free_probe.target.load())
++    ++free_probe.deletes;
++  ::operator delete(p);
++}
++void operator delete[](void *p, size_t) noexcept { ::operator delete[](p); }
++
++struct Allocation {
++  uint8_t *base = nullptr;
++  size_t span;
++  Allocation(size_t bytes, size_t head) :
++    span((bytes + head + 4095) / 4096 * 4096) {
++    void *p = nullptr;
++    require(!posix_memalign(&p, 4096, span + 8192));
++    base = static_cast<uint8_t *>(p);
++    std::memset(base, 0xcd, span + 8192);
++  }
++  ~Allocation() { std::free(base); }
++  uint8_t *data() { return base + 4096; }
++  void guards() {
++    require(
++      std::all_of(base, base + 4096, [](uint8_t b) { return b == 0xcd; }));
++    require(std::all_of(data() + span, data() + span + 4096,
++                        [](uint8_t b) { return b == 0xcd; }));
++  }
++};
++std::vector<uint8_t> rawRecord(unsigned k, unsigned n) {
++  const size_t codes = size_t(k) * n / 4;
++  std::vector<uint8_t> data(codes + 8 * n + 4);
++  for (size_t i = 0; i < codes; ++i)
++    data[i] = uint8_t(i * 37 + i / 97);
++  const int8_t palette[4] = {-8, -1, 0, 7};
++  std::memcpy(data.data() + codes, palette, 4);
++  for (unsigned i = 0; i < n; ++i) {
++    float scale = float(i + 1) / 137.0f;
++    float sum = float(int(i % 59) - 29) + 0.75f;
++    std::memcpy(data.data() + codes + 4 + 4 * i, &scale, 4);
++    std::memcpy(data.data() + codes + 4 + 4 * (n + i), &sum, 4);
++  }
++  return data;
++}
++std::vector<uint8_t> converted(const std::vector<uint8_t> &raw, unsigned k,
++                               unsigned n) {
++  std::vector<uint8_t> result(raw.size()), scratch;
++  require(!htpReadQs2Compact(
++    [&](void *dst, size_t bytes, uint64_t off) {
++      if (off > raw.size() || bytes > raw.size() - off)
++        return -1;
++      std::memcpy(dst, raw.data() + off, bytes);
++      return 0;
++    },
++    0, k, n, result.data(), false, scratch));
++  return result;
++}
++int ownedRecord(Bank::Record &r, WeightDirectFiles &files) {
++  auto part = [&](bool down, uint64_t off, unsigned k, unsigned n) {
++    return htpReadQs2CompactInPlace(
++      [&](void *dst, size_t count, uint64_t at) {
++        require(dst == r.data(down));
++        return files.readOwnedEnvelope(r.fd(), r.envelope(down),
++                                       r.envelopeBytes(down), count, at);
++      },
++      off, k, n, r.data(down), down ? r.dn_bytes : r.gu_bytes);
++  };
++  int rc = part(false, r.d.off_gu, r.d.K, 2 * r.d.inter);
++  return rc ? rc : part(true, r.d.off_dn, r.d.inter, r.d.N_out);
++}
++int main() {
++  char path[] = "/tmp/nntr-owned-direct-XXXXXX";
++  int fd = mkstemp(path);
++  require(fd >= 0);
++  unlink(path);
++  const auto small = rawRecord(32, 64);
++  const auto expected = converted(small, 32, 64);
++  const size_t large_offset = 4096 * 8192u;
++  for (size_t head = 0; head < 4096; ++head)
++    require(pwrite(fd, small.data(), small.size(), head * 8192 + head) ==
++            ssize_t(small.size()));
++  auto gu = rawRecord(2048, 3072), dn = rawRecord(1536, 2048);
++  const uint64_t gu_off = large_offset + 4095;
++  const uint64_t dn_off = large_offset + 4 * 1024 * 1024 + 3068;
++  require(pwrite(fd, gu.data(), gu.size(), gu_off) == ssize_t(gu.size()));
++  require(pwrite(fd, dn.data(), dn.size(), dn_off) == ssize_t(dn.size()));
++  require((dn_off + dn.size()) % 4096 == 3072);
++  require(fsync(fd) == 0);
++  const auto flags = fcntl(fd, F_GETFL);
++  require(lseek(fd, 29, SEEK_SET) == 29);
++  WeightDirectFiles files;
++  // Exercise every possible record head, including byte-unaligned metadata.
++  for (size_t head = 0; head < 4096; ++head) {
++    Allocation out(small.size(), head);
++    ReadProbe probe;
++    read_probe = &probe;
++    int rc = htpReadQs2CompactInPlace(
++      [&](void *dst, size_t count, uint64_t off) {
++        require(dst == out.data() + head);
++        return files.readOwnedEnvelope(fd, out.data(), out.span, count, off);
++      },
++      head * 8192 + head, 32, 64, out.data() + head, small.size());
++    read_probe = nullptr;
++    require(rc == 0 &&
++            !std::memcmp(out.data() + head, expected.data(), expected.size()));
++    require(probe.calls.size() == 1 &&
++            probe.calls[0].dst == uintptr_t(out.data()));
++    require(probe.calls[0].offset == off_t(head * 8192) &&
++            probe.calls[0].bytes == out.span &&
++            (probe.calls[0].flags & O_DIRECT));
++    out.guards();
++  }
++  // Target GU2 + DN1 use identical aligned offsets and lengths as read().
++  for (const auto &item : {std::make_tuple(gu_off, &gu, 2048u, 3072u),
++                           std::make_tuple(dn_off, &dn, 1536u, 2048u)}) {
++    const auto off = std::get<0>(item);
++    const auto &raw = *std::get<1>(item);
++    Allocation out(raw.size(), off % 4096);
++    std::vector<uint8_t> old(raw.size());
++    ReadProbe a, b;
++    read_probe = &a;
++    require(!files.read(fd, old.data(), old.size(), off));
++    read_probe = &b;
++    require(
++      !files.readOwnedEnvelope(fd, out.data(), out.span, raw.size(), off));
++    read_probe = nullptr;
++    require(old == raw &&
++            !std::memcmp(old.data(), out.data() + off % 4096, old.size()));
++    require(a.calls.size() == b.calls.size());
++    require(a.calls.size() == (off == gu_off ? 2 : 1));
++    for (size_t i = 0; i < a.calls.size(); ++i) {
++      require(a.calls[i].offset == b.calls[i].offset &&
++              a.calls[i].bytes == b.calls[i].bytes);
++      require(b.calls[i].dst == uintptr_t(out.data()) + i * 1024 * 1024);
++    }
++    const auto target = converted(raw, std::get<2>(item), std::get<3>(item));
++    require(!htpReadQs2CompactInPlace(
++      [&](void *, size_t count, uint64_t at) {
++        return files.readOwnedEnvelope(fd, out.data(), out.span, count, at);
++      },
++      off, std::get<2>(item), std::get<3>(item), out.data() + off % 4096,
++      raw.size()));
++    require(
++      !std::memcmp(out.data() + off % 4096, target.data(), target.size()));
++    out.guards();
++  }
++  require(fcntl(fd, F_GETFL) == flags && lseek(fd, 0, SEEK_CUR) == 29);
++  {
++    Allocation out(dn.size(), dn_off % 4096);
++    const uint64_t size = dn_off + dn.size();
++    require(files.readOwnedEnvelope(fd, nullptr, out.span, 1, 0) == EINVAL);
++    require(files.readOwnedEnvelope(fd, out.data() + 1, out.span, 1, 0) ==
++            EINVAL);
++    require(files.readOwnedEnvelope(fd, out.data(), out.span - 1, dn.size(),
++                                    dn_off) == EINVAL);
++    require(files.readOwnedEnvelope(fd, out.data(), out.span, dn.size() + 1,
++                                    dn_off) == -1);
++    require(files.readOwnedEnvelope(fd, out.data(), out.span, 1, UINT64_MAX) ==
++            -1);
++    require(files.readOwnedEnvelope(fd, out.data(), SIZE_MAX, SIZE_MAX, 0) ==
++            -1);
++    require(files.readOwnedEnvelope(fd, nullptr, 0, 0, size) == 0);
++    require(files.readOwnedEnvelope(-1, out.data(), out.span, 1, 0) == EBADF);
++    for (auto fault : {ReadProbe::interrupt, ReadProbe::error, ReadProbe::zero,
++                       ReadProbe::short_read}) {
++      ReadProbe probe;
++      probe.fault = fault;
++      probe.short_bytes = dn.size() + dn_off % 4096 - 1;
++      read_probe = &probe;
++      const int rc =
++        files.readOwnedEnvelope(fd, out.data(), out.span, dn.size(), dn_off);
++      read_probe = nullptr;
++      require(rc == (fault == ReadProbe::interrupt ? 0
++                     : fault == ReadProbe::error   ? EIO
++                                                   : -1));
++      require(probe.calls.size() == (fault == ReadProbe::interrupt ? 2 : 1));
++    }
++    out.guards();
++  }
++  // Descriptor-based layout, one-use promotion, physical free and fd lifetime.
++  {
++    Fixture fixture(4);
++    require(!fsync(fixture.fd));
++    auto bank = std::make_shared<Bank>(fixture.ds, 17, &fixture, true);
++    while (
++      bank->readOne([&](Bank::Record &r) { return ownedRecord(r, files); })) {
++    }
++    bank->waitReads();
++    require(bank->stats().failed == 0 &&
++            bank->stats().allocated_bytes > bank->stats().bytes);
++    for (size_t i = 0; i < fixture.ds.size(); ++i) {
++      auto lease = bank->take(fixture.ds[i]);
++      auto copy = lease;
++      const auto *record = &lease->record();
++      require(record->aligned && record->payload.get_deleter().aligned);
++      require(uintptr_t(record->payload.get()) % 4096 == 0);
++      require(record->envelope(true) >=
++              record->envelope(false) + record->envelopeBytes(false));
++      lease.reset();
++      require(record->payload && !bank->take(fixture.ds[i]));
++      std::vector<uint8_t> slot(record->gu_bytes + record->dn_bytes + 2, 0x7e);
++      require(!copy->copyPart(false, slot.data() + 1, record->gu_bytes));
++      require(!copy->copyPart(true, slot.data() + 1 + record->gu_bytes,
++                              record->dn_bytes));
++      require(slot.front() == 0x7e && slot.back() == 0x7e);
++      require(std::equal(fixture.expected[i].begin(), fixture.expected[i].end(),
++                         slot.begin() + 1));
++      copy.reset();
++      require(!record->payload && record->source);
++    }
++    bank->cancelAndWait();
++  }
++  {
++    Fixture f(1);
++    auto bank = std::make_shared<Bank>(f.ds, 18, &f, true);
++    fail_alloc = true;
++    bool called = false;
++    require(bank->readOne([&](Bank::Record &) {
++      called = true;
++      return 0;
++    }));
++    bank->waitReads();
++    auto lease = bank->take(f.ds[0]);
++    require(!called && lease->record().rc == ENOMEM &&
++            !lease->record().payload);
++    uint8_t untouched = 0x7e;
++    require(lease->copyPart(false, &untouched, 1) == ENOMEM &&
++            untouched == 0x7e);
++    lease.reset();
++    bank->cancelAndWait();
++  }
++  // Final aligned free is outside the mutex and stays counted until complete.
++  {
++    Fixture f(1);
++    auto bank = std::make_shared<Bank>(f.ds, 19, &f, true);
++    require(
++      bank->readOne([&](Bank::Record &r) { return ownedRecord(r, files); }));
++    auto lease = bank->take(f.ds[0]);
++    const auto *record = &lease->record();
++    free_probe.target = record->payload.get();
++    auto freeing =
++      std::async(std::launch::async,
++                 [last = std::move(lease)]() mutable { last.reset(); });
++    bool entered;
++    {
++      std::unique_lock<std::mutex> lock(free_probe.mutex);
++      entered = free_probe.cv.wait_for(lock, std::chrono::seconds(2),
++                                       [] { return free_probe.entered; });
++    }
++    auto stats = std::async(std::launch::async, [&] { return bank->stats(); });
++    const bool unlocked = stats.wait_for(std::chrono::milliseconds(100)) ==
++                          std::future_status::ready;
++    auto cancelled =
++      std::async(std::launch::async, [&] { bank->cancelAndWait(); });
++    const bool joined = cancelled.wait_for(std::chrono::milliseconds(20)) ==
++                        std::future_status::timeout;
++    {
++      std::lock_guard<std::mutex> lock(free_probe.mutex);
++      free_probe.release = true;
++    }
++    free_probe.cv.notify_all();
++    freeing.get();
++    stats.get();
++    cancelled.get();
++    free_probe.target = nullptr;
++    require(entered && unlocked && joined && free_probe.freed);
++    require(free_probe.frees == 1 && free_probe.deletes == 0);
++    require(!record->payload && !record->source);
++  }
++  // Each malformed record is rejected before any arena promotion, including
++  // invalid metadata after a successful direct read of the enclosing pages.
++  for (int bad = 0; bad < 6; ++bad) {
++    Fixture f(1);
++    const auto &d = f.ds[0];
++    if (bad < 2) {
++      const int8_t value = bad ? -9 : 8;
++      require(pwrite(f.fd, &value, 1, d.off_gu + 512) == 1);
++    } else {
++      const float value = bad == 2   ? std::numeric_limits<float>::quiet_NaN()
++                          : bad == 3 ? std::numeric_limits<float>::infinity()
++                          : bad == 4 ? 257.0f
++                                     : -257.0f;
++      require(pwrite(f.fd, &value, 4, d.off_gu + 512 + 4 + 4 * 64) == 4);
++    }
++    require(!fsync(f.fd));
++    auto bank = std::make_shared<Bank>(f.ds, 100 + bad, &f, true);
++    require(bank->readOne(
++      [&](Bank::Record &record) { return ownedRecord(record, files); }));
++    auto lease = bank->take(d);
++    require(lease->record().rc == EINVAL && bank->stats().failed == 1);
++    std::vector<uint8_t> slot(8192, 0x7e);
++    require(lease->copyPart(false, slot.data(), slot.size()) == EINVAL);
++    require(lease->copyPart(true, slot.data(), slot.size()) == EINVAL);
++    require(std::all_of(slot.begin(), slot.end(),
++                        [](uint8_t v) { return v == 0x7e; }));
++    lease.reset();
++    bank->cancelAndWait();
++  }
++  // Cancellation closes unclaimed work and joins a currently executing read.
++  {
++    Fixture f(2);
++    auto bank = std::make_shared<Bank>(f.ds, 200, &f, true);
++    std::promise<void> entered, release;
++    auto gate = release.get_future().share();
++    auto reader = std::async(std::launch::async, [&] {
++      return bank->readOne([&](Bank::Record &record) {
++        entered.set_value();
++        gate.wait();
++        return ownedRecord(record, files);
++      });
++    });
++    entered.get_future().wait();
++    auto cancelled =
++      std::async(std::launch::async, [&] { bank->cancelAndWait(); });
++    const bool waits = cancelled.wait_for(std::chrono::milliseconds(20)) ==
++                       std::future_status::timeout;
++    release.set_value();
++    require(reader.get());
++    cancelled.get();
++    require(waits && bank->stats().read == 1 && bank->stats().cancelled == 1);
++    require(!bank->take(f.ds[0]));
++  }
++  // The byte cap charges real page envelopes, including arbitrary byte heads.
++  {
++    Fixture f(160);
++    require(!ftruncate(f.fd, 64 * 1024 * 1024));
++    auto ds = f.ds;
++    for (auto &d : ds) {
++      d.K = 2048;
++      d.inter = 1536;
++      d.N_out = 2048;
++      d.off_gu = d.off_dn = 4095;
++    }
++    for (size_t count : {64, 96, 128, 160}) {
++      std::vector<Desc> selected(ds.begin(), ds.begin() + count);
++      auto bank = std::make_shared<Bank>(selected, 300 + count, &f, true);
++      require(bank->stats().bytes == count * 2400264u);
++      require(bank->stats().allocated_bytes == count * 2416640u);
++      bank->cancelAndWait();
++      require(bank->stats().read == 0 && bank->stats().cancelled == count);
++    }
++    ds.push_back(ds.back());
++    rejected([&] { Bank bad(ds, 500, &f, true); });
++    ds.resize(8);
++    for (auto &d : ds) {
++      d.K = 8192;
++      d.inter = 8160;
++      d.N_out = 8192;
++    }
++    Bank logical_fits(ds, 501, &f, false);
++    require(logical_fits.stats().bytes == 402649152u);
++    rejected([&] { Bank padded_exceeds(ds, 502, &f, true); });
++    logical_fits.cancelAndWait();
++  }
++  // Reusing the integer fd cannot select the old identity-cached O_DIRECT fd.
++  const int reused = fd;
++  close(fd);
++  char next_path[] = "/tmp/nntr-owned-reused-XXXXXX";
++  fd = mkstemp(next_path);
++  require(fd == reused);
++  unlink(next_path);
++  auto changed = small;
++  changed[0] ^= 0xff;
++  require(write(fd, changed.data(), changed.size()) == ssize_t(changed.size()));
++  require(!fsync(fd));
++  {
++    Allocation out(changed.size(), 0);
++    require(
++      !files.readOwnedEnvelope(fd, out.data(), out.span, changed.size(), 0));
++    require(!std::memcmp(out.data(), changed.data(), changed.size()));
++    out.guards();
++  }
++  close(fd);
++  std::printf("PASS owned envelopes: %zu assertions, all4096 offsets, target "
++              "GU2/DN1, EOF3072, errors, promotion and physical free\n",
++              checks);
++}
++#else
++int main() { std::puts("SKIP: O_DIRECT requires Linux/Android"); }
++#endif
+--- /dev/null
++++ b/test/htp/host/run_owned_envelope_checks.py
+@@ -0,0 +1,35 @@
++#!/usr/bin/env python3
++# SPDX-License-Identifier: Apache-2.0
++"""Run actual O_DIRECT owned-envelope tests; requires Linux/Android filesystem."""
++import argparse
++import os
++from pathlib import Path
++import shlex
++import subprocess
++import tempfile
++
++p = argparse.ArgumentParser(description=__doc__)
++p.add_argument('--repo-root', type=Path)
++p.add_argument('--sanitize', action='store_true')
++a = p.parse_args()
++here = Path(__file__).resolve().parent
++root = a.repo_root.resolve() if a.repo_root else here.parents[2]
++compiler = shlex.split(os.environ.get('CXX', 'c++'))
++flags = ['-std=c++17', '-O1' if a.sanitize else '-O2', '-Wall', '-Wextra', '-Werror', '-pthread']
++env = os.environ.copy()
++if a.sanitize:
++    flags += ['-fsanitize=address,undefined', '-fno-omit-frame-pointer', '-g1']
++    env['ASAN_OPTIONS'] = 'halt_on_error=1:detect_leaks=1'
++    env['UBSAN_OPTIONS'] = 'halt_on_error=1'
++includes = ['-I' + str(x) for x in [here, root / 'nntrainer/utils', root / 'nntrainer/tensor/htp_backend']]
++with tempfile.TemporaryDirectory(prefix='nntr-owned-envelope-') as tmp:
++    for name in ['weight_direct_file_check', 'owned_envelope_check']:
++        binary = Path(tmp) / name
++        wrap = ['-Wl,--wrap=pread', '-Wl,--wrap=free', '-Wl,--wrap=posix_memalign'] if name == 'owned_envelope_check' else []
++        command = compiler + flags + includes + [str(here / (name + '.cpp'))] + wrap + ['-o', str(binary)]
++        subprocess.run(command, check=True)
++        subprocess.run([str(binary)], env=env, check=True, timeout=60)
++    portable = Path(tmp) / 'portable.cpp'
++    portable.write_text('#include "weight_direct_file.h"\n#include "htp_expert_host_staging.h"\nint main() { return 0; }\n')
++    subprocess.run(compiler + ['-std=c++17', '-Wall', '-Wextra', '-Werror', '-U__linux__', '-U__ANDROID__'] + includes + ['-fsyntax-only', str(portable)], check=True)
++    print('PASS portable headers without Linux/Android macros')

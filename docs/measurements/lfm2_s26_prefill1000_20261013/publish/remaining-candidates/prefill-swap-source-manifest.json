@@ -1,0 +1,20 @@
+{
+  "base": "7493cca56abbb35859ecb65ca1b3b7c61494366d",
+  "files": {
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "91c426ef2ca6667ba8df6d21528723fe8f70561f06ded1502df6a6bf17585a71",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp": "798413988e8f6e7cfa0c7cd16ccb9268d09dc3867a934cc8abf820cab4130688",
+    "test/htp/nntr_hvx.idl": "a2adcd03e8fa769b3fde8fc2fd30377ebe54300573979b62152ce183be1b297b",
+    "test/htp/nntr_hvx_mm_u8i4.c": "cb4bc4264291da802f239a5221b77e6665762d02dd280efd299321dae851600f",
+    "test/htp/nntr_hvx_lut_probe.c": "9492950788c89c26a5cf612e3eed6cc793ff7b60134a8782062c5d392a2ff22d",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "f056bede5abfa6b18c463a3a2a89995889d065d7d2dccb1e25a1150f7479a954",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4.c": "0e804755044e611b41e6642c7479b3d30639885f0017cfee2a3afcbe9972cbd0",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4.h": "d1cac0d4db864ea3140d48e61beb73644d2302793238521dfcbf92182bb6208c",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.c": "f7136a115fb14b0ede2a8a37702af9fb358ec9aa224c2412c673e1c90b1a8931",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.h": "44bc18dd6ec072a8b946f0fd509880ba0a40aa7783152371133eeb9646d9dcdc",
+    "nntrainer/tensor/htp_backend/htp_dspq_wire.h": "fe24fc05c5e1b115241a93b585e15901554a794c55887bd3642b24688a60d4e4",
+    "test/htp/nntr_hvx_dspq.c": "df4df0ba810e4251e928d8aaa45dab791500c4cbcb9c6bc943ea3ea5d4912d3e",
+    "test/htp/nntr_hvx_expert_update.h": "b5cfef6bd5b23baa46da2353e7455e8bce674e30f86a694d51011a1b29c1f723",
+    "test/htp/expert_update_check.cpp": "7c086775a469e469a65e4ad382910d00799f154642f56fb60869b7efc3c96d33",
+    "test/htp/host/dspq_expert_update_host_check.c": "fdf740daa6f7cac307c7f63640c9b009e637ab229c855a99e454e975d7c0a585"
+  }
+}

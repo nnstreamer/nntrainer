@@ -10,6 +10,10 @@
  * @bug    No known bugs except for NYI items
  */
 
+#ifdef __hexagon__
+#include "hvx_tile_f16.h"
+#endif
+
 #include "hexkl_kv_tiles_f16.h"
 
 #include <stdlib.h>
@@ -100,8 +104,29 @@ int hexkl_kv_tiles_f16_append(hexkl_kv_tiles_f16_table *tbl, uint32_t handle,
   const uint32_t hd = kv->head_dim;
   const uint32_t stride = kv->n_head_kv * hd; // elements per cache row
 
-  for (uint32_t r = 0; r < n_rows; ++r) {
+  for (uint32_t r = 0; r < n_rows;) {
     const uint32_t row = row0 + r;
+#ifdef __hexagon__
+    // Whole prefill tiles can use the raw attention path's exact builders.
+    // The registry uses calloc (not vector-aligned), so stage through an
+    // aligned tile before copying. Partial/rewritten rows keep the scalar
+    // path below, preserving all other rows of the same tile.
+    if (!(row % 32u) && n_rows - r >= 32u) {
+      HVX_Vector tile[HVX_TILE_F16_VECS] __attribute__((aligned(128)));
+      for (uint32_t n = 0; n < kv->n_head_kv; ++n) {
+        for (uint32_t d = 0; d < kv->n_dot_tiles; ++d) {
+          const uint32_t off = hexkl_kv_tiles_f16_off(kv, n, row / 32u, d);
+          const size_t src = (size_t)r * stride + n * hd + 32u * d;
+          hvx_tile_f16_rows_to_tile_transposed(tile, k_rows + src, stride);
+          memcpy(kv->kt + off, tile, TILE_BYTES);
+          hvx_tile_f16_rows_to_tile(tile, v_rows + src, stride);
+          memcpy(kv->v + off, tile, TILE_BYTES);
+        }
+      }
+      r += 32u;
+      continue;
+    }
+#endif
     const uint32_t c = row / 32u;
     const uint32_t rr = row % 32u;
     const uint16_t *krow = k_rows + (size_t)r * stride;
@@ -129,6 +154,7 @@ int hexkl_kv_tiles_f16_append(hexkl_kv_tiles_f16_table *tbl, uint32_t handle,
         }
       }
     }
+    ++r;
   }
   return AEE_SUCCESS;
 }

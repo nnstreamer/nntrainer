@@ -1,9 +1,14 @@
-/* Scalar stand-ins for every HMX/HVX/DMA/pool primitive the block
+/** Scalar stand-ins for every HMX/HVX/DMA/pool primitive the block
    kernels call, plus the reference helpers the host checks share. See
    run_host_checks.sh for what this does and does not verify: the
    arithmetic is defined self-consistently on both sides, so what a check
    here catches is loop structure -- which rows, which weights, which
-   buffer -- not the hardware's numerics. */
+   buffer -- not the hardware's numerics.
+ * @file hvx_scalar_stubs.h
+ * @brief Regression checks for hvx scalar stubs.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
+ */
 #ifndef HVX_SCALAR_STUBS_H
 #define HVX_SCALAR_STUBS_H
 
@@ -33,6 +38,7 @@ float rndf(void);
 
 /* The weight table the checks register into (slot = handle). */
 extern hexkl_weight_u8i4_table g_tbl;
+extern uint64_t g_weight_bypass_bytes, g_invalid_bypass_bytes;
 void make_weight(uint32_t slot, uint32_t K, uint32_t N, W *w);
 
 #endif /* HVX_SCALAR_STUBS_H */

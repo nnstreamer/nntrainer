@@ -1,0 +1,524 @@
+{
+  "date": "2026-10-09",
+  "device": {
+    "serial": "R5KL30G6MCX",
+    "model": "SM-S948N",
+    "hexagon_arch": "v81"
+  },
+  "status": "Experimental implementation complete; opt-in, default unchanged.",
+  "reference": "https://arxiv.org/html/2511.11248v1",
+  "design": {
+    "reason_for_pair_lut": "Current QS2CX_WH uses four arbitrary signed int4 palette entries, not necessarily uniformly spaced. A simple two-plane affine decomposition requires p0+p3=p1+p2. Pair LUT supports every such palette exactly.",
+    "lookup": "T[u+4*v] = a0*palette[u] + a1*palette[v], 16 signed int16 entries; int32 final accumulation.",
+    "weight_bits": 2,
+    "canonical_layout_bytes": "[N/128][K/32][8][128]",
+    "column_mapping": "Byte j in each 128-byte vector corresponds to output (j%4)*32+j/4 within its panel.",
+    "byte_mapping": "For t=0..7: bits 0..1 code row 2t; bits 2..3 row 2t+1; bits 4..5 row 16+2t; bits 6..7 row 17+2t, relative to the K32 tile.",
+    "runtime_layout": "[K/32][N/128][8][128], with N*16-byte K-row stride. Compact source occupies the upper N*8 bytes; the transformed layout occupies the lower N*8 bytes.",
+    "lut_storage": "K*32 bytes, 128-byte aligned; 64 KiB for K=2048. Prepared once per activation/palette, reused across N panels.",
+    "partial_sum_bound": "Eight pairs in signed int16: [-32640,28560]; widen to int32 before combining groups.",
+    "metadata": "Palette, per-column scales, zero-point compensation column sums and output order preserved.",
+    "model_format": "Original QS2CX_WH model file/cache format retained; runtime conversion in VTCM. New layout must not be identified as QS2CX_WH.",
+    "future_work": "Persist a distinct LUT weight layout in expert cache or model format to avoid per-token repacking; retain an appropriate prefill representation."
+  },
+  "runtime_options": {
+    "NNTR_HTP_QS2_GEMV=0": "Existing 2bit-to-4bit VTCM expansion plus HVX GEMV (default).",
+    "NNTR_HTP_QS2_GEMV=1": "Compact WH, expansion in registers fused with vrmpy.",
+    "NNTR_HTP_QS2_GEMV=2": "HVX in-place layout conversion, LUT preparation and pair-LUT GEMV.",
+    "requirements": "Single-token MoE, all active experts QS2, existing VTCM feed enabled (NNTR_HTP_QS2_VTCM=1). LUT additionally needs intermediate/output dimensions divisible by 128 and enough VTCM for tables; unsupported cases use existing path."
+  },
+  "correctness": {
+    "host_lut": "15 cases passed exact dense-reference sums, pack/unpack, panel/strided repacking and guards; strict ASan+UBSan passed.",
+    "device_lut": "300 cells passed exact dense-reference sums: five kernel/layout modes, caller/full-pool execution, DMA off/on; includes model projection sizes and extreme palette/activation cases. Final build rerun also passed.",
+    "device_integration": "MoeCompactExpertsMatchExpanded and MoeLayerM1GemvMatchesHmx passed on final build; includes option echo, QS2 variants, cache rebind, prefill and fallback coverage.",
+    "model_output": "All seven completed window runs have identical generated-text SHA256; this is output consistency, not an independent model-quality evaluation.",
+    "host_suite": "run_host_checks.sh completed successfully; native libnative/ISS and AArch64 NEON checks requiring absent tools were skipped.",
+    "known_existing_sanitizer_issue": "Full MoE sanitizer check reports pre-existing negative signed left shift in nntrainer/tensor/swiglu_det.h:152. Numerical checks pass, but full MoE UBSan is not clean. New LUT-only strict ASan+UBSan is clean."
+  },
+  "microbenchmark": {
+    "source": "lfm2_s26_qs2_lut_validation_20261009/microbenchmark.json",
+    "mode_numbers_differ_from_runtime_env": {
+      "0": "Expanded WH baseline",
+      "1": "Prepacked LUT",
+      "2": "Fused compact WH",
+      "3": "Vector repack to panel-major LUT",
+      "4": "In-place row-major LUT repack"
+    },
+    "passes_per_cell": 100,
+    "selected_rows": [
+      {
+        "K": 2048,
+        "N": 3072,
+        "pattern": 0,
+        "palette": [
+          -8,
+          -3,
+          0,
+          7
+        ],
+        "mode": 0,
+        "workers": 8,
+        "dma": 0,
+        "passes": 100,
+        "dma_us": 0.03,
+        "repack_us": 0.01,
+        "prep_us": 12.84,
+        "gemv_us": 17.66,
+        "total_us": 30.54,
+        "exact": 1
+      },
+      {
+        "K": 2048,
+        "N": 3072,
+        "pattern": 0,
+        "palette": [
+          -8,
+          -3,
+          0,
+          7
+        ],
+        "mode": 1,
+        "workers": 8,
+        "dma": 0,
+        "passes": 100,
+        "dma_us": 0.03,
+        "repack_us": 0.01,
+        "prep_us": 1.6,
+        "gemv_us": 7.2,
+        "total_us": 8.84,
+        "exact": 1
+      },
+      {
+        "K": 2048,
+        "N": 3072,
+        "pattern": 0,
+        "palette": [
+          -8,
+          -3,
+          0,
+          7
+        ],
+        "mode": 2,
+        "workers": 8,
+        "dma": 0,
+        "passes": 100,
+        "dma_us": 0.03,
+        "repack_us": 0.03,
+        "prep_us": 0.04,
+        "gemv_us": 15.1,
+        "total_us": 15.2,
+        "exact": 1
+      },
+      {
+        "K": 2048,
+        "N": 3072,
+        "pattern": 0,
+        "palette": [
+          -8,
+          -3,
+          0,
+          7
+        ],
+        "mode": 3,
+        "workers": 8,
+        "dma": 0,
+        "passes": 100,
+        "dma_us": 0.02,
+        "repack_us": 15.27,
+        "prep_us": 1.58,
+        "gemv_us": 7.17,
+        "total_us": 24.04,
+        "exact": 1
+      },
+      {
+        "K": 2048,
+        "N": 3072,
+        "pattern": 0,
+        "palette": [
+          -8,
+          -3,
+          0,
+          7
+        ],
+        "mode": 4,
+        "workers": 8,
+        "dma": 0,
+        "passes": 100,
+        "dma_us": 0.01,
+        "repack_us": 15.28,
+        "prep_us": 1.6,
+        "gemv_us": 7.12,
+        "total_us": 24.01,
+        "exact": 1
+      },
+      {
+        "K": 2048,
+        "N": 3072,
+        "pattern": 0,
+        "palette": [
+          -8,
+          -3,
+          0,
+          7
+        ],
+        "mode": 0,
+        "workers": 8,
+        "dma": 1,
+        "passes": 100,
+        "dma_us": 20.91,
+        "repack_us": 0.01,
+        "prep_us": 12.83,
+        "gemv_us": 17.61,
+        "total_us": 51.36,
+        "exact": 1
+      },
+      {
+        "K": 2048,
+        "N": 3072,
+        "pattern": 0,
+        "palette": [
+          -8,
+          -3,
+          0,
+          7
+        ],
+        "mode": 1,
+        "workers": 8,
+        "dma": 1,
+        "passes": 100,
+        "dma_us": 19.76,
+        "repack_us": 0.02,
+        "prep_us": 1.67,
+        "gemv_us": 7.12,
+        "total_us": 28.57,
+        "exact": 1
+      },
+      {
+        "K": 2048,
+        "N": 3072,
+        "pattern": 0,
+        "palette": [
+          -8,
+          -3,
+          0,
+          7
+        ],
+        "mode": 2,
+        "workers": 8,
+        "dma": 1,
+        "passes": 100,
+        "dma_us": 20.55,
+        "repack_us": 0.0,
+        "prep_us": 0.01,
+        "gemv_us": 15.21,
+        "total_us": 35.77,
+        "exact": 1
+      },
+      {
+        "K": 2048,
+        "N": 3072,
+        "pattern": 0,
+        "palette": [
+          -8,
+          -3,
+          0,
+          7
+        ],
+        "mode": 3,
+        "workers": 8,
+        "dma": 1,
+        "passes": 100,
+        "dma_us": 19.87,
+        "repack_us": 15.24,
+        "prep_us": 1.6,
+        "gemv_us": 7.13,
+        "total_us": 43.84,
+        "exact": 1
+      },
+      {
+        "K": 2048,
+        "N": 3072,
+        "pattern": 0,
+        "palette": [
+          -8,
+          -3,
+          0,
+          7
+        ],
+        "mode": 4,
+        "workers": 8,
+        "dma": 1,
+        "passes": 100,
+        "dma_us": 21.09,
+        "repack_us": 15.26,
+        "prep_us": 1.59,
+        "gemv_us": 7.17,
+        "total_us": 45.11,
+        "exact": 1
+      },
+      {
+        "K": 1536,
+        "N": 2048,
+        "pattern": 0,
+        "palette": [
+          -8,
+          -3,
+          0,
+          7
+        ],
+        "mode": 0,
+        "workers": 8,
+        "dma": 0,
+        "passes": 100,
+        "dma_us": 0.02,
+        "repack_us": 0.01,
+        "prep_us": 7.02,
+        "gemv_us": 8.96,
+        "total_us": 16.01,
+        "exact": 1
+      },
+      {
+        "K": 1536,
+        "N": 2048,
+        "pattern": 0,
+        "palette": [
+          -8,
+          -3,
+          0,
+          7
+        ],
+        "mode": 1,
+        "workers": 8,
+        "dma": 0,
+        "passes": 100,
+        "dma_us": 0.03,
+        "repack_us": 0.03,
+        "prep_us": 1.6,
+        "gemv_us": 3.89,
+        "total_us": 5.55,
+        "exact": 1
+      },
+      {
+        "K": 1536,
+        "N": 2048,
+        "pattern": 0,
+        "palette": [
+          -8,
+          -3,
+          0,
+          7
+        ],
+        "mode": 2,
+        "workers": 8,
+        "dma": 0,
+        "passes": 100,
+        "dma_us": 0.04,
+        "repack_us": 0.0,
+        "prep_us": 0.02,
+        "gemv_us": 7.94,
+        "total_us": 8.0,
+        "exact": 1
+      },
+      {
+        "K": 1536,
+        "N": 2048,
+        "pattern": 0,
+        "palette": [
+          -8,
+          -3,
+          0,
+          7
+        ],
+        "mode": 3,
+        "workers": 8,
+        "dma": 0,
+        "passes": 100,
+        "dma_us": 0.02,
+        "repack_us": 8.22,
+        "prep_us": 1.61,
+        "gemv_us": 3.91,
+        "total_us": 13.76,
+        "exact": 1
+      },
+      {
+        "K": 1536,
+        "N": 2048,
+        "pattern": 0,
+        "palette": [
+          -8,
+          -3,
+          0,
+          7
+        ],
+        "mode": 4,
+        "workers": 8,
+        "dma": 0,
+        "passes": 100,
+        "dma_us": 0.04,
+        "repack_us": 8.15,
+        "prep_us": 1.57,
+        "gemv_us": 3.96,
+        "total_us": 13.72,
+        "exact": 1
+      },
+      {
+        "K": 1536,
+        "N": 2048,
+        "pattern": 0,
+        "palette": [
+          -8,
+          -3,
+          0,
+          7
+        ],
+        "mode": 0,
+        "workers": 8,
+        "dma": 1,
+        "passes": 100,
+        "dma_us": 6.73,
+        "repack_us": 0.02,
+        "prep_us": 7.0,
+        "gemv_us": 8.91,
+        "total_us": 22.66,
+        "exact": 1
+      },
+      {
+        "K": 1536,
+        "N": 2048,
+        "pattern": 0,
+        "palette": [
+          -8,
+          -3,
+          0,
+          7
+        ],
+        "mode": 1,
+        "workers": 8,
+        "dma": 1,
+        "passes": 100,
+        "dma_us": 6.67,
+        "repack_us": 0.0,
+        "prep_us": 1.55,
+        "gemv_us": 3.88,
+        "total_us": 12.1,
+        "exact": 1
+      },
+      {
+        "K": 1536,
+        "N": 2048,
+        "pattern": 0,
+        "palette": [
+          -8,
+          -3,
+          0,
+          7
+        ],
+        "mode": 2,
+        "workers": 8,
+        "dma": 1,
+        "passes": 100,
+        "dma_us": 6.73,
+        "repack_us": 0.01,
+        "prep_us": 0.02,
+        "gemv_us": 7.87,
+        "total_us": 14.63,
+        "exact": 1
+      },
+      {
+        "K": 1536,
+        "N": 2048,
+        "pattern": 0,
+        "palette": [
+          -8,
+          -3,
+          0,
+          7
+        ],
+        "mode": 3,
+        "workers": 8,
+        "dma": 1,
+        "passes": 100,
+        "dma_us": 6.57,
+        "repack_us": 8.28,
+        "prep_us": 1.46,
+        "gemv_us": 4.02,
+        "total_us": 20.33,
+        "exact": 1
+      },
+      {
+        "K": 1536,
+        "N": 2048,
+        "pattern": 0,
+        "palette": [
+          -8,
+          -3,
+          0,
+          7
+        ],
+        "mode": 4,
+        "workers": 8,
+        "dma": 1,
+        "passes": 100,
+        "dma_us": 6.62,
+        "repack_us": 8.21,
+        "prep_us": 1.59,
+        "gemv_us": 3.89,
+        "total_us": 20.31,
+        "exact": 1
+      }
+    ],
+    "caveats": "VTCM-only cells include LUT preparation/repacking as applicable. DMA cells add serial repeated-buffer DMA, not full-model overlap or cold DDR. Actual worker count is recorded."
+  },
+  "model_benchmark": {
+    "raw_report": "lfm2_s26_qs2_lut_window_20261009-200338/results.json",
+    "conditions": {
+      "serial": "R5KL30G6MCX",
+      "model": "/data/local/tmp/nntr_int8_kv_20261009/model",
+      "prompt": 1024,
+      "generation": 64,
+      "expert_cache": 8,
+      "repeats": 3
+    },
+    "balanced_summary": {
+      "expand": {
+        "runs": 2,
+        "generation_ms": [
+          2968,
+          2939
+        ],
+        "aggregate_generation_tps": 21.669206026747926,
+        "tps_gain_percent": 0.0
+      },
+      "fused": {
+        "runs": 2,
+        "generation_ms": [
+          2739,
+          2751
+        ],
+        "aggregate_generation_tps": 23.31511839708561,
+        "tps_gain_percent": 7.595628415300548
+      },
+      "lut": {
+        "runs": 2,
+        "generation_ms": [
+          2907,
+          2837
+        ],
+        "aggregate_generation_tps": 22.284122562674096,
+        "tps_gain_percent": 2.8377437325905364
+      }
+    },
+    "completed_rotated_triples": 2,
+    "extra_run": "Third LUT run retained as supplemental, excluded from balanced comparison.",
+    "limitations": [
+      "Two short runs per variant, not a sustained thermal benchmark or statistical confidence estimate.",
+      "Unrelated inference ran between some windows; overlapping runs are excluded and thermal/idle gates are recorded.",
+      "No page-cache flush; prefill timings are not an optimization claim."
+    ],
+    "binary_hashes_unchanged_during_measurement": true,
+    "build_note": "Model performance uses binaries recorded in raw report. Final rebuild was validated separately; final changes were formatting, probe argument bounds and a test option-echo assertion, not model arithmetic."
+  },
+  "final_validation_binary_hashes": "9c5973e65fa7cde81fb9a37e7a9effbf3713ed292aa15e810bb1b79c50b22317  libnntrainer.so\nc80c740f48c863678f7d9d97fb45a6ed6d64b5b54748ef9daf56254b20c59145  libnntr_hvx_skel.so\n2079b8e7a78c21cc1b82cf0c65209831bac399d36c95a079270a1ee35a89c532  unittest_hvx_mm_u8i4\n29b05bb1a70fad7be91b6b74713cb393f9e646085e42af90e2ccd6d98d54d75e  qs2_lut_device_check",
+  "source_hashes": "lfm2_s26_qs2_lut_validation_20261009/source-hashes.json",
+  "interpretation": "Prepacked LUT reduces GEMV microbenchmark latency substantially. Per-token layout conversion reduces the end-to-end gain; fused register expansion is faster in these model runs. Keep both experimental paths opt-in pending broader measurements."
+}

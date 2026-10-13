@@ -46,11 +46,21 @@
 #include <cpu_backend.h>
 #include <cpu_ops_table.h>
 #include <htp_act_quant.h>
+#include <htp_activation_reuse.h>
+#include <htp_attn_q8_quant.h>
 #include <htp_backend.h>
 #include <htp_dspq_wire.h>
+#include <htp_expert_host_staging.h>
 #include <htp_graph_desc.h>
+#include <htp_kv_cache.h>
 #include <htp_moe_opts.h>
+#include <htp_prepared_fc.h>
+#include <htp_prepared_qs2.h>
 #include <htp_q4_0_convert.h>
+#include <htp_qs2_mapped_file.h>
+#include <htp_qs2_reader.h>
+#include <htp_rope_prefill.h>
+#include <htp_rope_prefill_shape.h>
 #include <htp_rpcmem.h>
 #include <htp_wh_layout.h>
 #include <m1_ops_det.h>
@@ -58,6 +68,7 @@
 #include <q4_gemv_cpu_det.h>
 #include <swiglu_det.h>
 #include <thread_manager.h>
+#include <weight_direct_file.h>
 
 #include <algorithm>
 #include <array>
@@ -71,6 +82,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <deque>
+#include <limits>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -102,9 +114,8 @@ namespace {
  * @brief Slots mm_u8i4_layer_timed fills.
  *
  * Restated here because the ARM side cannot include the DSP source that
- * declares them (nntr_hvx_mm_u8i4.c). The entry point rejects a stale count
- * with AEE_EBADPARM rather than truncating, so a drift shows up as a failed
- * call, not as wrong numbers.
+ * declares them (nntr_hvx_mm_u8i4.c). Nine slots include HVX MM time and
+ * actual dispatch; the DSP also accepts the legacy seven-slot callers.
  */
 enum {
   HTP_T_DSP_TOTAL = 0,
@@ -114,6 +125,8 @@ enum {
   HTP_T_ACC_COPY,
   HTP_T_DRAIN,
   HTP_T_ACC_STRIDE,
+  HTP_T_MM,
+  HTP_T_PATH,
   HTP_N_STAGES
 };
 
@@ -320,6 +333,9 @@ public:
       b.dequant_us += stage_us[HTP_T_DEQUANT];
       b.acc_us += stage_us[HTP_T_ACC_READ] + stage_us[HTP_T_ACC_COPY];
       b.drain_us += stage_us[HTP_T_DRAIN];
+      b.mm_us += stage_us[HTP_T_MM];
+      b.m1_calls += stage_us[HTP_T_PATH] != 0u;
+      b.m1_feed_calls += stage_us[HTP_T_PATH] != 0u;
     }
   }
 
@@ -385,11 +401,13 @@ public:
                          uint64_t host_us, const uint32_t *stage_us,
                          const HtpRpcBuffer &act_stage,
                          const HtpRpcBuffer &out_stage, size_t in_arg_bytes,
-                         int kind = 0, bool via_dspq = false) {
+                         int kind = 0, bool via_dspq = false,
+                         bool direct_io = false) {
     std::lock_guard<std::mutex> lock(mutex_);
     Bucket &b = buckets_[std::make_tuple(K, N_out, M == 1, kind)];
     ++b.calls;
     b.dspq_calls += via_dspq ? 1 : 0;
+    b.direct_io_calls += direct_io ? 1 : 0;
     b.rows += M;
     b.host_us += host_us;
     // [#88] What this call staged through, for the staging: line. The
@@ -619,6 +637,8 @@ private:
     /** [#141] Of calls, how many rode the dspqueue; then in_arg_bytes is
         the request message, not the stub's non-ION in-args. */
     uint64_t dspq_calls = 0;
+    uint64_t direct_io_calls =
+      0; /**< staging capacities include spare buffers */
   };
 
   HtpProfile() {
@@ -719,7 +739,7 @@ private:
         // honest number, and it is the one to compare against the layer's
         // MAC count. It also absorbs whatever the probes do not name, so
         // treat it as an upper bound on the matmul, not an exact figure.
-        /* mm is the residual, so every named stage has to be subtracted --
+        /** mm is the residual, so every named stage has to be subtracted --
            scatter included, or the MoE layer call's scatter time would be
            reported as matmul. Except SWIGLU on the MoE layer kernel's rows
            (MoE, dense, conv; upstream doc 53 section 8.4) and on the M=1
@@ -774,7 +794,8 @@ private:
                      kb, first_kb, first_us,
                      first_us > 0.0 ? first_kb * 1.024 / first_us : 0.0,
                      dsp_us > 0.0 ? kb * 1.024 / dsp_us : 0.0);
-      } else if (level_ >= 2 && b.calls != 0 && b.m1_calls == b.calls) {
+      } else if (level_ >= 2 && b.calls != 0 && b.m1_calls == b.calls &&
+                 b.m1_feed_calls == 0) {
         // [#102] The GEMV path reads the weights straight from the arena and
         // never waits on the ring, so there is no first-wait rate to print;
         // this line keeps the row block's line count and says what swiglu
@@ -831,6 +852,12 @@ private:
                      static_cast<double>(b.dsp_us) / n);
       }
       if (level_ >= 2 && b.stage_act_bytes != 0) {
+        if (b.direct_io_calls)
+          std::fprintf(stderr,
+                       "\n[HTP-PROFILE]     direct model I/O: %llu/%llu calls; "
+                       "staging capacities below include spare buffers",
+                       (unsigned long long)b.direct_io_calls,
+                       (unsigned long long)b.calls);
         // [#88] The MoE call's per-call transport inventory. The driver's
         // cache maintenance covers the whole staging buffer, so the class
         // size is the number that explains a transport figure; rpc allocs
@@ -1113,6 +1140,19 @@ bool attn_trace_enabled() {
   return on;
 }
 
+/**
+ * @brief Opt in to prefill ION staging with NNTR_HTP_ATTN_F16_ION=1.
+ * Profiling reduced attention time, but expert prefetch remained the
+ * bottleneck and whole-model prefill showed no clear improvement.
+ */
+bool attn_f16_ion_enabled() {
+  static const bool on = [] {
+    const char *e = std::getenv("NNTR_HTP_ATTN_F16_ION");
+    return e && std::strcmp(e, "1") == 0;
+  }();
+  return on;
+}
+
 int64_t now_us() {
   return std::chrono::duration_cast<std::chrono::microseconds>(
            std::chrono::steady_clock::now().time_since_epoch())
@@ -1120,17 +1160,18 @@ int64_t now_us() {
 }
 
 /**
- * @brief llama.cpp's HMX-eligibility rule, inverted: fewer than five query
- *        rows with head_dim <= 128 are better served by HVX than by
- *        padding one or two rows into a 32-row tile.
+ * @brief Few-query FP16 attention uses HVX across the supported head widths.
+ *        Prefill continues to use the tiled HMX implementation.
  */
 constexpr unsigned int kDecodeMaxRows = 5;
-constexpr unsigned int kDecodeMaxHeadDim = 128;
+constexpr unsigned int kDecodeMaxHeadDim = 512;
 
 } // namespace
 #endif /* NNTR_HTP_INPROC */
 
 class HtpComputeOps : public CpuComputeOps {
+  using HostExpertBank = HtpExpertHostStaging<ExpertFileDesc>;
+
 public:
   /** [#130] The per-token entry's call count at close, the one line the
    *  host E2E harness reads (plan 130 section 3.5): tokens are the calls
@@ -1138,6 +1179,14 @@ public:
    *  session may already be closed. The expert prefetch readers (doc 52)
    *  are stopped first. */
   ~HtpComputeOps() override {
+    if (auto bank = hostExpertBank())
+      end_qs2_host_prefetch(bank->token());
+    for (unsigned i = 0; i < 3; ++i)
+      if (shared_io_calls_[i])
+        std::fprintf(stderr,
+                     "[HTP-SHARED-IO] kind=%u calls=%llu direct_bytes=%llu\n",
+                     i, static_cast<unsigned long long>(shared_io_calls_[i]),
+                     static_cast<unsigned long long>(shared_io_bytes_[i]));
     {
       std::lock_guard<std::mutex> lock(prefetch_mutex_);
       prefetch_stop_ = true;
@@ -1145,6 +1194,31 @@ public:
     prefetch_cv_.notify_all();
     for (std::thread &t : prefetch_readers_)
       t.join();
+    if (expert_updates_queued_)
+      std::fprintf(stderr,
+                   "[HTP-EXPERT-UPDATE] mode=%u queued=%llu fused_batches=%llu "
+                   "rpc_batches=%llu rpc_us=%llu dsp_update_us=%llu "
+                   "abandoned=%llu\n",
+                   expertUpdateMode(),
+                   (unsigned long long)expert_updates_queued_,
+                   (unsigned long long)expert_update_fused_batches_,
+                   (unsigned long long)expert_update_rpc_batches_,
+                   (unsigned long long)expert_update_rpc_us_,
+                   (unsigned long long)expert_update_dsp_us_,
+                   (unsigned long long)expert_updates_abandoned_);
+    if (qs2_reads_.load())
+      std::fprintf(stderr,
+                   "[HTP-QS2-IO] weights=%llu read_us=%llu copy_us=%llu "
+                   "metadata_us=%llu copied_bytes=%llu demand_batches=%llu "
+                   "parallel_batches=%llu max_misses=%llu\n",
+                   (unsigned long long)qs2_reads_.load(),
+                   (unsigned long long)qs2_read_us_.load(),
+                   (unsigned long long)qs2_copy_us_.load(),
+                   (unsigned long long)qs2_metadata_us_.load(),
+                   (unsigned long long)qs2_copied_bytes_.load(),
+                   (unsigned long long)qs2_demand_batches_,
+                   (unsigned long long)qs2_parallel_batches_,
+                   (unsigned long long)qs2_max_misses_);
     if (fwd_calls_ != 0) {
       std::fprintf(stderr,
                    "[HTP] graph: forward calls=%llu tokens=%llu "
@@ -1158,6 +1232,888 @@ public:
     if (cpu_fc_skipped_ != 0) // [#132 Part B] the harness's second line
       std::fprintf(stderr, "[HTP] graph: cpu fc skipped=%llu\n",
                    (unsigned long long)cpu_fc_skipped_);
+    if (math_calls_[0] || sigmoid_calls_)
+      std::fprintf(
+        stderr,
+        "[HTP] model math calls: norm=%llu add=%llu swiglu=%llu "
+        "geglu=%llu rope=%llu rope_fp16=%llu cast_fp16=%llu "
+        "sigmoid_topk=%llu\n",
+        (unsigned long long)math_calls_[0], (unsigned long long)math_calls_[1],
+        (unsigned long long)math_calls_[2], (unsigned long long)math_calls_[3],
+        (unsigned long long)math_calls_[4], (unsigned long long)math_calls_[5],
+        (unsigned long long)math_calls_[6], (unsigned long long)sigmoid_calls_);
+    if (queued_fc_calls_ || queued_qkv_calls_)
+      std::fprintf(stderr, "[HTP] queued projections: fc=%llu qkv=%llu\n",
+                   (unsigned long long)queued_fc_calls_,
+                   (unsigned long long)queued_qkv_calls_);
+    if (rope_qkv_calls_)
+      std::fprintf(stderr, "[HTP] fused QKV RoPE calls=%llu\n",
+                   (unsigned long long)rope_qkv_calls_);
+    if (prefill_q8_composite_calls_)
+      std::fprintf(stderr, "[HTP] prefill prepare+Q8 attention calls=%llu\n",
+                   (unsigned long long)prefill_q8_composite_calls_);
+    if (consumer_norm_calls_)
+      std::fprintf(stderr, "[HTP] norm consumer fusion calls=%llu pending=%d\n",
+                   (unsigned long long)consumer_norm_calls_,
+                   pending_norm_.norm != nullptr ||
+                     pending_prefill_conv_norm_.norm != nullptr ||
+                     pending_prefill_router_norm_.norm != nullptr ||
+                     pending_prefill_qkv_norm_.norm != nullptr);
+    if (fused_router_calls_ || fused_qkv_calls_)
+      std::fprintf(stderr, "[HTP] fused RPC calls: router=%llu qkv_norm=%llu\n",
+                   (unsigned long long)fused_router_calls_,
+                   (unsigned long long)fused_qkv_calls_);
+    if (rope_prefill_calls_)
+      std::fprintf(stderr,
+                   "[HTP-MATH] shape=M>1 op=rope_qkv_prefill calls=%llu "
+                   "prepare_us=%llu rpc_us=%llu dsp_us=%llu copyout_us=%llu "
+                   "bytes=%llu\n",
+                   (unsigned long long)rope_prefill_calls_,
+                   (unsigned long long)rope_prefill_prepare_us_,
+                   (unsigned long long)rope_prefill_rpc_us_,
+                   (unsigned long long)rope_prefill_dsp_us_,
+                   (unsigned long long)rope_prefill_copyout_us_,
+                   (unsigned long long)rope_prefill_staged_bytes_);
+    static const char *const names[] = {"norm",      "add",     "swiglu",
+                                        "geglu",     "rope",    "rope_fp16",
+                                        "cast_fp16", "add_norm"};
+    for (unsigned phase = 0; phase < 2; ++phase)
+      for (unsigned op = 0; op < 8; ++op) {
+        const auto &t = math_timing_[phase][op];
+        if (!t.calls)
+          continue;
+        std::fprintf(
+          stderr,
+          "[HTP-MATH] shape=%s op=%s calls=%llu prepare_us=%llu "
+          "rpc_us=%llu dsp_us=%llu copyout_us=%llu bytes=%llu\n",
+          phase ? "M>1" : "M==1", names[op], (unsigned long long)t.calls,
+          (unsigned long long)t.prepare_us, (unsigned long long)t.rpc_us,
+          (unsigned long long)t.dsp_us, (unsigned long long)t.copyout_us,
+          (unsigned long long)t.bytes);
+      }
+  }
+
+  void sgemm_fp32(unsigned order, bool ta, bool tb, unsigned M, unsigned N,
+                  unsigned K, float alpha, const float *a, unsigned lda,
+                  const float *b, unsigned ldb, float beta, float *c,
+                  unsigned ldc) override {
+    const char *strict = std::getenv("NNTR_HTP_STRICT");
+    if (strict && std::atoi(strict))
+      throw std::runtime_error("NNTR_HTP_STRICT: CPU sgemm fallback forbidden");
+    CpuComputeOps::sgemm_fp32(order, ta, tb, M, N, K, alpha, a, lda, b, ldb,
+                              beta, c, ldc);
+  }
+
+  uint64_t queued_fc_calls_ = 0, queued_qkv_calls_ = 0;
+  // Directly passed bytes, including inputs staging could already reuse.
+  uint64_t shared_io_calls_[3] = {}, shared_io_bytes_[3] = {};
+  uint64_t rope_qkv_calls_ = 0;
+  bool rope_qkv_decode(unsigned qw, unsigned kw, unsigned hd, const float *cs,
+                       const float *q, const float *k, const float *v,
+                       float *qo, uint16_t *ko, uint16_t *vo) override {
+    static const bool enabled = [] {
+      const char *e = std::getenv("NNTR_HTP_QKV_ROPE_FUSION");
+      return !e || std::atoi(e) != 0;
+    }();
+    if (!enabled || !qw || !kw || !hd || hd % 64 || qw % hd || kw % hd || !cs ||
+        !q || !k || !v || !qo || !ko || !vo)
+      return false;
+    const size_t input_bytes =
+      4u * (static_cast<size_t>(qw) + 2ull * kw + 2ull * hd);
+    const size_t output_bytes = 4u * (static_cast<size_t>(qw) + kw);
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    if (!dspqReady(static_cast<remote_handle64>(HtpBackend::global().handle()),
+                   input_bytes, output_bytes, sizeof(htp_dspq_rope_qkv_req)))
+      return false;
+    auto &st = *dspq_;
+    float *in = reinterpret_cast<float *>(st.act->data());
+    stagedMemcpy(in, q, qw * sizeof(float));
+    stagedMemcpy(in + qw, k, kw * sizeof(float));
+    stagedMemcpy(in + qw + kw, v, kw * sizeof(float));
+    stagedMemcpy(in + qw + 2u * kw, cs, 2u * hd * sizeof(float));
+    const htp_dspq_rope_qkv_req req = {
+      HTP_DSPQ_OP_ROPE_QKV, ++st.seq, 0, qw, kw, hd};
+    const int rc = dspqExchange(&req, sizeof(req), req.seq, input_bytes,
+                                output_bytes, nullptr);
+    if (rc != AEE_SUCCESS)
+      throw std::runtime_error("HTP fused QKV RoPE failed: " +
+                               std::to_string(rc));
+    stagedMemcpy(qo, st.out->data(), qw * sizeof(float));
+    stagedMemcpy(ko, st.out->data() + 4u * qw, kw * sizeof(uint16_t));
+    stagedMemcpy(vo, st.out->data() + 4u * qw + 2u * kw, kw * sizeof(uint16_t));
+    ++rope_qkv_calls_;
+    return true;
+  }
+
+  uint64_t rope_prefill_calls_ = 0;
+  uint64_t prefill_q8_composite_calls_ = 0;
+  uint64_t rope_prefill_prepare_us_ = 0, rope_prefill_rpc_us_ = 0;
+  uint64_t rope_prefill_dsp_us_ = 0, rope_prefill_copyout_us_ = 0;
+  uint64_t rope_prefill_staged_bytes_ = 0;
+
+  bool ropeQkvPrefill(unsigned M, unsigned qw, unsigned kw, unsigned hd,
+                      const float *cs, float *q, const float *k, const float *v,
+                      uint16_t *ko, uint16_t *vo) {
+    static const bool enabled = [] {
+      const char *e = std::getenv("NNTR_HTP_PREFILL_QKV_PREPARE");
+      return e && std::atoi(e) != 0;
+    }();
+    if (!enabled ||
+        !nntr_rope_prefill_valid(M, qw, kw, hd, cs, q, k, v, ko, vo))
+      return false;
+    const uint64_t enter = HtpProfile::nowUs();
+    const size_t nq = static_cast<size_t>(M) * qw;
+    const size_t nk = static_cast<size_t>(M) * kw;
+    const size_t nc = static_cast<size_t>(M) * 2u * hd;
+    auto &backend = HtpBackend::global();
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    size_t staged_bytes = 0;
+    auto input = [&](const float *src, size_t bytes, unsigned slot) {
+      if (backend.isSharedRange(src, bytes))
+        return src;
+      auto *dst = reinterpret_cast<float *>(
+        stage(rope_prefill_pool_[slot], bytes).data());
+      stagedMemcpy(dst, src, bytes);
+      staged_bytes += bytes;
+      return static_cast<const float *>(dst);
+    };
+    float *rq = const_cast<float *>(input(q, nq * sizeof(float), 0));
+    const float *rk = input(k, nk * sizeof(float), 1);
+    const float *rv = input(v, nk * sizeof(float), 2);
+    const float *rcs = input(cs, nc * sizeof(float), 3);
+    const bool direct_k = backend.isSharedRange(ko, nk * sizeof(uint16_t));
+    const bool direct_v = backend.isSharedRange(vo, nk * sizeof(uint16_t));
+    uint16_t *rko =
+      direct_k ? ko
+               : reinterpret_cast<uint16_t *>(
+                   stage(rope_prefill_pool_[4], nk * sizeof(uint16_t)).data());
+    uint16_t *rvo =
+      direct_v ? vo
+               : reinterpret_cast<uint16_t *>(
+                   stage(rope_prefill_pool_[5], nk * sizeof(uint16_t)).data());
+    uint32_t dsp_us = 0;
+    const uint64_t start = HtpProfile::nowUs();
+    const int err = nntr_hvx_rope_qkv_prefill_f32(
+      static_cast<remote_handle64>(backend.handle()), M, qw, kw, hd, rcs,
+      static_cast<int>(nc), rq, static_cast<int>(nq), rk, static_cast<int>(nk),
+      rv, static_cast<int>(nk), rq, static_cast<int>(nq), rko,
+      static_cast<int>(nk), rvo, static_cast<int>(nk), &dsp_us, 1);
+    const uint64_t end = HtpProfile::nowUs();
+    if (err != AEE_SUCCESS)
+      throw std::runtime_error("HTP prefill QKV RoPE failed: " +
+                               std::to_string(err));
+    if (rq != q) {
+      stagedMemcpy(q, rq, nq * sizeof(float));
+      staged_bytes += nq * sizeof(float);
+    }
+    if (!direct_k) {
+      stagedMemcpy(ko, rko, nk * sizeof(uint16_t));
+      staged_bytes += nk * sizeof(uint16_t);
+    }
+    if (!direct_v) {
+      stagedMemcpy(vo, rvo, nk * sizeof(uint16_t));
+      staged_bytes += nk * sizeof(uint16_t);
+    }
+    ++rope_prefill_calls_;
+    rope_prefill_prepare_us_ += start - enter;
+    rope_prefill_rpc_us_ += end - start;
+    rope_prefill_dsp_us_ += dsp_us;
+    rope_prefill_copyout_us_ += HtpProfile::nowUs() - end;
+    rope_prefill_staged_bytes_ += staged_bytes;
+    return true;
+  }
+
+  struct PendingNorm {
+    std::string consumer;
+    unsigned N = 0;
+    float eps = 0;
+    bool add = false;
+    std::vector<float> inputs;
+    float *sum = nullptr, *norm = nullptr;
+  } pending_norm_;
+  uint64_t consumer_norm_calls_ = 0;
+
+  struct PendingPrefillNorm {
+    unsigned rows = 0, width = 0;
+    float eps = 0;
+    const float *x = nullptr, *residual = nullptr;
+    std::vector<float> gamma;
+    float *sum = nullptr, *norm = nullptr;
+  } pending_prefill_conv_norm_, pending_prefill_router_norm_,
+    pending_prefill_qkv_norm_;
+
+  enum class PrefillNormConsumer { Conv, Router, Qkv };
+
+  static bool prefillNormOverlap(const void *a, size_t an, const void *b,
+                                 size_t bn) {
+    if (!a || !b || !an || !bn)
+      return false;
+    const auto aa = reinterpret_cast<uintptr_t>(a);
+    const auto bb = reinterpret_cast<uintptr_t>(b);
+    return aa <= bb ? bb - aa < an : aa - bb < bn;
+  }
+
+  bool defer_prefill_conv_norm(unsigned rows, unsigned width, float eps,
+                               const float *x, const float *residual,
+                               const float *gamma, float *sum,
+                               float *norm) override {
+    return deferPrefillNorm(PrefillNormConsumer::Conv, rows, width, eps, x,
+                            residual, gamma, sum, norm);
+  }
+
+  bool defer_prefill_router_norm(unsigned rows, unsigned width, float eps,
+                                 const float *x, const float *residual,
+                                 const float *gamma, float *sum,
+                                 float *norm) override {
+    return deferPrefillNorm(PrefillNormConsumer::Router, rows, width, eps, x,
+                            residual, gamma, sum, norm);
+  }
+
+  bool defer_prefill_qkv_norm(unsigned rows, unsigned width, float eps,
+                              const float *x, const float *residual,
+                              const float *gamma, float *sum,
+                              float *norm) override {
+    return deferPrefillNorm(PrefillNormConsumer::Qkv, rows, width, eps, x,
+                            residual, gamma, sum, norm);
+  }
+
+  bool deferPrefillNorm(PrefillNormConsumer consumer, unsigned rows,
+                        unsigned width, float eps, const float *x,
+                        const float *residual, const float *gamma, float *sum,
+                        float *norm) {
+    static const bool enabled = [] {
+      const char *e = std::getenv("NNTR_HTP_PREFILL_CONV_NORM");
+      const char *stats = std::getenv("NNTR_ACT_STATS");
+      return e && std::atoi(e) != 0 && (!stats || std::atoi(stats) == 0);
+    }();
+    static const bool router_enabled = [] {
+      const char *e = std::getenv("NNTR_HTP_PREFILL_ROUTER_NORM");
+      const char *reuse = std::getenv("NNTR_HTP_ROUTER_Q4_QUANT_REUSE");
+      const char *stats = std::getenv("NNTR_ACT_STATS");
+      return e && std::atoi(e) != 0 && reuse && std::atoi(reuse) != 0 &&
+             (!stats || std::atoi(stats) == 0);
+    }();
+    static const bool qkv_enabled = [] {
+      const char *e = std::getenv("NNTR_HTP_PREFILL_QKV_NORM");
+      const char *stats = std::getenv("NNTR_ACT_STATS");
+      return e && std::atoi(e) != 0 && (!stats || std::atoi(stats) == 0);
+    }();
+    const bool router = consumer == PrefillNormConsumer::Router;
+    const bool qkv = consumer == PrefillNormConsumer::Qkv;
+    const uint64_t count = static_cast<uint64_t>(rows) * width;
+    if (!(router ? router_enabled
+          : qkv  ? qkv_enabled
+                 : enabled) ||
+        rows < 2 || !width || width % 32 || count > INT32_MAX / sizeof(float) ||
+        !x || !gamma || !norm || (residual && !sum))
+      return false;
+    if (router &&
+        (rows <= 4 || rows > 2048 || width > 4096 || width % 128 ||
+         rows > fcMaxRows(width) || HtpProfile::global().level() >= 3 ||
+         uint64_t((rows + 63u) & ~63u) * width > (4u << 20)))
+      return false;
+    if (qkv &&
+        (rows > 2048 || width > 4096 || width % 128 || rows > fcMaxRows(width)))
+      return false;
+    const size_t bytes = static_cast<size_t>(count) * sizeof(float);
+    auto &backend = HtpBackend::global();
+    if (!backend.isSharedRange(x, bytes) ||
+        !backend.isSharedRange(norm, bytes) ||
+        (residual && (!backend.isSharedRange(residual, bytes) ||
+                      !backend.isSharedRange(sum, bytes))))
+      return false;
+    for (const float *dst : {sum, norm}) {
+      if (!dst)
+        continue;
+      if (prefillNormOverlap(dst, bytes, gamma, width * sizeof(float)))
+        return false;
+      for (const float *src : {x, residual})
+        if (src != dst && prefillNormOverlap(dst, bytes, src, bytes))
+          return false;
+    }
+    if (prefillNormOverlap(sum, bytes, norm, bytes))
+      return false;
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    if (pending_prefill_conv_norm_.norm || pending_prefill_router_norm_.norm ||
+        pending_prefill_qkv_norm_.norm || pending_norm_.norm)
+      throw std::runtime_error("HTP deferred norm was not consumed");
+    auto &p = router ? pending_prefill_router_norm_
+              : qkv  ? pending_prefill_qkv_norm_
+                     : pending_prefill_conv_norm_;
+    // The graph can unload the RMSNorm weight before its designated consumer.
+    p.gamma.assign(gamma, gamma + width);
+    p.rows = rows;
+    p.width = width;
+    p.eps = eps;
+    p.x = x;
+    p.residual = residual;
+    p.sum = residual ? sum : nullptr;
+    p.norm = norm;
+    return true;
+  }
+
+  void discard_deferred_norm() noexcept override {
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    pending_norm_.norm = nullptr;
+    pending_norm_.sum = nullptr;
+    pending_prefill_conv_norm_ = {};
+    pending_prefill_router_norm_ = {};
+    pending_prefill_qkv_norm_ = {};
+    prepared_moe_cookie_ = prepared_moe_lease_ = 0;
+    moe_input_reuse_.cancel();
+  }
+
+  bool defer_decode_norm(const std::string &consumer, unsigned N, float eps,
+                         const float *x, const float *residual,
+                         const float *gamma, float *sum, float *norm) override {
+    static const bool enabled = [] {
+      const char *e = std::getenv("NNTR_HTP_NORM_CONSUMER_FUSION");
+      return !e || std::atoi(e) != 0;
+    }();
+    if (!enabled ||
+        (consumer != "conv" && consumer != "router" && consumer != "qkv") ||
+        !N || N % 32 || N > 4096 || !x || !gamma || !norm || (residual && !sum))
+      return false;
+    if (consumer == "router") {
+      const char *queue = std::getenv("NNTR_HTP_DSPQ");
+      const char *router = std::getenv("NNTR_HTP_DSPQ_ROUTER");
+      if ((queue && std::atoi(queue) == 0) ||
+          (router && std::atoi(router) == 0) ||
+          std::getenv("NNTR_HTP_ROUTER_U8I8"))
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    if (pending_norm_.norm || pending_prefill_conv_norm_.norm ||
+        pending_prefill_router_norm_.norm || pending_prefill_qkv_norm_.norm)
+      throw std::runtime_error("HTP deferred norm was not consumed");
+    auto &p = pending_norm_;
+    p.consumer = consumer;
+    p.N = N;
+    p.eps = eps;
+    p.add = residual != nullptr;
+    p.sum = sum;
+    p.norm = norm;
+    p.inputs.resize(static_cast<size_t>(N) * (p.add ? 3 : 2));
+    std::memcpy(p.inputs.data(), x, N * sizeof(float));
+    if (p.add)
+      std::memcpy(p.inputs.data() + N, residual, N * sizeof(float));
+    std::memcpy(p.inputs.data() + N * (p.add ? 2 : 1), gamma,
+                N * sizeof(float));
+    return true;
+  }
+
+  PendingNorm *pendingNorm(const char *consumer, const float *x, unsigned M,
+                           unsigned K) {
+    auto &p = pending_norm_;
+    if (!p.norm)
+      return nullptr;
+    if (p.consumer != consumer || p.norm != x || M != 1 || p.N != K)
+      throw std::runtime_error("HTP deferred norm consumer mismatch");
+    return &p;
+  }
+
+  void publishNorm(const float *result) {
+    auto &p = pending_norm_;
+    if (p.sum)
+      stagedMemcpy(p.sum, result, p.N * sizeof(float));
+    stagedMemcpy(p.norm, result + p.N, p.N * sizeof(float));
+    p.norm = nullptr;
+    p.sum = nullptr;
+    ++consumer_norm_calls_;
+  }
+
+  bool inference_math_fp32(InferenceMath op, unsigned M, unsigned N,
+                           unsigned chunk, float eps, float scale,
+                           const float *x, const float *aux, const float *param,
+                           void *out) override {
+    return inferenceMath(op, M, N, chunk, eps, scale, x, aux, param, out,
+                         nullptr);
+  }
+
+  bool add_rmsnorm_fp32(unsigned M, unsigned N, float eps, const float *x,
+                        const float *residual, const float *gamma, float *sum,
+                        float *norm) override {
+    if (!norm)
+      return false;
+    return inferenceMath(InferenceMath::AddRmsNorm, M, N, N, eps, 1.0f, x,
+                         residual, gamma, sum, norm);
+  }
+
+  bool inferenceMath(InferenceMath op, unsigned M, unsigned N, unsigned chunk,
+                     float eps, float scale, const float *x, const float *aux,
+                     const float *param, void *out, float *norm) {
+    static const bool detail = [] {
+      const char *e = std::getenv("NNTR_HTP_MATH_PROFILE");
+      return e && std::atoi(e) != 0;
+    }();
+    const uint64_t enter = detail ? HtpProfile::nowUs() : 0;
+    const unsigned kind = static_cast<unsigned>(op);
+    const size_t count = static_cast<size_t>(M) * N;
+    const bool half =
+      op == InferenceMath::RopeFp16 || op == InferenceMath::CastFp16;
+    const size_t plen =
+      (op == InferenceMath::RmsNorm || op == InferenceMath::AddRmsNorm)
+        ? (param ? chunk : 0u)
+      : op == InferenceMath::Rope || op == InferenceMath::RopeFp16
+        ? static_cast<size_t>(M) * 2u * chunk
+        : 0u;
+    const bool binary =
+      op == InferenceMath::Add || op == InferenceMath::SwiGLU ||
+      op == InferenceMath::GeGLU || op == InferenceMath::AddRmsNorm;
+    if (kind > 7 || (op == InferenceMath::AddRmsNorm && !norm) || !M || !N ||
+        N % 32 ||
+        count > INT32_MAX / (norm ? 2 * sizeof(float) : sizeof(float)) ||
+        plen > INT32_MAX / sizeof(float) || !x || !out || (binary && !aux) ||
+        (plen && !param))
+      return false;
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    const char *split_env = std::getenv("NNTR_HTP_DSPQ_MATH_SPLIT");
+    const bool split_aux = M == 1 && (kind == 2u || kind == 3u) &&
+                           (!split_env || std::atoi(split_env) != 0) &&
+                           count * 8u > HTP_DSPQ_BUF_BYTES &&
+                           count * 4u <= HTP_DSPQ_BUF_BYTES;
+    const size_t queue_in =
+      (count * (binary && !split_aux ? 2 : 1) + plen) * sizeof(float);
+    const size_t queue_out = count * (half   ? sizeof(uint16_t)
+                                      : norm ? 2 * sizeof(float)
+                                             : sizeof(float));
+    static const bool queue_math = [] {
+      const char *e = std::getenv("NNTR_HTP_DSPQ_MATH");
+      return !e || std::atoi(e) != 0;
+    }();
+    const auto math_session =
+      static_cast<remote_handle64>(HtpBackend::global().handle());
+    if (M == 1 && queue_math &&
+        dspqReady(math_session, queue_in, queue_out,
+                  sizeof(htp_dspq_math_req))) {
+      auto &st = *dspq_;
+      if (split_aux && !st.math_aux) {
+        auto buf = std::make_unique<HtpRpcBuffer>(HTP_DSPQ_BUF_BYTES);
+        const auto &mem = HtpRpcMemApi::get();
+        if (!buf->isIon() || mem.mmap(st.domain, buf->fd(), buf->data(), 0,
+                                      buf->size(), FASTRPC_MAP_FD) != 0)
+          throw std::runtime_error("HTP queue math input mapping failed");
+        st.math_aux = std::move(buf);
+      }
+      float *packed = reinterpret_cast<float *>(st.act->data());
+      stagedMemcpy(packed, x, count * sizeof(float));
+      if (split_aux)
+        stagedMemcpy(st.math_aux->data(), aux, count * sizeof(float));
+      else if (binary)
+        stagedMemcpy(packed + count, aux, count * sizeof(float));
+      if (plen)
+        stagedMemcpy(packed + count * (binary ? 2 : 1), param,
+                     plen * sizeof(float));
+      const htp_dspq_math_req req = {
+        HTP_DSPQ_OP_MATH,
+        ++st.seq,
+        (detail ? HTP_DSPQ_FLAG_TIMED : 0u) |
+          (split_aux ? HTP_DSPQ_MATH_AUX_BUFFER : 0u),
+        kind,
+        M,
+        N,
+        chunk,
+        eps,
+        scale,
+        static_cast<uint32_t>(count),
+        binary ? static_cast<uint32_t>(count) : 0u,
+        static_cast<uint32_t>(plen),
+        static_cast<uint32_t>(queue_out)};
+      uint32_t stages[HTP_DSPQ_STAGES] = {};
+      const uint64_t start = HtpProfile::nowUs();
+      const int err = dspqExchange(&req, sizeof(req), req.seq, queue_in,
+                                   queue_out, detail ? stages : nullptr,
+                                   split_aux ? st.math_aux.get() : nullptr);
+      const uint64_t end = HtpProfile::nowUs();
+      if (err != AEE_SUCCESS)
+        throw std::runtime_error("HTP queued math failed: " +
+                                 std::to_string(err));
+      stagedMemcpy(out, st.out->data(),
+                   norm ? count * sizeof(float) : queue_out);
+      if (norm)
+        stagedMemcpy(norm, st.out->data() + count * sizeof(float),
+                     count * sizeof(float));
+      if (detail) {
+        auto &t = math_timing_[0][kind];
+        ++t.calls;
+        t.prepare_us += start - enter;
+        t.rpc_us += end - start;
+        t.dsp_us += stages[0];
+        t.copyout_us += HtpProfile::nowUs() - end;
+        t.bytes += queue_in + queue_out + (split_aux ? count * 4u : 0u);
+      }
+      ++math_calls_[kind];
+      return true;
+    }
+    const size_t bytes = count * sizeof(float);
+    auto &backend = HtpBackend::global();
+    size_t copied_bytes = 0;
+    auto input = [&](const float *src, size_t size, auto &pool) {
+      // Small decode RPCs are faster with dedicated, small rpcmem mappings.
+      if (M > 1 && backend.isSharedRange(src, size))
+        return src;
+      auto *dst = reinterpret_cast<float *>(stage(pool, size).data());
+      stagedMemcpy(dst, src, size);
+      copied_bytes += size;
+      return static_cast<const float *>(dst);
+    };
+    const float *a = input(x, bytes, act_pool_);
+    const float *b = binary ? input(aux, bytes, x2_pool_) : nullptr;
+    const float *p =
+      plen ? input(param, plen * sizeof(float), rope_pool_) : nullptr;
+    const size_t out_bytes = count * (half   ? sizeof(uint16_t)
+                                      : norm ? 2 * sizeof(float)
+                                             : sizeof(float));
+    const bool direct_out =
+      M > 1 && !norm && backend.isSharedRange(out, out_bytes);
+    const bool direct_fused = M > 1 && norm &&
+                              backend.isSharedRange(out, bytes) &&
+                              backend.isSharedRange(norm, bytes);
+    uint8_t *y = (direct_out || direct_fused)
+                   ? static_cast<uint8_t *>(out)
+                   : stage(out_pool_, out_bytes).data();
+    const auto session =
+      static_cast<remote_handle64>(HtpBackend::global().handle());
+    const uint64_t start = HtpProfile::nowUs();
+    uint32_t dsp_us = 0;
+    const int err =
+      direct_fused ? nntr_hvx_add_rmsnorm_f32(
+                       session, M, N, eps, a, static_cast<int>(count), b,
+                       static_cast<int>(count), p, static_cast<int>(plen),
+                       static_cast<float *>(out), static_cast<int>(count), norm,
+                       static_cast<int>(count), &dsp_us, 1)
+      : detail
+        ? nntr_hvx_inference_math_timed_f32(
+            session, kind, M, N, chunk, eps, scale, a, static_cast<int>(count),
+            b, binary ? static_cast<int>(count) : 0, p, static_cast<int>(plen),
+            y, static_cast<int>(out_bytes), &dsp_us, 1)
+        : nntr_hvx_inference_math_f32(
+            session, kind, M, N, chunk, eps, scale, a, static_cast<int>(count),
+            b, binary ? static_cast<int>(count) : 0, p, static_cast<int>(plen),
+            y, static_cast<int>(out_bytes));
+    const uint64_t rpc_end = HtpProfile::nowUs();
+    if (err != AEE_SUCCESS)
+      throw std::runtime_error("HTP inference math op=" + std::to_string(kind) +
+                               " failed: " + std::to_string(err));
+    if (norm && !direct_fused) {
+      stagedMemcpy(out, y, bytes);
+      stagedMemcpy(norm, y + bytes, bytes);
+    } else if (!direct_out && !direct_fused) {
+      stagedMemcpy(out, y, out_bytes);
+    }
+    if (detail) {
+      auto &t = math_timing_[M > 1][kind];
+      ++t.calls;
+      t.prepare_us += start - enter;
+      t.rpc_us += rpc_end - start;
+      t.dsp_us += dsp_us;
+      t.copyout_us += HtpProfile::nowUs() - rpc_end;
+      t.bytes += copied_bytes + ((direct_out || direct_fused) ? 0 : out_bytes);
+    }
+    ++math_calls_[kind];
+    if (HtpProfile::global().level())
+      HtpProfile::global().addInvoke(M, N, N, rpc_end - start, nullptr);
+    return true;
+  }
+
+  static bool unsupportedRpc(int err) {
+    const uint32_t remote = static_cast<uint32_t>(err);
+    return err == AEE_EUNSUPPORTED || err == AEE_EUNSUPPORTEDAPI ||
+           remote == 0x80000414u || remote == 0x8000046cu;
+  }
+
+  PendingPrefillNorm takePrefillRouterNorm(const float *x, unsigned M,
+                                           unsigned K) {
+    PendingPrefillNorm p;
+    {
+      std::lock_guard<std::mutex> lock(invoke_mutex_);
+      if (pending_prefill_router_norm_.norm) {
+        p = std::move(pending_prefill_router_norm_);
+        pending_prefill_router_norm_ = {};
+        prepared_moe_cookie_ = prepared_moe_lease_ = 0;
+      }
+    }
+    if (p.norm && (p.rows != M || p.width != K || p.norm != x))
+      throw std::runtime_error("HTP deferred prefill router norm mismatch");
+    return p;
+  }
+
+  void materializePrefillNorm(const PendingPrefillNorm &p) {
+    if (!p.norm)
+      return;
+    const bool materialized =
+      p.residual
+        ? add_rmsnorm_fp32(p.rows, p.width, p.eps, p.x, p.residual,
+                           p.gamma.data(), p.sum, p.norm)
+        : inferenceMath(InferenceMath::RmsNorm, p.rows, p.width, p.width, p.eps,
+                        1.0f, p.x, nullptr, p.gamma.data(), p.norm, nullptr);
+    if (!materialized)
+      throw std::runtime_error("HTP deferred prefill norm fallback");
+  }
+
+  PendingPrefillNorm takePrefillQkvNorm(const float *x, unsigned M,
+                                        unsigned K) {
+    PendingPrefillNorm p;
+    {
+      std::lock_guard<std::mutex> lock(invoke_mutex_);
+      p = std::move(pending_prefill_qkv_norm_);
+      pending_prefill_qkv_norm_ = {};
+    }
+    if (p.norm && (p.rows != M || p.width != K || p.norm != x))
+      throw std::runtime_error("HTP deferred prefill QKV norm mismatch");
+    return p;
+  }
+
+  void materialize_prefill_qkv_norm(const float *x, unsigned rows,
+                                    unsigned width) override {
+    materializePrefillNorm(takePrefillQkvNorm(x, rows, width));
+  }
+
+  bool router_qs4cx_prefill(void *w, float *scales, const float *x,
+                            float *logits, unsigned M, unsigned K, unsigned E,
+                            unsigned top_k, unsigned n_sel, const float *bias,
+                            unsigned *sel, float *weight) override {
+    const PendingPrefillNorm p = takePrefillRouterNorm(x, M, K);
+    if (p.norm) {
+      if (invokePrefillRouterNorm(p, w, scales, E, top_k, n_sel, bias, sel,
+                                  weight))
+        return true;
+      // The false result guarantees that sum/norm have not been published.
+      // Every ordinary router fallback must see a materialized input, even
+      // when it returns false and the caller falls through to generic FC.
+      materializePrefillNorm(p);
+    }
+    return routerQs4cxPrefill(w, scales, x, logits, M, K, E, top_k, n_sel, bias,
+                              sel, weight);
+  }
+
+  bool invokePrefillRouterNorm(const PendingPrefillNorm &p, void *w,
+                               float *scales, unsigned E, unsigned top_k,
+                               unsigned n_sel, const float *bias, unsigned *sel,
+                               float *weight) {
+    const unsigned M = p.rows, K = p.width;
+    if (!w || !scales || !E || E > 128 || E % 32 || !top_k || top_k > n_sel ||
+        n_sel > E || !bias || !sel || !weight || M <= 4 || M > 2048 ||
+        K > 4096 || K % 128 || M > fcMaxRows(K) ||
+        uint64_t((M + 63u) & ~63u) * K > (4u << 20) ||
+        HtpProfile::global().level() >= 3)
+      return false;
+    {
+      std::lock_guard<std::mutex> lock(invoke_mutex_);
+      if (!moe_input_reuse_.token(p.norm, M, K))
+        return false;
+    }
+    const auto session =
+      static_cast<remote_handle64>(HtpBackend::global().handle());
+    const FcHandles &fh = get_or_register_fc(w, session, K, E, scales);
+    if (fh.handles.size() != 1)
+      return false;
+    sendMoeOptsOnce(session);
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    const uint64_t lease = moe_input_reuse_.token(p.norm, M, K);
+    if (!lease)
+      return false;
+    // The normalized graph output is still uninitialized here. Do not call
+    // stageInput or remember a staged activation until it is published.
+    const int count = static_cast<int>(M * K);
+    uint64 cookie = 0;
+    const uint64_t start = HtpProfile::nowUs();
+    const int err = nntr_hvx_router_q4_prefill_norm_prepare(
+      session, M, K, E, fh.handles[0], top_k, n_sel, p.eps, p.x, count,
+      p.residual, p.residual ? count : 0, p.gamma.data(), K, p.sum,
+      p.residual ? count : 0, p.norm, count, bias, E, sel, M * n_sel, weight,
+      M * top_k, &cookie);
+    // EUNSUPPORTED is explicitly pre-publication in this RPC. All other
+    // errors can follow writes to operands aliased by sum/norm; never retry.
+    if (unsupportedRpc(err))
+      return false;
+    if (err != AEE_SUCCESS)
+      throw std::runtime_error("HTP prefill router norm failed: " +
+                               std::to_string(err));
+    if (!cookie)
+      throw std::runtime_error("HTP prefill router norm returned empty lease");
+    prepared_moe_cookie_ = cookie;
+    prepared_moe_lease_ = lease;
+    ++consumer_norm_calls_;
+    HtpProfile &profile = HtpProfile::global();
+    if (profile.level()) {
+      const uint64_t elapsed = HtpProfile::nowUs() - start;
+      profile.addInvoke(M, K, E, elapsed, nullptr);
+      std::fprintf(stderr, "[HTP-ROUTER-NORM] M=%u K=%u rpc_us=%llu\n", M, K,
+                   (unsigned long long)elapsed);
+    }
+    return true;
+  }
+
+  bool routerQs4cxPrefill(void *w, float *scales, const float *x, float *logits,
+                          unsigned M, unsigned K, unsigned E, unsigned top_k,
+                          unsigned n_sel, const float *bias, unsigned *sel,
+                          float *weight) {
+    if (M == 1u)
+      return routerQ4Decode(w, scales, x, K, E, top_k, n_sel, bias, sel,
+                            weight);
+    static const bool fuse = [] {
+      const char *v = std::getenv("NNTR_HTP_ROUTER_Q4_FUSION");
+      return v && std::atoi(v) != 0;
+    }();
+    static const bool reuse = [] {
+      const char *v = std::getenv("NNTR_HTP_ROUTER_Q4_REUSE");
+      return v && std::atoi(v) != 0;
+    }();
+    static const bool quant_reuse = [] {
+      const char *v = std::getenv("NNTR_HTP_ROUTER_Q4_QUANT_REUSE");
+      return v && std::atoi(v) != 0;
+    }();
+    if ((!fuse && !reuse && !quant_reuse) || M <= 1 || !K || K % 32 || !E ||
+        E > 128 || E % 32 || !top_k || top_k > n_sel || n_sel > E || !w ||
+        !scales || !x || !bias || !sel || !weight ||
+        static_cast<uint64_t>(M) * K > INT32_MAX ||
+        static_cast<uint64_t>(M) * E > INT32_MAX)
+      return false;
+    const auto session =
+      static_cast<remote_handle64>(HtpBackend::global().handle());
+    const FcHandles &fh = get_or_register_fc(w, session, K, E, scales);
+    if (fh.handles.size() != 1)
+      return false;
+    const unsigned step = fcMaxRows(K);
+    if (!fuse && !quant_reuse) {
+      invokeFc(session, fh, const_cast<float *>(x), logits, M, E, K,
+               reuse && M <= step);
+      return sigmoid_topk_fp32(M, E, top_k, n_sel, logits, bias, sel, weight);
+    }
+    sendMoeOptsOnce(session);
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    HtpProfile &profile = HtpProfile::global();
+    const uint64_t lease = moe_input_reuse_.token(x, M, K);
+    const bool prepare = quant_reuse && lease && profile.level() < 3 && M > 4 &&
+                         M <= step && M <= 2048 && K <= 4096 &&
+                         K % 128u == 0u &&
+                         uint64_t((M + 63u) & ~63u) * K <= (4u << 20);
+    prepared_moe_cookie_ = prepared_moe_lease_ = 0;
+    for (unsigned m0 = 0; m0 < M; m0 += step) {
+      const unsigned rows = std::min(step, M - m0);
+      const float *input = x + static_cast<size_t>(m0) * K;
+      const size_t input_bytes = static_cast<size_t>(rows) * K * sizeof(float);
+      auto &staged = stageInput(act_pool_, input, input_bytes, &out_pool_);
+      const float *source = reinterpret_cast<const float *>(staged.data());
+      const uint64_t t0 = HtpProfile::nowUs();
+      uint64 cookie = 0;
+      bool used_prepare = prepare;
+      int err =
+        prepare
+          ? nntr_hvx_router_q4_prefill_prepare(
+              session, rows, K, E, fh.handles[0], source, rows * K, top_k,
+              n_sel, bias, E, sel, rows * n_sel, weight, rows * top_k, &cookie)
+          : nntr_hvx_router_q4_prefill(
+              session, rows, K, E, fh.handles[0], source, rows * K, top_k,
+              n_sel, bias, E, sel + static_cast<size_t>(m0) * n_sel,
+              rows * n_sel, weight + static_cast<size_t>(m0) * top_k,
+              rows * top_k);
+      // Hexagon's AEE status codes include the remote error offset.
+      if (prepare && unsupportedRpc(err)) {
+        used_prepare = false;
+        err = nntr_hvx_router_q4_prefill(
+          session, rows, K, E, fh.handles[0], source, rows * K, top_k, n_sel,
+          bias, E, sel, rows * n_sel, weight, rows * top_k);
+      }
+      if (err != AEE_SUCCESS)
+        throw std::runtime_error("HTP Q4 router failed: " +
+                                 std::to_string(err));
+      if (used_prepare) {
+        if (!cookie)
+          throw std::runtime_error(
+            "HTP prepared router returned an empty lease");
+        prepared_moe_cookie_ = cookie;
+        prepared_moe_lease_ = lease;
+      }
+      if (profile.level())
+        profile.addInvoke(rows, K, E, HtpProfile::nowUs() - t0, nullptr);
+      // A chunk is not the full activation promised by the caller's lease.
+      if (reuse && M <= step)
+        moe_input_reuse_.remember(x, M, K, &staged);
+    }
+    return true;
+  }
+
+  bool routerQ4Decode(void *w, float *scales, const float *x, unsigned K,
+                      unsigned E, unsigned top_k, unsigned n_sel,
+                      const float *bias, unsigned *sel, float *weight) {
+    const char *enabled = std::getenv("NNTR_HTP_ROUTER_Q4_DECODE");
+    const char *fc = std::getenv("NNTR_HTP_FC_M1_HVX");
+    const char *queue = std::getenv("NNTR_HTP_DSPQ_ROUTER");
+    htp_dspq_router_q4_req req = {
+      HTP_DSPQ_OP_ROUTER_Q4, 0, 0, K, E, 0, top_k, n_sel, 0, 0.0f};
+    if ((enabled && std::atoi(enabled) == 0) || (fc && std::atoi(fc) == 0) ||
+        (queue && std::atoi(queue) == 0) ||
+        !htp_dspq_router_q4_shape_valid(&req) || !w || !scales || !x || !bias ||
+        !sel || !weight)
+      return false;
+    const auto session =
+      static_cast<remote_handle64>(HtpBackend::global().handle());
+    const FcHandles &fh = get_or_register_fc(w, session, K, E, scales);
+    if (fh.handles.size() != 1)
+      return false;
+    sendMoeOptsOnce(session);
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    PendingNorm *pending = pendingNorm("router", x, 1, K);
+    req.norm_kind = pending ? (pending->add ? 2u : 1u) : 0u;
+    req.eps = pending ? pending->eps : 0.0f;
+    req.w_handle = fh.handles[0];
+    const size_t in_bytes = htp_dspq_router_q4_input_bytes(&req);
+    const size_t out_bytes = htp_dspq_router_q4_output_bytes(&req);
+    if (!dspqReady(session, in_bytes, out_bytes, sizeof(req))) {
+      if (pending)
+        throw std::runtime_error("Deferred Q4 router norm requires DSP queue");
+      return false;
+    }
+    auto &st = *dspq_;
+    req.seq = ++st.seq;
+    float *input = reinterpret_cast<float *>(st.act->data());
+    const size_t input_count = static_cast<size_t>(req.norm_kind + 1u) * K;
+    stagedMemcpy(input, pending ? pending->inputs.data() : x,
+                 input_count * sizeof(float));
+    stagedMemcpy(input + input_count, bias, E * sizeof(float));
+    const uint64_t start = HtpProfile::nowUs();
+    const int err =
+      dspqExchange(&req, sizeof(req), req.seq, in_bytes, out_bytes, nullptr);
+    if (err != AEE_SUCCESS)
+      throw std::runtime_error("HTP queued Q4 router failed: " +
+                               std::to_string(err));
+    const float *result = reinterpret_cast<const float *>(st.out->data());
+    const size_t norm_off = htp_dspq_router_q4_norm_offset(&req);
+    if (pending)
+      publishNorm(result + norm_off);
+    st.retained_norm = x;
+    st.retained_seq = st.seq;
+    st.retained_offset = (norm_off + K) * sizeof(float);
+    st.retained_bytes = K * sizeof(float);
+    stagedMemcpy(sel, result, n_sel * sizeof(unsigned));
+    stagedMemcpy(weight, result + n_sel, top_k * sizeof(float));
+    ++fused_router_calls_;
+    if (HtpProfile::global().level())
+      HtpProfile::global().addInvoke(1, K, E, HtpProfile::nowUs() - start,
+                                     nullptr);
+    return true;
+  }
+
+  bool sigmoid_topk_fp32(unsigned M, unsigned E, unsigned top_k, unsigned n_sel,
+                         const float *logits, const float *bias, unsigned *sel,
+                         float *weight) override {
+    if (!M || !E || E > 128 || !top_k || top_k > n_sel || n_sel > E ||
+        static_cast<uint64_t>(M) * E > INT32_MAX || !logits || !bias || !sel ||
+        !weight)
+      return false;
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    const auto session =
+      static_cast<remote_handle64>(HtpBackend::global().handle());
+    const int err = nntr_hvx_sigmoid_topk_f32(
+      session, M, E, top_k, n_sel, logits, static_cast<int>(M * E), bias, E,
+      sel, static_cast<int>(M * n_sel), weight, static_cast<int>(M * top_k));
+    if (err != AEE_SUCCESS)
+      throw std::runtime_error("HTP sigmoid top-k failed: " +
+                               std::to_string(err));
+    ++sigmoid_calls_;
+    return true;
   }
 
   bool supports_gemm_q4_0_accel_fp32() const override { return true; }
@@ -1314,20 +2270,99 @@ public:
 
   bool supports_gemm_q4_0_batch_norm_fp32() const override { return true; }
 
-  void gemm_q4_0_batch_norm_fp32(std::vector<void *> matAdata,
-                                 std::vector<float *> matAscale,
-                                 float *matBdata, std::vector<float *> matCdata,
-                                 unsigned int M, std::vector<unsigned int> N,
-                                 unsigned int K, const float *pre_gamma,
-                                 const std::vector<unsigned int> &post_chunk,
-                                 const float *post_gamma, float eps,
-                                 const float *rope_cs, unsigned int rope_hd,
-                                 unsigned int rope_weights) override {
+  bool invokePrefillQkvNorm(
+    remote_handle64 session, const PendingPrefillNorm &p,
+    const std::vector<uint32_t> &handles, const std::vector<unsigned> &widths,
+    const std::vector<float *> &outputs, const std::vector<unsigned> &chunks,
+    const std::vector<float> &gammas, float post_eps, const float *rope_cs,
+    unsigned rope_hd, unsigned rope_handles) {
+    if (!p.norm || handles.size() != 3 || widths.size() != 3 ||
+        outputs.size() != 3 || chunks.size() != 3)
+      return false;
+    const unsigned M = p.rows, K = p.width;
+    const size_t bytes = static_cast<size_t>(M) * K * sizeof(float);
+    auto &backend = HtpBackend::global();
+    size_t out_bytes[3];
+    for (unsigned i = 0; i < 3; ++i) {
+      const uint64_t count = static_cast<uint64_t>(M) * widths[i];
+      if (!widths[i] || widths[i] > 4096 || widths[i] % 32 ||
+          count > INT32_MAX / sizeof(float))
+        return false;
+      out_bytes[i] = static_cast<size_t>(count) * sizeof(float);
+      if (!backend.isSharedRange(outputs[i], out_bytes[i]) ||
+          prefillNormOverlap(outputs[i], out_bytes[i], p.norm, bytes) ||
+          prefillNormOverlap(outputs[i], out_bytes[i], p.sum, bytes))
+        return false;
+      for (unsigned j = 0; j < i; ++j)
+        if (prefillNormOverlap(outputs[i], out_bytes[i], outputs[j],
+                               out_bytes[j]))
+          return false;
+    }
+    const uint64_t cs_count = static_cast<uint64_t>(M) * 2u * rope_hd;
+    if (cs_count > INT32_MAX / sizeof(float))
+      return false;
+    sendMoeOptsOnce(session);
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    const float *cs = nullptr;
+    if (rope_hd) {
+      float *staged = reinterpret_cast<float *>(
+        stage(rope_pool_, static_cast<size_t>(cs_count) * sizeof(float))
+          .data());
+      stagedMemcpy(staged, rope_cs,
+                   static_cast<size_t>(cs_count) * sizeof(float));
+      cs = staged;
+    }
+    // Direct graph writes must not leave old staged copies eligible for reuse.
+    for (StagingPool *pool : {&act_pool_, &out_pool_, &x2_pool_}) {
+      pool->holds.clear();
+      pool->copied_out.clear();
+    }
+    moe_input_reuse_.invalidate();
+    const int count = static_cast<int>(static_cast<size_t>(M) * K);
+    const uint64_t start = HtpProfile::nowUs();
+    const int err = nntr_hvx_mm_u8i4_qkv_prefill_norm(
+      session, M, K, widths[0], widths[1], widths[2], handles.data(), 3,
+      post_eps, chunks.data(), 3, gammas.data(), gammas.size(), rope_hd,
+      rope_handles, cs, static_cast<int>(cs_count), p.eps, p.x, count,
+      p.residual, p.residual ? count : 0, p.gamma.data(), K, p.sum,
+      p.residual ? count : 0, p.norm, count, outputs[0], M * widths[0],
+      outputs[1], M * widths[1], outputs[2], M * widths[2]);
+    // The RPC reports unsupported only before it can publish aliased outputs.
+    if (unsupportedRpc(err))
+      return false;
+    if (err != AEE_SUCCESS)
+      throw std::runtime_error("HTP prefill QKV norm failed: " +
+                               std::to_string(err));
+    ++consumer_norm_calls_;
+    ++shared_io_calls_[1];
+    shared_io_bytes_[1] += bytes * (p.residual ? 4u : 2u) + out_bytes[0] +
+                           out_bytes[1] + out_bytes[2];
+    HtpProfile &profile = HtpProfile::global();
+    if (profile.level()) {
+      const uint64_t elapsed = HtpProfile::nowUs() - start;
+      profile.addInvoke(M, K, widths[0] + widths[1] + widths[2], elapsed,
+                        nullptr);
+      std::fprintf(stderr, "[HTP-QKV-NORM] M=%u K=%u rpc_us=%llu\n", M, K,
+                   (unsigned long long)elapsed);
+    }
+    return true;
+  }
+
+  void gemm_q4_0_batch_norm_fp32(
+    std::vector<void *> matAdata, std::vector<float *> matAscale,
+    float *matBdata, std::vector<float *> matCdata, unsigned int M,
+    std::vector<unsigned int> N, unsigned int K, const float *pre_gamma,
+    const std::vector<unsigned int> &post_chunk, const float *post_gamma,
+    float eps, const float *rope_cs, unsigned int rope_hd,
+    unsigned int rope_weights, bool weights_wh) override {
+    const PendingPrefillNorm pending = takePrefillQkvNorm(matBdata, M, K);
     const remote_handle64 session =
       static_cast<remote_handle64>(HtpBackend::global().handle());
     const size_t n = matAdata.size();
-    if ((!post_chunk.empty() && post_chunk.size() != n) ||
+    if (N.size() != n || matCdata.size() != n ||
+        (!post_chunk.empty() && post_chunk.size() != n) ||
         (!matAscale.empty() && matAscale.size() != n) ||
+        (weights_wh && matAscale.size() != n) ||
         (rope_hd != 0 && (rope_weights > n || rope_cs == nullptr))) {
       throw std::invalid_argument(
         "gemm_q4_0_batch_norm_fp32: one post_chunk / scale per weight, "
@@ -1347,7 +2382,7 @@ public:
     for (size_t i = 0; i < n; ++i) {
       const FcHandles &fh = get_or_register_fc(
         matAdata[i], session, K, N[i],
-        matAscale.empty() ? nullptr : matAscale[i]);
+        matAscale.empty() ? nullptr : matAscale[i], weights_wh);
       const unsigned int chunk = post_chunk.empty() ? 0u : post_chunk[i];
       unsigned int c0 = 0;
       for (size_t j = 0; j < fh.handles.size(); ++j) {
@@ -1383,6 +2418,16 @@ public:
     // gemm_q4_0_batch_fp32 makes for VTCM carry them unchanged (the table
     // rows advance with the activation rows).
     const unsigned int step = fcMaxRows(K);
+    if (pending.norm) {
+      if (!pre_gamma && n == 3 && handles.size() == 3 && M <= step &&
+          invokePrefillQkvNorm(session, pending, handles, N, matCdata, chunks,
+                               gammas, eps, rope_cs, rope_hd, rope_slices)) {
+        if (weights_wh)
+          ++fused_qkv_calls_;
+        return;
+      }
+      materializePrefillNorm(pending);
+    }
     for (unsigned int m0 = 0; m0 < M; m0 += step) {
       const unsigned int m = std::min(step, M - m0);
       std::vector<OutSlice> rows = slices;
@@ -1403,6 +2448,8 @@ public:
       invokeLayer(session, handles.data(), static_cast<int>(handles.size()),
                   matBdata + static_cast<size_t>(m0) * K, nullptr, m, n_total,
                   K, nullptr, nullptr, &norms, &rows);
+      if (weights_wh)
+        ++fused_qkv_calls_;
     }
   }
 
@@ -1449,6 +2496,29 @@ public:
   // ION copy made on its first call and kept by the weight's address --
   // as a plain pointer it was pinned and mapped every call (doc 57
   // section 9.10: 9.7 ms a call against the CPU dot's 6).
+
+  uint64_t begin_moe_input_reuse(const float *input, unsigned int M,
+                                 unsigned int K) override {
+    static const bool enabled = [] {
+      const char *e = std::getenv("NNTR_HTP_MOE_INPUT_REUSE");
+      return !e || std::strcmp(e, "0") != 0;
+    }();
+    if (!enabled || M <= 1)
+      return 0;
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    prepared_moe_cookie_ = prepared_moe_lease_ = 0;
+    return moe_input_reuse_.begin(input, M, K);
+  }
+
+  void end_moe_input_reuse(uint64_t token) override {
+    if (!token)
+      return;
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    moe_input_reuse_.end(token);
+    if (token == prepared_moe_lease_)
+      prepared_moe_cookie_ = prepared_moe_lease_ = 0;
+  }
+
   bool supports_router_logits_fp32() const override { return true; }
 
   const float *routerWeightShared(const float *w, size_t bytes) {
@@ -1507,14 +2577,21 @@ public:
                           const float *x, const float *gamma, float eps,
                           const float *w, float *logits, unsigned int top_k,
                           unsigned int n_sel, const float *scale,
-                          unsigned int *sel, float *weight) override {
+                          unsigned int *sel, float *weight,
+                          bool sigmoid) override {
+    // This graph consumer can also have FP32 weights. It has no prepared
+    // Q4 input path, so publish the preceding norm before staging its input.
+    materializePrefillNorm(takePrefillRouterNorm(x, M, K));
     const remote_handle64 session =
       static_cast<remote_handle64>(HtpBackend::global().handle());
     const size_t x_len = static_cast<size_t>(M) * K;
     const size_t out_len = static_cast<size_t>(M) * E;
     std::lock_guard<std::mutex> lock(invoke_mutex_);
-    float *act = reinterpret_cast<float *>(
-      stageInput(act_pool_, x, x_len * sizeof(float)).data());
+    PendingNorm *pending = pendingNorm("router", x, M, K);
+    HtpRpcBuffer &act_stage =
+      pending ? stage(act_pool_, x_len * sizeof(float))
+              : stageInput(act_pool_, x, x_len * sizeof(float));
+    float *act = reinterpret_cast<float *>(act_stage.data());
     float *out = reinterpret_cast<float *>(
       stage(out_pool_, out_len * sizeof(float)).data());
     // NNTR_HTP_ROUTER_U8I8=1: the logits on the HMX (u8 x i8). Off by
@@ -1530,12 +2607,88 @@ public:
       h8 != UINT32_MAX
         ? nullptr
         : routerWeightShared(w, static_cast<size_t>(K) * E * sizeof(float));
+    static const bool queue_router = [] {
+      const char *e = std::getenv("NNTR_HTP_DSPQ_ROUTER");
+      return !e || std::atoi(e) != 0;
+    }();
+    const size_t norm_off =
+      (static_cast<size_t>(E) + n_sel + top_k + 31u) & ~size_t(31u);
+    const size_t input_count = pending ? pending->inputs.size() : K;
+    const size_t qin = (input_count + (gamma ? K : 0u) + E) * 4;
+    const size_t qout =
+      (pending ? norm_off + 2u * K : static_cast<size_t>(E) + n_sel + top_k) *
+      4;
+    if (M == 1 && sigmoid && h8 == UINT32_MAX && queue_router &&
+        dspqReady(session, qin, qout, sizeof(htp_dspq_router_req))) {
+      auto &st = *dspq_;
+      auto it = st.router_weights.find(w);
+      const bool first_use = it == st.router_weights.end();
+      if (first_use) {
+        auto buf =
+          std::make_unique<HtpRpcBuffer>(static_cast<size_t>(K) * E * 4);
+        std::memcpy(buf->data(), w, buf->size());
+        const auto &mem = HtpRpcMemApi::get();
+        if (!buf->isIon() || mem.mmap(st.domain, buf->fd(), buf->data(), 0,
+                                      buf->size(), FASTRPC_MAP_FD) != 0)
+          throw std::runtime_error("HTP queue router weight mapping failed");
+        it = st.router_weights.emplace(w, std::move(buf)).first;
+      }
+      float *packed = reinterpret_cast<float *>(st.act->data());
+      stagedMemcpy(packed, pending ? pending->inputs.data() : x,
+                   input_count * sizeof(float));
+      if (gamma)
+        stagedMemcpy(packed + input_count, gamma, K * sizeof(float));
+      stagedMemcpy(packed + input_count + (gamma ? K : 0u), scale,
+                   E * sizeof(float));
+      const htp_dspq_router_req req = {
+        HTP_DSPQ_OP_ROUTER, ++st.seq, 0, K, E, top_k, n_sel,
+        gamma ? K : 0u,     eps};
+      const uint64_t start = HtpProfile::nowUs();
+      htp_dspq_router_norm_req fused = {req, pending && pending->add ? 1u : 0u,
+                                        pending ? pending->eps : 0.0f};
+      fused.router.op = HTP_DSPQ_OP_ROUTER_NORM;
+      const int err =
+        dspqExchange(pending ? (const void *)&fused : &req,
+                     pending ? sizeof(fused) : sizeof(req), req.seq, qin, qout,
+                     nullptr, it->second.get(), first_use);
+      if (err != AEE_SUCCESS)
+        throw std::runtime_error("HTP queued router failed: " +
+                                 std::to_string(err));
+      const float *result = reinterpret_cast<const float *>(st.out->data());
+      if (pending) {
+        const float *norm_key = pending->norm;
+        publishNorm(result + norm_off);
+        st.retained_norm = norm_key;
+        st.retained_seq = st.seq;
+        st.retained_offset = (norm_off + K) * sizeof(float);
+        st.retained_bytes = K * sizeof(float);
+      }
+      stagedMemcpy(logits, result, E * sizeof(float));
+      stagedMemcpy(sel, result + E, n_sel * sizeof(uint32_t));
+      stagedMemcpy(weight, result + E + n_sel, top_k * sizeof(float));
+      ++fused_router_calls_;
+      if (HtpProfile::global().level())
+        HtpProfile::global().addInvoke(M, K, E, HtpProfile::nowUs() - start,
+                                       nullptr);
+      return;
+    }
+    if (pending)
+      throw std::runtime_error(
+        "Deferred router norm requires FP32 sigmoid DSP queue");
     const uint64_t t0 = HtpProfile::nowUs();
     // the selection is small (M x 13 + M x 8 at the softmax router's
     // width) and goes straight to the caller's arrays
     static_assert(sizeof(unsigned int) == sizeof(uint32_t), "sel is u32");
     const int err =
-      h8 != UINT32_MAX
+      sigmoid
+        ? nntr_hvx_router_sigmoid_f32(
+            session, M, K, E, eps, gamma, gamma ? static_cast<int>(K) : 0, h8,
+            w_shared,
+            w_shared ? static_cast<int>(static_cast<size_t>(K) * E) : 0, act,
+            static_cast<int>(x_len), top_k, n_sel, scale, static_cast<int>(E),
+            out, static_cast<int>(out_len), reinterpret_cast<uint32_t *>(sel),
+            static_cast<int>(M * n_sel), weight, static_cast<int>(M * top_k))
+      : h8 != UINT32_MAX
         ? nntr_hvx_router_logits_u8i8_f32(
             session, M, K, E, eps, gamma, gamma ? static_cast<int>(K) : 0, h8,
             act, static_cast<int>(x_len), top_k, top_k ? n_sel : 0u, scale,
@@ -1559,6 +2712,9 @@ public:
         " E=" + std::to_string(E) + ")");
     }
     stagedMemcpy(logits, out, out_len * sizeof(float));
+    if (sigmoid)
+      ++fused_router_calls_;
+    moe_input_reuse_.remember(x, M, K, &act_stage);
     HtpProfile &profile = HtpProfile::global();
     if (profile.level())
       profile.addInvoke(M, K, E, elapsed, nullptr);
@@ -1692,6 +2848,17 @@ public:
   // 1792x2048 down, x86 host). Prefer feeding the FFN QS4CX; the Q4_0
   // entry above stays for weights shared with the CPU path.
   bool supports_gemm_qs4cx_accel_fp32() const override { return true; }
+
+  bool supports_gemm_qs4cx_wh_accel_fp32() const override { return true; }
+
+  void gemm_qs4cx_wh_accel_fp32(void *weights, float *scales, float *input,
+                                float *output, unsigned int M, unsigned int N,
+                                unsigned int K) override {
+    const remote_handle64 session =
+      static_cast<remote_handle64>(HtpBackend::global().handle());
+    invokeFc(session, get_or_register_fc(weights, session, K, N, scales, true),
+             input, output, M, N, K);
+  }
 
   void gemm_qs4cx_accel_fp32(void *matAdata, float *matAscale, float *matBdata,
                              float *matCdata, unsigned int M, unsigned int N,
@@ -2690,14 +3857,20 @@ public:
    *  the proof of which path a run took when no profile is on;
    *  [HTP-PROFILE]'s m1_gemv= and blocks= are the per-call proof. */
   void sendMoeOptsOnce(remote_handle64 session) {
-    std::call_once(moe_opts_once_, [session]() {
+    std::call_once(moe_opts_once_, [this, session]() {
       const char *env = std::getenv("NNTR_MOE_HTP_M1_GEMV");
       const char *lead_env = std::getenv("NNTR_MOE_HTP_GEMV_LEAD_KB");
       const char *rows1_env = std::getenv("NNTR_MOE_HTP_GEMV_ROWS1");
       const char *feed_env = std::getenv("NNTR_MOE_HTP_GEMV_FEED");
       const uint32_t flags =
         htp_moe_opts_flags(env, lead_env, rows1_env, feed_env) |
-        htp_moe_opts_dma_bypass(std::getenv("NNTR_MOE_DMA_BYPASS"));
+        htp_moe_opts_dma_bypass(std::getenv("NNTR_MOE_DMA_BYPASS")) |
+        htp_conv_opts_flags(std::getenv("NNTR_HTP_CONV_M1_HVX"),
+                            std::getenv("NNTR_HTP_CONV_CHUNK_TILES"),
+                            std::getenv("NNTR_HTP_CONV_OUT_CHUNK_TILES")) |
+        htp_fc_opts_flags(std::getenv("NNTR_HTP_FC_M1_HVX"),
+                          std::getenv("NNTR_HTP_FC_CHUNK_TILES")) |
+        htp_qs2_gemv_flags(std::getenv("NNTR_HTP_QS2_GEMV"));
       const char *source = env != nullptr ? "env" : "default";
       uint32_t applied = 0;
       const int err = nntr_hvx_moe_set_opts(session, flags, &applied);
@@ -2727,6 +3900,16 @@ public:
           " (libnntr_hvx_skel.so on the device predates moe_set_opts; "
           "rebuild it: test/htp/build.sh, then push libnntr_hvx_skel.so)");
       }
+      applied_moe_flags_ = applied;
+      std::fprintf(stderr,
+                   "[HTP] conv M1: %s chunk_tiles=%u out_chunk_tiles=%u "
+                   "(applied=0x%x)\n",
+                   (applied & HTP_CONV_FLAG_M1_HVX) ? "HVX" : "HMX",
+                   htp_conv_chunk_tiles(applied),
+                   htp_conv_out_chunk_tiles(applied), applied);
+      std::fprintf(stderr, "[HTP] FC M1: %s chunk_tiles=%u (applied=0x%x)\n",
+                   (applied & HTP_FC_FLAG_M1_HVX) ? "HVX" : "HMX",
+                   htp_fc_chunk_tiles(applied), applied);
       // The measured (loop, lead, feed) cell, in the same line. All three
       // knobs are always sent (htp_moe_opts_flags: the env's value or the
       // default), and the echo above confirmed them, so an unset run reads
@@ -2771,6 +3954,161 @@ public:
     return true;
   }
 
+  bool register_prepared_qs4cx_wh_weight(
+    void *data, const float *scales, unsigned int K, unsigned int N,
+    uint64_t source_offset, const std::string &cache_directory) override {
+    const uint64_t begin = HtpProfile::nowUs();
+    const uint64_t source_hash = preparedFcSourceHash(data, scales, K, N);
+    const std::string path =
+      cache_directory + "/" + std::to_string(source_offset) + "_" +
+      std::to_string(K) + "_" + std::to_string(N) + ".nntrwh";
+    // Validate source identity and the complete payload before allocating
+    // DSP memory or publishing handles. The reader bounds all allocations.
+    const PreparedFcFile prepared =
+      readPreparedFc(path, source_offset, K, N, source_hash);
+    const remote_handle64 session =
+      static_cast<remote_handle64>(HtpBackend::global().handle());
+    std::lock_guard<std::mutex> lock(handle_mutex_);
+    if (fc_cache_.count(data)) {
+      auto found = prepared_fc_hashes_.find(data);
+      if (found != prepared_fc_hashes_.end() && found->second == source_hash)
+        return true;
+      throw std::runtime_error(
+        "prepared FC must be registered before runtime-converted weights: " +
+        path);
+    }
+    if (!ensureArena(session))
+      throw std::runtime_error("prepared FC requires a mapped DSP arena: " +
+                               path);
+    FcHandles handles;
+    for (const PreparedFcSlice &slice : prepared.slices) {
+      const uint32_t columns = slice.columns;
+      const uint32_t bytes = static_cast<uint32_t>(uint64_t(K) * columns / 2);
+      ArenaEntry entry;
+      entry.K = K;
+      entry.N = columns;
+      // These allocations follow the MoE arena reservation. Prefer its
+      // remaining room, then a bounded 64 MiB chunk rather than converting
+      // to a DSP-heap registration when prepared storage is exhausted.
+      if (!place(session, bytes, size_t(64) << 20, &entry.chunk, &entry.off))
+        throw std::runtime_error("prepared FC arena placement failed: " + path +
+                                 ": " + arena_fail_);
+      const uint8_t *payload = prepared.payload.data() + slice.offset;
+      std::memcpy(arena_chunks_[entry.chunk].buf->data() + entry.off, payload,
+                  bytes);
+      entry.w_scale.resize(columns);
+      entry.colsum_w.resize(columns);
+      entry.bias.assign(columns, 0.0f);
+      std::memcpy(entry.w_scale.data(), payload + bytes,
+                  size_t(columns) * sizeof(float));
+      std::memcpy(entry.colsum_w.data(),
+                  payload + bytes + size_t(columns) * sizeof(float),
+                  size_t(columns) * sizeof(int32_t));
+      const uint32_t handle =
+        registerFromArena(session, entry, K, columns, HtpProfile::nowUs());
+      if (handle == kNoHandle)
+        throw std::runtime_error("prepared FC DSP registration failed: " +
+                                 path);
+      handles.handles.push_back(handle);
+      handles.cols.push_back(columns);
+      handle_cache_.emplace(static_cast<char *>(data) + slice.column_start,
+                            handle);
+    }
+    fc_cache_.emplace(data, std::move(handles));
+    prepared_fc_hashes_.emplace(data, source_hash);
+    if (HtpProfile::global().level())
+      std::fprintf(
+        stderr,
+        "[HTP] prepared FC offset=%llu K=%u N=%u slices=%zu "
+        "load_us=%llu\n",
+        static_cast<unsigned long long>(source_offset), K, N,
+        prepared.slices.size(),
+        static_cast<unsigned long long>(HtpProfile::nowUs() - begin));
+    return true;
+  }
+
+  uint64_t
+  begin_qs2_host_prefetch(const std::vector<ExpertFileDesc> &descriptors,
+                          const void *owner, unsigned int count) override {
+    if (!count || count > 160 || !owner || !compactExperts() ||
+        preparedQs2Dir() || !weightDirectIO())
+      return 0;
+    std::lock_guard<std::mutex> scope_lock(host_scope_mutex_);
+    {
+      std::lock_guard<std::mutex> lock(prefetch_mutex_);
+      if (host_expert_bank_ || !prefetch_jobs_.empty() ||
+          !prefetch_batches_.empty() || !prefetch_retired_.empty())
+        return 0;
+    }
+    std::vector<ExpertFileDesc> selected;
+    {
+      std::lock_guard<std::mutex> lock(handle_mutex_);
+      if (!expert_slots_wanted_ || expert_slots_placed_ != expert_slots_wanted_)
+        return 0;
+      // A complete model catalog is supplied in traversal order. The current
+      // residency, not a hardcoded layer index, selects the first future
+      // misses.
+      for (const auto &d : descriptors) {
+        if (d.weight_bits != 2)
+          return 0;
+        if (!experts_.count(d.key_gu) && selected.size() < count)
+          selected.push_back(d);
+      }
+    }
+    if (selected.empty())
+      return 0;
+    uint64_t token = ++host_expert_epoch_;
+    if (!token)
+      token = ++host_expert_epoch_;
+    auto bank = std::make_shared<HostExpertBank>(selected, token, owner);
+    startPrefetchReaders();
+    {
+      std::lock_guard<std::mutex> lock(prefetch_mutex_);
+      host_expert_wait_us_ = 0;
+      if (hostExpertProfile()) {
+        host_expert_copy_us_ = 0;
+        host_expert_copy_bytes_ = 0;
+      }
+      host_expert_bank_ = bank;
+    }
+    prefetch_cv_.notify_all();
+    const auto stats = bank->stats();
+    std::fprintf(
+      stderr,
+      "[HTP-HOST-STAGING-ACTIVE] token=%llu count=%zu payload_bytes=%zu\n",
+      (unsigned long long)token, stats.count, stats.bytes);
+    return token;
+  }
+
+  void end_qs2_host_prefetch(uint64_t token) noexcept override {
+    std::lock_guard<std::mutex> scope_lock(host_scope_mutex_);
+    std::shared_ptr<HostExpertBank> bank;
+    {
+      std::lock_guard<std::mutex> lock(prefetch_mutex_);
+      if (!host_expert_bank_ || host_expert_bank_->token() != token)
+        return;
+      bank = std::move(host_expert_bank_);
+    }
+    // No queue or handle lock is held while running readers/copies finish.
+    bank->cancelAndWait();
+    const auto stats = bank->stats();
+    std::fprintf(
+      stderr,
+      "[HTP-HOST-STAGING-DONE] token=%llu count=%zu read=%zu consumed=%zu\n",
+      (unsigned long long)token, stats.count, stats.read, stats.taken);
+    if (hostExpertProfile()) {
+      std::fprintf(
+        stderr,
+        "[HTP-HOST-STAGING] count=%zu payload_bytes=%zu read=%zu "
+        "consumed=%zu cancelled=%zu failed=%zu transition_wait_us=%llu "
+        "promotion_copy_us=%llu promotion_copy_bytes=%llu\n",
+        stats.count, stats.bytes, stats.read, stats.taken, stats.cancelled,
+        stats.failed, (unsigned long long)host_expert_wait_us_.load(),
+        (unsigned long long)host_expert_copy_us_.load(),
+        (unsigned long long)host_expert_copy_bytes_.load());
+    }
+  }
+
   /**
    * @brief [doc 52] One expert's two WH weights, read from the model file
    *        straight into an arena slot and registered from there.
@@ -2790,6 +4128,8 @@ public:
    */
   bool register_qs4cx_wh_expert_file(const ExpertFileDesc &d,
                                      bool at_load) override {
+    if (!at_load)
+      waitHostExpertReads();
     const remote_handle64 session =
       static_cast<remote_handle64>(HtpBackend::global().handle());
     std::lock_guard<std::mutex> lock(handle_mutex_);
@@ -2797,7 +4137,7 @@ public:
       return true;
     const uint64_t t0 = HtpProfile::nowUs();
     StagedExpert st = stageExpert(session, d);
-    st.rc = readExpert(st, /*use_pool=*/true);
+    st.rc = readExpert(st, /*use_pool=*/true, /*demand=*/!at_load);
     const uint64_t t_read = HtpProfile::nowUs();
     registerStaged(session, st); // throws, and frees the slot, on failure
     const uint64_t t_rpc = HtpProfile::nowUs();
@@ -2812,21 +4152,70 @@ public:
     return true;
   }
 
-  /** [doc 52 section 10.23] One call's misses: each read in turn, then all
-   *  registered in one round trip instead of one each. */
+  /** One call's misses reserve disjoint slots before reading. QS2 demand
+   *  reads may run in parallel; registration remains one serial round trip. */
   bool register_qs4cx_wh_expert_files(
     const std::vector<ExpertFileDesc> &ds) override {
+    waitHostExpertReads();
     const remote_handle64 session =
       static_cast<remote_handle64>(HtpBackend::global().handle());
     std::lock_guard<std::mutex> lock(handle_mutex_);
     const uint64_t t0 = HtpProfile::nowUs();
     std::vector<StagedExpert> sts;
     try {
+      sts.reserve(ds.size());
       for (const ExpertFileDesc &d : ds) {
         if (experts_.count(d.key_gu) != 0)
           continue;
         sts.push_back(stageExpert(session, d));
-        sts.back().rc = readExpert(sts.back(), /*use_pool=*/true);
+      }
+      static const size_t readers = [] {
+        const char *v = std::getenv("NNTR_MOE_MISS_READERS");
+        return v ? static_cast<size_t>(std::max(1, std::min(4, std::atoi(v))))
+                 : 1u;
+      }();
+      const bool qs2 = !sts.empty() && compactExperts() && !preparedQs2Dir() &&
+                       std::all_of(sts.begin(), sts.end(), [](const auto &st) {
+                         return st.d.weight_bits == 2u;
+                       });
+      const size_t lanes =
+        qs2 && readers > 1
+          ? std::min<size_t>(
+              readers,
+              std::min<size_t>(2u * sts.size(),
+                               ThreadManager::Global().getComputeThreadCount()))
+          : 1u;
+      if (qs2) {
+        ++qs2_demand_batches_;
+        qs2_max_misses_ = std::max<uint64_t>(qs2_max_misses_, sts.size());
+      }
+      if (lanes > 1) {
+        ++qs2_parallel_batches_;
+        const size_t jobs = 2u * sts.size();
+        std::vector<int> errors(jobs);
+        std::vector<std::exception_ptr> exceptions(jobs);
+        std::atomic<size_t> next{0};
+        ThreadManager::Global().parallel_for(0, lanes, [&](size_t) {
+          for (size_t j = next.fetch_add(1); j < jobs; j = next.fetch_add(1)) {
+            try {
+              // No nested ThreadManager dispatch. Each task owns one weight.
+              errors[j] = readExpertPart(sts[j / 2u], j % 2u != 0, false, true);
+            } catch (...) {
+              exceptions[j] = std::current_exception();
+            }
+          }
+        });
+        // Join before propagating exceptions or returning any slot to the pool.
+        for (const auto &error : exceptions)
+          if (error)
+            std::rethrow_exception(error);
+        for (size_t i = 0; i < sts.size(); ++i) {
+          sts[i].rc = errors[2u * i] ? errors[2u * i] : errors[2u * i + 1u];
+          sts[i].host.reset();
+        }
+      } else {
+        for (auto &st : sts)
+          st.rc = readExpert(st, /*use_pool=*/true, /*demand=*/true);
       }
     } catch (...) {
       for (const StagedExpert &st : sts)
@@ -2834,7 +4223,7 @@ public:
       throw;
     }
     const uint64_t t_read = HtpProfile::nowUs();
-    registerStagedBatch(session, sts); // files what it can, then throws
+    registerStagedBatch(session, sts, true); // decode may commit at MoE
     HtpProfile &profile = HtpProfile::global();
     if (profile.level() != 0 && !sts.empty())
       profile.addExpertLoad(t_read - t0, HtpProfile::nowUs() - t_read,
@@ -2861,11 +4250,28 @@ public:
    */
   bool prefetch_qs4cx_wh_experts_begin(
     const std::vector<ExpertFileDesc> &ds) override {
+    return beginExpertPrefetch(ds, false);
+  }
+
+  bool prefetch_qs4cx_wh_experts_decode(
+    const std::vector<ExpertFileDesc> &ds) override {
+    if (ds.size() > 64)
+      throw std::invalid_argument(
+        "Decode prefetch supports at most 64 experts");
+    return beginExpertPrefetch(ds, true);
+  }
+
+  bool beginExpertPrefetch(const std::vector<ExpertFileDesc> &ds, bool decode) {
+    waitHostExpertReads();
     const remote_handle64 session =
       static_cast<remote_handle64>(HtpBackend::global().handle());
     auto batch = std::make_unique<PrefetchBatch>();
+    batch->experts.reserve(ds.size());
+    batch->decode = decode;
     {
       std::lock_guard<std::mutex> lock(handle_mutex_);
+      // Make failure cleanup allocation-free before reserving any slots.
+      free_expert_slots_.reserve(free_expert_slots_.size() + ds.size());
       try {
         for (const ExpertFileDesc &d : ds) {
           if (experts_.count(d.key_gu) == 0)
@@ -2879,13 +4285,25 @@ public:
     }
     if (batch->experts.empty())
       return false;
-    startPrefetchReaders();
-    std::lock_guard<std::mutex> lock(prefetch_mutex_);
-    PrefetchBatch *b = batch.get();
-    prefetch_batches_.push_back(std::move(batch));
-    for (size_t i = 0; i < b->experts.size(); ++i)
-      prefetch_jobs_.emplace_back(b, i);
-    prefetch_cv_.notify_all();
+    const size_t count = batch->experts.size();
+    try {
+      startPrefetchReaders();
+      std::lock_guard<std::mutex> lock(prefetch_mutex_);
+      htpPublishExpertBatch(batch, prefetch_batches_, prefetch_jobs_);
+    } catch (...) {
+      // No jobs from this batch are visible. Return slots before rethrowing;
+      // the local batch then releases every host lease during unwinding.
+      std::lock_guard<std::mutex> lock(handle_mutex_);
+      for (const auto &st : batch->experts)
+        free_expert_slots_.push_back(st.slot);
+      throw;
+    }
+    if (decode && count < prefetch_readers_.size()) {
+      for (size_t i = 0; i < count; ++i)
+        prefetch_cv_.notify_one();
+    } else {
+      prefetch_cv_.notify_all();
+    }
     return true;
   }
 
@@ -2897,12 +4315,14 @@ public:
     const uint64_t t0 = HtpProfile::nowUs();
     std::unique_ptr<PrefetchBatch> batch;
     size_t done_on_entry = 0;
+    uint64_t ready_mask = 0;
     {
       std::unique_lock<std::mutex> lock(prefetch_mutex_);
       if (prefetch_batches_.empty())
         return {};
       PrefetchBatch *b = prefetch_batches_.front().get();
       done_on_entry = b->done;
+      ready_mask = b->done_mask;
       prefetch_done_cv_.wait(lock,
                              [b] { return b->done == b->experts.size(); });
       batch = std::move(prefetch_batches_.front());
@@ -2925,9 +4345,137 @@ public:
       profile.addPrefetch(batch->experts.size(), done_on_entry, t_wait - t0,
                           HtpProfile::nowUs() - t_wait, prefetch_caller_cpus_,
                           prefetch_reader_cpus_.load());
+    static const bool batch_trace =
+      std::getenv("NNTR_MOE_PREFETCH_BATCH_TRACE") != nullptr;
+    if (batch_trace)
+      std::fprintf(stderr,
+                   "[MOE-PREFETCH-BATCH] n=%zu ready=%zu ready_mask=%llu "
+                   "wait_us=%llu register_us=%llu\n",
+                   batch->experts.size(), done_on_entry,
+                   (unsigned long long)ready_mask,
+                   (unsigned long long)(t_wait - t0),
+                   (unsigned long long)(HtpProfile::nowUs() - t_wait));
     if (first)
       std::rethrow_exception(first);
     return keys;
+  }
+
+  ExpertPrefetchCompletion prefetch_qs4cx_wh_experts_select(
+    const std::vector<const void *> &needed) override {
+    const uint64_t start = HtpProfile::nowUs();
+    ExpertPrefetchCompletion result;
+    std::vector<StagedExpert> selected;
+    std::vector<ExpertSlot> discarded;
+    uint64_t ready_mask = 0, useful_mask = 0, cancelled_mask = 0;
+    static const bool keep_ready = [] {
+      const char *v = std::getenv("NNTR_MOE_DECODE_PREFETCH_KEEP_READY");
+      return !v || std::atoi(v) != 0;
+    }();
+    size_t count = 0, ready = 0;
+    {
+      std::unique_lock<std::mutex> lock(prefetch_mutex_);
+      if (prefetch_batches_.empty())
+        return result;
+      PrefetchBatch *batch = prefetch_batches_.front().get();
+      if (!batch->decode || batch->experts.size() > 64)
+        throw std::logic_error("Selective collect requires a decode batch");
+      count = batch->experts.size();
+      ready = batch->done;
+      ready_mask = batch->done_mask;
+      selected.reserve(count);
+      discarded.reserve(count);
+      for (size_t i = 0; i < count; ++i)
+        if (std::find(needed.begin(), needed.end(),
+                      batch->experts[i].d.key_gu) != needed.end())
+          useful_mask |= uint64_t(1) << i;
+      // Cancel unstarted wrong guesses. Running readers keep their slots until
+      // they publish completion; no live buffer is recycled or overwritten.
+      for (auto it = prefetch_jobs_.begin(); it != prefetch_jobs_.end();) {
+        const uint64_t bit = it->first == batch ? uint64_t(1) << it->second : 0;
+        if (bit && !(useful_mask & bit)) {
+          batch->done_mask |= bit;
+          ++batch->done;
+          ++result.cancelled;
+          cancelled_mask |= bit;
+          batch->experts[it->second].host.reset();
+          it = prefetch_jobs_.erase(it);
+        } else {
+          ++it;
+        }
+      }
+      prefetch_done_cv_.wait(lock, [batch, useful_mask] {
+        return (batch->done_mask & useful_mask) == useful_mask;
+      });
+      for (size_t i = 0; i < count; ++i) {
+        const uint64_t bit = uint64_t(1) << i;
+        // Finished guesses can be reused by future tokens at no extra wait.
+        // Cancelled or failed guesses have no valid payload to register.
+        if ((useful_mask & bit) ||
+            (keep_ready && (batch->done_mask & bit) &&
+             !(cancelled_mask & bit) && batch->experts[i].rc == 0))
+          selected.push_back(std::move(batch->experts[i]));
+        else if (batch->done_mask & bit)
+          discarded.push_back(batch->experts[i].slot);
+        else {
+          batch->recycle_mask |= bit;
+          ++result.pending;
+        }
+      }
+      if (result.pending)
+        prefetch_retired_.push_back(std::move(prefetch_batches_.front()));
+      prefetch_batches_.pop_front();
+    }
+    const uint64_t read_done = HtpProfile::nowUs();
+    const auto session =
+      static_cast<remote_handle64>(HtpBackend::global().handle());
+    {
+      std::lock_guard<std::mutex> lock(handle_mutex_);
+      free_expert_slots_.insert(free_expert_slots_.end(), discarded.begin(),
+                                discarded.end());
+      registerStagedBatch(session, selected, true);
+      for (const auto &st : selected)
+        result.keys.push_back(st.d.key_gu);
+    }
+    const uint64_t registered = HtpProfile::nowUs();
+    auto &profile = HtpProfile::global();
+    if (profile.level())
+      profile.addPrefetch(count, ready, read_done - start,
+                          registered - read_done, prefetch_caller_cpus_,
+                          prefetch_reader_cpus_.load());
+    if (std::getenv("NNTR_MOE_PREFETCH_BATCH_TRACE"))
+      std::fprintf(
+        stderr,
+        "[MOE-PREFETCH-BATCH] n=%zu ready=%zu ready_mask=%llu wait_us=%llu "
+        "register_us=%llu selected=%zu cancelled=%zu pending=%zu\n",
+        count, ready, (unsigned long long)ready_mask,
+        (unsigned long long)(read_done - start),
+        (unsigned long long)(registered - read_done), result.keys.size(),
+        result.cancelled, result.pending);
+    return result;
+  }
+
+  size_t prefetch_qs4cx_wh_experts_reap() override {
+    std::vector<ExpertSlot> freed;
+    {
+      std::lock_guard<std::mutex> lock(prefetch_mutex_);
+      for (auto it = prefetch_retired_.begin();
+           it != prefetch_retired_.end();) {
+        auto &batch = **it;
+        const uint64_t done = batch.done_mask & batch.recycle_mask;
+        for (size_t i = 0; i < batch.experts.size(); ++i)
+          if (done & (uint64_t(1) << i))
+            freed.push_back(batch.experts[i].slot);
+        batch.recycle_mask &= ~done;
+        if (!batch.recycle_mask)
+          it = prefetch_retired_.erase(it);
+        else
+          ++it;
+      }
+    }
+    std::lock_guard<std::mutex> lock(handle_mutex_);
+    free_expert_slots_.insert(free_expert_slots_.end(), freed.begin(),
+                              freed.end());
+    return freed.size();
   }
 
   void reserve_qs4cx_wh_expert_slots(size_t n) override {
@@ -2956,6 +4504,15 @@ public:
     ExpertSlot slot = it->second.slot;
     slot.h_gu = it->second.h_gu;
     slot.h_dn = it->second.h_dn;
+    // A completed wrong prediction may be evicted before its first use.
+    // Its old DSP handles still belong to this slot; no RPC is necessary.
+    auto pending = std::find_if(
+      pending_expert_updates_.begin(), pending_expert_updates_.end(),
+      [key_gu](const StagedExpert &st) { return st.d.key_gu == key_gu; });
+    if (pending != pending_expert_updates_.end()) {
+      pending_expert_updates_.erase(pending);
+      ++expert_updates_abandoned_;
+    }
     handle_cache_.erase(key_gu);
     handle_cache_.erase(it->second.key_dn);
     free_expert_slots_.push_back(slot);
@@ -3258,6 +4815,18 @@ public:
   }
 
 private:
+  /** Direct prefill I/O for tensors already allocated in rpcmem. Bit 0:
+   * MoE, bit 1: FC, bit 2: convolution. Decode keeps its small queue buffers.
+   * The caller's host tensor remains fully valid after the synchronous RPC.
+   * Set NNTR_HTP_PREFILL_SHARED_IO=0 to compare with the staging path. */
+  static bool sharedPrefillIo(unsigned bit) {
+    static const unsigned mask = [] {
+      const char *e = std::getenv("NNTR_HTP_PREFILL_SHARED_IO");
+      return e ? static_cast<unsigned>(std::strtoul(e, nullptr, 0)) : 7u;
+    }();
+    return (mask & bit) != 0;
+  }
+
   /** @brief Grows @a buf to at least @a bytes, reusing it otherwise.
    *
    *  One buffer for activation, one for output, reused across every call
@@ -3300,13 +4869,16 @@ private:
       cls <<= 1;
     return cls;
   }
-  static HtpRpcBuffer &stage(StagingPool &pool, size_t bytes) {
+  HtpRpcBuffer &stage(StagingPool &pool, size_t bytes,
+                      uint32_t flags = HTP_RPC_FLAGS_DEFAULT) {
+    if (&pool == &act_pool_)
+      moe_input_reuse_.invalidate();
     const size_t cls = stageClass(bytes);
     pool.holds.erase(cls);
     pool.copied_out.erase(cls);
     auto &slot = pool.by_class[cls];
     if (!slot)
-      slot = std::make_unique<HtpRpcBuffer>(cls);
+      slot = std::make_unique<HtpRpcBuffer>(cls, flags);
     return *slot;
   }
   /** @brief Whether @a b still holds the copy of @a a: 32 spread 64-byte
@@ -3336,9 +4908,11 @@ private:
    *  the dense output is the MoE call's x2 and the MoE output the next
    *  qkv call's input (doc 57 section 9.34). Stage this before the call's
    *  own output buffer, which may be the one swapped in. */
-  static HtpRpcBuffer &stageInput(StagingPool &pool, const void *src,
-                                  size_t bytes, StagingPool *from = nullptr,
-                                  int line = __builtin_LINE()) {
+  HtpRpcBuffer &stageInput(StagingPool &pool, const void *src, size_t bytes,
+                           StagingPool *from = nullptr,
+                           int line = __builtin_LINE()) {
+    if (&pool == &act_pool_ || from == &act_pool_)
+      moe_input_reuse_.invalidate();
     const size_t cls = stageClass(bytes);
     auto &slot = pool.by_class[cls];
     if (!slot)
@@ -3442,9 +5016,9 @@ private:
   /** @brief The RMSNorms folded into one layer call (mm_u8i4_layer_norm):
    *  nothing set = the plain call. */
   struct FusedNorms {
-    const float *pre_gamma = nullptr;            /**< K floats */
+    const float *pre_gamma = nullptr;                      /**< K floats */
     const std::vector<unsigned int> *post_chunk = nullptr; /**< per handle */
-    const float *post_gamma = nullptr;           /**< the chunks, concatenated */
+    const float *post_gamma = nullptr; /**< the chunks, concatenated */
     float eps = 0.0f;
     const float *rope_cs = nullptr; /**< M rows of 2*rope_hd, or nullptr */
     unsigned int rope_hd = 0;       /**< 0: no RoPE */
@@ -3452,13 +5026,121 @@ private:
     bool any() const { return pre_gamma || post_chunk || rope_hd; }
   };
 
+  /** Queue the existing HVX FC entry, preserving its quantization and
+   * fused-norm boundaries. Return false only before submitting a packet. */
+  bool invokeLayerQueue(remote_handle64 session, const uint32_t *handles,
+                        int num_handles, float *input, float *output,
+                        unsigned M, unsigned N, unsigned K,
+                        const std::vector<unsigned int> *blocks,
+                        const std::vector<float *> *dsts,
+                        const FusedNorms *norms,
+                        const std::vector<OutSlice> *slices,
+                        PendingNorm *pending) {
+    const bool fused = norms && norms->any();
+    const char *env =
+      std::getenv(fused ? "NNTR_HTP_DSPQ_QKV" : "NNTR_HTP_DSPQ_FC");
+    if (M != 1 || (env && std::atoi(env) == 0) ||
+        !(applied_moe_flags_ & HTP_FC_FLAG_M1_HVX) || num_handles <= 0 ||
+        num_handles > static_cast<int>(HTP_DSPQ_FC_HANDLES) ||
+        (fused &&
+         (!slices || slices->size() != static_cast<size_t>(num_handles))))
+      return false;
+    HtpProfile &profile = HtpProfile::global();
+    const bool timed = profile.level() >= 2;
+    htp_dspq_fc_req req = {};
+    req.op = HTP_DSPQ_OP_FC;
+    req.flags = timed ? HTP_DSPQ_FLAG_TIMED : 0u;
+    req.K = K;
+    req.N = N;
+    req.count = num_handles;
+    req.fused = fused;
+    req.norm_kind = pending ? (pending->add ? 2u : 1u) : 0u;
+    req.norm_eps = pending ? pending->eps : 0.0f;
+    std::copy(handles, handles + num_handles, req.handles);
+    if (fused) {
+      req.eps = norms->eps;
+      req.pre_len = norms->pre_gamma ? K : 0;
+      req.rope_hd = norms->rope_hd;
+      req.rope_handles = norms->rope_handles;
+      if (norms->post_chunk) {
+        if (norms->post_chunk->size() != static_cast<size_t>(num_handles))
+          return false;
+        for (int i = 0; i < num_handles; ++i) {
+          req.chunks[i] = (*norms->post_chunk)[i];
+          if (req.chunks[i] > 16384u - req.post_len)
+            return false;
+          req.post_len += req.chunks[i];
+        }
+      }
+      size_t base = 0, next = 0;
+      for (int i = 0; i < num_handles; ++i) {
+        const OutSlice &o = (*slices)[i];
+        if (o.c0 == 0) {
+          base = next;
+          next += o.stride;
+        }
+        req.offsets[i] = base + o.c0;
+        req.strides[i] = o.stride;
+      }
+    }
+    if (!htp_dspq_fc_shape_valid(&req))
+      return false;
+    const size_t input_bytes = htp_dspq_fc_input_bytes(&req);
+    const size_t output_bytes = htp_dspq_fc_output_bytes(&req);
+    if (!dspqReady(session, input_bytes, output_bytes, sizeof(req)))
+      return false;
+    auto &st = *dspq_;
+    req.seq = ++st.seq;
+    st.retained_norm = nullptr;
+    float *packed = reinterpret_cast<float *>(st.act->data());
+    const size_t act_count = static_cast<size_t>(req.norm_kind + 1u) * K;
+    stagedMemcpy(packed, pending ? pending->inputs.data() : input,
+                 act_count * 4);
+    if (req.pre_len)
+      stagedMemcpy(packed + act_count, norms->pre_gamma, req.pre_len * 4);
+    if (req.post_len)
+      stagedMemcpy(packed + act_count + req.pre_len, norms->post_gamma,
+                   req.post_len * 4);
+    if (req.rope_hd)
+      stagedMemcpy(packed + act_count + req.pre_len + req.post_len,
+                   norms->rope_cs, 2u * req.rope_hd * 4);
+    uint32_t stages[HTP_DSPQ_STAGES] = {};
+    const uint64_t start = HtpProfile::nowUs();
+    const int err = dspqExchange(&req, sizeof(req), req.seq, input_bytes,
+                                 output_bytes, timed ? stages : nullptr);
+    const uint64_t elapsed = HtpProfile::nowUs() - start;
+    if (err != AEE_SUCCESS)
+      throw std::runtime_error("HTP queued FC failed: " + std::to_string(err));
+    const float *result = reinterpret_cast<const float *>(st.out->data());
+    if (pending)
+      publishNorm(result + N);
+    if (fused) {
+      for (int i = 0; i < num_handles; ++i) {
+        const OutSlice &o = (*slices)[i];
+        if (o.c0 == 0)
+          stagedMemcpy(o.dst, result + req.offsets[i],
+                       o.stride * sizeof(float));
+      }
+      ++queued_qkv_calls_;
+    } else {
+      copyOut(output, result, M, N, blocks, dsts);
+      ++queued_fc_calls_;
+    }
+    if (profile.level())
+      profile.addInvoke(M, K, N, elapsed, timed ? stages : nullptr);
+    return true;
+  }
+
   void invokeLayer(remote_handle64 session, const uint32_t *handles,
                    int num_handles, float *matBdata, float *matCdata,
                    unsigned int M, unsigned int N, unsigned int K,
                    const std::vector<unsigned int> *blocks = nullptr,
                    const std::vector<float *> *dsts = nullptr,
                    const FusedNorms *norms = nullptr,
-                   const std::vector<OutSlice> *slices = nullptr) {
+                   const std::vector<OutSlice> *slices = nullptr,
+                   bool retain_moe_input = false,
+                   bool allow_strided_output = false) {
+    sendMoeOptsOnce(session);
     const int act_len = static_cast<int>(M) * static_cast<int>(K);
     const int out_len = static_cast<int>(M) * static_cast<int>(N);
     const auto shape = [&]() {
@@ -3468,14 +5150,98 @@ private:
     };
 
     std::lock_guard<std::mutex> lock(invoke_mutex_);
-    float *act_f32 = reinterpret_cast<float *>(
-      stageInput(act_pool_, matBdata,
-                 static_cast<size_t>(act_len) * sizeof(float), &out_pool_)
-        .data());
-    float *out_cat = reinterpret_cast<float *>(
-      stage(out_pool_, static_cast<size_t>(out_len) * sizeof(float)).data());
+    PendingNorm *pending = pendingNorm("qkv", matBdata, M, K);
+    if (pending && (!norms || !norms->any() || !slices))
+      throw std::runtime_error(
+        "Deferred QKV norm requires the fused projection path");
+    if (invokeLayerQueue(session, handles, num_handles, matBdata, matCdata, M,
+                         N, K, blocks, dsts, norms, slices, pending))
+      return;
+    const bool shared_io = M > 1 && sharedPrefillIo(2u);
+    const bool direct_in =
+      shared_io && !pending &&
+      HtpBackend::global().isSharedRange(
+        matBdata, static_cast<size_t>(act_len) * sizeof(float));
+    // Column slices can write directly into the caller's row-major tensor
+    // using the existing ld entry. Keep batches and fused norms on their
+    // original paths; invokeFc also checks overlap across ALL row chunks.
+    std::vector<uint32_t> fc_out_off, fc_out_ld;
+    bool strided_out = false;
+    if (shared_io && allow_strided_output && !pending && !slices && !dsts &&
+        (!norms || !norms->any()) && blocks && num_handles > 1 &&
+        blocks->size() == static_cast<size_t>(num_handles) && act_len > 0 &&
+        out_len > 0 &&
+        HtpBackend::global().isSharedRange(
+          matCdata, static_cast<size_t>(out_len) * sizeof(float))) {
+      uint64_t column = 0;
+      for (unsigned int width : *blocks) {
+        if (width == 0 || width % 32u || column + width > N ||
+            column + static_cast<uint64_t>(M - 1u) * N + width >
+              static_cast<uint64_t>(out_len))
+          break;
+        fc_out_off.push_back(static_cast<uint32_t>(column));
+        fc_out_ld.push_back(N);
+        column += width;
+      }
+      strided_out = column == N && fc_out_off.size() == blocks->size();
+    }
+    const bool direct_out =
+      strided_out ||
+      (shared_io && !pending && !slices && !dsts &&
+       (!blocks || blocks->size() == 1) &&
+       HtpBackend::global().isSharedRange(
+         matCdata, static_cast<size_t>(out_len) * sizeof(float)));
+    if (direct_in || direct_out) {
+      ++shared_io_calls_[1];
+      shared_io_bytes_[1] +=
+        (direct_in ? static_cast<size_t>(act_len) * sizeof(float) : 0u) +
+        (direct_out ? static_cast<size_t>(out_len) * sizeof(float) : 0u);
+    }
+    float *act_f32;
+    HtpRpcBuffer *act_stage = nullptr;
+    if (pending) {
+      act_f32 = reinterpret_cast<float *>(
+        stage(act_pool_, pending->inputs.size() * 4).data());
+      stagedMemcpy(act_f32, pending->inputs.data(), pending->inputs.size() * 4);
+    } else if (direct_in) {
+      act_f32 = matBdata;
+    } else {
+      act_stage =
+        &stageInput(act_pool_, matBdata,
+                    static_cast<size_t>(act_len) * sizeof(float), &out_pool_);
+      act_f32 = reinterpret_cast<float *>(act_stage->data());
+    }
+    const size_t out_bytes =
+      (static_cast<size_t>(out_len) + (pending ? 2u * K : 0u)) * sizeof(float);
+    float *out_cat;
+    if (direct_out) {
+      out_cat = matCdata;
+      // Preserve stage()'s invalidation without allocating unused scratch.
+      const size_t cls = stageClass(out_bytes);
+      out_pool_.holds.erase(cls);
+      out_pool_.copied_out.erase(cls);
+    } else {
+      out_cat = reinterpret_cast<float *>(stage(out_pool_, out_bytes).data());
+    }
 
     HtpProfile &profile = HtpProfile::global();
+    if (strided_out) {
+      const uint64_t t0 = HtpProfile::nowUs();
+      const int err = nntr_hvx_mm_u8i4_layer_norm_ld(
+        session, M, K, 0.0f, nullptr, 0, nullptr, 0, nullptr, 0, 0, 0, nullptr,
+        0, handles, num_handles, fc_out_off.data(), num_handles,
+        fc_out_ld.data(), num_handles, act_f32, act_len, out_cat, out_len);
+      if (err != AEE_SUCCESS)
+        throw std::runtime_error(
+          "HTP strided FC failed: err=" + std::to_string(err) + shape());
+      if (retain_moe_input && act_stage)
+        moe_input_reuse_.remember(matBdata, M, K, act_stage);
+      // The existing ld entry has no timed twin. As with fused norms,
+      // report host wall time without inventing a DSP stage measurement.
+      if (profile.level())
+        profile.addInvoke(M, K, N, HtpProfile::nowUs() - t0, nullptr);
+      return;
+    }
     if (norms && norms->any()) {
       // The norms ride the same call; the timed twin has no norm variant,
       // so this path counts as an untimed call in the profile.
@@ -3510,22 +5276,32 @@ private:
       const int cs_len =
         norms->rope_hd ? static_cast<int>(M * 2 * norms->rope_hd) : 0;
       const int err =
-        slices ? nntr_hvx_mm_u8i4_layer_norm_ld(
-                   session, M, K, norms->eps, norms->pre_gamma, pre_len, chunk,
-                   chunk_len, norms->post_gamma, post_gamma_len, norms->rope_hd,
-                   norms->rope_handles, norms->rope_cs, cs_len, handles,
-                   num_handles, out_off.data(), num_handles, out_ld.data(),
-                   num_handles, act_f32, act_len, out_cat, out_len)
-               : nntr_hvx_mm_u8i4_layer_norm(
-                   session, M, K, norms->eps, norms->pre_gamma, pre_len, chunk,
-                   chunk_len, norms->post_gamma, post_gamma_len, norms->rope_hd,
-                   norms->rope_handles, norms->rope_cs, cs_len, handles,
-                   num_handles, act_f32, act_len, out_cat, out_len);
+        pending ? nntr_hvx_mm_u8i4_layer_norm_ld_input(
+                    session, K, norms->eps, norms->pre_gamma, pre_len, chunk,
+                    chunk_len, norms->post_gamma, post_gamma_len,
+                    norms->rope_hd, norms->rope_handles, norms->rope_cs, cs_len,
+                    handles, num_handles, out_off.data(), num_handles,
+                    out_ld.data(), num_handles, pending->add, pending->eps,
+                    act_f32, pending->inputs.size(), out_cat, out_len + 2u * K)
+        : slices
+          ? nntr_hvx_mm_u8i4_layer_norm_ld(
+              session, M, K, norms->eps, norms->pre_gamma, pre_len, chunk,
+              chunk_len, norms->post_gamma, post_gamma_len, norms->rope_hd,
+              norms->rope_handles, norms->rope_cs, cs_len, handles, num_handles,
+              out_off.data(), num_handles, out_ld.data(), num_handles, act_f32,
+              act_len, out_cat, out_len)
+          : nntr_hvx_mm_u8i4_layer_norm(
+              session, M, K, norms->eps, norms->pre_gamma, pre_len, chunk,
+              chunk_len, norms->post_gamma, post_gamma_len, norms->rope_hd,
+              norms->rope_handles, norms->rope_cs, cs_len, handles, num_handles,
+              act_f32, act_len, out_cat, out_len);
       const uint64_t elapsed = HtpProfile::nowUs() - t0;
       if (err != AEE_SUCCESS) {
         throw std::runtime_error("nntr_hvx_mm_u8i4_layer_norm failed: err=" +
                                  std::to_string(err) + shape());
       }
+      if (pending)
+        publishNorm(out_cat + out_len);
       if (slices) {
         for (size_t i = 0; i < slices->size(); ++i) {
           const OutSlice &o = (*slices)[i];
@@ -3534,7 +5310,8 @@ private:
                          static_cast<size_t>(M) * o.stride * sizeof(float));
         }
       } else {
-        copyOut(matCdata, out_cat, M, N, blocks, dsts);
+        if (!direct_out)
+          copyOut(matCdata, out_cat, M, N, blocks, dsts);
       }
       if (profile.level())
         profile.addInvoke(M, K, N, elapsed, nullptr);
@@ -3548,7 +5325,10 @@ private:
         throw std::runtime_error("nntr_hvx_mm_u8i4_layer failed: err=" +
                                  std::to_string(err) + shape());
       }
-      copyOut(matCdata, out_cat, M, N, blocks, dsts);
+      if (!direct_out)
+        copyOut(matCdata, out_cat, M, N, blocks, dsts);
+      if (retain_moe_input && act_stage)
+        moe_input_reuse_.remember(matBdata, M, K, act_stage);
       return;
     }
 
@@ -3568,7 +5348,10 @@ private:
                                              : "nntr_hvx_mm_u8i4_layer") +
                                " failed: err=" + std::to_string(err) + shape());
     }
-    copyOut(matCdata, out_cat, M, N, blocks, dsts);
+    if (!direct_out)
+      copyOut(matCdata, out_cat, M, N, blocks, dsts);
+    if (retain_moe_input && act_stage)
+      moe_input_reuse_.remember(matBdata, M, K, act_stage);
     profile.addInvoke(M, K, N, elapsed, timed ? stage_us : nullptr);
   }
 
@@ -3925,9 +5708,27 @@ private:
     remote_handle64 session = 0;
     int domain = CDSP_DOMAIN_ID; /**< [#132 Part B E3] S2's effective one */
     const char *tag = "dspq";    /**< log prefix: "dspq" (S1), "dspq[S2]" */
-    std::unique_ptr<HtpRpcBuffer> act, out;
+    std::unique_ptr<HtpRpcBuffer> act, out, math_aux;
+    // Owned until the close hook unmaps them, even if ComputeOps dies first.
+    std::unordered_map<const float *, std::unique_ptr<HtpRpcBuffer>>
+      router_weights;
+    struct ConvInputCache {
+      htp_dspq_conv_req binding = {};
+      uint32_t slot = 0;
+      bool valid = false;
+      std::vector<float> conv, gamma, state;
+    };
+    // Content snapshots preserve arbitrary caller edits, sequence resets and
+    // intervening FastRPC/prefill calls. Owned by this exact queue lifetime.
+    std::unordered_map<const float *, ConvInputCache> conv_inputs;
+    uint64_t conv_cached_calls = 0, conv_saved_bytes = 0;
+    uint64_t conv_w_updates = 0, conv_gamma_updates = 0, conv_state_updates = 0;
     bool act_mapped = false, out_mapped = false;
     uint32_t seq = 0;
+    const float *retained_norm = nullptr;
+    uint32_t retained_seq = 0;
+    size_t retained_offset = 0, retained_bytes = 0;
+    uint64_t retained_calls = 0;
     uint64_t calls = 0;
     uint32_t arm_spin_us = 0;
     std::atomic<int> cb_err{0}; /**< the queue's error callback */
@@ -3944,6 +5745,16 @@ private:
   static uint32_t dspqRelease(DspqMoe &st) {
     const HtpRpcMemApi &mem = HtpRpcMemApi::get();
     uint32_t fail = 0; // [#132 Part B] fastrpc_munmap refusals
+    for (auto &entry : st.router_weights)
+      fail += mem.munmap(st.domain, entry.second->fd(), entry.second->data(),
+                         entry.second->size()) != 0;
+    st.router_weights.clear();
+    st.conv_inputs.clear();
+    if (st.math_aux) {
+      fail += mem.munmap(st.domain, st.math_aux->fd(), st.math_aux->data(),
+                         st.math_aux->size()) != 0;
+      st.math_aux.reset();
+    }
     if (st.act_mapped)
       fail += mem.munmap(st.domain, st.act->fd(), st.act->data(),
                          st.act->size()) != 0;
@@ -3970,6 +5781,22 @@ private:
     if (st.state != DspqMoe::ON)
       return false;
     st.state = DspqMoe::OFF;
+    if (st.conv_cached_calls)
+      std::fprintf(stderr,
+                   "[HTP] conv input cache: calls=%llu slots=%zu "
+                   "saved_bytes=%llu w_updates=%llu gamma_updates=%llu "
+                   "state_updates=%llu\n",
+                   (unsigned long long)st.conv_cached_calls,
+                   st.conv_inputs.size(),
+                   (unsigned long long)st.conv_saved_bytes,
+                   (unsigned long long)st.conv_w_updates,
+                   (unsigned long long)st.conv_gamma_updates,
+                   (unsigned long long)st.conv_state_updates);
+    if (st.retained_calls)
+      std::fprintf(stderr,
+                   "[HTP] retained router input calls=%llu bytes=%llu\n",
+                   (unsigned long long)st.retained_calls,
+                   (unsigned long long)(st.retained_calls * st.retained_bytes));
     const uint32_t quit[2] = {HTP_DSPQ_OP_QUIT, 0};
     st.api->write(st.q, 0, 0, nullptr, sizeof(quit),
                   reinterpret_cast<const uint8_t *>(quit), kDspqTimeoutUs);
@@ -4136,24 +5963,35 @@ private:
                const std::vector<unsigned int> &row_index,
                const std::vector<unsigned int> &row_count,
                const std::vector<float> &row_weight, size_t act_bytes,
-               size_t out_bytes, uint32_t glu, uint32_t *stage_us) {
+               size_t out_bytes, uint32_t glu, uint32_t *stage_us,
+               size_t act_offset = 0, bool act_sync = true) {
     static_assert(HTP_MOE_N_STAGES == HTP_DSPQ_STAGES,
                   "htp_dspq_wire.h's stage count is the timed call's");
     DspqMoe &st = *dspq_;
     const uint32_t ne = static_cast<uint32_t>(h_gu.size());
     const uint32_t nr = static_cast<uint32_t>(row_index.size());
+    const auto updates = expertUpdatePacket(K, inter, N_out);
     const uint32_t seq = ++st.seq;
-    const htp_dspq_req_hdr hdr = {HTP_DSPQ_OP_MOE,
-                                  seq,
-                                  (stage_us ? HTP_DSPQ_FLAG_TIMED : 0u) |
-                                    (glu ? HTP_DSPQ_FLAG_GELU : 0u),
-                                  M,
-                                  K,
-                                  inter,
-                                  N_out,
-                                  ne,
-                                  nr};
-    const size_t words = htp_dspq_req_bytes(ne, nr) / 4;
+    const htp_dspq_req_hdr hdr = {
+      HTP_DSPQ_OP_MOE,
+      seq,
+      (stage_us ? HTP_DSPQ_FLAG_TIMED : 0u) | (glu ? HTP_DSPQ_FLAG_GELU : 0u) |
+        (updates.empty() ? 0u : HTP_DSPQ_FLAG_EXPERT_UPDATES) |
+        (!updates.empty() && expertUpdateMode() == 3
+           ? HTP_DSPQ_FLAG_EXPERT_BATCH_DMA
+           : 0u),
+      M,
+      K,
+      inter,
+      N_out,
+      ne,
+      nr};
+    const size_t base_words = htp_dspq_req_bytes(ne, nr) / 4;
+    const size_t words =
+      base_words +
+      (updates.empty()
+         ? 0u
+         : 1u + updates.size() * sizeof(htp_dspq_expert_update) / 4u);
     st.msg.resize(words);
     uint32_t *w = st.msg.data();
     std::memcpy(w, &hdr, sizeof(hdr));
@@ -4163,36 +6001,85 @@ private:
     std::memcpy(w + 2 * ne, row_count.data(), 4u * ne);
     std::memcpy(w + 3 * ne, row_index.data(), 4u * nr);
     std::memcpy(w + 3 * ne + nr, row_weight.data(), 4u * nr);
+    if (!updates.empty()) {
+      st.msg[base_words] = static_cast<uint32_t>(updates.size());
+      std::memcpy(st.msg.data() + base_words + 1u, updates.data(),
+                  updates.size() * sizeof(htp_dspq_expert_update));
+    }
+    uint32_t update_us = 0;
+    int rc;
+    try {
+      rc = dspqExchange(st.msg.data(), words * 4, seq, act_bytes, out_bytes,
+                        stage_us, nullptr, true, act_offset, act_sync,
+                        !updates.empty() && stage_us ? &update_us : nullptr);
+    } catch (...) {
+      expert_updates_failed_ |= !updates.empty();
+      throw;
+    }
+    if (!updates.empty()) {
+      std::lock_guard<std::mutex> lock(handle_mutex_);
+      if (rc != AEE_SUCCESS)
+        expert_updates_failed_ = true;
+      else {
+        pending_expert_updates_.clear();
+        ++expert_update_fused_batches_;
+        expert_update_dsp_us_ += update_us;
+        if (stage_us)
+          stage_us[HTP_MOE_T_DSP_TOTAL] += update_us;
+      }
+    }
+    return rc;
+  }
 
-    struct dspqueue_buffer bufs[2] = {};
+  /** @brief Caller holds invoke_mutex_; a failed transport is never retried. */
+  int dspqExchange(const void *message, size_t message_bytes, uint32_t seq,
+                   size_t act_bytes, size_t out_bytes, uint32_t *stage_us,
+                   HtpRpcBuffer *extra = nullptr, bool extra_sync = true,
+                   size_t act_offset = 0, bool act_sync = true,
+                   uint32_t *expert_update_us = nullptr) {
+    DspqMoe &st = *dspq_;
+    struct dspqueue_buffer bufs[3] = {};
+    const uint32_t nb = extra ? 3u : 2u;
     bufs[0].fd = static_cast<uint32_t>(st.act->fd());
     bufs[0].size = static_cast<uint32_t>(act_bytes);
-    bufs[0].flags = DSPQUEUE_BUFFER_FLAG_REF |
-                    DSPQUEUE_BUFFER_FLAG_FLUSH_SENDER |
-                    DSPQUEUE_BUFFER_FLAG_INVALIDATE_RECIPIENT;
-    bufs[0].ptr = st.act->data();
+    bufs[0].offset = static_cast<uint32_t>(act_offset);
+    bufs[0].flags = DSPQUEUE_BUFFER_FLAG_REF;
+    if (act_sync)
+      bufs[0].flags |= DSPQUEUE_BUFFER_FLAG_FLUSH_SENDER |
+                       DSPQUEUE_BUFFER_FLAG_INVALIDATE_RECIPIENT;
+    bufs[0].ptr = st.act->data() + act_offset;
     bufs[1].fd = static_cast<uint32_t>(st.out->fd());
     bufs[1].size = static_cast<uint32_t>(out_bytes);
     bufs[1].flags = DSPQUEUE_BUFFER_FLAG_REF;
     bufs[1].ptr = st.out->data();
 
+    if (extra) {
+      bufs[2].fd = static_cast<uint32_t>(extra->fd());
+      bufs[2].size = static_cast<uint32_t>(extra->size());
+      bufs[2].ptr = extra->data();
+      // Router weights are immutable. Flush the host copy on first use;
+      // subsequent packets retain the same read-only DSP mapping.
+      bufs[2].flags = DSPQUEUE_BUFFER_FLAG_REF;
+      if (extra_sync)
+        bufs[2].flags |= DSPQUEUE_BUFFER_FLAG_FLUSH_SENDER |
+                         DSPQUEUE_BUFFER_FLAG_INVALIDATE_RECIPIENT;
+    }
     const HtpDspqApi &api = *st.api;
-    int err = api.write(st.q, 0, 2, bufs, static_cast<uint32_t>(words * 4),
-                        reinterpret_cast<const uint8_t *>(st.msg.data()),
-                        kDspqTimeoutUs);
+    int err = api.write(st.q, 0, nb, bufs, static_cast<uint32_t>(message_bytes),
+                        static_cast<const uint8_t *>(message), kDspqTimeoutUs);
     htp_dspq_resp resp;
     uint32_t flags = 0, rnb = 0, len = 0;
-    struct dspqueue_buffer rbufs[2] = {};
+    struct dspqueue_buffer rbufs[3] = {};
     if (err == AEE_SUCCESS) {
       // Spin for the poll-QoS window, as the FastRPC call does, then block.
       const uint64_t t0 = HtpProfile::nowUs();
       for (uint32_t spins = 1;; ++spins) {
-        err = api.read_noblock(st.q, &flags, 2, &rnb, rbufs, sizeof(resp), &len,
+        err = api.read_noblock(st.q, &flags, 3, &rnb, rbufs, sizeof(resp), &len,
                                reinterpret_cast<uint8_t *>(&resp));
         if (err != AEE_EWOULDBLOCK)
           break;
         if ((spins & 255u) == 0 && HtpProfile::nowUs() - t0 >= st.arm_spin_us) {
-          err = api.read(st.q, &flags, 2, &rnb, rbufs, sizeof(resp), &len,
+          err = api.read(st.q, &flags, 3, &rnb, rbufs, sizeof(resp), &len,
                          reinterpret_cast<uint8_t *>(&resp), kDspqTimeoutUs);
           break;
         }
@@ -4200,11 +6087,11 @@ private:
     }
     const int cb = st.cb_err.load();
     if (err != AEE_SUCCESS || cb != 0 || len < HTP_DSPQ_RESP_BASE_BYTES ||
-        resp.seq != seq || rnb != 2) {
+        resp.seq != seq || rnb != nb) {
       st.broken = true;
       char msg[160];
       std::snprintf(msg, sizeof(msg),
-                    "dspq: MoE call %u failed: err=0x%x cb_err=0x%x len=%u "
+                    "dspq: call %u failed: err=0x%x cb_err=0x%x len=%u "
                     "seq=%u nb=%u",
                     seq, static_cast<unsigned>(err), static_cast<unsigned>(cb),
                     len, len >= 4 ? resp.seq : 0u, rnb);
@@ -4212,9 +6099,12 @@ private:
     }
     ++st.calls;
     if (stage_us != nullptr && resp.rc == AEE_SUCCESS) {
-      if (len != HTP_DSPQ_RESP_BASE_BYTES + 4u * HTP_DSPQ_STAGES)
+      if (len != HTP_DSPQ_RESP_BASE_BYTES + 4u * HTP_DSPQ_STAGES +
+                   (expert_update_us ? 4u : 0u))
         throw std::runtime_error("dspq: timed response without stage slots");
       std::memcpy(stage_us, resp.stage_us, sizeof(resp.stage_us));
+      if (expert_update_us)
+        *expert_update_us = resp.expert_update_us;
     }
     return resp.rc;
   }
@@ -4757,7 +6647,7 @@ private:
 
     const size_t act_bytes = static_cast<size_t>(act_len) * sizeof(float);
     const size_t out_bytes = static_cast<size_t>(out_len) * sizeof(float);
-    const uint64_t msg_bytes =
+    uint64_t msg_bytes =
       htp_dspq_req_bytes(static_cast<uint32_t>(h_gu.size()),
                          static_cast<uint32_t>(row_index.size()));
 
@@ -4771,10 +6661,68 @@ private:
                           row_count.size() == h_gu.size() &&
                           row_weight.size() == row_index.size() &&
                           dspqReady(session, act_bytes, out_bytes, msg_bytes);
+    if (expertUpdateMode()) {
+      std::lock_guard<std::mutex> handles(handle_mutex_);
+      if (expert_updates_failed_)
+        throw std::runtime_error("expert update failed; restart the session");
+      const size_t extra = pending_expert_updates_.empty()
+                             ? 0u
+                             : 4u + pending_expert_updates_.size() *
+                                      sizeof(htp_dspq_expert_update);
+      if (expertUpdateMode() < 2 || !via_dspq ||
+          !expertUpdatesMatch(K, inter, N_out) ||
+          msg_bytes + extra > HTP_DSPQ_MAX_MSG)
+        flushExpertUpdates(session);
+      else
+        msg_bytes += extra;
+      // Prefill bootstraps physical slot handles. A later prefill commits any
+      // remaining decode updates through the ordinary registration fallback.
+      decode_expert_updates_ = M == 1;
+    }
+    // A fused router just produced this expert input on the DSP. Reuse
+    // that mapped subsection and alternate the queue buffers. A complete
+    // comparison rejects host writes; the sequence rejects queue reuse.
+    static const bool retain_decode = [] {
+      const char *e = std::getenv("NNTR_HTP_RETAIN_ROUTER_INPUT");
+      return !e || std::atoi(e) != 0;
+    }();
+    size_t act_offset = 0;
+    bool retained = false;
+    if (via_dspq && retain_decode) {
+      auto &q = *dspq_;
+      if (q.retained_norm == act && q.retained_seq == q.seq &&
+          q.retained_bytes == act_bytes &&
+          q.retained_offset + act_bytes <= q.out->size() &&
+          std::memcmp(act, q.out->data() + q.retained_offset, act_bytes) == 0) {
+        act_offset = q.retained_offset;
+        std::swap(q.act, q.out);
+        retained = true;
+        ++q.retained_calls;
+      }
+      q.retained_norm = nullptr;
+    }
+    const uint64_t lease = moe_input_reuse_.token(act, M, K);
+    uint64_t prepared_cookie = lease && lease == prepared_moe_lease_ &&
+                                   kind == 0 && !with_norms && !add_x2 &&
+                                   M > 4 && HtpProfile::global().level() < 3
+                                 ? prepared_moe_cookie_
+                                 : 0;
+    prepared_moe_cookie_ = prepared_moe_lease_ = 0;
+    void *saved = moe_input_reuse_.consume(act, M, K);
+    static const bool trace_reuse =
+      std::getenv("NNTR_HTP_MOE_INPUT_REUSE_TRACE") != nullptr;
+    const uint64_t stage_t0 = trace_reuse ? HtpProfile::nowUs() : 0;
     const bool host_prenorm = HtpProfile::global().level() >= 2 && with_norms &&
                               !via_dspq && pre_gamma != nullptr;
-    HtpRpcBuffer &act_stage = via_dspq ? *dspq_->act
-                              : host_prenorm
+    const bool reused = !via_dspq && !host_prenorm && saved != nullptr;
+    const bool shared_io = M > 1 && sharedPrefillIo(1u);
+    const bool direct_in = shared_io && !host_prenorm &&
+                           HtpBackend::global().isSharedRange(act, act_bytes);
+    const bool direct_out =
+      shared_io && HtpBackend::global().isSharedRange(out, out_bytes);
+    HtpRpcBuffer &act_stage = reused     ? *static_cast<HtpRpcBuffer *>(saved)
+                              : via_dspq ? *dspq_->act
+                              : (prepared_cookie || host_prenorm || direct_in)
                                 ? stage(act_pool_, act_bytes)
                                 : stageInput(act_pool_, act, act_bytes);
     // The post-FFN epilogue's second addend rides its own staging buffer,
@@ -4788,10 +6736,18 @@ private:
       x2_f32 = reinterpret_cast<float *>(
         stageInput(x2_pool_, add_x2, out_bytes, &out_pool_).data());
     }
+    if (direct_in || direct_out) {
+      ++shared_io_calls_[0];
+      shared_io_bytes_[0] +=
+        (direct_in ? act_bytes : 0u) + (direct_out ? out_bytes : 0u);
+    }
+    float *act_f32 =
+      direct_in ? const_cast<float *>(act)
+                : reinterpret_cast<float *>(act_stage.data() + act_offset);
     HtpRpcBuffer &out_stage =
       via_dspq ? *dspq_->out : stage(out_pool_, out_bytes);
-    float *act_f32 = reinterpret_cast<float *>(act_stage.data());
-    float *out_f32 = reinterpret_cast<float *>(out_stage.data());
+    float *out_f32 =
+      direct_out ? out : reinterpret_cast<float *>(out_stage.data());
     // NNTR_HTP_PROFILE>=2 on a call with folded norms: the timed entry
     // (stage breakdown) and the norms on the host around it, so the prefill
     // MoE and dense calls, which always carry them, have stages too (doc 57
@@ -4804,9 +6760,14 @@ private:
       for (unsigned int r = 0; r < M; ++r)
         for (unsigned int k = 0; k < K; ++k)
           act_f32[static_cast<size_t>(r) * K + k] *= pre_gamma[k];
-    } else if (via_dspq) {
+    } else if (via_dspq && !retained) {
       stagedMemcpy(act_f32, act, act_bytes);
     }
+    if (trace_reuse)
+      std::fprintf(
+        stderr, "[HTP-MOE-INPUT] M=%u K=%u reused=%u bytes=%zu stage_us=%llu\n",
+        M, K, reused ? 1u : 0u, act_bytes,
+        static_cast<unsigned long long>(HtpProfile::nowUs() - stage_t0));
 
     // The five small sequences (handles, routing) go from the heap. Tried
     // from one rpcmem buffer (doc 51 section 2.26): transport 627 -> 605
@@ -4828,54 +6789,77 @@ private:
     // Repeating inside one call puts the comparison at the same temperature
     // and the same contention, and the output is unchanged because the
     // input is.
-    const int reps = (profile.level() >= 3) ? 5 : 1;
+    const int reps =
+      (profile.level() >= 3 && pending_expert_updates_.empty()) ? 5 : 1;
     uint64_t best_elapsed = UINT64_MAX;
     int err = AEE_SUCCESS;
     for (int rep = 0; rep < reps && err == AEE_SUCCESS; ++rep) {
       uint32_t rep_stage[HTP_MOE_N_STAGES] = {0};
       const uint64_t t0 = profile.level() ? HtpProfile::nowUs() : 0;
-      err = via_dspq ? dspqCall(M, K, inter, N_out, h_gu, h_dn, row_index,
-                                row_count, row_weight, act_bytes, out_bytes,
-                                glu, timed ? rep_stage : nullptr)
-            : add_x2 != nullptr && !host_norms
-              ? nntr_hvx_mm_u8i4_moe_layer_norm_add(
-                  session, M, K, inter, N_out, glu, eps, add_scale, pre_gamma,
-                  static_cast<int>(K), post_gamma,
-                  post_gamma ? static_cast<int>(N_out) : 0, add_gamma,
-                  add_gamma ? static_cast<int>(N_out) : 0, h_gu.data(),
-                  static_cast<int>(h_gu.size()), h_dn.data(),
-                  static_cast<int>(h_dn.size()), row_index.data(),
-                  static_cast<int>(row_index.size()), row_count.data(),
-                  static_cast<int>(row_count.size()), row_weight.data(),
-                  static_cast<int>(row_weight.size()), act_f32, act_len, x2_f32,
-                  out_len, out_f32, out_len)
-            : norm_entry
-              ? nntr_hvx_mm_u8i4_moe_layer_norm(
-                  session, M, K, inter, N_out, glu, eps, pre_gamma,
-                  pre_gamma ? static_cast<int>(K) : 0, post_gamma,
-                  post_gamma ? static_cast<int>(N_out) : 0, h_gu.data(),
-                  static_cast<int>(h_gu.size()), h_dn.data(),
-                  static_cast<int>(h_dn.size()), row_index.data(),
-                  static_cast<int>(row_index.size()), row_count.data(),
-                  static_cast<int>(row_count.size()), row_weight.data(),
-                  static_cast<int>(row_weight.size()), act_f32, act_len,
-                  out_f32, out_len)
-            : timed ? nntr_hvx_mm_u8i4_moe_layer_timed(
-                        session, M, K, inter, N_out, glu, h_gu.data(),
-                        static_cast<int>(h_gu.size()), h_dn.data(),
-                        static_cast<int>(h_dn.size()), row_index.data(),
-                        static_cast<int>(row_index.size()), row_count.data(),
-                        static_cast<int>(row_count.size()), row_weight.data(),
-                        static_cast<int>(row_weight.size()), act_f32, act_len,
-                        out_f32, out_len, rep_stage, HTP_MOE_N_STAGES)
-                    : nntr_hvx_mm_u8i4_moe_layer(
-                        session, M, K, inter, N_out, glu, h_gu.data(),
-                        static_cast<int>(h_gu.size()), h_dn.data(),
-                        static_cast<int>(h_dn.size()), row_index.data(),
-                        static_cast<int>(row_index.size()), row_count.data(),
-                        static_cast<int>(row_count.size()), row_weight.data(),
-                        static_cast<int>(row_weight.size()), act_f32, act_len,
-                        out_f32, out_len);
+      const bool attempted_prepared = prepared_cookie != 0;
+      if (prepared_cookie) {
+        err = nntr_hvx_mm_u8i4_moe_layer_prepared(
+          session, prepared_cookie, M, K, inter, N_out, glu, h_gu.data(),
+          static_cast<int>(h_gu.size()), h_dn.data(),
+          static_cast<int>(h_dn.size()), row_index.data(),
+          static_cast<int>(row_index.size()), row_count.data(),
+          static_cast<int>(row_count.size()), row_weight.data(),
+          static_cast<int>(row_weight.size()), out_f32, out_len,
+          timed ? rep_stage : nullptr, timed ? HTP_MOE_N_STAGES : 0);
+        prepared_cookie = 0;
+      } else {
+        err = AEE_EUNSUPPORTED;
+      }
+      // The prepared kernel rejects unsupported weight kinds before writing
+      // output; all such shapes retain the ordinary NPU path below.
+      if (err == AEE_EUNSUPPORTED ||
+          static_cast<uint32_t>(err) == 0x80000414u) {
+        if (attempted_prepared && !direct_in && !reused)
+          stagedMemcpy(act_f32, act, act_bytes);
+        err = via_dspq
+                ? dspqCall(M, K, inter, N_out, h_gu, h_dn, row_index, row_count,
+                           row_weight, act_bytes, out_bytes, glu,
+                           timed ? rep_stage : nullptr, act_offset, !retained)
+              : add_x2 != nullptr && !host_norms
+                ? nntr_hvx_mm_u8i4_moe_layer_norm_add(
+                    session, M, K, inter, N_out, glu, eps, add_scale, pre_gamma,
+                    static_cast<int>(K), post_gamma,
+                    post_gamma ? static_cast<int>(N_out) : 0, add_gamma,
+                    add_gamma ? static_cast<int>(N_out) : 0, h_gu.data(),
+                    static_cast<int>(h_gu.size()), h_dn.data(),
+                    static_cast<int>(h_dn.size()), row_index.data(),
+                    static_cast<int>(row_index.size()), row_count.data(),
+                    static_cast<int>(row_count.size()), row_weight.data(),
+                    static_cast<int>(row_weight.size()), act_f32, act_len,
+                    x2_f32, out_len, out_f32, out_len)
+              : norm_entry
+                ? nntr_hvx_mm_u8i4_moe_layer_norm(
+                    session, M, K, inter, N_out, glu, eps, pre_gamma,
+                    pre_gamma ? static_cast<int>(K) : 0, post_gamma,
+                    post_gamma ? static_cast<int>(N_out) : 0, h_gu.data(),
+                    static_cast<int>(h_gu.size()), h_dn.data(),
+                    static_cast<int>(h_dn.size()), row_index.data(),
+                    static_cast<int>(row_index.size()), row_count.data(),
+                    static_cast<int>(row_count.size()), row_weight.data(),
+                    static_cast<int>(row_weight.size()), act_f32, act_len,
+                    out_f32, out_len)
+              : timed ? nntr_hvx_mm_u8i4_moe_layer_timed(
+                          session, M, K, inter, N_out, glu, h_gu.data(),
+                          static_cast<int>(h_gu.size()), h_dn.data(),
+                          static_cast<int>(h_dn.size()), row_index.data(),
+                          static_cast<int>(row_index.size()), row_count.data(),
+                          static_cast<int>(row_count.size()), row_weight.data(),
+                          static_cast<int>(row_weight.size()), act_f32, act_len,
+                          out_f32, out_len, rep_stage, HTP_MOE_N_STAGES)
+                      : nntr_hvx_mm_u8i4_moe_layer(
+                          session, M, K, inter, N_out, glu, h_gu.data(),
+                          static_cast<int>(h_gu.size()), h_dn.data(),
+                          static_cast<int>(h_dn.size()), row_index.data(),
+                          static_cast<int>(row_index.size()), row_count.data(),
+                          static_cast<int>(row_count.size()), row_weight.data(),
+                          static_cast<int>(row_weight.size()), act_f32, act_len,
+                          out_f32, out_len);
+      }
       const uint64_t elapsed = profile.level() ? HtpProfile::nowUs() - t0 : 0;
       // Fastest wins, stages and all, so the breakdown describes one real call
       // rather than a mix of a fast one and a slow one.
@@ -4910,7 +6894,7 @@ private:
     }
     if (via_dspq)
       stagedMemcpy(out, out_f32, out_bytes);
-    else
+    else if (!direct_out)
       copyOutOf(out_pool_, out, out_bytes);
     if (host_post_norm) {
       std::vector<float> raw(out, out + static_cast<size_t>(out_len));
@@ -4947,9 +6931,9 @@ private:
                  : 48 + sizeof(uint32_t) *
                           (h_gu.size() + h_dn.size() + row_index.size() +
                            row_count.size() + row_weight.size());
-      profile.addInvokeMoeLayer(M, K, N_out, elapsed,
-                                timed ? stage_us : nullptr, act_stage,
-                                out_stage, in_arg_bytes, kind, via_dspq);
+      profile.addInvokeMoeLayer(
+        M, K, N_out, elapsed, timed ? stage_us : nullptr, act_stage, out_stage,
+        in_arg_bytes, kind, via_dspq, direct_in || direct_out);
     }
     if (timed) {
       // [#87] The per-descriptor trace of the last repeat, for the first
@@ -4974,56 +6958,296 @@ private:
     }
   }
 
+  bool invokePrefillConvNorm(remote_handle64 session, const ConvHandles &ch,
+                             const float *conv_w, const float *act, float *out,
+                             float *state, unsigned M, unsigned K, unsigned C,
+                             unsigned N_out) {
+    PendingPrefillNorm p;
+    {
+      std::lock_guard<std::mutex> lock(invoke_mutex_);
+      if (!pending_prefill_conv_norm_.norm)
+        return false;
+      p = std::move(pending_prefill_conv_norm_);
+      pending_prefill_conv_norm_ = {};
+    }
+    if (p.rows != M || p.width != K || p.norm != act)
+      throw std::runtime_error("HTP deferred prefill Conv norm mismatch");
+    const uint64_t out_count = static_cast<uint64_t>(M) * N_out;
+    const uint64_t conv_count64 = static_cast<uint64_t>(3u) * C;
+    const uint64_t small_count = static_cast<uint64_t>(5u) * C + K;
+    if (!conv_w || !out || !state || !N_out || !C ||
+        out_count > INT32_MAX / sizeof(float) ||
+        small_count > INT32_MAX / sizeof(float))
+      throw std::invalid_argument("HTP deferred prefill Conv shape");
+    const size_t bytes = static_cast<size_t>(M) * K * sizeof(float);
+    const size_t out_bytes = static_cast<size_t>(out_count) * sizeof(float);
+    const size_t state_count = static_cast<size_t>(2u) * C;
+    const size_t state_bytes = state_count * sizeof(float);
+    if (prefillNormOverlap(state, state_bytes, p.sum, bytes) ||
+        prefillNormOverlap(state, state_bytes, p.norm, bytes) ||
+        prefillNormOverlap(state, state_bytes, out, out_bytes))
+      throw std::invalid_argument("HTP deferred prefill Conv state alias");
+    auto &backend = HtpBackend::global();
+    if (!backend.isSharedRange(out, out_bytes) ||
+        prefillNormOverlap(out, out_bytes, p.sum, bytes) ||
+        prefillNormOverlap(out, out_bytes, p.norm, bytes)) {
+      // A graph may use the normalized output in place. Materialize the norm
+      // with the existing call before that graph's ordinary Conv path.
+      const bool materialized =
+        p.residual
+          ? add_rmsnorm_fp32(M, K, p.eps, p.x, p.residual, p.gamma.data(),
+                             p.sum, p.norm)
+          : inferenceMath(InferenceMath::RmsNorm, M, K, K, p.eps, 1.0f, p.x,
+                          nullptr, p.gamma.data(), p.norm, nullptr);
+      if (!materialized)
+        throw std::runtime_error("HTP deferred prefill Conv norm fallback");
+      return false;
+    }
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    const size_t conv_count = static_cast<size_t>(conv_count64);
+    const size_t small_bytes = static_cast<size_t>(small_count) * sizeof(float);
+    if (!conv_buf_ || conv_buf_->size() < small_bytes)
+      conv_buf_ = std::make_unique<HtpRpcBuffer>(small_bytes);
+    if (!conv_buf_->data())
+      throw std::runtime_error("HTP prefill Conv norm staging allocation");
+    float *cw = reinterpret_cast<float *>(conv_buf_->data());
+    float *st = cw + conv_count, *gamma = st + state_count;
+    std::memcpy(cw, conv_w, conv_count * sizeof(float));
+    std::memcpy(st, state, state_count * sizeof(float));
+    std::memcpy(gamma, p.gamma.data(), K * sizeof(float));
+    HtpProfile &profile = HtpProfile::global();
+    const bool timed = profile.level() >= 2;
+    uint32_t stages[HTP_MOE_N_STAGES] = {};
+    const uint64_t start = HtpProfile::nowUs();
+    const int count = static_cast<int>(M * K);
+    const int err = nntr_hvx_mm_u8i4_conv_block_prefill_norm(
+      session, M, K, C, N_out, ch.h_in.data(), ch.h_in.size(), ch.h_out, cw,
+      conv_count, p.eps, p.x, count, p.residual, p.residual ? count : 0, gamma,
+      K, p.sum, p.residual ? count : 0, p.norm, count, out,
+      static_cast<int>(out_count), st, state_count, timed ? stages : nullptr,
+      timed ? HTP_MOE_N_STAGES : 0);
+    const uint64_t elapsed = HtpProfile::nowUs() - start;
+    if (err != AEE_SUCCESS)
+      throw std::runtime_error("HTP prefill Conv norm failed: " +
+                               std::to_string(err));
+    std::memcpy(state, st, state_count * sizeof(float));
+    ++consumer_norm_calls_;
+    ++shared_io_calls_[2];
+    shared_io_bytes_[2] += bytes * (p.residual ? 4u : 2u) + out_bytes;
+    if (profile.level()) {
+      profile.addInvokeMoeLayer(M, K, N_out, elapsed, timed ? stages : nullptr,
+                                *conv_buf_, *conv_buf_, 64, 2, false, true);
+      std::fprintf(stderr,
+                   "[HTP-CONV-NORM] M=%u K=%u rpc_us=%llu dsp_us=%u "
+                   "shared_bytes=%zu\n",
+                   M, K, (unsigned long long)elapsed, timed ? stages[0] : 0u,
+                   bytes * (p.residual ? 4u : 2u) + out_bytes);
+    }
+    return true;
+  }
+
   /** @brief [doc 51 section 2] One call for a whole conv block.
    *
    *  The activation goes over once and the output comes back once; the
-   *  four M x C intermediates the block has stay on the DSP. conv_w (24 KB)
-   *  rides along by value each call rather than being registered: it is
-   *  under a hundredth of the activation. The state (2 x C) comes back in
-   *  its own small buffer, not a size class of out_pool_: at a short M the
-   *  output would land in the same 64 KiB class and the two would alias. */
+   *  four M x C intermediates the block has stay on the DSP. HVX decode
+   *  uses the persistent DSP queue by default (NNTR_HTP_DSPQ_CONV=0 opts
+   *  out); prefill and HMX stay on FastRPC. The queue packs conv_w and the
+   *  incoming state after the activation, and returns state after output
+   *  and optional norm results. NNTR_HTP_CONV_INPUT_CACHE=1 sends only changed
+   *  conv_w, gamma and state; content comparisons preserve the in/out API.
+   *  FastRPC uses a separate small state buffer
+   *  so output and state cannot alias the same out_pool_ size class. */
   void invokeConvBlock(remote_handle64 session, const ConvHandles &ch,
                        const float *conv_w, const float *act, float *out,
                        float *state, unsigned int M, unsigned int K,
                        unsigned int C, unsigned int N_out) {
+    sendMoeOptsOnce(session);
+    if (invokePrefillConvNorm(session, ch, conv_w, act, out, state, M, K, C,
+                              N_out))
+      return;
     const int act_len = static_cast<int>(M) * static_cast<int>(K);
     const int out_len = static_cast<int>(M) * static_cast<int>(N_out);
     const int conv_len = 3 * static_cast<int>(C);
     const int state_len = 2 * static_cast<int>(C);
 
+    // Separate pools keep cache-policy experiments local to ConvBlock:
+    // changing the shared FC/MoE pools would confound the comparison.
+    static const bool uncached = [] {
+      const char *e = std::getenv("NNTR_CONV_RPC_UNCACHED");
+      return e && *e && *e != '0';
+    }();
+    static const bool trace = [] {
+      const char *e = std::getenv("NNTR_CONV_BLOCK_TRACE");
+      return e && *e && *e != '0';
+    }();
+    const uint32_t flags =
+      uncached ? HTP_RPC_FLAGS_UNCACHED : HTP_RPC_FLAGS_DEFAULT;
+    HtpProfile &profile = HtpProfile::global();
+    const bool measure = trace || profile.level() != 0;
     std::lock_guard<std::mutex> lock(invoke_mutex_);
-    HtpRpcBuffer &act_stage =
-      stage(act_pool_, static_cast<size_t>(act_len) * sizeof(float));
-    HtpRpcBuffer &out_stage =
-      stage(out_pool_, static_cast<size_t>(out_len) * sizeof(float));
-    float *act_f32 = reinterpret_cast<float *>(act_stage.data());
-    float *out_f32 = reinterpret_cast<float *>(out_stage.data());
+    PendingNorm *pending = pendingNorm("conv", act, M, K);
+    const size_t input_bytes = pending
+                                 ? pending->inputs.size() * sizeof(float)
+                                 : static_cast<size_t>(act_len) * sizeof(float);
+
     const size_t small_bytes =
       static_cast<size_t>(conv_len + state_len) * sizeof(float);
-    if (!conv_buf_ || conv_buf_->size() < small_bytes)
-      conv_buf_ = std::make_unique<HtpRpcBuffer>(small_bytes);
-    float *conv_f32 = reinterpret_cast<float *>(conv_buf_->data());
-    float *state_f32 = conv_f32 + conv_len;
-    stagedMemcpy(act_f32, act, static_cast<size_t>(act_len) * sizeof(float));
-    std::memcpy(conv_f32, conv_w,
-                static_cast<size_t>(conv_len) * sizeof(float));
-
-    HtpProfile &profile = HtpProfile::global();
-    uint32_t stage_us[HTP_MOE_N_STAGES] = {0};
     const bool timed = profile.level() >= 2;
-    const uint64_t t0 = profile.level() ? HtpProfile::nowUs() : 0;
+    htp_dspq_conv_req req = {HTP_DSPQ_OP_CONV,
+                             0u,
+                             timed ? HTP_DSPQ_FLAG_TIMED : 0u,
+                             K,
+                             C,
+                             N_out,
+                             {ch.h_in[0], ch.h_in[1], ch.h_in[2]},
+                             ch.h_out,
+                             pending ? (pending->add ? 2u : 1u) : 0u,
+                             pending ? pending->eps : 0.0f};
+    const size_t full_queue_in = htp_dspq_conv_input_bytes(&req);
+    size_t queue_in = full_queue_in;
+    const size_t queue_out = htp_dspq_conv_output_bytes(&req);
+    // Read per call so diagnostics can compare the two transports with the
+    // same session and weights. The kernel options themselves are immutable.
+    const char *queue_env = std::getenv("NNTR_HTP_DSPQ_CONV");
+    const bool via_dspq = M == 1 && !uncached &&
+                          (!queue_env || std::atoi(queue_env) != 0) &&
+                          (applied_moe_flags_ & HTP_CONV_FLAG_M1_HVX) &&
+                          htp_dspq_conv_shape_valid(&req) &&
+                          dspqReady(session, queue_in, queue_out, sizeof(req));
+    htp_dspq_conv_cached_req cached_req = {req, 0u, 0u};
+    DspqMoe::ConvInputCache *cached = nullptr;
+    const char *cache_env = std::getenv("NNTR_HTP_CONV_INPUT_CACHE");
+    if (via_dspq && cache_env && std::atoi(cache_env) != 0) {
+      auto &entries = dspq_->conv_inputs;
+      auto it = entries.find(state);
+      if (it == entries.end() && entries.size() < HTP_DSPQ_CONV_CACHE_SLOTS) {
+        const uint32_t slot = static_cast<uint32_t>(entries.size());
+        it = entries.emplace(state, DspqMoe::ConvInputCache{}).first;
+        it->second.slot = slot;
+      }
+      if (it != entries.end()) {
+        cached = &it->second;
+        if (!cached->valid ||
+            !htp_dspq_conv_binding_equal(&cached->binding, &req)) {
+          cached->valid = false;
+          cached->gamma.clear();
+        }
+        cached_req.conv.op = HTP_DSPQ_OP_CONV_CACHED;
+        cached_req.slot = cached->slot;
+        const auto differs = [&](const std::vector<float> &snapshot,
+                                 const float *data, size_t count) {
+          return !cached->valid || snapshot.size() != count ||
+                 std::memcmp(snapshot.data(), data, count * sizeof(float)) != 0;
+        };
+        if (differs(cached->conv, conv_w, conv_len))
+          cached_req.updates |= HTP_DSPQ_CONV_UPDATE_W;
+        if (pending &&
+            differs(cached->gamma,
+                    pending->inputs.data() + input_bytes / 4u - K, K))
+          cached_req.updates |= HTP_DSPQ_CONV_UPDATE_GAMMA;
+        if (differs(cached->state, state, state_len))
+          cached_req.updates |= HTP_DSPQ_CONV_UPDATE_STATE;
+        queue_in = htp_dspq_conv_cached_input_bytes(&cached_req);
+      }
+    }
+    HtpRpcBuffer &act_stage =
+      via_dspq
+        ? *dspq_->act
+        : stage(uncached ? conv_act_pool_ : act_pool_, input_bytes, flags);
+    HtpRpcBuffer &out_stage =
+      via_dspq
+        ? *dspq_->out
+        : stage(uncached ? conv_out_pool_ : out_pool_,
+                (static_cast<size_t>(out_len) + (pending ? 2u * K : 0u)) *
+                  sizeof(float),
+                flags);
+    const bool shared_io = M > 1 && sharedPrefillIo(4u) && !uncached;
+    const bool direct_in = shared_io && !pending &&
+                           HtpBackend::global().isSharedRange(act, input_bytes);
+    const bool direct_out =
+      shared_io && !pending &&
+      HtpBackend::global().isSharedRange(out, static_cast<size_t>(out_len) *
+                                                sizeof(float));
+    if (direct_in || direct_out) {
+      ++shared_io_calls_[2];
+      shared_io_bytes_[2] +=
+        (direct_in ? input_bytes : 0u) +
+        (direct_out ? static_cast<size_t>(out_len) * sizeof(float) : 0u);
+    }
+    float *act_f32 = direct_in ? const_cast<float *>(act)
+                               : reinterpret_cast<float *>(act_stage.data());
+    float *out_f32 =
+      direct_out ? out : reinterpret_cast<float *>(out_stage.data());
+    float *conv_f32 = nullptr, *state_in = nullptr, *state_f32;
+    if (via_dspq) {
+      req.seq = ++dspq_->seq;
+      cached_req.conv.seq = req.seq;
+      dspq_->retained_norm = nullptr;
+      conv_f32 = act_f32 + input_bytes / sizeof(float);
+      state_in = conv_f32 + conv_len;
+      state_f32 = out_f32 + out_len + (pending ? 2u * K : 0u);
+    } else {
+      if (!conv_buf_ || conv_buf_->size() < small_bytes)
+        conv_buf_ = std::make_unique<HtpRpcBuffer>(small_bytes, flags);
+      conv_f32 = reinterpret_cast<float *>(conv_buf_->data());
+      state_in = state_f32 = conv_f32 + conv_len;
+    }
+    const uint64_t copy_start = trace ? HtpProfile::nowUs() : 0;
+    if (cached) {
+      const size_t dynamic_len = (req.norm_kind == 2u ? 2u : 1u) * K;
+      stagedMemcpy(act_f32, pending ? pending->inputs.data() : act,
+                   dynamic_len * sizeof(float));
+      float *dst = act_f32 + dynamic_len;
+      if (cached_req.updates & HTP_DSPQ_CONV_UPDATE_W) {
+        std::memcpy(dst, conv_w, conv_len * sizeof(float));
+        dst += conv_len;
+      }
+      if (cached_req.updates & HTP_DSPQ_CONV_UPDATE_GAMMA) {
+        std::memcpy(dst, pending->inputs.data() + dynamic_len,
+                    K * sizeof(float));
+        dst += K;
+      }
+      if (cached_req.updates & HTP_DSPQ_CONV_UPDATE_STATE)
+        std::memcpy(dst, state, state_len * sizeof(float));
+    } else {
+      if (!direct_in)
+        stagedMemcpy(act_f32, pending ? pending->inputs.data() : act,
+                     input_bytes);
+      std::memcpy(conv_f32, conv_w,
+                  static_cast<size_t>(conv_len) * sizeof(float));
+      std::memcpy(state_in, state,
+                  static_cast<size_t>(state_len) * sizeof(float));
+    }
+
+    const uint64_t input_us = trace ? HtpProfile::nowUs() - copy_start : 0;
+    uint32_t stage_us[HTP_MOE_N_STAGES] = {0};
+    const uint64_t t0 = measure ? HtpProfile::nowUs() : 0;
     const int err =
-      timed ? nntr_hvx_mm_u8i4_conv_block_timed(
-                session, M, K, C, N_out, ch.h_in.data(),
-                static_cast<int>(ch.h_in.size()), ch.h_out, conv_f32, conv_len,
-                act_f32, act_len, out_f32, out_len, state_f32, state_len,
-                stage_us, HTP_MOE_N_STAGES)
-            : nntr_hvx_mm_u8i4_conv_block(
-                session, M, K, C, N_out, ch.h_in.data(),
-                static_cast<int>(ch.h_in.size()), ch.h_out, conv_f32, conv_len,
-                act_f32, act_len, out_f32, out_len, state_f32, state_len);
-    const uint64_t elapsed = profile.level() ? HtpProfile::nowUs() - t0 : 0;
+      cached ? dspqExchange(&cached_req, sizeof(cached_req), req.seq, queue_in,
+                            queue_out, timed ? stage_us : nullptr)
+      : via_dspq ? dspqExchange(&req, sizeof(req), req.seq, queue_in, queue_out,
+                                timed ? stage_us : nullptr)
+      : pending
+        ? nntr_hvx_mm_u8i4_conv_block_norm(
+            session, K, C, N_out, ch.h_in.data(),
+            static_cast<int>(ch.h_in.size()), ch.h_out, conv_f32, conv_len,
+            pending->add, pending->eps, act_f32, pending->inputs.size(),
+            out_f32 + out_len, 2u * K, out_f32, out_len, state_f32, state_len,
+            timed ? stage_us : nullptr, timed ? HTP_MOE_N_STAGES : 0)
+      : timed
+        ? nntr_hvx_mm_u8i4_conv_block_timed(
+            session, M, K, C, N_out, ch.h_in.data(),
+            static_cast<int>(ch.h_in.size()), ch.h_out, conv_f32, conv_len,
+            act_f32, act_len, out_f32, out_len, state_f32, state_len, stage_us,
+            HTP_MOE_N_STAGES)
+        : nntr_hvx_mm_u8i4_conv_block(
+            session, M, K, C, N_out, ch.h_in.data(),
+            static_cast<int>(ch.h_in.size()), ch.h_out, conv_f32, conv_len,
+            act_f32, act_len, out_f32, out_len, state_f32, state_len);
+    const uint64_t elapsed = measure ? HtpProfile::nowUs() - t0 : 0;
     if (err != AEE_SUCCESS) {
+      if (cached)
+        cached->valid = false;
       std::string hint;
       if (static_cast<unsigned>(err) == 0x8000040Eu) {
         hint = " (AEE_EBADPARM -- if the shapes are right, the DSP skel on "
@@ -5037,16 +7261,57 @@ private:
         " K=" + std::to_string(K) + " C=" + std::to_string(C) +
         " N=" + std::to_string(N_out) + hint);
     }
-    stagedMemcpy(out, out_f32, static_cast<size_t>(out_len) * sizeof(float));
+    const uint64_t output_start = trace ? HtpProfile::nowUs() : 0;
+    if (cached) {
+      if (cached_req.updates & HTP_DSPQ_CONV_UPDATE_W)
+        cached->conv.assign(conv_w, conv_w + conv_len);
+      if (cached_req.updates & HTP_DSPQ_CONV_UPDATE_GAMMA)
+        cached->gamma.assign(pending->inputs.end() - K, pending->inputs.end());
+      cached->state.assign(state_f32, state_f32 + state_len);
+      cached->binding = req;
+      cached->valid = true;
+      ++dspq_->conv_cached_calls;
+      dspq_->conv_saved_bytes += full_queue_in - queue_in;
+      dspq_->conv_w_updates += !!(cached_req.updates & HTP_DSPQ_CONV_UPDATE_W);
+      dspq_->conv_gamma_updates +=
+        !!(cached_req.updates & HTP_DSPQ_CONV_UPDATE_GAMMA);
+      dspq_->conv_state_updates +=
+        !!(cached_req.updates & HTP_DSPQ_CONV_UPDATE_STATE);
+    }
+    if (pending)
+      publishNorm(out_f32 + out_len);
+    if (!direct_out)
+      stagedMemcpy(out, out_f32, static_cast<size_t>(out_len) * sizeof(float));
     std::memcpy(state, state_f32,
                 static_cast<size_t>(state_len) * sizeof(float));
+    if (trace) {
+      std::fprintf(stderr,
+                   "[HTP-CONV] M=%u K=%u C=%u N=%u uncached=%d ion=%d "
+                   "input_us=%llu rpc_us=%llu dsp_us=%u output_us=%llu via=%s "
+                   "cache=%d updates=%u in_bytes=%zu out_bytes=%zu\n",
+                   M, K, C, N_out, uncached,
+                   act_stage.isIon() && out_stage.isIon() &&
+                     (via_dspq || conv_buf_->isIon()),
+                   (unsigned long long)input_us, (unsigned long long)elapsed,
+                   timed ? stage_us[0] : 0,
+                   (unsigned long long)(HtpProfile::nowUs() - output_start),
+                   via_dspq ? "dspq" : "fastrpc", cached != nullptr,
+                   cached ? cached_req.updates : 0u,
+                   via_dspq ? queue_in : input_bytes + small_bytes,
+                   via_dspq ? queue_out
+                            : (out_len + (pending ? 2u * K : 0u) + state_len) *
+                                sizeof(float));
+    }
     if (profile.level()) {
       // [#88] Outside ION: the primitive block and the three handles;
       // conv_w and the state ride in conv_buf_ (ION).
-      const size_t in_arg_bytes = 48 + sizeof(uint32_t) * ch.h_in.size();
-      profile.addInvokeMoeLayer(M, K, N_out, elapsed,
-                                timed ? stage_us : nullptr, act_stage,
-                                out_stage, in_arg_bytes, /*kind=*/2);
+      const size_t in_arg_bytes =
+        cached     ? sizeof(cached_req)
+        : via_dspq ? sizeof(req)
+                   : (timed ? 52 : 48) + sizeof(uint32_t) * ch.h_in.size();
+      profile.addInvokeMoeLayer(
+        M, K, N_out, elapsed, timed ? stage_us : nullptr, act_stage, out_stage,
+        in_arg_bytes, /*kind=*/2, via_dspq, direct_in || direct_out);
     }
   }
 
@@ -5217,17 +7482,38 @@ private:
     std::vector<unsigned int> cols; /**< N of each handle */
   };
 
+  /** Direct FC output must not overwrite a later row chunk's input. */
+  static bool fcDisjointIo(const float *input, const float *output, unsigned M,
+                           unsigned N, unsigned K) {
+    const size_t max_floats =
+      std::numeric_limits<size_t>::max() / sizeof(float);
+    if (!input || !output || !M || !N || !K || M > max_floats / K ||
+        M > max_floats / N)
+      return false;
+    const size_t input_bytes = static_cast<size_t>(M) * K * sizeof(float);
+    const size_t output_bytes = static_cast<size_t>(M) * N * sizeof(float);
+    const uintptr_t a = reinterpret_cast<uintptr_t>(input);
+    const uintptr_t b = reinterpret_cast<uintptr_t>(output);
+    const uintptr_t limit = std::numeric_limits<uintptr_t>::max();
+    if (a > limit - input_bytes || b > limit - output_bytes)
+      return false;
+    return a <= b ? b - a >= input_bytes : a - b >= output_bytes;
+  }
+
   /** @brief One FC weight's layer calls, in fcMaxRows row chunks. */
   void invokeFc(remote_handle64 session, const FcHandles &fh, float *matBdata,
-                float *matCdata, unsigned int M, unsigned int N,
-                unsigned int K) {
+                float *matCdata, unsigned int M, unsigned int N, unsigned int K,
+                bool retain_moe_input = false) {
+    const bool allow_strided_output =
+      M > 1 && sharedPrefillIo(2u) && fcDisjointIo(matBdata, matCdata, M, N, K);
     const unsigned int step = fcMaxRows(K);
     for (unsigned int m0 = 0; m0 < M; m0 += step) {
       const unsigned int m = std::min(step, M - m0);
-      invokeLayer(session, fh.handles.data(),
-                  static_cast<int>(fh.handles.size()),
-                  matBdata + static_cast<size_t>(m0) * K,
-                  matCdata + static_cast<size_t>(m0) * N, m, N, K, &fh.cols);
+      invokeLayer(
+        session, fh.handles.data(), static_cast<int>(fh.handles.size()),
+        matBdata + static_cast<size_t>(m0) * K,
+        matCdata + static_cast<size_t>(m0) * N, m, N, K, &fh.cols, nullptr,
+        nullptr, nullptr, retain_moe_input && M <= step, allow_strided_output);
     }
   }
 
@@ -5243,17 +7529,12 @@ private:
    * prompt past it needs the kernel to walk 64-row blocks the way
    * hexkl_mm_u8i4_moe.c does. */
   static unsigned int fcSliceCols(unsigned int K) {
-    constexpr unsigned int kSliceBytes = 2u << 20;
-    const unsigned int k_tiles = K / 32u;
-    const unsigned int n_tiles =
-      k_tiles == 0 ? 0 : (kSliceBytes / 512u) / k_tiles;
-    const unsigned int cols = n_tiles < 1u ? 32u : n_tiles * 32u;
     // A slice holds whole heads, so a per-head norm folded into the call
     // (mm_u8i4_layer_norm's post chunks) never straddles two handles: 512
     // columns is the widest head dim here and divides every smaller one.
     // ponytail: a head dim that does not divide 512 needs its own
     // alignment passed down, not this constant.
-    return cols >= 512u ? (cols / 512u) * 512u : cols;
+    return preparedFcSliceCols(K);
   }
 
   /** @brief get_or_register for an FC weight of any width: one handle when
@@ -5266,7 +7547,8 @@ private:
    *         Q4_0x4 bytes. */
   const FcHandles &get_or_register_fc(void *matAdata, remote_handle64 session,
                                       uint32_t K, uint32_t N,
-                                      const float *qs4cx_scale = nullptr) {
+                                      const float *qs4cx_scale = nullptr,
+                                      bool weights_wh = false) {
     std::lock_guard<std::mutex> lock(handle_mutex_);
     auto it = fc_cache_.find(matAdata);
     if (it != fc_cache_.end())
@@ -5274,7 +7556,7 @@ private:
 
     FcHandles fh;
     const unsigned int cap = fcSliceCols(K);
-    if (N <= cap) {
+    if (N <= cap && !weights_wh) {
       fh.handles.push_back(
         qs4cx_scale
           ? get_or_register_qs4cx_unlocked(matAdata, qs4cx_scale, session, K, N)
@@ -5287,7 +7569,15 @@ private:
       // The first slice's profile entry carries the conversion, so its
       // clock starts before it; the later slices' start with their copy.
       uint64_t t_begin = HtpProfile::nowUs();
-      if (qs4cx_scale)
+      if (weights_wh) {
+        // Preserve the quantized values while slicing wide FC weights to
+        // fit VTCM. WH column sums follow the scales in the model file.
+        whUnpack(static_cast<const uint8_t *>(matAdata), K, N, full.data());
+        for (uint32_t n = 0; n < N; ++n) {
+          w_scale[n] = qs4cx_scale[n];
+          colsum_w[n] = static_cast<int32_t>(qs4cx_scale[N + n]);
+        }
+      } else if (qs4cx_scale)
         htp_qs4cx_from_packed(matAdata, qs4cx_scale, K, N, full.data(),
                               w_scale.data(), colsum_w.data());
       else
@@ -5387,10 +7677,12 @@ private:
    *  takes a row slice, so its column sums are recomputed over those rows
    *  -- the kernel's zero-point correction is per chunk. Cached by the up
    *  weight's pointer. */
-  const DenseHandles &get_or_register_dense(
-    void *up, void *gate, void *down, remote_handle64 session, uint32_t K,
-    uint32_t I, uint32_t N, const float *up_s = nullptr,
-    const float *gate_s = nullptr, const float *down_s = nullptr) {
+  const DenseHandles &get_or_register_dense(void *up, void *gate, void *down,
+                                            remote_handle64 session, uint32_t K,
+                                            uint32_t I, uint32_t N,
+                                            const float *up_s = nullptr,
+                                            const float *gate_s = nullptr,
+                                            const float *down_s = nullptr) {
     std::lock_guard<std::mutex> lock(handle_mutex_);
     auto it = dense_cache_.find(up);
     if (it != dense_cache_.end())
@@ -5511,15 +7803,20 @@ private:
    *  C, 2C), not a change to the kernel. Cached by in_proj's pointer. */
   const ConvHandles &get_or_register_conv(void *in_proj, void *out_proj,
                                           remote_handle64 session, uint32_t K,
-                                          uint32_t C, uint32_t N) {
+                                          uint32_t C, uint32_t N,
+                                          const float *in_scale = nullptr,
+                                          const float *out_scale = nullptr,
+                                          bool weights_wh = false) {
     {
       std::lock_guard<std::mutex> lock(handle_mutex_);
       auto it = conv_cache_.find(in_proj);
       if (it != conv_cache_.end())
         return it->second;
     }
-    const FcHandles &in = get_or_register_fc(in_proj, session, K, 3 * C);
-    const FcHandles &out = get_or_register_fc(out_proj, session, C, N);
+    const FcHandles &in =
+      get_or_register_fc(in_proj, session, K, 3 * C, in_scale, weights_wh);
+    const FcHandles &out =
+      get_or_register_fc(out_proj, session, C, N, out_scale, weights_wh);
     if (in.handles.size() != 3 || in.cols[0] != C || in.cols[1] != C ||
         in.cols[2] != C || out.handles.size() != 1) {
       throw std::invalid_argument(
@@ -5530,9 +7827,54 @@ private:
         std::to_string(C) + " the conv block kernel takes");
     }
     std::lock_guard<std::mutex> lock(handle_mutex_);
+    // Optional extra WH image, prepared once during model registration.
+    // Keep the original image for HMX prefill and any shared FC handle.
+    auto existing = conv_cache_.find(in_proj);
+    if (existing != conv_cache_.end())
+      return existing->second;
     ConvHandles ch;
     ch.h_in = in.handles;
     ch.h_out = out.handles[0];
+    const char *prepack = std::getenv("NNTR_HTP_CONV_PREPACK");
+    if (prepack && std::atoi(prepack) != 0) {
+      sendMoeOptsOnce(session);
+      if (applied_moe_flags_ & HTP_CONV_FLAG_M1_HVX) {
+        const uint64_t start = HtpProfile::nowUs();
+        const uint32_t input_tiles = htp_conv_chunk_tiles(applied_moe_flags_);
+        const uint32_t output_tiles =
+          htp_conv_out_chunk_tiles(applied_moe_flags_);
+        const uint64_t bytes = 3u * whBytes(K, C) + whBytes(C, N);
+        uint32_t chunk = 0, off = 0;
+        if (bytes > UINT32_MAX || !ensureArena(session) ||
+            !placeConvDecode(session, static_cast<uint32_t>(bytes), &chunk,
+                             &off))
+          throw std::runtime_error(
+            "HTP Conv decode prepack arena allocation failed");
+        // VTCM and the DMA ring belong to the same session as inference.
+        std::lock_guard<std::mutex> invoke_lock(invoke_mutex_);
+        uint32_t prepared = 0;
+        for (uint32_t i = 0; i < 4u; ++i) {
+          const uint32_t h = i == 3u ? ch.h_out : ch.h_in[i];
+          const int err = nntr_hvx_weight_prepare_conv_decode(
+            session, h, arena_chunks_[chunk].dsp_id, off,
+            i == 3u ? output_tiles : input_tiles);
+          if (err != AEE_SUCCESS) {
+            for (uint32_t j = 0; j < prepared; ++j)
+              nntr_hvx_weight_prepare_conv_decode(session, ch.h_in[j], 0, 0, 0);
+            throw std::runtime_error("HTP Conv decode prepack failed: err=" +
+                                     std::to_string(err));
+          }
+          ++prepared;
+          off += static_cast<uint32_t>(i == 3u ? whBytes(C, N) : whBytes(K, C));
+        }
+        std::fprintf(
+          stderr,
+          "[HTP] conv decode prepack: bytes=%llu in_tiles=%u "
+          "out_tiles=%u prepare_us=%llu\n",
+          static_cast<unsigned long long>(bytes), input_tiles, output_tiles,
+          static_cast<unsigned long long>(HtpProfile::nowUs() - start));
+      }
+    }
     return conv_cache_.emplace(in_proj, std::move(ch)).first->second;
   }
 
@@ -5542,11 +7884,16 @@ private:
                                  void *out_proj, const float *act, float *out,
                                  float *state, unsigned int M, unsigned int K,
                                  unsigned int C, unsigned int N) override {
-    const remote_handle64 session =
-      static_cast<remote_handle64>(HtpBackend::global().handle());
-    const ConvHandles &ch =
-      get_or_register_conv(in_proj, out_proj, session, K, C, N);
-    invokeConvBlock(session, ch, conv_w, act, out, state, M, K, C, N);
+    try {
+      const remote_handle64 session =
+        static_cast<remote_handle64>(HtpBackend::global().handle());
+      const ConvHandles &ch =
+        get_or_register_conv(in_proj, out_proj, session, K, C, N);
+      invokeConvBlock(session, ch, conv_w, act, out, state, M, K, C, N);
+    } catch (...) {
+      discard_deferred_norm();
+      throw;
+    }
   }
 
   bool register_q4_0_conv_block(void *in_proj, void *out_proj, unsigned int K,
@@ -5557,7 +7904,41 @@ private:
     return true;
   }
 
-  /* Declared here rather than beside arena_chunks_ at the bottom of the
+  bool supports_gemm_qs4cx_conv_block_fp32(bool weights_wh) const override {
+    (void)weights_wh;
+    return true;
+  }
+
+  void gemm_qs4cx_conv_block_fp32(void *in_proj, const float *conv_w,
+                                  void *out_proj, const float *act, float *out,
+                                  float *state, unsigned int M, unsigned int K,
+                                  unsigned int C, unsigned int N,
+                                  const float *in_scale, const float *out_scale,
+                                  bool weights_wh) override {
+    try {
+      const remote_handle64 session =
+        static_cast<remote_handle64>(HtpBackend::global().handle());
+      const ConvHandles &ch = get_or_register_conv(
+        in_proj, out_proj, session, K, C, N, in_scale, out_scale, weights_wh);
+      invokeConvBlock(session, ch, conv_w, act, out, state, M, K, C, N);
+    } catch (...) {
+      discard_deferred_norm();
+      throw;
+    }
+  }
+
+  bool register_qs4cx_conv_block(void *in_proj, void *out_proj, unsigned int K,
+                                 unsigned int C, unsigned int N,
+                                 const float *in_scale, const float *out_scale,
+                                 bool weights_wh) override {
+    const remote_handle64 session =
+      static_cast<remote_handle64>(HtpBackend::global().handle());
+    get_or_register_conv(in_proj, out_proj, session, K, C, N, in_scale,
+                         out_scale, weights_wh);
+    return true;
+  }
+
+  /** Declared here rather than beside arena_chunks_ at the bottom of the
      class: registerFromArena takes an ArenaEntry by reference, and a
      parameter type has to be complete where the function is declared, unlike
      a member a function BODY refers to. Only an HTP build compiles this
@@ -5603,6 +7984,12 @@ private:
   /** @brief pread that finishes: 0, or the errno, or -1 at end of file.
    *  Does not throw, so a worker thread can call it. */
   static int preadAll(int fd, void *dst, size_t len, uint64_t off) {
+#if defined(__linux__) || defined(__ANDROID__)
+    if (weightDirectIO()) {
+      static WeightDirectFiles direct_files;
+      return direct_files.read(fd, dst, len, off);
+    }
+#endif
     uint8_t *p = static_cast<uint8_t *>(dst);
     while (len != 0) {
       const ssize_t n = ::pread(fd, p, len, static_cast<off_t>(off));
@@ -5643,13 +8030,22 @@ private:
     uint8_t *base;
     ArenaEntry gu, dn;
     int rc; /**< preadAll's result for the whole expert */
+    std::shared_ptr<HostExpertBank::Lease> host;
   };
 
   /** @note Call with handle_mutex_ held. */
   StagedExpert stageExpert(remote_handle64 session, const ExpertFileDesc &d) {
+    auto host = hostExpertLease(d);
+    if (host && free_expert_slots_.empty())
+      throw std::logic_error("host expert promotion requires a freed slot");
     const ExpertSlot slot = takeExpertSlot(session, d);
-    return StagedExpert{
-      d, slot, arena_chunks_[slot.chunk].buf->data() + slot.off, {}, {}, 0};
+    return StagedExpert{d,
+                        slot,
+                        arena_chunks_[slot.chunk].buf->data() + slot.off,
+                        {},
+                        {},
+                        0,
+                        std::move(host)};
   }
 
   /** @brief A free slot, or a new one bumped into a chunk (the load, and
@@ -5666,14 +8062,18 @@ private:
         "QS4CX_WH weights need the DSP arena, which this device did not "
         "provide (no rpcmem_to_fd or no fastrpc_mmap).");
     }
-    const uint32_t slot_bytes =
-      expertStride(d.K, 2 * d.inter) + expertStride(d.inter, d.N_out);
+    const uint32_t slot_bytes = expertStride(d.K, 2 * d.inter, d.weight_bits) +
+                                expertStride(d.inter, d.N_out, d.weight_bits);
     if (expert_slot_bytes_ == 0) {
       expert_slot_bytes_ = slot_bytes;
+      expert_slot_shape_ = {d.K, d.inter, d.N_out, d.weight_bits};
     } else if (expert_slot_bytes_ != slot_bytes) {
       throw std::runtime_error("register_qs4cx_wh_expert_file: expert shape "
                                "differs from the pool's");
     }
+    expert_shapes_uniform_ &=
+      expert_slot_shape_ ==
+      std::array<unsigned, 4>{d.K, d.inter, d.N_out, d.weight_bits};
     ExpertSlot slot;
     // A new chunk is sized to the slots still to come when the caller said
     // how many there will be (reserve_qs4cx_wh_expert_slots), else a full
@@ -5704,25 +8104,73 @@ private:
    *  f32 scales and N i32 column sums (doc 52 section 10.30: the DSP takes
    *  them from here, so a swap carries offsets and nothing else), rounded
    *  to a page. +44 KB on a 5.25 MB expert. */
-  static uint32_t expertStride(uint32_t K, uint32_t N) {
-    return (static_cast<uint32_t>(whBytes(K, N)) + 8u * N + 4095u) & ~4095u;
+  static bool compactExperts() {
+    static const bool enabled = [] {
+      const char *v = std::getenv("NNTR_HTP_QS2_VTCM");
+      return !v || std::strcmp(v, "0") != 0;
+    }();
+    return enabled;
+  }
+
+  static const char *preparedQs2Dir() {
+    const char *dir = std::getenv("NNTR_HTP_QS2_PREPARED_DIR");
+    return dir && *dir ? dir : nullptr;
+  }
+
+  static uint32_t expertStride(uint32_t K, uint32_t N, unsigned bits) {
+    const bool compact = bits == 2 && compactExperts();
+    if (compact && preparedQs2Dir() && N % 128u)
+      throw std::invalid_argument("offline QS2: N must be divisible by 128");
+    return (static_cast<uint32_t>(whBytes(K, N)) / (compact ? 2u : 1u) +
+            8u * N + (compact ? 4u : 0u) + 4095u) &
+           ~4095u;
   }
 
   /** @brief Reads both weights of @a st into its slot. No lock and no
    *  throw -- the slot is this expert's alone until registerStaged -- so a
    *  background thread can run it. @return 0, errno, or -1 at EOF. */
-  int readExpert(StagedExpert &st, bool use_pool) {
+  int readExpert(StagedExpert &st, bool use_pool, bool demand = false) {
+    struct ReleaseHost {
+      StagedExpert &st;
+      ~ReleaseHost() { st.host.reset(); }
+    } release_host{st};
+    const int rc = readExpertPart(st, false, use_pool, demand);
+    return rc ? rc : readExpertPart(st, true, use_pool, demand);
+  }
+
+  /** Each half has separate metadata and a disjoint destination. No registry
+   *  or arena-container access occurs on the reader threads. */
+  int readExpertPart(StagedExpert &st, bool down, bool use_pool,
+                     bool demand = false) {
     const ExpertFileDesc &d = st.d;
-    uint8_t *base = st.base;
-    const uint32_t gu_stride = expertStride(d.K, 2 * d.inter);
-    st.gu.chunk = st.dn.chunk = st.slot.chunk;
-    st.gu.off = st.slot.off;
-    st.dn.off = st.slot.off + gu_stride;
-    const int rc =
-      readWeight(d.fd, d.off_gu, d.K, 2 * d.inter, base, st.gu, use_pool);
-    return rc != 0 ? rc
-                   : readWeight(d.fd, d.off_dn, d.inter, d.N_out,
-                                base + gu_stride, st.dn, use_pool);
+    const uint32_t offset =
+      down ? expertStride(d.K, 2 * d.inter, d.weight_bits) : 0u;
+    ArenaEntry &entry = down ? st.dn : st.gu;
+    entry.chunk = st.slot.chunk;
+    entry.off = st.slot.off + offset;
+    if (st.host) {
+      const auto &record = st.host->record();
+      // The bank contains only initialized compact bytes. Leave page padding
+      // untouched, exactly like the existing validated direct read path.
+      const size_t bytes = down ? record.dn_bytes : record.gu_bytes;
+      const bool profile = hostExpertProfile();
+      const uint64_t begin = profile ? HtpProfile::nowUs() : 0;
+      const int rc = st.host->copyPart(down, st.base + offset, bytes);
+      if (profile) {
+        host_expert_copy_us_.fetch_add(HtpProfile::nowUs() - begin,
+                                       std::memory_order_relaxed);
+        if (!rc)
+          host_expert_copy_bytes_.fetch_add(bytes, std::memory_order_relaxed);
+      }
+      if (rc)
+        return rc;
+      entry.K = down ? d.inter : d.K;
+      entry.N = down ? d.N_out : 2u * d.inter;
+      return 0;
+    }
+    return readWeight(d.fd, down ? d.off_dn : d.off_gu, down ? d.inter : d.K,
+                      down ? d.N_out : 2u * d.inter, st.base + offset, entry,
+                      use_pool, d.weight_bits, demand);
   }
 
   /** @brief Registers a read expert and files it. On any failure the slot
@@ -5738,19 +8186,33 @@ private:
       // retired from this slot, if any (release_qs4cx_wh_expert). On error
       // the DSP has changed nothing, so the slot goes back to the free list
       // still holding its retired pair.
-      err = nntr_hvx_weight_swap_u8i4_arena(
-        session, st.slot.h_gu, st.slot.h_dn, d.K, d.inter, d.N_out,
-        arena_chunks_[st.slot.chunk].dsp_id, st.gu.off, st.dn.off,
-        st.gu.w_scale.data(), static_cast<int>(st.gu.w_scale.size()),
-        st.gu.colsum_w.data(), static_cast<int>(st.gu.colsum_w.size()),
-        st.dn.w_scale.data(), static_cast<int>(st.dn.w_scale.size()),
-        st.dn.colsum_w.data(), static_cast<int>(st.dn.colsum_w.size()), &h_gu,
-        &h_dn);
+      err = d.weight_bits == 2 && compactExperts()
+              ? (preparedQs2Dir() ? nntr_hvx_weight_swap_u2lut_single_arena
+                                  : nntr_hvx_weight_swap_u2i4_arena)(
+                  session, st.slot.h_gu, st.slot.h_dn, d.K, d.inter, d.N_out,
+                  arena_chunks_[st.slot.chunk].dsp_id, st.gu.off, st.dn.off,
+                  &h_gu, &h_dn)
+              : nntr_hvx_weight_swap_u8i4_arena(
+                  session, st.slot.h_gu, st.slot.h_dn, d.K, d.inter, d.N_out,
+                  arena_chunks_[st.slot.chunk].dsp_id, st.gu.off, st.dn.off,
+                  st.gu.w_scale.data(), static_cast<int>(st.gu.w_scale.size()),
+                  st.gu.colsum_w.data(),
+                  static_cast<int>(st.gu.colsum_w.size()), st.dn.w_scale.data(),
+                  static_cast<int>(st.dn.w_scale.size()), st.dn.colsum_w.data(),
+                  static_cast<int>(st.dn.colsum_w.size()), &h_gu, &h_dn);
       if (err != AEE_SUCCESS) {
+        uint32_t session_info[7] = {};
+        nntr_hvx_session_info(session, session_info, 7);
+        std::fprintf(stderr,
+                     "[HTP] expert swap session hmx=%u vtcm=%u path=%u\n",
+                     session_info[0], session_info[1], session_info[5]);
         char code[16];
         std::snprintf(code, sizeof(code), "0x%08x", static_cast<unsigned>(err));
         throw std::runtime_error(
-          std::string("nntr_hvx_weight_swap_u8i4_arena failed: err=") + code +
+          std::string("HTP expert swap failed: K=") + std::to_string(d.K) +
+          " inter=" + std::to_string(d.inter) + " N=" +
+          std::to_string(d.N_out) + " bits=" + std::to_string(d.weight_bits) +
+          " compact=" + std::to_string(compactExperts()) + " err=" + code +
           " (a skel older than test/htp/nntr_hvx.idl answers this call with "
           "an error: rebuild and push libnntr_hvx_skel.so)");
       }
@@ -5781,7 +8243,38 @@ private:
    * @note Call with handle_mutex_ held.
    */
   void registerStagedBatch(remote_handle64 session,
-                           std::vector<StagedExpert> &sts) {
+                           std::vector<StagedExpert> &sts,
+                           bool allow_defer = false) {
+    if (expert_updates_failed_)
+      throw std::runtime_error("expert update failed; restart the session");
+    // Only compact, equal-shape slots with already allocated handles can be
+    // published early. Their bytes are complete and exclusively owned here;
+    // the next MoE dispatch commits their DSP metadata before using them.
+    const bool defer =
+      allow_defer && decode_expert_updates_ && expertUpdateMode() &&
+      expert_shapes_uniform_ && compactExperts() && !preparedQs2Dir() &&
+      !(forwardSwitch() && !graph_words_.empty()) && !sts.empty() &&
+      pending_expert_updates_.size() + sts.size() <=
+        HTP_DSPQ_MAX_EXPERT_UPDATES &&
+      std::all_of(sts.begin(), sts.end(), [&](const StagedExpert &st) {
+        const auto &d = sts.front().d;
+        return st.rc == 0 && st.d.weight_bits == 2 &&
+               st.slot.h_gu != kNoHandle && st.slot.h_dn != kNoHandle &&
+               st.d.K == d.K && st.d.inter == d.inter &&
+               st.d.N_out == d.N_out &&
+               expertUpdatesMatch(d.K, d.inter, d.N_out);
+      });
+    if (defer) {
+      pending_expert_updates_.reserve(HTP_DSPQ_MAX_EXPERT_UPDATES);
+      for (auto &st : sts) {
+        pending_expert_updates_.push_back(st);
+        fileRegistered(st, st.slot.h_gu, st.slot.h_dn);
+        ++expert_updates_queued_;
+      }
+      return;
+    }
+    if (allow_defer)
+      flushExpertUpdates(session);
     std::exception_ptr first;
     std::vector<StagedExpert *> ok;
     for (StagedExpert &st : sts) {
@@ -5820,12 +8313,21 @@ private:
       const int ni = static_cast<int>(n);
       uint32_t done = 0;
       int32_t err = AEE_SUCCESS;
-      const int rc = nntr_hvx_weight_swap_batch_u8i4_arena(
-        session, d0.K, d0.inter, d0.N_out, og.data(), ni, od.data(), ni,
-        ar.data(), ni, ofg.data(), ni, ofd.data(), ni, gs.data(),
-        static_cast<int>(gs.size()), gc.data(), static_cast<int>(gc.size()),
-        ds.data(), static_cast<int>(ds.size()), dc.data(),
-        static_cast<int>(dc.size()), hg.data(), ni, hd.data(), ni, &done, &err);
+      const int rc =
+        d0.weight_bits == 2 && compactExperts()
+          ? (preparedQs2Dir() ? nntr_hvx_weight_swap_batch_u2lut_single_arena
+                              : nntr_hvx_weight_swap_batch_u2i4_arena)(
+              session, d0.K, d0.inter, d0.N_out, og.data(), ni, od.data(), ni,
+              ar.data(), ni, ofg.data(), ni, ofd.data(), ni, hg.data(), ni,
+              hd.data(), ni, &done, &err)
+          : nntr_hvx_weight_swap_batch_u8i4_arena(
+              session, d0.K, d0.inter, d0.N_out, og.data(), ni, od.data(), ni,
+              ar.data(), ni, ofg.data(), ni, ofd.data(), ni, gs.data(),
+              static_cast<int>(gs.size()), gc.data(),
+              static_cast<int>(gc.size()), ds.data(),
+              static_cast<int>(ds.size()), dc.data(),
+              static_cast<int>(dc.size()), hg.data(), ni, hd.data(), ni, &done,
+              &err);
       if (rc != AEE_SUCCESS) { // refused whole: the DSP changed nothing
         done = 0;
         err = rc;
@@ -5849,6 +8351,121 @@ private:
     }
     if (first)
       std::rethrow_exception(first);
+  }
+
+  /** 0: original, 1: merge at dispatch, 2: queue with MoE, 3: batch DMA too.
+   * The optimization is opt-in; arbitrary expert shapes and the first use
+   * of a physical slot continue through the synchronous registration API. */
+  static unsigned expertUpdateMode() {
+    static const unsigned mode = [] {
+      const char *v = std::getenv("NNTR_HTP_EXPERT_UPDATE_MODE");
+      return v ? static_cast<unsigned>(std::max(0, std::min(3, std::atoi(v))))
+               : 0u;
+    }();
+    return mode;
+  }
+
+  /** Caller holds handle_mutex_. */
+  bool expertUpdatesMatch(unsigned K, unsigned inter, unsigned N) const {
+    return std::all_of(pending_expert_updates_.begin(),
+                       pending_expert_updates_.end(), [&](const auto &st) {
+                         return st.d.K == K && st.d.inter == inter &&
+                                st.d.N_out == N;
+                       });
+  }
+
+  /** Caller holds handle_mutex_; ordinary RPC fallback also implements the
+   * merged-registration control variant. Stable slot handles do not change. */
+  void flushExpertUpdates(remote_handle64 session) {
+    if (pending_expert_updates_.empty())
+      return;
+    auto updates = std::move(pending_expert_updates_);
+    pending_expert_updates_.clear();
+    const auto start = HtpProfile::nowUs();
+    try {
+      registerStagedBatch(session, updates);
+    } catch (...) {
+      expert_updates_failed_ = true;
+      throw;
+    }
+    ++expert_update_rpc_batches_;
+    expert_update_rpc_us_ += HtpProfile::nowUs() - start;
+  }
+
+  std::vector<htp_dspq_expert_update>
+  expertUpdatePacket(unsigned K, unsigned inter, unsigned N) {
+    if (expertUpdateMode() < 2)
+      return {};
+    std::lock_guard<std::mutex> lock(handle_mutex_);
+    if (expert_updates_failed_ || !expertUpdatesMatch(K, inter, N))
+      throw std::logic_error("invalid pending expert update");
+    std::vector<htp_dspq_expert_update> packet;
+    packet.reserve(pending_expert_updates_.size());
+    for (const auto &st : pending_expert_updates_)
+      packet.push_back({st.slot.h_gu, st.slot.h_dn,
+                        arena_chunks_[st.slot.chunk].dsp_id, st.gu.off,
+                        st.dn.off});
+    return packet;
+  }
+
+  static bool hostExpertProfile() {
+    const char *v = std::getenv("NNTR_MOE_IO_PROFILE");
+    return v && std::atoi(v) != 0;
+  }
+
+  std::shared_ptr<HostExpertBank> hostExpertBank() {
+    std::lock_guard<std::mutex> lock(prefetch_mutex_);
+    return host_expert_bank_;
+  }
+
+  std::shared_ptr<HostExpertBank::Lease>
+  hostExpertLease(const ExpertFileDesc &d) {
+    auto bank = hostExpertBank();
+    return bank ? bank->take(d) : nullptr;
+  }
+
+  void waitHostExpertReads() {
+    auto bank = hostExpertBank();
+    if (!bank)
+      return;
+    const uint64_t begin = hostExpertProfile() ? HtpProfile::nowUs() : 0;
+    bank->waitReads();
+    if (hostExpertProfile())
+      host_expert_wait_us_ += HtpProfile::nowUs() - begin;
+  }
+
+  void readHostExpert(const std::shared_ptr<HostExpertBank> &bank) {
+    bank->readOne([&](HostExpertBank::Record &record) {
+      const uint64_t begin = HtpProfile::nowUs();
+      const auto &d = record.d;
+      const bool profile = hostExpertProfile();
+      auto read_part = [&](uint64_t off, uint32_t K, uint32_t N, uint8_t *dst,
+                           size_t bytes) {
+        HtpQs2ReadStats stats;
+        const int rc = htpReadQs2CompactInPlace(
+          [&](void *out, size_t len, uint64_t at) {
+            return preadAll(record.fd(), out, len, at);
+          },
+          off, K, N, dst, bytes, profile ? &stats : nullptr);
+        if (profile) {
+          qs2_reads_.fetch_add(1, std::memory_order_relaxed);
+          qs2_read_us_.fetch_add(stats.read_us, std::memory_order_relaxed);
+          // The owned heap record is transformed in place. The later arena
+          // copy is reported separately as promotion_copy_us/bytes.
+          qs2_metadata_us_.fetch_add(stats.metadata_us,
+                                     std::memory_order_relaxed);
+        }
+        return rc;
+      };
+      int rc = read_part(d.off_gu, d.K, 2u * d.inter, record.payload.get(),
+                         record.gu_bytes);
+      if (!rc)
+        rc = read_part(d.off_dn, d.inter, d.N_out,
+                       record.payload.get() + record.gu_bytes, record.dn_bytes);
+      if (HtpProfile::global().level())
+        HtpProfile::global().addPrefetchRead(HtpProfile::nowUs() - begin);
+      return rc;
+    });
   }
 
   /** @brief Starts the readers once, pinned to NNTR_MOE_PREFETCH_CPUS or
@@ -5875,25 +8492,50 @@ private:
   void prefetchReaderLoop() {
     for (;;) {
       std::pair<PrefetchBatch *, size_t> job;
+      std::shared_ptr<HostExpertBank> bank;
       {
         std::unique_lock<std::mutex> lock(prefetch_mutex_);
-        prefetch_cv_.wait(
-          lock, [this] { return prefetch_stop_ || !prefetch_jobs_.empty(); });
+        prefetch_cv_.wait(lock, [this] {
+          return prefetch_stop_ || !prefetch_jobs_.empty() ||
+                 (host_expert_bank_ && host_expert_bank_->hasWork());
+        });
         if (prefetch_stop_)
           return;
-        job = prefetch_jobs_.front();
-        prefetch_jobs_.pop_front();
+        if (host_expert_bank_ && host_expert_bank_->hasWork())
+          bank = host_expert_bank_;
+        else if (!prefetch_jobs_.empty()) {
+          job = prefetch_jobs_.front();
+          prefetch_jobs_.pop_front();
+        } else {
+          continue; // Another worker claimed the last host record.
+        }
       }
       prefetch_reader_cpus_.fetch_or(cpuBit());
+      if (bank) {
+        readHostExpert(bank);
+        continue;
+      }
       const uint64_t t0 = HtpProfile::nowUs();
       StagedExpert &st = job.first->experts[job.second];
-      st.rc = readExpert(st, /*use_pool=*/false);
+      const bool from_host = static_cast<bool>(st.host);
+      static const bool decode_mmap = [] {
+        const char *v = std::getenv("NNTR_MOE_DECODE_PREFETCH_MMAP");
+        return !v || std::atoi(v) != 0;
+      }();
+      try {
+        st.rc =
+          readExpert(st, /*use_pool=*/false, job.first->decode && decode_mmap);
+      } catch (...) {
+        st.rc = EIO; // Required predictions surface errors during registration.
+      }
       HtpProfile &profile = HtpProfile::global();
-      if (profile.level() != 0)
+      if (profile.level() != 0 && !from_host)
         profile.addPrefetchRead(HtpProfile::nowUs() - t0);
       {
         std::lock_guard<std::mutex> lock(prefetch_mutex_);
         ++job.first->done;
+        if (job.second < 64)
+          job.first->done_mask |= uint64_t(1) << job.second;
       }
       prefetch_done_cv_.notify_all();
     }
@@ -5909,8 +8551,130 @@ private:
    *  QS4CX_Tensor::size() counts N * ceil(K / 2) and K is a multiple of
    *  32 here. @return 0, errno, or -1 at end of file. */
   int readWeight(int fd, uint64_t off, uint32_t K, uint32_t N,
-                 uint8_t *arena_dst, ArenaEntry &e, bool use_pool) {
+                 uint8_t *arena_dst, ArenaEntry &e, bool use_pool,
+                 unsigned int weight_bits = 4, bool demand = false) {
     const size_t nib = whBytes(K, N);
+    if (weight_bits == 2) {
+      // Keep file and shared LRU compressed by default; DSP expands in VTCM.
+      // The diagnostic ARM expansion uses the same file and quantization.
+      // Readers own their scratch; no uncached arena reads are needed.
+      thread_local std::vector<uint8_t> packed, expanded;
+      const size_t compact = nib / 2;
+      if (compactExperts() && !preparedQs2Dir()) {
+        static const unsigned map_mode = [] {
+#if defined(__linux__) || defined(__ANDROID__)
+          const char *v = std::getenv("NNTR_HTP_QS2_MMAP_READ");
+          // 1: synchronous demand only; 2: also preload and prefetch.
+          return v ? static_cast<unsigned>(
+                       std::max(0, std::min(2, std::atoi(v))))
+                   : 0u;
+#else
+          return 0u;
+#endif
+        }();
+        const bool mapped =
+          !weightDirectIO() && (map_mode == 2u || (map_mode == 1u && demand));
+        static const bool direct = [] {
+          const char *v = std::getenv("NNTR_HTP_QS2_DIRECT_READ");
+          return v && std::atoi(v) != 0;
+        }();
+        static const bool profile = [] {
+          const char *v = std::getenv("NNTR_MOE_IO_PROFILE");
+          return v && std::atoi(v) != 0;
+        }();
+        HtpQs2ReadStats stats;
+        const int rc = htpReadQs2Compact(
+          [this, fd, mapped](void *dst, size_t len, uint64_t at) {
+#if defined(__linux__) || defined(__ANDROID__)
+            if (mapped)
+              return qs2_mapped_files_.read(fd, dst, len, at);
+#endif
+            return preadAll(fd, dst, len, at);
+          },
+          off, K, N, arena_dst, direct || mapped, packed,
+          profile ? &stats : nullptr);
+        if (profile) {
+          qs2_reads_.fetch_add(1, std::memory_order_relaxed);
+          qs2_read_us_.fetch_add(stats.read_us, std::memory_order_relaxed);
+          qs2_copy_us_.fetch_add(stats.copy_us, std::memory_order_relaxed);
+          qs2_metadata_us_.fetch_add(stats.metadata_us,
+                                     std::memory_order_relaxed);
+          qs2_copied_bytes_.fetch_add(stats.copied_bytes,
+                                      std::memory_order_relaxed);
+        }
+        if (!rc) {
+          e.K = K;
+          e.N = N;
+        }
+        return rc;
+      }
+      packed.resize(compact + 4 + 2 * static_cast<size_t>(N) * sizeof(float));
+      if (compactExperts() && preparedQs2Dir()) {
+        try {
+          const std::string path =
+            std::string(preparedQs2Dir()) + "/" + std::to_string(off) + "_" +
+            std::to_string(K) + "_" + std::to_string(N) + ".nntri2";
+          readPreparedQs2Cached(path, fd, off, K, N, packed, arena_dst);
+        } catch (const std::exception &error) {
+          std::fprintf(stderr, "[HTP] %s\n", error.what());
+          return EINVAL;
+        }
+      } else {
+        const int rc = preadAll(fd, packed.data(), packed.size(), off);
+        if (rc != 0)
+          return rc;
+      }
+      if (compactExperts()) {
+        const int8_t *pal =
+          reinterpret_cast<const int8_t *>(packed.data() + compact);
+        for (unsigned i = 0; i < 4; ++i)
+          if (pal[i] < -8 || pal[i] > 7)
+            return EINVAL;
+        if (!preparedQs2Dir())
+          std::memcpy(arena_dst, packed.data(), compact);
+        std::memcpy(arena_dst + compact, packed.data() + compact + 4,
+                    sizeof(float) * N);
+        std::vector<int32_t> sums(N);
+        for (uint32_t i = 0; i < N; ++i) {
+          float value;
+          std::memcpy(&value,
+                      packed.data() + compact + 4 + sizeof(float) * (N + i),
+                      sizeof(value));
+          if (!std::isfinite(value) || std::fabs(value) > 8.0 * K)
+            return EINVAL;
+          sums[i] = static_cast<int32_t>(value);
+        }
+        std::memcpy(arena_dst + compact + sizeof(float) * N, sums.data(),
+                    sizeof(int32_t) * N);
+        std::memcpy(arena_dst + compact + 8u * N, pal, 4);
+        e.K = K;
+        e.N = N;
+        return 0;
+      }
+      expanded.resize(nib);
+      if (!wh2Expand(packed.data(),
+                     reinterpret_cast<const int8_t *>(packed.data() + compact),
+                     K, N, expanded.data()))
+        return EINVAL;
+      std::memcpy(arena_dst, expanded.data(), nib);
+      const uint8_t *scales = packed.data() + compact + 4;
+      std::memcpy(arena_dst + nib, scales, sizeof(float) * N);
+      std::vector<int32_t> sums(N);
+      for (uint32_t i = 0; i < N; ++i) {
+        float value;
+        std::memcpy(&value, scales + sizeof(float) * (N + i), sizeof(value));
+        if (!std::isfinite(value) || std::fabs(value) > 8.0 * K)
+          return EINVAL;
+        sums[i] = static_cast<int32_t>(value);
+      }
+      std::memcpy(arena_dst + nib + sizeof(float) * N, sums.data(),
+                  sizeof(int32_t) * N);
+      e.K = K;
+      e.N = N;
+      return 0;
+    }
+    if (weight_bits != 4)
+      return EINVAL;
     // [doc 52 sections 10.7, 10.9] The nibble read is 82% of a miss and
     // capped near 4.9 GB/s by the uncached mapping whatever the thread
     // count: 8 slices bought 18%. Kept for the synchronous miss; the
@@ -6174,6 +8938,32 @@ private:
              uint32_t *chunk, uint32_t *off) {
     return placeOn(session, CDSP_DOMAIN_ID, arena_chunks_, chunk_cap_, bytes,
                    want, chunk, off);
+  }
+
+  /** Reserve separate 64 MiB chunks for optional Conv decode images.
+   * Ordinary FC registration uses any spare arena room, so sharing its bump
+   * allocator would also move unrelated weights from DSP heap to the arena.
+   * Mark these chunks fully used there; track Conv's own bump pointer here.
+   * They still belong to arena_chunks_ for the existing teardown hook. */
+  bool placeConvDecode(remote_handle64 session, uint32_t bytes, uint32_t *chunk,
+                       uint32_t *off) {
+    for (auto &entry : conv_decode_chunks_) {
+      const size_t size = arena_chunks_[entry.first].buf->size();
+      if (entry.second <= size && bytes <= size - entry.second) {
+        *chunk = entry.first;
+        *off = entry.second;
+        entry.second += bytes;
+        return true;
+      }
+    }
+    if (!newChunkOn(session, CDSP_DOMAIN_ID, arena_chunks_, conv_decode_cap_,
+                    bytes, size_t(64) << 20))
+      return false;
+    *chunk = static_cast<uint32_t>(arena_chunks_.size() - 1u);
+    *off = 0;
+    arena_chunks_.back().used = arena_chunks_.back().buf->size();
+    conv_decode_chunks_.emplace_back(*chunk, bytes);
+    return true;
   }
 
   /** @brief place() on any session's chunk list: [#132 Part B E3] S2's FC
@@ -6526,6 +9316,7 @@ private:
    *  Values are never erased or moved, so the references it hands out stay
    *  valid (std::unordered_map keeps node addresses across rehash). */
   std::unordered_map<const void *, FcHandles> fc_cache_;
+  std::unordered_map<const void *, uint64_t> prepared_fc_hashes_;
   /** Dense FFNs by their up weight's pointer; see get_or_register_dense. */
   std::unordered_map<const void *, DenseHandles> dense_cache_;
   /** Conv blocks by their in_proj's pointer; see get_or_register_conv. */
@@ -6536,12 +9327,21 @@ private:
   std::shared_ptr<std::vector<ArenaChunk>> s1_arena_ =
     std::make_shared<std::vector<ArenaChunk>>();
   std::vector<ArenaChunk> &arena_chunks_ = *s1_arena_;
+  std::vector<std::pair<uint32_t, uint32_t>> conv_decode_chunks_;
+  size_t conv_decode_cap_ = size_t(64) << 20;
   /** Expert slots given back by release_qs4cx_wh_expert, all of
    *  expert_slot_bytes_; a miss takes one of these before it bumps a
    *  chunk, so after the load the chunk count never moves. */
   std::vector<ExpertSlot> free_expert_slots_;
   std::unordered_map<const void *, ExpertResident> experts_;
+  std::vector<StagedExpert> pending_expert_updates_;
+  bool decode_expert_updates_ = false, expert_updates_failed_ = false;
+  uint64_t expert_updates_queued_ = 0, expert_updates_abandoned_ = 0;
+  uint64_t expert_update_fused_batches_ = 0, expert_update_rpc_batches_ = 0;
+  uint64_t expert_update_rpc_us_ = 0, expert_update_dsp_us_ = 0;
   size_t expert_slot_bytes_ = 0;
+  std::array<unsigned, 4> expert_slot_shape_{};
+  bool expert_shapes_uniform_ = true;
   /** reserve_qs4cx_wh_expert_slots's count, and slots placed so far. */
   size_t expert_slots_wanted_ = 0, expert_slots_placed_ = 0;
   /** Slices of one expert weight's file read: 3.5 MiB over 8 is 448 KiB a
@@ -6555,15 +9355,32 @@ private:
   /** One _begin's experts; done counts the ones read. */
   struct PrefetchBatch {
     std::vector<StagedExpert> experts;
+    bool decode = false;
     size_t done = 0;
+    uint64_t done_mask =
+      0; /**< First 64 jobs, for decode deadline diagnostics. */
+    uint64_t recycle_mask = 0; /**< Discarded jobs still holding slots. */
   };
   /** Queued batches, oldest first, and their unread experts, all under
    *  prefetch_mutex_. A batch's address is stable until _end takes it. */
   std::mutex prefetch_mutex_;
   std::condition_variable prefetch_cv_, prefetch_done_cv_;
   std::deque<std::unique_ptr<PrefetchBatch>> prefetch_batches_;
+  std::deque<std::unique_ptr<PrefetchBatch>> prefetch_retired_;
   std::deque<std::pair<PrefetchBatch *, size_t>> prefetch_jobs_;
+  std::mutex host_scope_mutex_;
+  std::shared_ptr<HostExpertBank> host_expert_bank_; // prefetch_mutex_
+  uint64_t host_expert_epoch_ = 0;
+  std::atomic<uint64_t> host_expert_wait_us_{0};
+  std::atomic<uint64_t> host_expert_copy_us_{0}, host_expert_copy_bytes_{0};
   bool prefetch_stop_ = false;
+  std::atomic<uint64_t> qs2_reads_{0}, qs2_read_us_{0}, qs2_copy_us_{0},
+    qs2_metadata_us_{0}, qs2_copied_bytes_{0};
+#if defined(__linux__) || defined(__ANDROID__)
+  HtpQs2MappedFiles qs2_mapped_files_;
+#endif
+  uint64_t qs2_demand_batches_ = 0, qs2_parallel_batches_ = 0,
+           qs2_max_misses_ = 0;
   std::vector<std::thread> prefetch_readers_;
   std::atomic<uint32_t> prefetch_reader_cpus_{0};
   uint32_t prefetch_caller_cpus_ = 0;
@@ -6643,7 +9460,8 @@ private:
   // per size class (stage) -- see invokeLayer's comment. Guarded by the
   // same mutex that serializes every call into the one HTP session.
   std::mutex invoke_mutex_;
-  std::once_flag moe_opts_once_; /**< sendMoeOptsOnce */
+  std::once_flag moe_opts_once_;   /**< sendMoeOptsOnce */
+  uint32_t applied_moe_flags_ = 0; /**< Echoed session options. */
   // [#85] The decode op list from set_decode_graph_desc, its MoE ops in
   // list order, how many have their handles bound (first-pass call order),
   // the op each layer's first gate_up handle belongs to, and whether
@@ -6702,11 +9520,30 @@ private:
   uint64_t cpu_fc_skipped_ = 0; /**< [#132 Part B] decode_row_resident's
                                      true answers: CPU FC calls skipped */
   StagingPool act_pool_;
+  std::array<uint64_t, 8> math_calls_{};
+  uint64_t sigmoid_calls_ = 0;
+  uint64_t fused_router_calls_ = 0, fused_qkv_calls_ = 0;
+  struct MathTiming {
+    uint64_t calls = 0, prepare_us = 0, rpc_us = 0, dsp_us = 0, copyout_us = 0,
+             bytes = 0;
+  };
+  std::array<std::array<MathTiming, 8>, 2> math_timing_{};
+  HtpActivationReuse moe_input_reuse_;
+  uint64_t prepared_moe_cookie_ = 0, prepared_moe_lease_ = 0;
   StagingPool out_pool_;
-  StagingPool rope_pool_; /**< the fused projection call's RoPE rows */
-  StagingPool x2_pool_;   /**< the MoE call's post-FFN second addend */
+  StagingPool
+    rope_prefill_pool_[6];    /**< independent Q/K/V/phase/cache staging */
+  StagingPool rope_pool_;     /**< the fused projection call's RoPE rows */
+  StagingPool x2_pool_;       /**< the MoE call's post-FFN second addend */
   StagingPool attn_q_pool_;   /**< the row-blocked attention's f32 Q */
   StagingPool attn_out_pool_; /**< and its f32 output */
+  /** FP16 prefill scratch, protected by invoke_mutex_ and separate from q2. */
+  StagingPool attn_native_k_pool_, attn_native_v_pool_;
+  StagingPool attn_q8_input_pool_, attn_q8_output_pool_;
+  std::mutex attn_kind_mutex_;
+  std::map<int, unsigned int> attn_cache_kinds_;
+  StagingPool attn_f16_q_pool_;
+  StagingPool attn_f16_out_pool_;
   /** @brief ION copies of the MoE routers' gate weights, by address. */
   std::map<const float *, std::unique_ptr<HtpRpcBuffer>> router_w_;
   std::map<const float *, uint32_t> router_u8i8_; /**< gate -> u8i8 handle */
@@ -6755,7 +9592,10 @@ private:
   std::vector<uint32_t> ban_, ban_sent_; /**< set_decode_ban, S2's LM_BAN */
   bool have_id_ = false;                 /**< take_decode_token_id */
   uint32_t pending_id_ = 0;
-  /** invokeConvBlock's conv_w in and state out, one small ION buffer. */
+  /** Conv-only uncached staging; never shared with cached FC/MoE buffers. */
+  StagingPool conv_act_pool_;
+  StagingPool conv_out_pool_;
+  /** invokeConvBlock's conv_w and bidirectional state, one small ION buffer. */
   std::unique_ptr<HtpRpcBuffer> conv_buf_;
 
   // invokeLayerU8In's scratch: the AH-packed activation (ION-backed, same
@@ -6796,9 +9636,9 @@ public:
     HtpBackend &hb = HtpBackend::global();
     // head_dim up to 512 is the registry's limit; the column-blocked
     // kernel below checks its own 256 at call time.
-    if (!hb.enabled() || kind > 1 || max_rows == 0 || max_rows > 0xFFFFu ||
-        n_head_kv == 0 || head_dim == 0 || (head_dim % 32) != 0 ||
-        head_dim > 512) {
+    if (!hb.enabled() || (kind > 1 && kind != HTP_KV_KIND_F16) ||
+        max_rows == 0 || max_rows > 0xFFFFu || n_head_kv == 0 ||
+        head_dim == 0 || (head_dim % 32) != 0 || head_dim > 512) {
       return -1;
     }
     uint32_t h = 0;
@@ -6808,6 +9648,10 @@ public:
     if (err != AEE_SUCCESS) {
       ml_logw("HTP quantized KV cache: register failed: 0x%x", err);
       return -1;
+    }
+    {
+      std::lock_guard<std::mutex> lock(attn_kind_mutex_);
+      attn_cache_kinds_[static_cast<int>(h)] = kind;
     }
     return static_cast<int>(h);
   }
@@ -6832,10 +9676,253 @@ public:
 
   void kv_cache_q_release(int handle) override {
     HtpBackend &hb = HtpBackend::global();
+    {
+      std::lock_guard<std::mutex> lock(attn_kind_mutex_);
+      attn_cache_kinds_.erase(handle);
+    }
     if (hb.enabled() && handle >= 0) {
       nntr_hvx_kv_release_q(static_cast<remote_handle64>(hb.handle()),
                             static_cast<uint32_t>(handle));
     }
+  }
+
+  HtpPrefillAttentionResult prefillQ8Attention(int handle, unsigned rows,
+                                               const float *cs, float *q,
+                                               const float *k, const float *v,
+                                               uint16_t *ko, uint16_t *vo,
+                                               float *out) {
+    const char *enabled = std::getenv("NNTR_HTP_PREFILL_ATTN_COMPOSITE");
+    const char *prepare = std::getenv("NNTR_HTP_PREFILL_QKV_PREPARE");
+    const char *wire = std::getenv("NNTR_HTP_ATTN_Q8_WIRE");
+    const char *npu = std::getenv("NNTR_HTP_ATTN_Q8_NPU");
+    auto &backend = HtpBackend::global();
+    if (!enabled || !std::atoi(enabled) || !prepare || !std::atoi(prepare) ||
+        !wire || !std::atoi(wire) || (npu && !std::atoi(npu)) ||
+        !backend.enabled() || handle < 0 || rows != 1024u || !out ||
+        !nntr_rope_prefill_valid(rows, 2048u, 512u, 64u, cs, q, k, v, ko, vo))
+      return HtpPrefillAttentionResult::Unsupported;
+    const size_t nq = size_t(rows) * 2048u, nk = size_t(rows) * 512u;
+    const size_t nc = size_t(rows) * 128u;
+    if (nntr_rope_ranges_overlap(out, nq * 4u, q, nq * 4u) ||
+        nntr_rope_ranges_overlap(out, nq * 4u, k, nk * 4u) ||
+        nntr_rope_ranges_overlap(out, nq * 4u, v, nk * 4u) ||
+        nntr_rope_ranges_overlap(out, nq * 4u, cs, nc * 4u) ||
+        nntr_rope_ranges_overlap(out, nq * 4u, ko, nk * 2u) ||
+        nntr_rope_ranges_overlap(out, nq * 4u, vo, nk * 2u) ||
+        !backend.isSharedRange(q, nq * 4u) ||
+        !backend.isSharedRange(k, nk * 4u) ||
+        !backend.isSharedRange(v, nk * 4u) ||
+        !backend.isSharedRange(ko, nk * 2u) ||
+        !backend.isSharedRange(vo, nk * 2u) ||
+        !backend.isSharedRange(out, nq * 4u))
+      return HtpPrefillAttentionResult::Unsupported;
+    {
+      std::lock_guard<std::mutex> lock(attn_kind_mutex_);
+      const auto found = attn_cache_kinds_.find(handle);
+      if (found == attn_cache_kinds_.end() || found->second != 0u)
+        return HtpPrefillAttentionResult::Unsupported;
+    }
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    const float *phase = cs;
+    if (!backend.isSharedRange(cs, nc * 4u)) {
+      auto *dst =
+        reinterpret_cast<float *>(stage(rope_prefill_pool_[3], nc * 4u).data());
+      stagedMemcpy(dst, cs, nc * 4u);
+      phase = dst;
+    }
+    uint32_t status[24];
+    std::fill(std::begin(status), std::end(status), UINT32_MAX);
+    const bool trace = attn_trace_enabled();
+    const int64_t start = trace ? now_us() : 0;
+    ++prefill_q8_composite_calls_;
+    const int err = nntr_hvx_attn_q8_prefill_prepare(
+      static_cast<remote_handle64>(backend.handle()), uint32_t(handle), rows,
+      phase, int(nc), q, int(nq), k, int(nk), v, int(nk), ko, int(nk), vo,
+      int(nk), out, int(nq), status, 24);
+    // Outer errors do not prove whether in-place Q writes completed. Only
+    // an explicit successful phase-3 record permits original-path fallback.
+    if (err != AEE_SUCCESS)
+      throw std::runtime_error("HTP prefill composite transport failed: " +
+                               std::to_string(err));
+    if (trace)
+      ml_logi("HTP attn trace prepare_q8: rows=%u phase=%u prepare_rc=%u "
+              "attention_rc=%u rpc_us=%lld prepare_dsp_us=%u attn_dsp_us=%u "
+              "quant_us=%u append_us=%u attn_us=%u",
+              rows, status[0], status[1], status[2],
+              static_cast<long long>(now_us() - start), status[3], status[7],
+              status[8], status[4], status[5]);
+    if (status[0] == 3u &&
+        std::all_of(std::begin(status) + 1, std::end(status),
+                    [](uint32_t value) { return value == 0u; }))
+      return HtpPrefillAttentionResult::Unsupported;
+    if (status[1] != AEE_SUCCESS)
+      throw std::runtime_error("HTP prefill QKV RoPE failed: " +
+                               std::to_string(status[1]));
+    if (status[0] == 2u && status[2] == AEE_SUCCESS)
+      return HtpPrefillAttentionResult::Complete;
+    if (status[0] == 1u && status[2] != AEE_SUCCESS)
+      return HtpPrefillAttentionResult::Prepared;
+    throw std::runtime_error("HTP prefill composite completion is invalid");
+  }
+
+  bool sdpa_q8_npu(int handle, unsigned row0, unsigned rows, const uint16_t *k,
+                   const uint16_t *v, const float *q, unsigned n_q,
+                   unsigned cache_from, unsigned cache_to, unsigned q_heads,
+                   unsigned kv_heads, unsigned hd, unsigned window,
+                   float softcap, const float *sinks, float *out) {
+    if (!q || !out || n_q > 65535u || rows > 65535u || q_heads > 4096u)
+      return false;
+    const uint64_t q_count = uint64_t(n_q) * q_heads * hd;
+    const uint64_t kv_count = uint64_t(rows) * kv_heads * hd;
+    if (q_count > INT32_MAX / sizeof(float) ||
+        kv_count > INT32_MAX / sizeof(uint16_t))
+      return false;
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    auto &backend = HtpBackend::global();
+    const int64_t start = now_us();
+    const size_t q_bytes = size_t(q_count) * sizeof(float);
+    const size_t kv_bytes = size_t(kv_count) * sizeof(uint16_t);
+    const float *rpc_q = q;
+    const uint16_t *rpc_k = k, *rpc_v = v;
+    if (!backend.isSharedRange(q, q_bytes)) {
+      rpc_q =
+        reinterpret_cast<float *>(stage(attn_f16_q_pool_, q_bytes).data());
+      stagedMemcpy(const_cast<float *>(rpc_q), q, q_bytes);
+    }
+    if (rows && !backend.isSharedRange(k, kv_bytes)) {
+      rpc_k = reinterpret_cast<uint16_t *>(
+        stage(attn_native_k_pool_, kv_bytes).data());
+      stagedMemcpy(const_cast<uint16_t *>(rpc_k), k, kv_bytes);
+    }
+    if (rows && !backend.isSharedRange(v, kv_bytes)) {
+      rpc_v = reinterpret_cast<uint16_t *>(
+        stage(attn_native_v_pool_, kv_bytes).data());
+      stagedMemcpy(const_cast<uint16_t *>(rpc_v), v, kv_bytes);
+    }
+    const bool direct = backend.isSharedRange(out, q_bytes);
+    float *result =
+      direct
+        ? out
+        : reinterpret_cast<float *>(stage(attn_f16_out_pool_, q_bytes).data());
+    const int64_t prepared = now_us();
+    uint32_t stats[20] = {};
+    const int err = nntr_hvx_attn_q8_npu_step(
+      static_cast<remote_handle64>(backend.handle()), uint32_t(handle), row0,
+      rpc_k, int(kv_count), rpc_v, int(kv_count), n_q, cache_from, cache_to,
+      q_heads, window, softcap, rpc_q, int(q_count), sinks,
+      sinks ? int(q_heads) : 0, result, int(q_count), stats, 20);
+    const int64_t returned = now_us();
+    if (!direct && err == AEE_SUCCESS)
+      stagedMemcpy(out, result, q_bytes);
+    if (attn_trace_enabled())
+      ml_logi("HTP attn trace q8npu: n_q=%u cache=%u..%u err=0x%x "
+              "prepare_us=%lld rpc_us=%lld wall_us=%lld dsp_us=%u "
+              "quant_us=%u append_us=%u attn_us=%u direct_out=%u",
+              n_q, cache_from, cache_to, err,
+              static_cast<long long>(prepared - start),
+              static_cast<long long>(returned - prepared),
+              static_cast<long long>(now_us() - start), stats[3], stats[4],
+              stats[0], stats[1], unsigned(direct));
+    return err == AEE_SUCCESS;
+  }
+
+  bool sdpa_q8_transport(int handle, unsigned int row0, unsigned int n_rows,
+                         const uint16_t *k, const uint16_t *v, const float *q,
+                         unsigned int n_q, unsigned int cache_from,
+                         unsigned int cache_to, unsigned int n_head_q,
+                         unsigned int n_head_kv, unsigned int hd,
+                         unsigned int window, float softcap, const float *sinks,
+                         float *out) {
+    if (!q || !out || n_q > 65535u || n_rows > 65535u || n_head_q > 4096u ||
+        n_head_kv > n_head_q || hd > 256u)
+      return false;
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    const int64_t start = now_us();
+    const size_t kv_heads = static_cast<size_t>(n_rows) * n_head_kv;
+    const size_t q_heads = static_cast<size_t>(n_q) * n_head_q;
+    const size_t kv_bytes = kv_heads * hd, q_bytes = q_heads * hd;
+    const size_t metadata = (kv_heads * 2u + q_heads * 2u) * sizeof(float);
+    const size_t input_bytes = metadata + 2u * kv_bytes + q_bytes;
+    if (input_bytes > static_cast<size_t>(INT32_MAX) ||
+        q_bytes > static_cast<size_t>(INT32_MAX) / sizeof(float))
+      return false;
+    uint8_t *input = reinterpret_cast<uint8_t *>(
+      stage(attn_q8_input_pool_, input_bytes).data());
+    float *scales = reinterpret_cast<float *>(input);
+    float *qs = scales + 2u * kv_heads;
+    int32_t *qz = reinterpret_cast<int32_t *>(qs + q_heads);
+    uint8_t *k8 = input + metadata, *v8 = k8 + kv_bytes, *q8 = v8 + kv_bytes;
+    for (size_t i = 0; i < kv_heads; ++i) {
+      if (!htp_quant_kv_i8(k + i * hd, hd, k8 + i * hd, scales[2u * i]) ||
+          !htp_quant_kv_i8(v + i * hd, hd, v8 + i * hd, scales[2u * i + 1u]))
+        return false;
+    }
+    for (size_t i = 0; i < q_heads; ++i)
+      if (!htp_quant_query_u8(q + i * hd, hd, q8 + i * hd, qs[i], qz[i]))
+        return false;
+    float *result = reinterpret_cast<float *>(
+      stage(attn_q8_output_pool_, q_bytes * sizeof(float)).data());
+    const int64_t prepared = now_us();
+    uint32_t stats[16] = {0};
+    const char *hmx_env = std::getenv("NNTR_HTP_ATTN_Q8_HMX");
+    const unsigned mode =
+      hmx_env ? static_cast<unsigned>(std::atoi(hmx_env)) : 0u;
+    const bool hmx_decode = n_q == 1 && mode != 0u;
+    if (mode > 3u)
+      throw std::invalid_argument("NNTR_HTP_ATTN_Q8_HMX must be 0..3");
+    const char *bc_env = std::getenv("NNTR_HTP_ATTN_Q8_BC");
+    const unsigned bc = bc_env ? static_cast<unsigned>(std::atoi(bc_env)) : 0u;
+    const int err =
+      hmx_decode
+        ? nntr_hvx_attn_q8_hmx_step(
+            static_cast<remote_handle64>(HtpBackend::global().handle()),
+            static_cast<uint32_t>(handle), row0, n_rows, n_q, cache_from,
+            cache_to, n_head_q, window, softcap, k8, static_cast<int>(kv_bytes),
+            v8, static_cast<int>(kv_bytes), scales,
+            static_cast<int>(2u * kv_heads), q8, static_cast<int>(q_bytes), qs,
+            static_cast<int>(q_heads), qz, static_cast<int>(q_heads), sinks,
+            sinks ? static_cast<int>(n_head_q) : 0, result,
+            static_cast<int>(q_bytes), stats, 16,
+            mode == 1u   ? 0u
+            : mode == 2u ? 1u
+                         : 3u,
+            bc)
+        : nntr_hvx_attn_q8_step(
+            static_cast<remote_handle64>(HtpBackend::global().handle()),
+            static_cast<uint32_t>(handle), row0, n_rows, n_q, cache_from,
+            cache_to, n_head_q, window, softcap, k8, static_cast<int>(kv_bytes),
+            v8, static_cast<int>(kv_bytes), scales,
+            static_cast<int>(2u * kv_heads), q8, static_cast<int>(q_bytes), qs,
+            static_cast<int>(q_heads), qz, static_cast<int>(q_heads), sinks,
+            sinks ? static_cast<int>(n_head_q) : 0, result,
+            static_cast<int>(q_bytes), stats, attn_trace_enabled() ? 16 : 4);
+    if (hmx_decode && err != AEE_SUCCESS)
+      throw std::runtime_error("Explicit Q8 HMX decode failed: " +
+                               std::to_string(err));
+    const int64_t returned = now_us();
+    if (err == AEE_SUCCESS)
+      stagedMemcpy(out, result, q_bytes * sizeof(float));
+    if (attn_trace_enabled())
+      ml_logi(
+        "HTP attn trace q8wire: n_q=%u cache=%u..%u err=0x%x "
+        "prepare_us=%lld rpc_us=%lld wall_us=%lld dsp_us=%u "
+        "append_us=%u attn_us=%u input_bytes=%llu output_bytes=%llu path=%s",
+        n_q, cache_from, cache_to, err,
+        static_cast<long long>(prepared - start),
+        static_cast<long long>(returned - prepared),
+        static_cast<long long>(now_us() - start), stats[3], stats[0], stats[1],
+        static_cast<unsigned long long>(input_bytes),
+        static_cast<unsigned long long>(q_bytes * sizeof(float)),
+        hmx_decode ? "HMX" : (n_q < 5 ? "HVX" : "HMX-prefill"));
+    if (attn_trace_enabled() && (n_q >= 5 || hmx_decode) && err == AEE_SUCCESS)
+      ml_logi("HTP attn phases q8wire: n_q=%u qprep_us=%u dma_us=%u qk_us=%u "
+              "dequant_us=%u softmax_us=%u pquant_us=%u pv_us=%u "
+              "oupd_us=%u store_us=%u total_us=%u kcycles=%u blocks=%u",
+              n_q, stats[4], stats[5], stats[6], stats[7], stats[8], stats[9],
+              stats[10], stats[11], stats[12], stats[13], stats[14], stats[15]);
+    if (err != AEE_SUCCESS)
+      ml_logw("HTP producer-quantized attention failed: 0x%x", err);
+    return err == AEE_SUCCESS;
   }
 
   bool sdpa_q_kvcache(int handle, unsigned int append_row0,
@@ -6856,16 +9943,60 @@ public:
          (kv_stride != n_head_kv * head_dim || !k_rows || !v_rows))) {
       return false;
     }
+    const char *q8_wire = std::getenv("NNTR_HTP_ATTN_Q8_WIRE");
+    bool q8_cache = false;
+    if (q8_wire && std::atoi(q8_wire) != 0) {
+      std::lock_guard<std::mutex> lock(attn_kind_mutex_);
+      const auto it = attn_cache_kinds_.find(handle);
+      q8_cache = it != attn_cache_kinds_.end() && it->second == 0u;
+    }
+    const char *npu_quant = std::getenv("NNTR_HTP_ATTN_Q8_NPU");
+    if (q8_cache && n_q >= 5u && head_dim <= 256u &&
+        (!npu_quant || std::atoi(npu_quant) != 0))
+      return sdpa_q8_npu(handle, append_row0, append_rows, k_rows, v_rows, q,
+                         n_q, cache_from, cache_to, n_head_q, n_head_kv,
+                         head_dim, window, softcap, sinks, out);
+    if (q8_cache)
+      return sdpa_q8_transport(
+        handle, append_row0, append_rows, k_rows, v_rows, q, n_q, cache_from,
+        cache_to, n_head_q, n_head_kv, head_dim, window, softcap, sinks, out);
     const remote_handle64 h = static_cast<remote_handle64>(hb.handle());
     const int q_len = static_cast<int>(n_q * n_head_q * head_dim);
     const int sinks_len = sinks ? static_cast<int>(n_head_q) : 0;
     const int rows_len = static_cast<int>(append_rows * kv_stride);
-    uint32_t stats[8] = {0};
+    uint32_t stats[20] = {0};
+    const bool native_decode =
+      (static_cast<uint32_t>(handle) & HTP_KV_F16_HANDLE) && n_q == 1;
+    std::unique_lock<std::mutex> lock(invoke_mutex_, std::defer_lock);
+    const float *rpc_q = q;
+    float *rpc_out = out;
+    const uint16_t *rpc_k = k_rows, *rpc_v = v_rows;
+    if (native_decode) {
+      lock.lock();
+      const size_t bytes = static_cast<size_t>(q_len) * sizeof(float);
+      rpc_q = reinterpret_cast<float *>(stage(attn_f16_q_pool_, bytes).data());
+      rpc_out =
+        reinterpret_cast<float *>(stage(attn_f16_out_pool_, bytes).data());
+      stagedMemcpy(const_cast<float *>(rpc_q), q, bytes);
+      if (rows_len) {
+        const size_t kv_bytes =
+          static_cast<size_t>(rows_len) * sizeof(uint16_t);
+        rpc_k = reinterpret_cast<uint16_t *>(
+          stage(attn_native_k_pool_, kv_bytes).data());
+        rpc_v = reinterpret_cast<uint16_t *>(
+          stage(attn_native_v_pool_, kv_bytes).data());
+        stagedMemcpy(const_cast<uint16_t *>(rpc_k), k_rows, kv_bytes);
+        stagedMemcpy(const_cast<uint16_t *>(rpc_v), v_rows, kv_bytes);
+      }
+    }
     const int64_t t0 = now_us();
     const int err = nntr_hvx_attn_q_step(
-      h, static_cast<uint32_t>(handle), append_row0, k_rows, rows_len, v_rows,
-      rows_len, n_q, cache_from, cache_to, n_head_q, window, softcap, q, q_len,
-      sinks, sinks_len, out, q_len, stats, 8);
+      h, static_cast<uint32_t>(handle), append_row0, rpc_k, rows_len, rpc_v,
+      rows_len, n_q, cache_from, cache_to, n_head_q, window, softcap, rpc_q,
+      q_len, sinks, sinks_len, rpc_out, q_len, stats,
+      attn_trace_enabled() ? 20 : 8);
+    if (native_decode && err == AEE_SUCCESS)
+      stagedMemcpy(out, rpc_out, static_cast<size_t>(q_len) * sizeof(float));
     if (attn_trace_enabled()) {
       ml_logi("HTP attn trace q: handle=%d n_q=%u cache=%u..%u append=%u "
               "err=0x%x wall_us=%lld dsp_us=%u append_us=%u attn_us=%u "
@@ -6874,6 +10005,13 @@ public:
               static_cast<long long>(now_us() - t0), stats[3], stats[0],
               stats[1], stats[4], stats[5], stats[6]);
     }
+    if (attn_trace_enabled() && n_q >= 5 && err == AEE_SUCCESS)
+      ml_logi("HTP attn phases q: n_q=%u qprep_us=%u dma_us=%u qk_us=%u "
+              "dequant_us=%u softmax_us=%u pquant_us=%u pv_us=%u "
+              "oupd_us=%u store_us=%u total_us=%u kcycles=%u blocks=%u",
+              n_q, stats[8], stats[9], stats[10], stats[11], stats[12],
+              stats[13], stats[14], stats[15], stats[16], stats[17], stats[18],
+              stats[19]);
     if (err != AEE_SUCCESS) {
       ml_logw("HTP quantized attention step failed: 0x%x; CPU fallback", err);
       return false;
@@ -6884,7 +10022,13 @@ public:
   // --- the row-blocked kernel over a fixed-scale int8 cache ---
 
   bool supports_kv_cache_q2() const override {
-    return HtpBackend::global().enabled();
+    // Opt out of A16/KV8 to compare the per-row A8/KV8 kernels. Select
+    // before registering caches: the two paths use different KV scales.
+    const char *wire = std::getenv("NNTR_HTP_ATTN_Q8_WIRE");
+    if (wire && std::atoi(wire) != 0)
+      return false;
+    const char *q2 = std::getenv("NNTR_HTP_ATTN_Q2");
+    return HtpBackend::global().enabled() && (!q2 || std::atoi(q2) != 0);
   }
 
   bool kv_cache_q_set_fixed_scales(int handle, unsigned int n_head_kv,
@@ -6997,26 +10141,84 @@ public:
 
     int err;
     const int64_t t0 = now_us();
-    if (n_q < kDecodeMaxRows && head_dim <= kDecodeMaxHeadDim) {
-      err = nntr_hvx_attn_f16_decode(h, n_q, cache_from, cache_to, n_head_q,
-                                     n_head_kv, head_dim, window, softcap, q,
-                                     q_len, k_cache, kv_len, v_cache, kv_len,
-                                     sinks, sinks_len, out, q_len, stats, 8);
-    } else {
-      err = nntr_hvx_attn_f16_prefill(
-        h, n_q, cache_from, cache_to, n_head_q, n_head_kv, head_dim, window,
-        /*br=*/0, /*bc=*/0, softcap, q, q_len, k_cache, kv_len, v_cache, kv_len,
-        sinks, sinks_len, out, q_len, stats, 8);
+    const bool trace = attn_trace_enabled();
+    int64_t stage_in_us = 0, rpc_us = 0, stage_out_us = 0;
+    bool staged = false;
+    static const bool decode_hmx_enabled = [] {
+      const char *env = std::getenv("NNTR_HTP_ATTN_DECODE_HMX");
+      return env && std::atoi(env) != 0;
+    }();
+    // Explicit HMX comparison for the measured LFM2 shape.
+    const bool decode_hmx =
+      decode_hmx_enabled && n_q == 1 && head_dim == 64 && n_head_q == 32 &&
+      n_head_kv == 8 && cache_to >= 256 && !window && softcap == 0.0f && !sinks;
+    const bool decode_hvx =
+      !decode_hmx && n_q < kDecodeMaxRows && head_dim <= kDecodeMaxHeadDim;
+    if (n_q == 1) {
+      static std::once_flag banner;
+      std::call_once(banner, [decode_hvx] {
+        std::fprintf(stderr, "[HTP] attention M1: %s\n",
+                     decode_hvx ? "HVX" : "HMX");
+      });
     }
-    if (attn_trace_enabled()) {
-      // stats: qprep, dma, tile, qk, softmax, pv, store microseconds and the
-      // block count (nntr_hvx_attn_f16.c).
-      ml_logi("HTP attn trace f16: n_q=%u cache=%u..%u err=0x%x wall_us=%lld "
-              "dsp_us: qprep=%u dma=%u tile=%u qk=%u softmax=%u pv=%u "
-              "store=%u blocks=%u",
-              n_q, cache_from, cache_to, err,
-              static_cast<long long>(now_us() - t0), stats[0], stats[1],
-              stats[2], stats[3], stats[4], stats[5], stats[6], stats[7]);
+    {
+      // Keep the cached ION buffers alive through the synchronous RPC and
+      // output copy. Dedicated pools avoid aliasing q2's scratch buffers.
+      std::unique_lock<std::mutex> lock(invoke_mutex_, std::defer_lock);
+      const float *rpc_q = q;
+      float *rpc_out = out;
+      const size_t q_bytes = static_cast<size_t>(q_len) * sizeof(float);
+      if (attn_f16_ion_enabled() || decode_hmx || decode_hvx) {
+        lock.lock();
+        HtpRpcBuffer &q_buf = stage(attn_f16_q_pool_, q_bytes);
+        HtpRpcBuffer &out_buf = stage(attn_f16_out_pool_, q_bytes);
+        // rpcmem may fall back to malloc. In that case the original RPC
+        // path avoids adding two copies without a shared-memory benefit.
+        if (q_buf.isIon() && out_buf.isIon()) {
+          rpc_q = reinterpret_cast<float *>(q_buf.data());
+          rpc_out = reinterpret_cast<float *>(out_buf.data());
+          stagedMemcpy(q_buf.data(), q, q_bytes);
+          staged = true;
+        }
+      }
+      const int64_t rpc_start = trace ? now_us() : 0;
+      if (trace)
+        stage_in_us = rpc_start - t0;
+      if (decode_hvx) {
+        err = nntr_hvx_attn_f16_decode(
+          h, n_q, cache_from, cache_to, n_head_q, n_head_kv, head_dim, window,
+          softcap, rpc_q, q_len, k_cache, kv_len, v_cache, kv_len, sinks,
+          sinks_len, rpc_out, q_len, stats, 8);
+      } else {
+        err = nntr_hvx_attn_f16_prefill(
+          h, n_q, cache_from, cache_to, n_head_q, n_head_kv, head_dim, window,
+          /*br=*/0, /*bc=*/0, softcap, rpc_q, q_len, k_cache, kv_len, v_cache,
+          kv_len, sinks, sinks_len, rpc_out, q_len, stats, 8);
+      }
+      const int64_t rpc_end = trace ? now_us() : 0;
+      if (staged && err == AEE_SUCCESS)
+        stagedMemcpy(out, rpc_out, q_bytes);
+      if (trace) {
+        rpc_us = rpc_end - rpc_start;
+        stage_out_us = now_us() - rpc_end;
+      }
+    }
+    if (trace) {
+      // HMX exposes per-stage times; HVX exposes only total kernel time.
+      const uint32_t decode_total_us = decode_hvx ? stats[0] : 0u;
+      if (decode_hvx)
+        stats[0] = 0;
+      ml_logi(
+        "HTP attn trace f16: n_q=%u cache=%u..%u err=0x%x wall_us=%lld "
+        "dsp_us: qprep=%u dma=%u tile=%u qk=%u softmax=%u pv=%u "
+        "store=%u blocks=%u ion=%u stage_in_us=%lld rpc_us=%lld "
+        "stage_out_us=%lld path=%s decode_total_us=%u",
+        n_q, cache_from, cache_to, err, static_cast<long long>(now_us() - t0),
+        stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], stats[6],
+        stats[7], static_cast<unsigned int>(staged),
+        static_cast<long long>(stage_in_us), static_cast<long long>(rpc_us),
+        static_cast<long long>(stage_out_us), decode_hvx ? "HVX" : "HMX",
+        decode_total_us);
     }
     if (err != AEE_SUCCESS) {
       // AEE_EUNSUPPORTED is the skel saying this part has no fp16 HMX;
@@ -7034,6 +10236,25 @@ public:
 ComputeOps *get_htp_ops() {
   static HtpComputeOps instance;
   return &instance;
+}
+
+bool htp_rope_qkv_prefill(unsigned rows, unsigned qw, unsigned kw, unsigned hd,
+                          const float *cs, float *q, const float *k,
+                          const float *v, uint16_t *ko, uint16_t *vo) {
+  return static_cast<HtpComputeOps *>(get_htp_ops())
+    ->ropeQkvPrefill(rows, qw, kw, hd, cs, q, k, v, ko, vo);
+}
+
+HtpPrefillAttentionResult
+htp_rope_q8_attention_prefill(int handle, unsigned rows, const float *cs,
+                              float *q, const float *k, const float *v,
+                              uint16_t *ko, uint16_t *vo, float *out) {
+#ifndef NNTR_HTP_INPROC
+  return static_cast<HtpComputeOps *>(get_htp_ops())
+    ->prefillQ8Attention(handle, rows, cs, q, k, v, ko, vo, out);
+#else
+  return HtpPrefillAttentionResult::Unsupported;
+#endif
 }
 
 } // namespace nntrainer

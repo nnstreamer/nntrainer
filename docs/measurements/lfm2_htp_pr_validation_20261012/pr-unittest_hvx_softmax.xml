@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="41" failures="4" disabled="0" errors="0" time="7.602" timestamp="2026-10-12T15:56:31.209" name="AllTests">
+  <testsuite name="HvxStrictMath" tests="9" failures="0" disabled="0" skipped="0" errors="0" time="0.573" timestamp="2026-10-12T15:56:31.209">
+    <testcase name="NormAddAndSwiGLU" file="./../unittest/unittest_hvx_softmax.cpp" line="130" status="run" result="completed" time="0.05" timestamp="2026-10-12T15:56:31.209" classname="HvxStrictMath" />
+    <testcase name="ParallelElementwiseMatchesScalar" file="./../unittest/unittest_hvx_softmax.cpp" line="175" status="run" result="completed" time="0.067" timestamp="2026-10-12T15:56:31.260" classname="HvxStrictMath" />
+    <testcase name="HalfConversionRoundingAndTails" file="./../unittest/unittest_hvx_softmax.cpp" line="198" status="run" result="completed" time="0.055" timestamp="2026-10-12T15:56:31.328" classname="HvxStrictMath" />
+    <testcase name="RopeAndHalfCache" file="./../unittest/unittest_hvx_softmax.cpp" line="251" status="run" result="completed" time="0.056" timestamp="2026-10-12T15:56:31.384" classname="HvxStrictMath" />
+    <testcase name="SigmoidRouting64ExpertsAndTies" file="./../unittest/unittest_hvx_softmax.cpp" line="287" status="run" result="completed" time="0.053" timestamp="2026-10-12T15:56:31.441" classname="HvxStrictMath" />
+    <testcase name="ParallelRouterMatchesDecodeCalls" file="./../unittest/unittest_hvx_softmax.cpp" line="321" status="run" result="completed" time="0.056" timestamp="2026-10-12T15:56:31.495" classname="HvxStrictMath" />
+    <testcase name="FusedSigmoidRouterMatchesSeparateCalls" file="./../unittest/unittest_hvx_softmax.cpp" line="353" status="run" result="completed" time="0.062" timestamp="2026-10-12T15:56:31.552" classname="HvxStrictMath" />
+    <testcase name="ResidualNormMatchesSeparateCalls" file="./../unittest/unittest_hvx_softmax.cpp" line="400" status="run" result="completed" time="0.129" timestamp="2026-10-12T15:56:31.614" classname="HvxStrictMath" />
+    <testcase name="RejectsInvalidShapes" file="./../unittest/unittest_hvx_softmax.cpp" line="459" status="run" result="completed" time="0.038" timestamp="2026-10-12T15:56:31.744" classname="HvxStrictMath" />
+  </testsuite>
+  <testsuite name="HvxSwigluDet" tests="3" failures="0" disabled="0" skipped="0" errors="0" time="0.151" timestamp="2026-10-12T15:56:31.782">
+    <testcase name="RejectsNonVectorLength" file="./../unittest/unittest_hvx_softmax.cpp" line="513" status="run" result="completed" time="0.041" timestamp="2026-10-12T15:56:31.782" classname="HvxSwigluDet" />
+    <testcase name="MatchesScalarBitExact" file="./../unittest/unittest_hvx_softmax.cpp" line="537" status="run" result="completed" time="0.054" timestamp="2026-10-12T15:56:31.824" classname="HvxSwigluDet" />
+    <testcase name="GegluMatchesScalarBitExact" file="./../unittest/unittest_hvx_softmax.cpp" line="596" status="run" result="completed" time="0.056" timestamp="2026-10-12T15:56:31.878" classname="HvxSwigluDet" />
+  </testsuite>
+  <testsuite name="SwigluDetNeon" tests="1" failures="0" disabled="0" skipped="0" errors="0" time="0.001" timestamp="2026-10-12T15:56:31.934">
+    <testcase name="MatchesScalar" file="./../unittest/unittest_hvx_softmax.cpp" line="659" status="run" result="completed" time="0.001" timestamp="2026-10-12T15:56:31.934" classname="SwigluDetNeon" />
+  </testsuite>
+  <testsuite name="HvxM1Ops" tests="6" failures="4" disabled="0" skipped="0" errors="0" time="0.397" timestamp="2026-10-12T15:56:31.936">
+    <testcase name="RejectsBadShapes" file="./../unittest/unittest_hvx_softmax.cpp" line="792" status="run" result="completed" time="0.055" timestamp="2026-10-12T15:56:31.936" classname="HvxM1Ops">
+      <failure message="./../unittest/unittest_hvx_softmax.cpp:798&#x0A;Expected equality of these values:&#x0A;  err&#x0A;    Which is: -2147482112&#x0A;  (0x00000000 + 0x011) + kDspOffset&#x0A;    Which is: -2147482607&#x0A;rmsnorm chunk 48: got 0x80000600&#x0A;" type=""><![CDATA[./../unittest/unittest_hvx_softmax.cpp:798
+Expected equality of these values:
+  err
+    Which is: -2147482112
+  (0x00000000 + 0x011) + kDspOffset
+    Which is: -2147482607
+rmsnorm chunk 48: got 0x80000600
+]]></failure>
+      <failure message="./../unittest/unittest_hvx_softmax.cpp:804&#x0A;Expected equality of these values:&#x0A;  err&#x0A;    Which is: -2147482112&#x0A;  (0x00000000 + 0x011) + kDspOffset&#x0A;    Which is: -2147482607&#x0A;rope cs of 32: got 0x80000600&#x0A;" type=""><![CDATA[./../unittest/unittest_hvx_softmax.cpp:804
+Expected equality of these values:
+  err
+    Which is: -2147482112
+  (0x00000000 + 0x011) + kDspOffset
+    Which is: -2147482607
+rope cs of 32: got 0x80000600
+]]></failure>
+      <failure message="./../unittest/unittest_hvx_softmax.cpp:814&#x0A;Expected equality of these values:&#x0A;  err&#x0A;    Which is: -2147482112&#x0A;  (0x00000000 + 0x011) + kDspOffset&#x0A;    Which is: -2147482607&#x0A;conv state_out of 2C: got 0x80000600&#x0A;" type=""><![CDATA[./../unittest/unittest_hvx_softmax.cpp:814
+Expected equality of these values:
+  err
+    Which is: -2147482112
+  (0x00000000 + 0x011) + kDspOffset
+    Which is: -2147482607
+conv state_out of 2C: got 0x80000600
+]]></failure>
+    </testcase>
+    <testcase name="RmsnormMatchesDetBitExact" file="./../unittest/unittest_hvx_softmax.cpp" line="829" status="run" result="completed" time="0.058" timestamp="2026-10-12T15:56:31.992" classname="HvxM1Ops">
+      <failure message="./../unittest/unittest_hvx_softmax.cpp:841&#x0A;Expected equality of these values:&#x0A;  bad_y&#x0A;    Which is: 2048&#x0A;  0&#x0A;kind 2: y differs from the spec&#x0A;" type=""><![CDATA[./../unittest/unittest_hvx_softmax.cpp:841
+Expected equality of these values:
+  bad_y
+    Which is: 2048
+  0
+kind 2: y differs from the spec
+]]></failure>
+    </testcase>
+    <testcase name="QkNormMatchesDetBitExact" file="./../unittest/unittest_hvx_softmax.cpp" line="875" status="run" result="completed" time="0.056" timestamp="2026-10-12T15:56:32.051" classname="HvxM1Ops">
+      <failure message="./../unittest/unittest_hvx_softmax.cpp:890&#x0A;Expected equality of these values:&#x0A;  bad_y&#x0A;    Which is: 64&#x0A;  0&#x0A;32 heads: y differs&#x0A;" type=""><![CDATA[./../unittest/unittest_hvx_softmax.cpp:890
+Expected equality of these values:
+  bad_y
+    Which is: 64
+  0
+32 heads: y differs
+]]></failure>
+      <failure message="./../unittest/unittest_hvx_softmax.cpp:890&#x0A;Expected equality of these values:&#x0A;  bad_y&#x0A;    Which is: 64&#x0A;  0&#x0A;8 heads: y differs&#x0A;" type=""><![CDATA[./../unittest/unittest_hvx_softmax.cpp:890
+Expected equality of these values:
+  bad_y
+    Which is: 64
+  0
+8 heads: y differs
+]]></failure>
+    </testcase>
+    <testcase name="Rope64MatchesDetBitExact" file="./../unittest/unittest_hvx_softmax.cpp" line="920" status="run" result="completed" time="0.064" timestamp="2026-10-12T15:56:32.108" classname="HvxM1Ops" />
+    <testcase name="ConvGateM1MatchesDetBitExact" file="./../unittest/unittest_hvx_softmax.cpp" line="959" status="run" result="completed" time="0.055" timestamp="2026-10-12T15:56:32.172" classname="HvxM1Ops">
+      <failure message="./../unittest/unittest_hvx_softmax.cpp:985&#x0A;Expected equality of these values:&#x0A;  bad_out&#x0A;    Which is: 229&#x0A;  0&#x0A;conv1d + gate differs from the spec&#x0A;" type=""><![CDATA[./../unittest/unittest_hvx_softmax.cpp:985
+Expected equality of these values:
+  bad_out
+    Which is: 229
+  0
+conv1d + gate differs from the spec
+]]></failure>
+    </testcase>
+    <testcase name="RouterTopkMatchesDetBitExact" file="./../unittest/unittest_hvx_softmax.cpp" line="1001" status="run" result="completed" time="0.106" timestamp="2026-10-12T15:56:32.227" classname="HvxM1Ops" />
+  </testsuite>
+  <testsuite name="HvxFcQ4" tests="5" failures="0" disabled="0" skipped="0" errors="0" time="5.192" timestamp="2026-10-12T15:56:32.334">
+    <testcase name="MatchesSpecBitExact" file="./../unittest/unittest_hvx_softmax.cpp" line="1138" status="run" result="completed" time="0.482" timestamp="2026-10-12T15:56:32.334" classname="HvxFcQ4" />
+    <testcase name="NativeMatchesSpec" file="./../unittest/unittest_hvx_softmax.cpp" line="1183" status="run" result="completed" time="0.471" timestamp="2026-10-12T15:56:32.817" classname="HvxFcQ4" />
+    <testcase name="SmallOpsMatchSpec" file="./../unittest/unittest_hvx_softmax.cpp" line="1233" status="run" result="completed" time="0.836" timestamp="2026-10-12T15:56:33.288" classname="HvxFcQ4" />
+    <testcase name="ScalarDivide" file="./../unittest/unittest_hvx_softmax.cpp" line="1307" status="run" result="completed" time="3.346" timestamp="2026-10-12T15:56:34.125" classname="HvxFcQ4" />
+    <testcase name="SfProbe" file="./../unittest/unittest_hvx_softmax.cpp" line="1395" status="run" result="completed" time="0.055" timestamp="2026-10-12T15:56:37.471" classname="HvxFcQ4" />
+  </testsuite>
+  <testsuite name="HvxExp" tests="4" failures="0" disabled="0" skipped="0" errors="0" time="0.22" timestamp="2026-10-12T15:56:37.527">
+    <testcase name="RejectsNonVectorLength" file="./../unittest/unittest_hvx_softmax.cpp" line="1574" status="run" result="completed" time="0.056" timestamp="2026-10-12T15:56:37.527" classname="HvxExp" />
+    <testcase name="MatchesDoubleOverTheNormalRange" file="./../unittest/unittest_hvx_softmax.cpp" line="1583" status="run" result="completed" time="0.05" timestamp="2026-10-12T15:56:37.584" classname="HvxExp" />
+    <testcase name="ExactlyOneAtZero" file="./../unittest/unittest_hvx_softmax.cpp" line="1610" status="run" result="completed" time="0.061" timestamp="2026-10-12T15:56:37.634" classname="HvxExp" />
+    <testcase name="FlushesFarNegativeToZero" file="./../unittest/unittest_hvx_softmax.cpp" line="1622" status="run" result="completed" time="0.051" timestamp="2026-10-12T15:56:37.696" classname="HvxExp" />
+  </testsuite>
+  <testsuite name="HvxSoftmax" tests="11" failures="0" disabled="0" skipped="0" errors="0" time="0.622" timestamp="2026-10-12T15:56:37.748">
+    <testcase name="RejectsLengthMismatch" file="./../unittest/unittest_hvx_softmax.cpp" line="1640" status="run" result="completed" time="0.06" timestamp="2026-10-12T15:56:37.748" classname="HvxSoftmax" />
+    <testcase name="MatchesDoubleForOneFullRow" file="./../unittest/unittest_hvx_softmax.cpp" line="1651" status="run" result="completed" time="0.058" timestamp="2026-10-12T15:56:37.808" classname="HvxSoftmax" />
+    <testcase name="IsInvariantToAConstantShift" file="./../unittest/unittest_hvx_softmax.cpp" line="1677" status="run" result="completed" time="0.059" timestamp="2026-10-12T15:56:37.867" classname="HvxSoftmax" />
+    <testcase name="SpreadsUniformlyForEqualInputs" file="./../unittest/unittest_hvx_softmax.cpp" line="1707" status="run" result="completed" time="0.059" timestamp="2026-10-12T15:56:37.927" classname="HvxSoftmax" />
+    <testcase name="CollapsesOntoADominantElement" file="./../unittest/unittest_hvx_softmax.cpp" line="1722" status="run" result="completed" time="0.056" timestamp="2026-10-12T15:56:37.987" classname="HvxSoftmax" />
+    <testcase name="HandlesRowLengthsThatAreNotWholeVectors" file="./../unittest/unittest_hvx_softmax.cpp" line="1740" status="run" result="completed" time="0.053" timestamp="2026-10-12T15:56:38.043" classname="HvxSoftmax" />
+    <testcase name="DoesNotWritePastTheEndOfTheBuffer" file="./../unittest/unittest_hvx_softmax.cpp" line="1769" status="run" result="completed" time="0.052" timestamp="2026-10-12T15:56:38.096" classname="HvxSoftmax" />
+    <testcase name="KeepsRowsIndependent" file="./../unittest/unittest_hvx_softmax.cpp" line="1787" status="run" result="completed" time="0.052" timestamp="2026-10-12T15:56:38.149" classname="HvxSoftmax" />
+    <testcase name="MatchesOutOfPlaceWhenComputedInPlace" file="./../unittest/unittest_hvx_softmax.cpp" line="1818" status="run" result="completed" time="0.055" timestamp="2026-10-12T15:56:38.202" classname="HvxSoftmax" />
+    <testcase name="HandlesANegativeScale" file="./../unittest/unittest_hvx_softmax.cpp" line="1844" status="run" result="completed" time="0.058" timestamp="2026-10-12T15:56:38.257" classname="HvxSoftmax" />
+    <testcase name="LeavesRowsBeforeTheRangeAlone" file="./../unittest/unittest_hvx_softmax.cpp" line="1868" status="run" result="completed" time="0.054" timestamp="2026-10-12T15:56:38.316" classname="HvxSoftmax" />
+  </testsuite>
+  <testsuite name="HvxSoftmaxBlocked" tests="2" failures="0" disabled="0" skipped="0" errors="0" time="0.44" timestamp="2026-10-12T15:56:38.371">
+    <testcase name="MatchesHostModelOverTheShapeMatrix" file="./../unittest/unittest_hvx_softmax.cpp" line="2038" status="run" result="completed" time="0.385" timestamp="2026-10-12T15:56:38.371" classname="HvxSoftmaxBlocked" />
+    <testcase name="RejectsBadShapes" file="./../unittest/unittest_hvx_softmax.cpp" line="2081" status="run" result="completed" time="0.055" timestamp="2026-10-12T15:56:38.756" classname="HvxSoftmaxBlocked" />
+  </testsuite>
+</testsuites>

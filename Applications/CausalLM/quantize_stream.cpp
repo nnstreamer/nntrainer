@@ -56,6 +56,7 @@ struct QuantizationPlan {
    *  --moe_dtype so both quantizers accept the same options. */
   DType moe_dtype;
   ml::train::ISA target_isa;
+  DType router_dtype = DType::FP32;
 };
 
 struct Qwen3MoePlan {
@@ -471,6 +472,12 @@ size_t quantizedSize(DType dtype, size_t rows, size_t columns, bool repack,
     // byte count -- a 32x32 tile is 512 bytes either way -- plus a second f32
     // per output channel for the column sum the matmul needs and cannot
     // cheaply recompute from packed nibbles.
+    if (rows == 0 || columns == 0 || rows % 32 || columns % 32 ||
+        rows > std::numeric_limits<uint32_t>::max() ||
+        columns > std::numeric_limits<uint32_t>::max()) {
+      throw std::invalid_argument(name + " QS4CX_WH dimensions must be nonzero "
+                                         "multiples of 32 that fit uint32");
+    }
     return checkedMultiply(rows, qs4cxRowBytes(columns) + 2 * sizeof(float),
                            name);
   default:
@@ -494,22 +501,29 @@ public:
    *        neither stream -- see expectedInputBytes()
    * @param source_tensors the input's tensors in payload order when it is a
    *        .safetensors, else null -- see expectSourceTensor()
+   * @param tensor_buffer_bytes FP32 block budget; smaller budgets also allow
+   *        tests to compare blocked and whole-tensor serialization cheaply
    */
   TensorWriter(std::ifstream &input, std::ofstream &output,
                ml::train::ISA target_isa, size_t source_bytes = 0,
                bool dry_run = false,
-               const std::vector<SourceTensor> *source_tensors = nullptr) :
+               const std::vector<SourceTensor> *source_tensors = nullptr,
+               size_t tensor_buffer_bytes = MAX_TENSOR_BUFFER_BYTES) :
     input_(input),
     output_(output),
     target_isa_(target_isa),
     source_bytes_(source_bytes),
     dry_run_(dry_run),
-    source_tensors_(source_tensors) {}
+    source_tensors_(source_tensors),
+    tensor_buffer_bytes_(tensor_buffer_bytes) {}
 
   bool isDryRun() const { return dry_run_; }
 
   /** @brief FP32 source bytes the layout walk consumed (dry run only) */
   size_t expectedInputBytes() const { return expected_input_bytes_; }
+
+  /** @brief FC source ranges for tools/htp/prepare_fc_wh.py. */
+  const json &preparedFcWeights() const { return prepared_fc_weights_; }
 
   void copyFp32(size_t elements, const std::string &name) {
     const size_t bytes = checkedMultiply(elements, sizeof(float), name);
@@ -574,7 +588,7 @@ public:
 
     const size_t bytes_per_row = tensorBytes(1, columns, name);
     const size_t rows_per_block =
-      std::max<size_t>(1, MAX_TENSOR_BUFFER_BYTES / bytes_per_row);
+      std::max<size_t>(1, tensor_buffer_bytes_ / bytes_per_row);
 
     for (size_t row = 0; row < rows;) {
       const size_t block_rows = std::min(rows_per_block, rows - row);
@@ -612,21 +626,9 @@ public:
       return;
     }
 
-    // A WH tile spans 32 inputs and 32 outputs and the tiles come out
-    // k-major, so a weight written in row blocks would need its output
-    // reordered afterwards. Every weight this dtype is for fits the buffer
-    // (the largest is 29 MB against 64), so the blocked path is refused
-    // rather than built.
-    // ponytail: the fix if a model ever needs it is to hold the whole WH
-    // image -- K*N/2 bytes, 3.5 MB for the largest -- and fill it block by
-    // block, not to change the tile order.
-    if (dtype == DType::QS4CX_WH && source_bytes > MAX_TENSOR_BUFFER_BYTES) {
-      throw std::invalid_argument(
-        name + " is " + std::to_string(source_bytes) + " bytes, over the " +
-        std::to_string(MAX_TENSOR_BUFFER_BYTES) +
-        " QS4CX_WH can write in one pass. Quantize this tensor as QS4CX.");
-    }
-    if (source_bytes <= MAX_TENSOR_BUFFER_BYTES) {
+    if (dtype == DType::QS4CX_WH)
+      recordPreparedFc(input_size, output_size, name);
+    if (source_bytes <= tensor_buffer_bytes_) {
       std::vector<float> source(tensorElements(input_size, output_size, name));
       readFloats(source, name);
       std::vector<float> transposed(source.size());
@@ -666,6 +668,28 @@ public:
   }
 
 private:
+  void recordPreparedFc(size_t K, size_t N, const std::string &name) {
+    const size_t split = name.find('_');
+    if (name.compare(0, 5, "layer") != 0 || split == std::string::npos ||
+        split == 5 ||
+        !std::all_of(name.begin() + 5, name.begin() + split,
+                     [](unsigned char c) { return std::isdigit(c); }))
+      return;
+    const std::string role = name.substr(split + 1);
+    const bool conv = role == "conv_in_proj" || role == "conv_out_proj";
+    if (!conv && role != "ffn_up" && role != "ffn_gate" && role != "ffn_down")
+      return;
+    const std::streampos offset = output_.tellp();
+    if (offset < 0)
+      throw std::runtime_error("Failed to determine output offset for " + name);
+    prepared_fc_weights_.push_back(
+      {{"file_offset", static_cast<uint64_t>(offset)},
+       {"K", K},
+       {"N", N},
+       {"name", name},
+       {"layer_type", conv ? "conv_block" : "dense_ffn"}});
+  }
+
   /**
    * @brief One tensor read here is one tensor the converter wrote.
    *
@@ -785,9 +809,17 @@ private:
               checkedMultiply(destination.size(), sizeof(float), name), name);
   }
 
+  /** @brief Destination of a column block in a full k-major WH image. */
+  struct WhDestination {
+    std::streampos tensor_start;
+    size_t full_columns;
+    size_t column_begin;
+  };
+
   void writeQuantized(const std::vector<float> &source, size_t rows,
                       size_t columns, DType dtype, bool repack,
-                      const std::string &name) {
+                      const std::string &name,
+                      const WhDestination *wh_destination = nullptr) {
     const size_t output_size =
       quantizedSize(dtype, rows, columns, repack, name);
     if (dtype == DType::FP32) {
@@ -891,7 +923,24 @@ private:
       std::vector<uint8_t> wh(nntrainer::whBytes(K, N));
       nntrainer::whPack(rm.data(), static_cast<uint32_t>(K),
                         static_cast<uint32_t>(N), wh.data());
-      writeBytes(reinterpret_cast<const char *>(wh.data()), wh.size(), name);
+      if (wh_destination) {
+        // Output-channel blocks are independent quantizations. Scatter their
+        // complete WH tiles to the final k-major offsets rather than append
+        // block-major images; no whole-weight buffer is needed.
+        const size_t tile_row_bytes = (N / 32) * nntrainer::WH_TILE_BYTES;
+        for (size_t kt = 0; kt < K / 32; ++kt) {
+          const size_t tile_offset = kt * (wh_destination->full_columns / 32) +
+                                     wh_destination->column_begin / 32;
+          output_.seekp(wh_destination->tensor_start +
+                        static_cast<std::streamoff>(tile_offset *
+                                                    nntrainer::WH_TILE_BYTES));
+          if (!output_)
+            throw std::runtime_error("Failed to seek WH output for " + name);
+          writeBytes(wh.data() + kt * tile_row_bytes, tile_row_bytes, name);
+        }
+      } else {
+        writeBytes(wh.data(), wh.size(), name);
+      }
       return;
     }
 
@@ -940,17 +989,21 @@ private:
     // QS4CX keeps row_alignment 1: its scale is per output channel over the
     // full input width, so rows are independent and any block size is exact.
     size_t row_alignment = 1;
-    if (dtype == DType::Q4_0)
+    if (dtype == DType::Q4_0 || dtype == DType::QS4CX_WH)
       row_alignment = 32;
     else if (dtype == DType::Q4_K)
       row_alignment = 8;
 
     const size_t target_row_bytes = tensorBytes(1, input_size, name);
     size_t rows_per_block =
-      std::max(row_alignment, MAX_TENSOR_BUFFER_BYTES / target_row_bytes);
+      std::max(row_alignment, tensor_buffer_bytes_ / target_row_bytes);
     rows_per_block -= rows_per_block % row_alignment;
     rows_per_block = std::min(rows_per_block, output_size);
 
+    const std::streampos wh_start = output_.tellp();
+    if (dtype == DType::QS4CX_WH && wh_start < 0)
+      throw std::runtime_error("Failed to determine WH output offset for " +
+                               name);
     std::vector<float> strip(rows_per_block);
     for (size_t output_begin = 0; output_begin < output_size;) {
       const size_t block_rows =
@@ -975,8 +1028,16 @@ private:
         }
       }
 
-      writeQuantized(transposed, block_rows, input_size, dtype, true, name);
+      const WhDestination destination{wh_start, output_size, output_begin};
+      writeQuantized(transposed, block_rows, input_size, dtype, true, name,
+                     dtype == DType::QS4CX_WH ? &destination : nullptr);
       output_begin += block_rows;
+    }
+    if (dtype == DType::QS4CX_WH) {
+      output_.seekp(wh_start + static_cast<std::streamoff>(
+                                 nntrainer::whBytes(input_size, output_size)));
+      if (!output_)
+        throw std::runtime_error("Failed to seek WH scales for " + name);
     }
     flushQs4cxScales(dtype, name);
 
@@ -996,12 +1057,15 @@ private:
   size_t expected_input_bytes_ = 0;
   /** The input's tensors in payload order, or null for a .bin. */
   const std::vector<SourceTensor> *source_tensors_ = nullptr;
+  size_t tensor_buffer_bytes_;
   /** How many of them the layout walk has consumed. */
   size_t source_cursor_ = 0;
   /** QS4CX_WH per-output-channel column sums awaiting flushQs4cxScales() */
   std::vector<float> pending_colsums_;
   /** QS4CX per-channel scales awaiting flushQs4cxScales() */
   std::vector<float> pending_scales_;
+  /** Actual output offsets, published only after successful conversion. */
+  json prepared_fc_weights_ = json::array();
 };
 
 void validateSourceConfig(const json &nntr_cfg) {
@@ -1015,6 +1079,7 @@ void validateSourceConfig(const json &nntr_cfg) {
   requireFp32("fc_layer_dtype");
   requireFp32("embedding_dtype");
   requireFp32("lmhead_dtype");
+  requireFp32("router_dtype");
   if (nntr_cfg.contains("model_tensor_type") &&
       upper(nntr_cfg["model_tensor_type"].get<std::string>()) != "FP32-FP32") {
     throw std::runtime_error(
@@ -1200,7 +1265,8 @@ void writeGemma4Moe(TensorWriter &writer, const Gemma4MoePlan &model,
  * All three have to agree; the converter is the authority when they differ,
  * because it produced the bytes.
  */
-void writeLfm2Moe(TensorWriter &writer, const Lfm2MoePlan &model,
+template <typename Writer>
+void writeLfm2Moe(Writer &writer, const Lfm2MoePlan &model,
                   const QuantizationPlan &quant) {
   writer.writeEmbedding(model.vocab_size, model.hidden_size,
                         quant.embedding_dtype, "embedding0");
@@ -1252,13 +1318,9 @@ void writeLfm2Moe(TensorWriter &writer, const Lfm2MoePlan &model,
       writer.writeFc(model.intermediate_size, model.hidden_size, quant.fc_dtype,
                      prefix + "_ffn_down");
     } else {
-      // Router gate and expert bias are never quantized: Lfm2MoELayer::save
-      // forces both to DataType::NONE regardless of the requested dtype, and
-      // the gate is [hidden, num_experts] whose width is not a multiple of 32
-      // anyway.
-      writer.copyFp32(tensorElements(model.hidden_size, model.num_experts,
-                                     prefix + "_router"),
-                      prefix + "_router");
+      // Router dtype is independent of the expert and dense FC dtypes.
+      writer.writeFc(model.hidden_size, model.num_experts, quant.router_dtype,
+                     prefix + "_router");
       writer.copyFp32(model.num_experts, prefix + "_expert_bias");
 
       for (size_t expert = 0; expert < model.num_experts; ++expert) {
@@ -1316,10 +1378,12 @@ std::string defaultOutputBin(const std::string &input_bin,
 std::filesystem::path
 defaultOutputDirectory(const std::filesystem::path &model_dir,
                        const QuantizationPlan &quant) {
-  return model_dir / ("quantized_fc_" + lower(dtypeName(quant.fc_dtype)) +
-                      "_embd_" + lower(dtypeName(quant.embedding_dtype)) +
-                      "_lmhead_" + lower(dtypeName(quant.lmhead_dtype)) +
-                      "_isa_" + lower(isaName(quant.target_isa)));
+  return model_dir /
+         ("quantized_fc_" + lower(dtypeName(quant.fc_dtype)) + "_embd_" +
+          lower(dtypeName(quant.embedding_dtype)) + "_lmhead_" +
+          lower(dtypeName(quant.lmhead_dtype)) + "_isa_" +
+          lower(isaName(quant.target_isa)) +
+          (quant.router_dtype == DType::FP32 ? "" : "_router_qs4cx"));
 }
 
 void copyAuxiliaryFiles(const std::filesystem::path &model_dir,
@@ -1356,6 +1420,7 @@ void writeOutputConfig(const std::filesystem::path &model_dir,
   // value) and dispatches Q4_0 kernels against them -- a byte-layout
   // mismatch, not just a missed optimization.
   nntr_cfg["moe_layer_dtype"] = dtypeName(quant.moe_dtype);
+  nntr_cfg["router_dtype"] = dtypeName(quant.router_dtype);
 
   const std::filesystem::path output_config =
     std::filesystem::equivalent(model_dir, output_dir)
@@ -1368,6 +1433,129 @@ void writeOutputConfig(const std::filesystem::path &model_dir,
   file << nntr_cfg.dump(4) << '\n';
 }
 
+/** Copy an already quantized LFM2 file, replacing only its FP32 routers.
+ * Other tensor payloads remain byte-identical, including QS2CX_WH headers.
+ * Reuse the model's tensor walk so a new layout cannot silently skip weights.
+ */
+class RouterOnlyWriter {
+public:
+  RouterOnlyWriter(std::ifstream &input, std::ofstream &output) :
+    input_(input), output_(output), buffer_(4u * 1024u * 1024u) {}
+  bool isDryRun() const { return false; }
+  void copyFp32(size_t count, const std::string &name) {
+    copy(checkedMultiply(count, sizeof(float), name), name);
+  }
+  void writeEmbedding(size_t rows, size_t cols, DType dtype,
+                      const std::string &name) {
+    copy(quantizedSize(dtype, rows, cols, false, name), name);
+  }
+  void writeFc(size_t K, size_t N, DType dtype, const std::string &name) {
+    if (name.size() >= 7 && name.compare(name.size() - 7, 7, "_router") == 0) {
+      TensorWriter writer(input_, output_, ml::train::ISA::DEFAULT, 0, false);
+      writer.writeFc(K, N, DType::QS4CX, name);
+      return;
+    }
+    if (dtype == DType::QS2CX_WH) {
+      if (!K || !N || K % 32 || N % 32)
+        throw std::invalid_argument("Invalid QS2CX_WH shape: " + name);
+      copy(checkedMultiply(K, N, name) / 4 + 4 + checkedMultiply(N, 8, name),
+           name);
+    } else {
+      copy(quantizedSize(dtype, N, K, true, name), name);
+    }
+  }
+  void requireEndOfFile() {
+    if (input_.peek() != std::char_traits<char>::eof() || input_.bad())
+      throw std::runtime_error("Router conversion: unexpected trailing input");
+  }
+
+private:
+  void copy(size_t bytes, const std::string &name) {
+    while (bytes) {
+      const size_t n = std::min(bytes, buffer_.size());
+      input_.read(buffer_.data(), n);
+      if (input_.gcount() != static_cast<std::streamsize>(n))
+        throw std::runtime_error("Router conversion: truncated " + name);
+      output_.write(buffer_.data(), n);
+      if (!output_)
+        throw std::runtime_error("Router conversion: write failed at " + name);
+      bytes -= n;
+    }
+  }
+  std::ifstream &input_;
+  std::ofstream &output_;
+  std::vector<char> buffer_;
+};
+
+int convertRouterOnly(const std::filesystem::path &model_dir,
+                      std::filesystem::path output_dir, std::string output_bin,
+                      const json &cfg, json nntr_cfg) {
+  const auto model = makeLfm2MoePlan(cfg);
+  if (nntr_cfg.value("router_dtype", std::string("FP32")) != "FP32")
+    throw std::invalid_argument("--router_only requires an FP32 source router");
+  const auto source =
+    model_dir / nntr_cfg.at("model_file_name").get<std::string>();
+  if (source.extension() != ".bin")
+    throw std::invalid_argument("--router_only requires a .bin model");
+  if (output_dir.empty())
+    output_dir = model_dir / "router_qs4cx";
+  if (output_bin.empty())
+    output_bin = source.stem().string() + "_router_qs4cx.bin";
+  if (std::filesystem::path(output_bin).filename() != output_bin)
+    throw std::invalid_argument("output_bin must be a filename");
+  std::filesystem::create_directories(output_dir);
+  const auto target = output_dir / output_bin;
+  const auto temporary = output_dir / (output_bin + ".partial");
+  const auto config_tmp = output_dir / "nntr_config.json.partial";
+  if (std::filesystem::exists(target) || std::filesystem::exists(temporary) ||
+      std::filesystem::exists(config_tmp) ||
+      std::filesystem::exists(output_dir / "nntr_config.json"))
+    throw std::invalid_argument(
+      "Router conversion requires unused output files");
+  auto storedType = [&](const char *key, const std::string &fallback) {
+    const auto value = upper(nntr_cfg.value(key, fallback));
+    return value == "QS2CX_WH" ? DType::QS2CX_WH : parseDType(value);
+  };
+  const auto fc = nntr_cfg.at("fc_layer_dtype").get<std::string>();
+  const auto emb = nntr_cfg.at("embedding_dtype").get<std::string>();
+  const QuantizationPlan plan{
+    storedType("fc_layer_dtype", fc), storedType("embedding_dtype", emb),
+    storedType("lmhead_dtype", emb),  storedType("moe_layer_dtype", fc),
+    ml::train::ISA::DEFAULT,          DType::QS4CX};
+  if (model.tied_embeddings && plan.embedding_dtype != plan.lmhead_dtype)
+    throw std::invalid_argument("Tied embedding and LM head dtypes disagree");
+  std::ifstream input(source, std::ios::binary);
+  if (!input)
+    throw std::runtime_error("Cannot read " + source.string());
+  try {
+    std::ofstream output(temporary, std::ios::binary);
+    if (!output)
+      throw std::runtime_error("Cannot write " + temporary.string());
+    RouterOnlyWriter writer(input, output);
+    writeLfm2Moe(writer, model, plan);
+    output.close();
+    if (!output)
+      throw std::runtime_error("Failed to finalize router model");
+    copyAuxiliaryFiles(model_dir, output_dir);
+    nntr_cfg["router_dtype"] = "QS4CX";
+    nntr_cfg["model_file_name"] = output_bin;
+    std::ofstream config(config_tmp);
+    config << nntr_cfg.dump(4) << '\n';
+    config.close();
+    if (!config)
+      throw std::runtime_error("Failed to write router config");
+    std::filesystem::rename(temporary, target);
+    std::filesystem::rename(config_tmp, output_dir / "nntr_config.json");
+  } catch (...) {
+    std::error_code ignored;
+    std::filesystem::remove(temporary, ignored);
+    std::filesystem::remove(config_tmp, ignored);
+    throw;
+  }
+  std::cout << "Router QS4CX model: " << target << '\n';
+  return EXIT_SUCCESS;
+}
+
 void printUsage(const char *program) {
   std::cout
     << "Usage: " << program << " <model_path> [options]\n\n"
@@ -1378,6 +1566,9 @@ void printUsage(const char *program) {
        "subdirectory)\n"
     << "  --fc_dtype <type>     Attention/expert dtype (default: Q4_0)\n"
     << "  --moe_dtype <type>    MoE expert dtype (default: the fc dtype)\n"
+    << "  --router_dtype <type> LFM2 router: FP32 or QS4CX (default: FP32)\n"
+    << "  --router_only        Convert only FP32 routers of an existing LFM2 "
+       ".bin to QS4CX\n"
     << "  --embd_dtype <type>   Embedding dtype (default: FP32)\n"
     << "  --lmhead_dtype <type> LM head dtype (default: embedding dtype)\n"
     << "  --isa <target>        DEFAULT, X86, or ARM (default: DEFAULT)\n"
@@ -1389,6 +1580,8 @@ void printUsage(const char *program) {
        "Gemma4ForCausalLM,\n"
     << "               Gemma4ForConditionalGeneration\n"
     << "Supported dtypes: FP32, Q4_0, Q4_K, Q6_K, QS4CX, QS4CX_WH\n"
+    << "QS4CX_WH conv/dense FC weights emit htp_fc_manifest.json for "
+       "tools/htp/prepare_fc_wh.py.\n"
     << "QS4CX_WH is QS4CX pre-arranged into HMX weight tiles: it loads "
        "without\n"
     << "the on-device conversion that costs 48% of prefill, and no CPU "
@@ -1416,6 +1609,8 @@ int run(int argc, char **argv) {
   std::string embedding_dtype = "FP32";
   std::string lmhead_dtype;
   std::string moe_dtype;
+  std::string router_dtype = "FP32";
+  bool router_only = false;
   std::string target_isa = "DEFAULT";
   std::string output_bin;
   std::filesystem::path target_config;
@@ -1444,6 +1639,10 @@ int run(int argc, char **argv) {
       lmhead_dtype = requireValue(argument);
     else if (argument == "--moe_dtype")
       moe_dtype = requireValue(argument);
+    else if (argument == "--router_only")
+      router_only = true;
+    else if (argument == "--router_dtype")
+      router_dtype = requireValue(argument);
     else if (argument == "--isa")
       target_isa = requireValue(argument);
     else if (argument == "--output_bin")
@@ -1460,6 +1659,16 @@ int run(int argc, char **argv) {
 
   const json cfg = readJson(model_dir / "config.json");
   json nntr_cfg = readJson(model_dir / "nntr_config.json");
+  if (router_only) {
+    for (const auto &option : given)
+      if (option != "--output" && option != "-o" && option != "--output_bin" &&
+          option != "--router_dtype")
+        throw std::invalid_argument("--router_only cannot combine with " +
+                                    option);
+    if (given.count("--router_dtype") && upper(router_dtype) != "QS4CX")
+      throw std::invalid_argument("--router_only targets QS4CX");
+    return convertRouterOnly(model_dir, output_dir, output_bin, cfg, nntr_cfg);
+  }
   validateSourceConfig(nntr_cfg);
   const std::string architecture = getArchitecture(cfg);
   const bool is_qwen3_moe = architecture == "Qwen3MoeForCausalLM";
@@ -1505,6 +1714,7 @@ int run(int argc, char **argv) {
     take("embedding_dtype", "--embd_dtype", embedding_dtype);
     take("lmhead_dtype", "--lmhead_dtype", lmhead_dtype);
     take("moe_layer_dtype", "--moe_dtype", moe_dtype);
+    take("router_dtype", "--router_dtype", router_dtype);
     if (requested.contains("model_file_name") && output_bin.empty())
       output_bin = requested["model_file_name"].get<std::string>();
     if (requested.contains("moe_cache_size"))
@@ -1519,8 +1729,14 @@ int run(int argc, char **argv) {
   if (moe_dtype.empty())
     moe_dtype = fc_dtype;
   const QuantizationPlan quant{
-    parseDType(fc_dtype), parseDType(embedding_dtype), parseDType(lmhead_dtype),
-    parseDType(moe_dtype), parseIsa(target_isa)};
+    parseDType(fc_dtype),     parseDType(embedding_dtype),
+    parseDType(lmhead_dtype), parseDType(moe_dtype),
+    parseIsa(target_isa),     parseDType(router_dtype)};
+
+  if ((quant.router_dtype != DType::FP32 &&
+       quant.router_dtype != DType::QS4CX) ||
+      (!is_lfm2_moe && quant.router_dtype != DType::FP32))
+    throw std::invalid_argument("Router quantization supports LFM2 QS4CX only");
 
   if (tied_embeddings && quant.embedding_dtype != quant.lmhead_dtype) {
     throw std::invalid_argument(
@@ -1684,6 +1900,27 @@ int run(int argc, char **argv) {
 
   const uintmax_t input_size = source_bytes;
   const uintmax_t output_size = std::filesystem::file_size(output_path);
+  if (!writer.preparedFcWeights().empty()) {
+    // The walk has checked EOF and the model/config writes have succeeded.
+    // Never publish a manifest for a partial or failed conversion.
+    const auto manifest_path =
+      output_path.parent_path() / "htp_fc_manifest.json";
+    const auto temporary_path = manifest_path.string() + ".tmp";
+    const json manifest = {{"schema_version", 1},
+                           {"dtype", "QS4CX_WH"},
+                           {"model_size", output_size},
+                           {"weights", writer.preparedFcWeights()}};
+    std::ofstream manifest_file(temporary_path, std::ios::trunc);
+    manifest_file << manifest.dump(2) << '\n';
+    manifest_file.close();
+    if (!manifest_file)
+      throw std::runtime_error("Failed to write " + temporary_path);
+    // std::filesystem::rename cannot replace an existing file on Windows.
+    if (std::filesystem::exists(manifest_path))
+      std::filesystem::remove(manifest_path);
+    std::filesystem::rename(temporary_path, manifest_path);
+    std::cout << "  Offline HTP FC manifest: " << manifest_path << '\n';
+  }
   const double ratio = input_size == 0
                          ? 0.0
                          : 100.0 * static_cast<double>(output_size) /

@@ -11,7 +11,7 @@ lfm2_moe_layer = shared_library(
     'lfm2_moe_layer',
     [meson.current_source_dir() / 'lfm2_moe_layer.cpp'],
     include_directories: [causallm_layer_inc, lfm2_moe_inc],
-    dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
+    dependencies: [nntrainer_dep, nntrainer_ccapi_dep, causallm_rms_norm_dep],
     install: true,
     install_dir: application_install_dir
 )

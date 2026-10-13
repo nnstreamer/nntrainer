@@ -1,0 +1,8 @@
+{
+  "topic": "Cache router RMSNorm gamma once per prepare",
+  "host": "19 publication transactions,15 cookie cases,32 exact Q8 shapes,lease/lifetime/thread/exception checks:normal and ASan/UBSanPASS",
+  "dsp_build": "Clean publication v81 -O3 -Wall -Werror PASS with accepted norm alignment also present",
+  "device_evidence": "gamma-device-abba.json; unchanged2048 weight registry",
+  "runtime_parity": "Cumulative v13 matches all132 baseline raw files",
+  "build_log_sha256": "b2584e2d90d2c544f366732ba8f4ad0c97abf6f139463064635616729839e6d1"
+}

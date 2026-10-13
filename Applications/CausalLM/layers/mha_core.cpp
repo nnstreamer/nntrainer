@@ -30,6 +30,10 @@ static std::mutex rope_init_mtx;
 #include <mha_core.h>
 
 #include "htp_decode_hook.h"
+#include "htp_strict.h"
+#ifdef ENABLE_HEXKL
+#include <htp_rope_prefill.h>
+#endif
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
@@ -124,7 +128,8 @@ MHACoreLayer::MHACoreLayer() :
     props::UseRope(), props::MaxPositionEmbeddings(), props::UseSink(),
     props::RopeScalingType(), props::RopeScalingFactor(),
     props::RopePartialRotaryFactor(), props::RopeScalingMaxPositionEmbeddings(),
-    props::AttnLogitSoftcapping(), props::IsCausal(), props::KvCacheQuant()),
+    props::AttnLogitSoftcapping(), props::IsCausal(), props::KvCacheQuant(),
+    props::PrefillRopeFused()),
   sm(nntrainer::ActivationType::ACT_SOFTMAX),
   epsilon(1e-3),
   cache_index(0),
@@ -245,6 +250,13 @@ void MHACoreLayer::finalize(nntrainer::InitLayerContext &context) {
                                   kind + "\"");
     }
   }
+
+  // The resident interface also supports exact FP16 tiles on HTP. The
+  // layer's existing handle/synced-row lifecycle handles rewind and reset.
+  // Opt in while validating this path; unsupported backends keep raw FP16.
+  const char *native_kv = std::getenv("NNTR_HTP_ATTN_RESIDENT_F16");
+  if (kv_cache_quant_kind < 0 && native_kv && std::atoi(native_kv) != 0)
+    kv_cache_quant_kind = 16;
 
   if (!std::get<nntrainer::props::SkipPrefill>(*layer_impl_props).empty())
     skip_prefill =
@@ -1262,9 +1274,11 @@ bool MHACoreLayer::try_quantized_attention(
   io.commit(attention_output_step);
   if (!accel_logged_) {
     accel_logged_ = true;
-    ml_logi("mha_core: attention over the %s quantized KV cache on the "
+    ml_logi("mha_core: attention over the resident %s KV cache on the "
             "accelerator%s",
-            kv_cache_quant_kind == 0 ? "int8" : "int4",
+            kv_cache_quant_kind == 16  ? "fp16"
+            : kv_cache_quant_kind == 0 ? "int8"
+                                       : "int4",
             use_q2 ? " (row-blocked, fixed scales)" : "");
   }
   return true;
@@ -1316,12 +1330,31 @@ void MHACoreLayer::one_batch_incremental_forwarding(
   };
   const long long t_kv0 = host_trace ? now_us() : 0;
 
+  bool composite_prepared = false;
+  if (try_prefill_q8_composite(batch, from, to, query_step, key_step,
+                               value_step, b_cache_key_step, b_cache_value_step,
+                               attention_output_step, cache_key_dim,
+                               composite_prepared)) {
+    if (host_trace)
+      ml_logi("mha_core trace: rows=%u prepare_q8_composite_us=%lld", to - from,
+              now_us() - t_kv0);
+    return;
+  }
+  const bool rotate =
+    use_rope && !(std::get<props::PrefillRopeFused>(mha_core_props).get() &&
+                  query_step.height() > 1);
+  const bool fused_rope =
+    composite_prepared ||
+    try_fused_rope_qkv(query_step, key_step, value_step, b_cache_key_step,
+                       b_cache_value_step, cache_index);
   // append kcache with or without rotary embedding
-  apply_rotary_emb_tensor_v2(key_step, b_cache_key_step, head_dim, cache_index,
-                             !use_rope);
+  if (!fused_rope)
+    apply_rotary_emb_tensor_v2(key_step, b_cache_key_step, head_dim,
+                               cache_index, !rotate);
 
   // append vcache without rotary embedding
-  if (query_step.getDataType() == ml::train::TensorDim::DataType::FP32) {
+  if (!fused_rope &&
+      query_step.getDataType() == ml::train::TensorDim::DataType::FP32) {
     apply_rotary_emb_tensor_v2(value_step, b_cache_value_step, head_dim,
                                cache_index, true);
   } else if (query_step.getDataType() == ml::train::TensorDim::DataType::FP16) {
@@ -1339,7 +1372,7 @@ void MHACoreLayer::one_batch_incremental_forwarding(
     return;
 
   // apply rotary embedding for query
-  if (use_rope) {
+  if (rotate && !fused_rope) {
     apply_rotary_emb_tensor_v2(query_step, query_step, head_dim, cache_index,
                                false);
   }
@@ -1371,6 +1404,8 @@ void MHACoreLayer::one_batch_incremental_forwarding(
     return;
   }
 
+  if (htpStrict())
+    throw std::runtime_error("NNTR_HTP_STRICT: attention would use CPU");
   // out_ stores the output of Q * K
   nntrainer::Tensor out_(1, 1,
                          is_causal ? (calc_windowed_attn_index(cache_to) -
@@ -1424,14 +1459,22 @@ void MHACoreLayer::one_batch_incremental_forwarding(
     batch * cache_value_dim.getFeatureLen() + from * cache_value_dim.width(),
     true);
 
-  if (use_rope) {
+  const bool rotate =
+    use_rope && !(std::get<props::PrefillRopeFused>(mha_core_props).get() &&
+                  query_step.height() > 1);
+  const bool fused_rope =
+    try_fused_rope_qkv(query_step, key_step, value_step, b_cache_key_step,
+                       b_cache_value_step, _from);
+  if (rotate && !fused_rope) {
     apply_rotary_emb_tensor_v2(query_step, query_step, head_dim, _from, false);
   }
 
-  apply_rotary_emb_tensor_v2(key_step, b_cache_key_step, head_dim, _from,
-                             !use_rope);
+  if (!fused_rope)
+    apply_rotary_emb_tensor_v2(key_step, b_cache_key_step, head_dim, _from,
+                               !rotate);
 
-  if (query_step.getDataType() == ml::train::TensorDim::DataType::FP32) {
+  if (!fused_rope &&
+      query_step.getDataType() == ml::train::TensorDim::DataType::FP32) {
     apply_rotary_emb_tensor_v2(value_step, b_cache_value_step, head_dim, _from,
                                true);
   } else if (query_step.getDataType() == ml::train::TensorDim::DataType::FP16) {
@@ -1461,6 +1504,8 @@ void MHACoreLayer::one_batch_incremental_forwarding(
                                 attention_output_step, from, to, &sink_step)) {
     return;
   }
+  if (htpStrict())
+    throw std::runtime_error("NNTR_HTP_STRICT: sink attention would use CPU");
 
   nntrainer::Tensor out_(1, 1,
                          is_causal ? (((to - from) == 1)
@@ -1690,11 +1735,224 @@ void MHACoreLayer::_compute_yarn_parameters(int head_dim, float theta) {
   }
 }
 
+bool MHACoreLayer::try_prefill_q8_composite(
+  unsigned batch, unsigned from, unsigned to, nntrainer::Tensor &q,
+  nntrainer::Tensor &k, nntrainer::Tensor &v, nntrainer::Tensor &kc,
+  nntrainer::Tensor &vc, nntrainer::Tensor &out,
+  const ml::train::TensorDim &cache_dim, bool &prepared) {
+  prepared = false;
+#ifdef ENABLE_HEXKL
+  const char *enabled = std::getenv("NNTR_HTP_PREFILL_ATTN_COMPOSITE");
+  const char *prepare = std::getenv("NNTR_HTP_PREFILL_QKV_PREPARE");
+  const auto f32 = ml::train::TensorDim::DataType::FP32;
+  const auto f16 = ml::train::TensorDim::DataType::FP16;
+  const auto u16 = ml::train::TensorDim::DataType::UINT16;
+  if (!enabled || !std::atoi(enabled) || !prepare || !std::atoi(prepare) ||
+      !htpStrict() || !use_rope || skip_prefill || !is_causal || batch != 0u ||
+      from != 0u || to != 1024u || cache_index != 0u || head_dim != 64u ||
+      num_heads_Q != 32u || num_heads_KV != 8u ||
+      std::get<props::PrefillRopeFused>(mha_core_props).get() ||
+      kv_cache_quant_kind != 0 || q_cache_failed || !compute_ops_ ||
+      compute_ops_ != htpStrictOps() || !compute_ops_->supports_kv_cache_q() ||
+      compute_ops_->supports_kv_cache_q2() || attn_logit_softcapping != 0.0f ||
+      (local_window_size != 0u && local_window_size < to) ||
+      q_cache_handles.empty() || q_cache_synced.empty() ||
+      q_cache_handles[0] < 0 || cache_dim.batch() != 1u ||
+      cache_dim.channel() != 1u || cache_dim.width() != 512u ||
+      cache_dim.height() < to)
+    return false;
+  auto dense = [](const nntrainer::Tensor &t, unsigned width) {
+    return t.batch() == 1u && t.channel() == 1u && t.height() == 1024u &&
+           t.width() == width;
+  };
+  if (!dense(q, 2048u) || !dense(k, 512u) || !dense(v, 512u) ||
+      !dense(kc, 512u) || !dense(vc, 512u) || !dense(out, 2048u) ||
+      q.getDataType() != f32 || k.getDataType() != f32 ||
+      v.getDataType() != f32 || out.getDataType() != f32 ||
+      (kc.getDataType() != f16 && kc.getDataType() != u16) ||
+      (vc.getDataType() != f16 && vc.getDataType() != u16))
+    return false;
+  const unsigned maximum =
+    std::min(max_position_embeddings,
+             std::get<nntrainer::props::MaxTimestep>(mha_core_props).get());
+  if (maximum < to)
+    return false;
+  if (!freqs_fp32) {
+    const std::lock_guard<std::mutex> lock(rope_init_mtx);
+    if (!freqs_fp32)
+      precompute_freqs(head_dim, maximum, theta, false);
+  }
+  std::vector<float> cs(size_t(to) * 2u * head_dim);
+  for (unsigned r = 0; r < to; ++r) {
+    std::memcpy(cs.data() + size_t(r) * 2u * head_dim,
+                freqs_fp32->cos[r].data(), head_dim * sizeof(float));
+    std::memcpy(cs.data() + (size_t(r) * 2u + 1u) * head_dim,
+                freqs_fp32->sin[r].data(), head_dim * sizeof(float));
+  }
+  const auto result = nntrainer::htp_rope_q8_attention_prefill(
+    q_cache_handles[0], to, cs.data(), q.getData<float>(), k.getData<float>(),
+    v.getData<float>(), kc.getData<uint16_t>(), vc.getData<uint16_t>(),
+    out.getData<float>());
+  if (result == nntrainer::HtpPrefillAttentionResult::Unsupported)
+    return false;
+  prepared = true;
+  if (result == nntrainer::HtpPrefillAttentionResult::Prepared) {
+    ml_logw("mha_core: quantized KV cache attention failed; this layer stays "
+            "on the fp16 path");
+    release_quantized_cache();
+    q_cache_failed = true;
+    return false;
+  }
+  q_cache_synced[0] = to;
+  if (!accel_logged_) {
+    accel_logged_ = true;
+    ml_logi("mha_core: attention over the resident int8 KV cache on the "
+            "accelerator (prepare composite)");
+  }
+  return true;
+#else
+  (void)batch;
+  (void)from;
+  (void)to;
+  (void)q;
+  (void)k;
+  (void)v;
+  (void)kc;
+  (void)vc;
+  (void)out;
+  (void)cache_dim;
+  return false;
+#endif
+}
+
+bool MHACoreLayer::try_fused_rope_qkv(nntrainer::Tensor &q,
+                                      nntrainer::Tensor &k,
+                                      nntrainer::Tensor &v,
+                                      nntrainer::Tensor &kc,
+                                      nntrainer::Tensor &vc, unsigned from) {
+  const auto f32 = ml::train::TensorDim::DataType::FP32;
+  const auto f16 = ml::train::TensorDim::DataType::FP16;
+  const auto u16 = ml::train::TensorDim::DataType::UINT16;
+#ifdef ENABLE_HEXKL
+  static const bool prefill_fused_enabled = [] {
+    const char *e = std::getenv("NNTR_HTP_PREFILL_QKV_PREPARE");
+    return e && std::atoi(e) != 0;
+  }();
+  if (prefill_fused_enabled && q.height() > 1 && htpStrict() && use_rope &&
+      !skip_prefill &&
+      !std::get<props::PrefillRopeFused>(mha_core_props).get() &&
+      head_dim == 64 && q.batch() == 1 && q.channel() == 1 && k.batch() == 1 &&
+      k.channel() == 1 && v.batch() == 1 && v.channel() == 1 &&
+      q.getDataType() == f32 && k.getDataType() == f32 &&
+      v.getDataType() == f32 && k.height() == q.height() &&
+      v.height() == q.height() && k.width() == v.width() &&
+      kc.width() == k.width() && vc.width() == v.width() &&
+      kc.height() == q.height() && vc.height() == q.height() &&
+      kc.batch() == 1 && kc.channel() == 1 && vc.batch() == 1 &&
+      vc.channel() == 1 &&
+      (kc.getDataType() == f16 || kc.getDataType() == u16) &&
+      (vc.getDataType() == f16 || vc.getDataType() == u16)) {
+    const unsigned maximum =
+      std::min(max_position_embeddings,
+               std::get<nntrainer::props::MaxTimestep>(mha_core_props).get());
+    if (from < maximum && q.height() <= maximum - from) {
+      if (!freqs_fp32) {
+        const std::lock_guard<std::mutex> lock(rope_init_mtx);
+        if (!freqs_fp32)
+          precompute_freqs(head_dim, maximum, theta, false);
+      }
+      std::vector<float> cs(q.height() * 2u * head_dim);
+      for (unsigned r = 0; r < q.height(); ++r) {
+        std::memcpy(cs.data() + static_cast<size_t>(r) * 2u * head_dim,
+                    freqs_fp32->cos[from + r].data(), head_dim * sizeof(float));
+        std::memcpy(cs.data() + (static_cast<size_t>(r) * 2u + 1u) * head_dim,
+                    freqs_fp32->sin[from + r].data(), head_dim * sizeof(float));
+      }
+      if (nntrainer::htp_rope_qkv_prefill(
+            q.height(), q.width(), k.width(), head_dim, cs.data(),
+            q.getData<float>(), k.getData<float>(), v.getData<float>(),
+            kc.getData<uint16_t>(), vc.getData<uint16_t>()))
+        return true;
+    }
+  }
+#endif
+  if (!htpStrict() || !use_rope || !from || q.height() != 1 ||
+      k.height() != 1 || v.height() != 1 || q.batch() != 1 ||
+      q.channel() != 1 || k.batch() != 1 || k.channel() != 1 ||
+      v.batch() != 1 || v.channel() != 1 || !head_dim || head_dim % 64 ||
+      q.getDataType() != f32 || k.getDataType() != f32 ||
+      v.getDataType() != f32 || k.width() != v.width() ||
+      kc.size() < k.width() || vc.size() < v.width() ||
+      (kc.getDataType() != f16 && kc.getDataType() != u16) ||
+      (vc.getDataType() != f16 && vc.getDataType() != u16))
+    return false;
+  const unsigned maximum =
+    std::get<nntrainer::props::MaxTimestep>(mha_core_props).get();
+  if (from >= std::min(max_position_embeddings, maximum))
+    return false;
+  if (!freqs_fp32) {
+    const std::lock_guard<std::mutex> lock(rope_init_mtx);
+    if (!freqs_fp32)
+      precompute_freqs(head_dim, std::min(max_position_embeddings, maximum),
+                       theta, false);
+  }
+  std::vector<float> cs(2u * head_dim);
+  std::memcpy(cs.data(), freqs_fp32->cos[from].data(),
+              head_dim * sizeof(float));
+  std::memcpy(cs.data() + head_dim, freqs_fp32->sin[from].data(),
+              head_dim * sizeof(float));
+  return htpStrictOps()->rope_qkv_decode(
+    q.width(), k.width(), head_dim, cs.data(), q.getData<float>(),
+    k.getData<float>(), v.getData<float>(), q.getData<float>(),
+    kc.getData<uint16_t>(), vc.getData<uint16_t>());
+}
+
 void MHACoreLayer::apply_rotary_emb_tensor_v2(nntrainer::Tensor &in,
                                               nntrainer::Tensor &out,
                                               unsigned int dim,
                                               unsigned int from,
                                               bool convert_only) {
+  if (htpStrict()) {
+    const unsigned strict_max =
+      std::get<nntrainer::props::MaxTimestep>(mha_core_props).get();
+    const auto f32 = ml::train::TensorDim::DataType::FP32;
+    const auto f16 = ml::train::TensorDim::DataType::FP16;
+    const auto u16 = ml::train::TensorDim::DataType::UINT16;
+    const bool half = out.getDataType() == f16 || out.getDataType() == u16;
+    if (in.getDataType() != f32 || (!half && out.getDataType() != f32) ||
+        in.batch() != 1 || in.channel() != 1 || dim % 64 ||
+        from + in.height() > strict_max)
+      throw std::runtime_error("NNTR_HTP_STRICT: unsupported RoPE/KV shape");
+    const bool rotate = use_rope && !convert_only;
+    std::vector<float> cs;
+    if (rotate) {
+      if (!freqs_fp32) {
+        const std::lock_guard<std::mutex> lock(rope_init_mtx);
+        if (!freqs_fp32)
+          precompute_freqs(head_dim,
+                           std::min(max_position_embeddings, strict_max), theta,
+                           false);
+      }
+      cs.resize(static_cast<size_t>(in.height()) * 2 * dim);
+      for (unsigned r = 0; r < in.height(); ++r) {
+        std::memcpy(cs.data() + static_cast<size_t>(r) * 2 * dim,
+                    freqs_fp32->cos[from + r].data(), dim * sizeof(float));
+        std::memcpy(cs.data() + (static_cast<size_t>(r) * 2 + 1) * dim,
+                    freqs_fp32->sin[from + r].data(), dim * sizeof(float));
+      }
+    }
+    if (!rotate && !half) {
+      out.copyData(in);
+      return;
+    }
+    using Op = nntrainer::ComputeOps::InferenceMath;
+    htpStrictMath(rotate ? (half ? Op::RopeFp16 : Op::Rope) : Op::CastFp16,
+                  in.height(), in.width(), dim, 0.0f, 1.0f, in.getData<float>(),
+                  nullptr, cs.empty() ? nullptr : cs.data(),
+                  half ? static_cast<void *>(out.getData<uint16_t>())
+                       : static_cast<void *>(out.getData<float>()));
+    return;
+  }
   if (!use_rope) {
     if (&in != &out) {
       out.copyData(in);
@@ -1709,7 +1967,8 @@ void MHACoreLayer::apply_rotary_emb_tensor_v2(nntrainer::Tensor &in,
   // and cos/sin rows past it are never indexed. Measured on device: the
   // first layer of each RoPE shape spent about 0.5 s building the full
   // table (doc 57 section 3).
-  const unsigned int rope_rows = std::min(max_position_embeddings, max_timestep);
+  const unsigned int rope_rows =
+    std::min(max_position_embeddings, max_timestep);
 
   if (in.getDataType() == ml::train::TensorDim::DataType::FP32) {
     if (freqs_fp32 == nullptr) {

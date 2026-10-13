@@ -44,8 +44,39 @@ int hvx_rmsnorm_rows_ld_f32(const float *x, float *y, uint32_t M, uint32_t n,
                             uint32_t ld, uint32_t chunk, const float *gamma,
                             float eps, hvx_worker_pool *pool);
 
+/** @brief Compute sum = x + residual and norm = RMSNorm(sum) together.
+ * Each output may alias either input, but the two outputs must be distinct
+ * and no partially overlapping ranges are supported. Uses the same f32
+ * rounding and reduction order as separate addition and RMSNorm calls.
+ */
+int hvx_add_rmsnorm_rows_f32(const float *x, const float *residual, float *sum,
+                             float *norm, uint32_t M, uint32_t n,
+                             uint32_t chunk, const float *gamma, float eps,
+                             hvx_worker_pool *pool);
+
+/** @brief Normalize into a caller-owned cached buffer and publish the results.
+ *
+ * Used by a consumer's background work unit immediately before quantization.
+ * cached holds M * n floats, is disjoint from all inputs and outputs, and
+ * remains the normalized input for that consumer. n must be a multiple of 32.
+ * residual == NULL selects plain RMSNorm and leaves sum untouched; otherwise
+ * sum is required. norm is required. The two published outputs may exactly
+ * alias either input, but must not overlap one another or overlap an input
+ * partially. gamma has n values or is NULL. Runs inline without pool work or
+ * allocation, preserving the separate add/RMSNorm f32 rounding boundaries.
+ */
+void hvx_rmsnorm_rows_cached_f32(const float *x, const float *residual,
+                                 float *sum, float *norm, float *cached,
+                                 uint32_t M, uint32_t n, const float *gamma,
+                                 float eps);
+
 /** @brief One row of hvx_rmsnorm_rows_f32 with chunk = n, inline on the
  *         caller: the same arithmetic, so the same floats. */
+/** @brief Per-head RMSNorm of one row; chunk divides n and is a multiple of 32.
+ */
+void hvx_rmsnorm_row_chunks_f32(const float *x, float *y, const float *gamma,
+                                uint32_t n, uint32_t chunk, float eps);
+
 void hvx_rmsnorm_row_f32(const float *x, float *y, const float *gamma,
                          uint32_t n, float eps);
 

@@ -1,0 +1,134 @@
+{
+  "date": "2026-10-12",
+  "base_commit": "bdc40c2ab21d2850d4658787dd199677ec41efcf",
+  "validated_code_commit": "83340cfbe02c30059472fc59b0b1ca468a5a7c6e",
+  "status": "draft_with_known_limitations",
+  "scope": "Initial working-tree changes plus validation fixes. Later concurrent dequant/scatter changes remain uncommitted and are not included in this evidence.",
+  "builds": [
+    {
+      "target": "Linux x86_64 host, transformer enabled, HTP/FP16 disabled",
+      "command": "ninja -C builddir_lfm_npu_host -j6",
+      "status": "passed"
+    },
+    {
+      "target": "Android ARM64 core libraries",
+      "command": "ndk-build -C builddir -B NDK_PROJECT_PATH=. NDK_APPLICATION_MK=jni/Application.mk APP_BUILD_SCRIPT=jni/Android.mk -j4",
+      "status": "passed"
+    },
+    {
+      "target": "Android CausalLM and device test executables",
+      "command": "ndk-build with the repository Applications/CausalLM/jni and test/jni makefiles",
+      "status": "passed"
+    },
+    {
+      "target": "Hexagon v81 DSP skeleton from isolated committed source",
+      "command": "HEX_ARCH=v81 HEXKL_SDK_VER=6.4.0.1 bash test/htp/build.sh",
+      "status": "passed"
+    }
+  ],
+  "toolchain": {
+    "android_ndk": "r30",
+    "hexagon_sdk": "6.4.0.1",
+    "hexagon_tools": "19.0.04",
+    "hexkl_sdk": "6.4.0.1",
+    "dsp_arch": "v81",
+    "clang_format": "14.0.6"
+  },
+  "host": {
+    "meson_suites_passed": 51,
+    "meson_suites_failed": 0,
+    "python_offline_preparation_tests_passed": 15,
+    "dspq_conv_and_expert_update_asan_ubsan": "passed",
+    "direct_weight_io_asan_ubsan": "passed",
+    "activation_reuse": "passed",
+    "wh_serialization_and_router_conversion": "passed",
+    "host_checks": "passed_all_available_checks",
+    "isolated_runner_note": "The isolated run completed through WEIGHT SWAP, then stopped because abs_max.h was omitted from the archive. After restoring that unchanged tracked header, the remaining abs-max and Q8 reuse checks were run with the same script commands and passed.",
+    "optional_checks_skipped": [
+      "Native HVX/ISS libnative toolchain unavailable",
+      "ARM NEON abs-max: aarch64 g++ or qemu-aarch64 unavailable"
+    ]
+  },
+  "device": {
+    "model": "Samsung Galaxy S26 Ultra SM-S948N, SM8850",
+    "gtest_results": "pr-device-results.json",
+    "main_suite_executed": 154,
+    "main_suite_passed": 150,
+    "main_suite_failed": 4,
+    "memory_exhaustion_probes_disabled": 3,
+    "report_and_benchmark_filter": "-*Report*:*Benchmark*:*Rate:*StepTiming*",
+    "rpc_math_fallback_tests_passed": 12,
+    "decode_prefetch_rounds": 80,
+    "expert_update_rounds_per_mode": 80,
+    "expert_update_modes": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "expert_update_output_bytes": 41472,
+    "expert_update_outputs_bitwise_equal": true,
+    "expert_update_output_sha256": "da326f1c5a160abf560091bdf8693f2f9e336b9cac7a85ed0e692eaaf7bcee15"
+  },
+  "model_smoke": {
+    "model": "LFM2-24B-A2B",
+    "fc_dtype": "QS4CX_WH",
+    "expert_dtype": "QS2CX_WH",
+    "router_dtype": "QS4CX",
+    "embedding_lmhead_dtype": "Q4_0",
+    "strict_htp": true,
+    "input_tokens": 1024,
+    "generated_tokens": 64,
+    "modes": [
+      "buffered / prefetch off",
+      "direct / prefetch off",
+      "buffered / block_ffn lookahead"
+    ],
+    "all_process_exit_codes": 0,
+    "generated_text_equal": true,
+    "results": "pr-model-results.json",
+    "quality_pass": false,
+    "performance_claim": false,
+    "note": "One run per mode verifies execution and output equivalence only. All outputs repeat cred, as already recorded by the earlier measurements; this is not a language-quality or perplexity check."
+  },
+  "known_limitations": [
+    {
+      "item": "Four legacy HvxM1Ops device failures",
+      "tests": [
+        "RejectsBadShapes",
+        "RmsnormMatchesDetBitExact",
+        "QkNormMatchesDetBitExact",
+        "ConvGateM1MatchesDetBitExact"
+      ],
+      "baseline_reproduced": true,
+      "baseline_commit": "bdc40c2ab21d2850d4658787dd199677ec41efcf",
+      "evidence": "legacy-baseline.xml",
+      "note": "The baseline DSP image was compiled and loaded successfully for these calls. Its post-link undefined-symbol allowlist check returned an error for runtime math imports; the emitted image was used without changing its source."
+    },
+    {
+      "item": "Model output quality",
+      "note": "Repeated cred output remains unresolved. Equal generated strings do not establish correct model quality."
+    },
+    {
+      "item": "Memory capacity probes",
+      "note": "Existing RegistryCapacity attempted a 6 GiB DSP allocation and caused MSM_UPLOAD. The device was manually rebooted. RegistryCapacity, MemoryCeilings and ArenaCeilingThenHeapHeadroom now require explicit gtest opt-in."
+    },
+    {
+      "item": "Other platforms and full CI",
+      "note": "Windows, Tizen, Yocto and the full upstream build matrix were not run locally. Most workflows target main and may not run for a dependency snapshot base."
+    }
+  ],
+  "validation_fixes": [
+    "Correct the Q attention planner test and comment to count the P buffer once across V groups; baseline reproduced the old host-test failure.",
+    "Disable the three intentional DSP memory exhaustion probes by default.",
+    "Apply clang-format 14 and satisfy touched-file Doxygen header/comment checks."
+  ],
+  "binary_sha256": {
+    "nntrainer_causallm": "f76dcfc16ee7a41acafce845d00aa886bc666a248eaab1af74d09c12e99dde41",
+    "libcausallm_core.so": "a0c72f23feb17bafcb0c1311d8275cc061edc9055083f12f672f6cfc91a95c31",
+    "libnntrainer.so": "3e3f27c93e63183f271df53758ec29f5fdaad56a6bdbe1456fe6c9893f8e5152",
+    "libccapi-nntrainer.so": "fc21e5f39960f055faf46583922c49bdc60cd802000fe2384348f297b4d77679",
+    "libnntr_hvx_skel.so": "8d8695eaf4d58ee65fa2ae8428fb90bd8d3feccc51cedd8b782eadbf1beaf5dc"
+  },
+  "evidence_note": "Historical benchmark reports elsewhere in this PR predate this final validation and are not claimed as measurements of the final commit."
+}

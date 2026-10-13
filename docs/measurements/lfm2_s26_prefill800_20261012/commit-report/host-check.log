@@ -1,0 +1,1516 @@
+MOE Q4 DECODE PREDICTOR OK
+QS2 reader: bytes, guards, failures, concurrent reuse and mmap PASS
+QS2CX WH: 147456 weights exact; guards and invalid inputs OK
+QS2 LUT exact: K=64 N=256 pattern=0 palette=-8,-3,0,7
+QS2 LUT exact: K=64 N=256 pattern=1 palette=-8,-3,0,7
+QS2 LUT exact: K=64 N=256 pattern=2 palette=-8,-3,0,7
+QS2 LUT exact: K=64 N=256 pattern=0 palette=-2,-1,0,1
+QS2 LUT exact: K=64 N=256 pattern=1 palette=-2,-1,0,1
+QS2 LUT exact: K=64 N=256 pattern=2 palette=-2,-1,0,1
+QS2 LUT exact: K=64 N=256 pattern=0 palette=-8,-8,7,7
+QS2 LUT exact: K=64 N=256 pattern=1 palette=-8,-8,7,7
+QS2 LUT exact: K=64 N=256 pattern=2 palette=-8,-8,7,7
+QS2 LUT exact: K=64 N=256 pattern=0 palette=7,0,-3,-8
+QS2 LUT exact: K=64 N=256 pattern=1 palette=7,0,-3,-8
+QS2 LUT exact: K=64 N=256 pattern=2 palette=7,0,-3,-8
+QS2 LUT exact: K=2048 N=3072 pattern=0 palette=-8,-3,0,7
+QS2 LUT exact: K=1536 N=2048 pattern=0 palette=-8,-3,0,7
+QS2 LUT exact: K=4096 N=128 pattern=1 palette=-8,-8,7,7
+QS2 LUT: all layout, arithmetic and guard checks passed
+COMPACT M=1 feed=0 mode=0 qs2=0 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=0 mode=1 qs2=0 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=1 feed=0 mode=2 qs2=0 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=1 feed=0 mode=0 qs2=1 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=0 mode=1 qs2=1 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=1 feed=0 mode=2 qs2=1 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=1 feed=0 mode=0 qs2=2 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=0 mode=1 qs2=2 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=1 feed=0 mode=2 qs2=2 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=1 feed=0 mode=0 qs2=3 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=0 mode=1 qs2=3 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=1 feed=0 mode=2 qs2=3 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=1 feed=0 mode=0 qs2=4 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=0 mode=1 qs2=4 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=1 feed=0 mode=2 qs2=4 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=1 feed=0 mode=0 qs2=5 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=0 mode=1 qs2=5 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=1 feed=0 mode=2 qs2=5 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=1 feed=0 mode=0 qs2=6 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=0 mode=1 qs2=6 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=1 feed=0 mode=2 qs2=6 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=1 feed=0 mode=0 qs2=7 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=0 mode=1 qs2=7 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=1 feed=0 mode=2 qs2=7 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=1 feed=1 mode=0 qs2=0 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=1 feed=1 mode=1 qs2=0 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=1 feed=1 mode=2 qs2=0 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=1 feed=1 mode=0 qs2=1 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=1 feed=1 mode=1 qs2=1 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=1 feed=1 mode=2 qs2=1 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=1 feed=1 mode=0 qs2=2 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=1 feed=1 mode=1 qs2=2 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=1 feed=1 mode=2 qs2=2 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=1 feed=1 mode=0 qs2=3 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=1 feed=1 mode=1 qs2=3 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=1 feed=1 mode=2 qs2=3 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=1 feed=1 mode=0 qs2=4 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=1 feed=1 mode=1 qs2=4 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=1 feed=1 mode=2 qs2=4 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=1 feed=1 mode=0 qs2=5 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=1 feed=1 mode=1 qs2=5 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=1 feed=1 mode=2 qs2=5 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=1 feed=1 mode=0 qs2=6 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=1 feed=1 mode=1 qs2=6 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=1 feed=1 mode=2 qs2=6 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=1 feed=1 mode=0 qs2=7 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=1 feed=1 mode=1 qs2=7 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=1 feed=1 mode=2 qs2=7 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=4 feed=0 mode=0 qs2=0 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=0 mode=1 qs2=0 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=4 feed=0 mode=2 qs2=0 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=4 feed=0 mode=0 qs2=1 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=0 mode=1 qs2=1 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=4 feed=0 mode=2 qs2=1 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=4 feed=0 mode=0 qs2=2 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=0 mode=1 qs2=2 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=4 feed=0 mode=2 qs2=2 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=4 feed=0 mode=0 qs2=3 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=0 mode=1 qs2=3 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=4 feed=0 mode=2 qs2=3 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=4 feed=0 mode=0 qs2=4 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=0 mode=1 qs2=4 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=4 feed=0 mode=2 qs2=4 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=4 feed=0 mode=0 qs2=5 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=0 mode=1 qs2=5 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=4 feed=0 mode=2 qs2=5 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=4 feed=0 mode=0 qs2=6 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=0 mode=1 qs2=6 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=4 feed=0 mode=2 qs2=6 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=4 feed=0 mode=0 qs2=7 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=0 mode=1 qs2=7 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=4 feed=0 mode=2 qs2=7 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=4 feed=1 mode=0 qs2=0 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=4 feed=1 mode=1 qs2=0 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=4 feed=1 mode=2 qs2=0 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=4 feed=1 mode=0 qs2=1 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=4 feed=1 mode=1 qs2=1 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=4 feed=1 mode=2 qs2=1 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=4 feed=1 mode=0 qs2=2 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=4 feed=1 mode=1 qs2=2 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=4 feed=1 mode=2 qs2=2 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=4 feed=1 mode=0 qs2=3 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=4 feed=1 mode=1 qs2=3 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=4 feed=1 mode=2 qs2=3 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=4 feed=1 mode=0 qs2=4 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=4 feed=1 mode=1 qs2=4 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=4 feed=1 mode=2 qs2=4 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=4 feed=1 mode=0 qs2=5 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=4 feed=1 mode=1 qs2=5 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=4 feed=1 mode=2 qs2=5 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=4 feed=1 mode=0 qs2=6 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=4 feed=1 mode=1 qs2=6 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=4 feed=1 mode=2 qs2=6 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=4 feed=1 mode=0 qs2=7 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=4 feed=1 mode=1 qs2=7 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=4 feed=1 mode=2 qs2=7 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=65 feed=0 mode=0 qs2=0 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=65 feed=0 mode=1 qs2=0 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=65 feed=0 mode=2 qs2=0 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=65 feed=0 mode=0 qs2=1 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=65 feed=0 mode=1 qs2=1 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=65 feed=0 mode=2 qs2=1 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=65 feed=0 mode=0 qs2=2 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=65 feed=0 mode=1 qs2=2 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=65 feed=0 mode=2 qs2=2 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=65 feed=0 mode=0 qs2=3 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=65 feed=0 mode=1 qs2=3 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=65 feed=0 mode=2 qs2=3 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=65 feed=0 mode=0 qs2=4 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=65 feed=0 mode=1 qs2=4 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=65 feed=0 mode=2 qs2=4 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=65 feed=0 mode=0 qs2=5 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=65 feed=0 mode=1 qs2=5 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=65 feed=0 mode=2 qs2=5 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=65 feed=0 mode=0 qs2=6 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=65 feed=0 mode=1 qs2=6 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=65 feed=0 mode=2 qs2=6 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=65 feed=0 mode=0 qs2=7 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=65 feed=0 mode=1 qs2=7 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=65 feed=0 mode=2 qs2=7 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=65 feed=1 mode=0 qs2=0 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=65 feed=1 mode=1 qs2=0 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=65 feed=1 mode=2 qs2=0 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=65 feed=1 mode=0 qs2=1 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=65 feed=1 mode=1 qs2=1 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=65 feed=1 mode=2 qs2=1 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=65 feed=1 mode=0 qs2=2 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=65 feed=1 mode=1 qs2=2 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=65 feed=1 mode=2 qs2=2 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=65 feed=1 mode=0 qs2=3 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=65 feed=1 mode=1 qs2=3 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=65 feed=1 mode=2 qs2=3 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=65 feed=1 mode=0 qs2=4 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=65 feed=1 mode=1 qs2=4 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=65 feed=1 mode=2 qs2=4 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=65 feed=1 mode=0 qs2=5 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=65 feed=1 mode=1 qs2=5 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=65 feed=1 mode=2 qs2=5 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=65 feed=1 mode=0 qs2=6 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=65 feed=1 mode=1 qs2=6 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=65 feed=1 mode=2 qs2=6 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT M=65 feed=1 mode=0 qs2=7 rc=0 memcmp=0 DMA=122880 expected=122880
+COMPACT M=65 feed=1 mode=1 qs2=7 rc=0 memcmp=0 DMA=61440 expected=61440
+COMPACT M=65 feed=1 mode=2 qs2=7 rc=0 memcmp=0 DMA=90112 expected=90112
+COMPACT MOE OK
+COMPACT M=1 feed=0 mode=0 qs2=0 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=0 mode=1 qs2=0 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=1 feed=0 mode=2 qs2=0 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=1 feed=0 mode=0 qs2=1 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=0 mode=1 qs2=1 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=1 feed=0 mode=2 qs2=1 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=1 feed=0 mode=0 qs2=2 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=0 mode=1 qs2=2 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=1 feed=0 mode=2 qs2=2 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=1 feed=0 mode=0 qs2=3 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=0 mode=1 qs2=3 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=1 feed=0 mode=2 qs2=3 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=1 feed=0 mode=0 qs2=4 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=0 mode=1 qs2=4 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=1 feed=0 mode=2 qs2=4 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=1 feed=0 mode=0 qs2=5 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=0 mode=1 qs2=5 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=1 feed=0 mode=2 qs2=5 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=1 feed=0 mode=0 qs2=6 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=0 mode=1 qs2=6 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=1 feed=0 mode=2 qs2=6 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=1 feed=0 mode=0 qs2=7 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=0 mode=1 qs2=7 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=1 feed=0 mode=2 qs2=7 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=1 feed=1 mode=0 qs2=0 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=1 feed=1 mode=1 qs2=0 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=1 feed=1 mode=2 qs2=0 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=1 feed=1 mode=0 qs2=1 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=1 feed=1 mode=1 qs2=1 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=1 feed=1 mode=2 qs2=1 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=1 feed=1 mode=0 qs2=2 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=1 feed=1 mode=1 qs2=2 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=1 feed=1 mode=2 qs2=2 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=1 feed=1 mode=0 qs2=3 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=1 feed=1 mode=1 qs2=3 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=1 feed=1 mode=2 qs2=3 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=1 feed=1 mode=0 qs2=4 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=1 feed=1 mode=1 qs2=4 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=1 feed=1 mode=2 qs2=4 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=1 feed=1 mode=0 qs2=5 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=1 feed=1 mode=1 qs2=5 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=1 feed=1 mode=2 qs2=5 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=1 feed=1 mode=0 qs2=6 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=1 feed=1 mode=1 qs2=6 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=1 feed=1 mode=2 qs2=6 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=1 feed=1 mode=0 qs2=7 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=1 feed=1 mode=1 qs2=7 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=1 feed=1 mode=2 qs2=7 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=4 feed=0 mode=0 qs2=0 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=0 mode=1 qs2=0 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=4 feed=0 mode=2 qs2=0 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=4 feed=0 mode=0 qs2=1 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=0 mode=1 qs2=1 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=4 feed=0 mode=2 qs2=1 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=4 feed=0 mode=0 qs2=2 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=0 mode=1 qs2=2 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=4 feed=0 mode=2 qs2=2 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=4 feed=0 mode=0 qs2=3 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=0 mode=1 qs2=3 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=4 feed=0 mode=2 qs2=3 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=4 feed=0 mode=0 qs2=4 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=0 mode=1 qs2=4 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=4 feed=0 mode=2 qs2=4 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=4 feed=0 mode=0 qs2=5 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=0 mode=1 qs2=5 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=4 feed=0 mode=2 qs2=5 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=4 feed=0 mode=0 qs2=6 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=0 mode=1 qs2=6 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=4 feed=0 mode=2 qs2=6 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=4 feed=0 mode=0 qs2=7 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=0 mode=1 qs2=7 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=4 feed=0 mode=2 qs2=7 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=4 feed=1 mode=0 qs2=0 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=4 feed=1 mode=1 qs2=0 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=4 feed=1 mode=2 qs2=0 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=4 feed=1 mode=0 qs2=1 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=4 feed=1 mode=1 qs2=1 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=4 feed=1 mode=2 qs2=1 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=4 feed=1 mode=0 qs2=2 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=4 feed=1 mode=1 qs2=2 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=4 feed=1 mode=2 qs2=2 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=4 feed=1 mode=0 qs2=3 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=4 feed=1 mode=1 qs2=3 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=4 feed=1 mode=2 qs2=3 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=4 feed=1 mode=0 qs2=4 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=4 feed=1 mode=1 qs2=4 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=4 feed=1 mode=2 qs2=4 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=4 feed=1 mode=0 qs2=5 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=4 feed=1 mode=1 qs2=5 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=4 feed=1 mode=2 qs2=5 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=4 feed=1 mode=0 qs2=6 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=4 feed=1 mode=1 qs2=6 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=4 feed=1 mode=2 qs2=6 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=4 feed=1 mode=0 qs2=7 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=4 feed=1 mode=1 qs2=7 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=4 feed=1 mode=2 qs2=7 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=65 feed=0 mode=0 qs2=0 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=65 feed=0 mode=1 qs2=0 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=65 feed=0 mode=2 qs2=0 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=65 feed=0 mode=0 qs2=1 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=65 feed=0 mode=1 qs2=1 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=65 feed=0 mode=2 qs2=1 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=65 feed=0 mode=0 qs2=2 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=65 feed=0 mode=1 qs2=2 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=65 feed=0 mode=2 qs2=2 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=65 feed=0 mode=0 qs2=3 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=65 feed=0 mode=1 qs2=3 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=65 feed=0 mode=2 qs2=3 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=65 feed=0 mode=0 qs2=4 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=65 feed=0 mode=1 qs2=4 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=65 feed=0 mode=2 qs2=4 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=65 feed=0 mode=0 qs2=5 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=65 feed=0 mode=1 qs2=5 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=65 feed=0 mode=2 qs2=5 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=65 feed=0 mode=0 qs2=6 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=65 feed=0 mode=1 qs2=6 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=65 feed=0 mode=2 qs2=6 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=65 feed=0 mode=0 qs2=7 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=65 feed=0 mode=1 qs2=7 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=65 feed=0 mode=2 qs2=7 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=65 feed=1 mode=0 qs2=0 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=65 feed=1 mode=1 qs2=0 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=65 feed=1 mode=2 qs2=0 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=65 feed=1 mode=0 qs2=1 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=65 feed=1 mode=1 qs2=1 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=65 feed=1 mode=2 qs2=1 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=65 feed=1 mode=0 qs2=2 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=65 feed=1 mode=1 qs2=2 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=65 feed=1 mode=2 qs2=2 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=65 feed=1 mode=0 qs2=3 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=65 feed=1 mode=1 qs2=3 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=65 feed=1 mode=2 qs2=3 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=65 feed=1 mode=0 qs2=4 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=65 feed=1 mode=1 qs2=4 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=65 feed=1 mode=2 qs2=4 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=65 feed=1 mode=0 qs2=5 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=65 feed=1 mode=1 qs2=5 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=65 feed=1 mode=2 qs2=5 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=65 feed=1 mode=0 qs2=6 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=65 feed=1 mode=1 qs2=6 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=65 feed=1 mode=2 qs2=6 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT M=65 feed=1 mode=0 qs2=7 rc=0 memcmp=0 DMA=92160 expected=92160
+COMPACT M=65 feed=1 mode=1 qs2=7 rc=0 memcmp=0 DMA=46080 expected=46080
+COMPACT M=65 feed=1 mode=2 qs2=7 rc=0 memcmp=0 DMA=67584 expected=67584
+COMPACT MOE OK
+COMPACT M=1 feed=0 mode=0 qs2=0 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=0 mode=1 qs2=0 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=1 feed=0 mode=2 qs2=0 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=1 feed=0 mode=0 qs2=1 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=0 mode=1 qs2=1 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=1 feed=0 mode=2 qs2=1 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=1 feed=0 mode=0 qs2=2 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=0 mode=1 qs2=2 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=1 feed=0 mode=2 qs2=2 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=1 feed=0 mode=0 qs2=3 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=0 mode=1 qs2=3 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=1 feed=0 mode=2 qs2=3 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=1 feed=0 mode=0 qs2=4 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=0 mode=1 qs2=4 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=1 feed=0 mode=2 qs2=4 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=1 feed=0 mode=0 qs2=5 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=0 mode=1 qs2=5 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=1 feed=0 mode=2 qs2=5 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=1 feed=0 mode=0 qs2=6 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=0 mode=1 qs2=6 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=1 feed=0 mode=2 qs2=6 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=1 feed=0 mode=0 qs2=7 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=0 mode=1 qs2=7 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=1 feed=0 mode=2 qs2=7 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=1 feed=1 mode=0 qs2=0 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=1 mode=1 qs2=0 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=1 feed=1 mode=2 qs2=0 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=1 feed=1 mode=0 qs2=1 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=1 mode=1 qs2=1 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=1 feed=1 mode=2 qs2=1 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=1 feed=1 mode=0 qs2=2 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=1 mode=1 qs2=2 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=1 feed=1 mode=2 qs2=2 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=1 feed=1 mode=0 qs2=3 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=1 mode=1 qs2=3 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=1 feed=1 mode=2 qs2=3 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=1 feed=1 mode=0 qs2=4 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=1 mode=1 qs2=4 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=1 feed=1 mode=2 qs2=4 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=1 feed=1 mode=0 qs2=5 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=1 mode=1 qs2=5 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=1 feed=1 mode=2 qs2=5 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=1 feed=1 mode=0 qs2=6 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=1 mode=1 qs2=6 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=1 feed=1 mode=2 qs2=6 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=1 feed=1 mode=0 qs2=7 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=1 feed=1 mode=1 qs2=7 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=1 feed=1 mode=2 qs2=7 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=4 feed=0 mode=0 qs2=0 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=0 mode=1 qs2=0 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=4 feed=0 mode=2 qs2=0 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=4 feed=0 mode=0 qs2=1 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=0 mode=1 qs2=1 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=4 feed=0 mode=2 qs2=1 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=4 feed=0 mode=0 qs2=2 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=0 mode=1 qs2=2 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=4 feed=0 mode=2 qs2=2 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=4 feed=0 mode=0 qs2=3 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=0 mode=1 qs2=3 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=4 feed=0 mode=2 qs2=3 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=4 feed=0 mode=0 qs2=4 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=0 mode=1 qs2=4 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=4 feed=0 mode=2 qs2=4 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=4 feed=0 mode=0 qs2=5 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=0 mode=1 qs2=5 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=4 feed=0 mode=2 qs2=5 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=4 feed=0 mode=0 qs2=6 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=0 mode=1 qs2=6 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=4 feed=0 mode=2 qs2=6 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=4 feed=0 mode=0 qs2=7 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=0 mode=1 qs2=7 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=4 feed=0 mode=2 qs2=7 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=4 feed=1 mode=0 qs2=0 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=1 mode=1 qs2=0 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=4 feed=1 mode=2 qs2=0 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=4 feed=1 mode=0 qs2=1 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=1 mode=1 qs2=1 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=4 feed=1 mode=2 qs2=1 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=4 feed=1 mode=0 qs2=2 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=1 mode=1 qs2=2 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=4 feed=1 mode=2 qs2=2 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=4 feed=1 mode=0 qs2=3 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=1 mode=1 qs2=3 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=4 feed=1 mode=2 qs2=3 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=4 feed=1 mode=0 qs2=4 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=1 mode=1 qs2=4 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=4 feed=1 mode=2 qs2=4 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=4 feed=1 mode=0 qs2=5 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=1 mode=1 qs2=5 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=4 feed=1 mode=2 qs2=5 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=4 feed=1 mode=0 qs2=6 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=1 mode=1 qs2=6 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=4 feed=1 mode=2 qs2=6 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=4 feed=1 mode=0 qs2=7 rc=0 memcmp=0 DMA=0 expected=0
+COMPACT M=4 feed=1 mode=1 qs2=7 rc=0 memcmp=0 DMA=1989120 expected=1989120
+COMPACT M=4 feed=1 mode=2 qs2=7 rc=0 memcmp=0 DMA=3106816 expected=3106816
+COMPACT M=65 feed=0 mode=0 qs2=0 rc=0 memcmp=0 DMA=3182592 expected=3182592
+COMPACT M=65 feed=0 mode=1 qs2=0 rc=0 memcmp=0 DMA=1591296 expected=1591296
+COMPACT M=65 feed=0 mode=2 qs2=0 rc=0 memcmp=0 DMA=2633216 expected=2633216
+COMPACT M=65 feed=0 mode=0 qs2=1 rc=0 memcmp=0 DMA=3182592 expected=3182592
+COMPACT M=65 feed=0 mode=1 qs2=1 rc=0 memcmp=0 DMA=1591296 expected=1591296
+COMPACT M=65 feed=0 mode=2 qs2=1 rc=0 memcmp=0 DMA=2633216 expected=2633216
+COMPACT M=65 feed=0 mode=0 qs2=2 rc=0 memcmp=0 DMA=3182592 expected=3182592
+COMPACT M=65 feed=0 mode=1 qs2=2 rc=0 memcmp=0 DMA=1591296 expected=1591296
+COMPACT M=65 feed=0 mode=2 qs2=2 rc=0 memcmp=0 DMA=2633216 expected=2633216
+COMPACT M=65 feed=0 mode=0 qs2=3 rc=0 memcmp=0 DMA=3182592 expected=3182592
+COMPACT M=65 feed=0 mode=1 qs2=3 rc=0 memcmp=0 DMA=1591296 expected=1591296
+COMPACT M=65 feed=0 mode=2 qs2=3 rc=0 memcmp=0 DMA=2633216 expected=2633216
+COMPACT M=65 feed=0 mode=0 qs2=4 rc=0 memcmp=0 DMA=3182592 expected=3182592
+COMPACT M=65 feed=0 mode=1 qs2=4 rc=0 memcmp=0 DMA=1591296 expected=1591296
+COMPACT M=65 feed=0 mode=2 qs2=4 rc=0 memcmp=0 DMA=2633216 expected=2633216
+COMPACT M=65 feed=0 mode=0 qs2=5 rc=0 memcmp=0 DMA=3182592 expected=3182592
+COMPACT M=65 feed=0 mode=1 qs2=5 rc=0 memcmp=0 DMA=1591296 expected=1591296
+COMPACT M=65 feed=0 mode=2 qs2=5 rc=0 memcmp=0 DMA=2633216 expected=2633216
+COMPACT M=65 feed=0 mode=0 qs2=6 rc=0 memcmp=0 DMA=3182592 expected=3182592
+COMPACT M=65 feed=0 mode=1 qs2=6 rc=0 memcmp=0 DMA=1591296 expected=1591296
+COMPACT M=65 feed=0 mode=2 qs2=6 rc=0 memcmp=0 DMA=2633216 expected=2633216
+COMPACT M=65 feed=0 mode=0 qs2=7 rc=0 memcmp=0 DMA=3182592 expected=3182592
+COMPACT M=65 feed=0 mode=1 qs2=7 rc=0 memcmp=0 DMA=1591296 expected=1591296
+COMPACT M=65 feed=0 mode=2 qs2=7 rc=0 memcmp=0 DMA=2633216 expected=2633216
+COMPACT M=65 feed=1 mode=0 qs2=0 rc=0 memcmp=0 DMA=3182592 expected=3182592
+COMPACT M=65 feed=1 mode=1 qs2=0 rc=0 memcmp=0 DMA=1591296 expected=1591296
+COMPACT M=65 feed=1 mode=2 qs2=0 rc=0 memcmp=0 DMA=2633216 expected=2633216
+COMPACT M=65 feed=1 mode=0 qs2=1 rc=0 memcmp=0 DMA=3182592 expected=3182592
+COMPACT M=65 feed=1 mode=1 qs2=1 rc=0 memcmp=0 DMA=1591296 expected=1591296
+COMPACT M=65 feed=1 mode=2 qs2=1 rc=0 memcmp=0 DMA=2633216 expected=2633216
+COMPACT M=65 feed=1 mode=0 qs2=2 rc=0 memcmp=0 DMA=3182592 expected=3182592
+COMPACT M=65 feed=1 mode=1 qs2=2 rc=0 memcmp=0 DMA=1591296 expected=1591296
+COMPACT M=65 feed=1 mode=2 qs2=2 rc=0 memcmp=0 DMA=2633216 expected=2633216
+COMPACT M=65 feed=1 mode=0 qs2=3 rc=0 memcmp=0 DMA=3182592 expected=3182592
+COMPACT M=65 feed=1 mode=1 qs2=3 rc=0 memcmp=0 DMA=1591296 expected=1591296
+COMPACT M=65 feed=1 mode=2 qs2=3 rc=0 memcmp=0 DMA=2633216 expected=2633216
+COMPACT M=65 feed=1 mode=0 qs2=4 rc=0 memcmp=0 DMA=3182592 expected=3182592
+COMPACT M=65 feed=1 mode=1 qs2=4 rc=0 memcmp=0 DMA=1591296 expected=1591296
+COMPACT M=65 feed=1 mode=2 qs2=4 rc=0 memcmp=0 DMA=2633216 expected=2633216
+COMPACT M=65 feed=1 mode=0 qs2=5 rc=0 memcmp=0 DMA=3182592 expected=3182592
+COMPACT M=65 feed=1 mode=1 qs2=5 rc=0 memcmp=0 DMA=1591296 expected=1591296
+COMPACT M=65 feed=1 mode=2 qs2=5 rc=0 memcmp=0 DMA=2633216 expected=2633216
+COMPACT M=65 feed=1 mode=0 qs2=6 rc=0 memcmp=0 DMA=3182592 expected=3182592
+COMPACT M=65 feed=1 mode=1 qs2=6 rc=0 memcmp=0 DMA=1591296 expected=1591296
+COMPACT M=65 feed=1 mode=2 qs2=6 rc=0 memcmp=0 DMA=2633216 expected=2633216
+COMPACT M=65 feed=1 mode=0 qs2=7 rc=0 memcmp=0 DMA=3182592 expected=3182592
+COMPACT M=65 feed=1 mode=1 qs2=7 rc=0 memcmp=0 DMA=1591296 expected=1591296
+COMPACT M=65 feed=1 mode=2 qs2=7 rc=0 memcmp=0 DMA=2633216 expected=2633216
+COMPACT MOE OK
+layout rc=0 total=69632 (act 0 gu 4096 dn 6144 gate 8192 mid 16384 stage 20480 res 53248)
+run rc=0  n_rows=252
+mismatches=0 of 2368   worst_rel=0
+MOE KERNEL MATCHES REFERENCE
+weight DMA        : 12 KB over 4 experts (want 12)
+HMX blocks        : 5 (want 5: two tails on the HVX)
+M=37 flag on      : rc=0 HMX blocks=5 dma_kb=12 (off 12) path=0 memcmp=0
+M=37 dma bypass   : rc=0 bypassed 10240 B (want 10240, before 0, heap copies 0) memcmp=0
+MOE HMX DMA BYPASS OK (weights only, arena slots only, bit-identical)
+gelu identity     : worst_rel=1.16218e-06 (want < 1e-5)
+gelu epilogue     : rc=0 mismatches=0 worst_rel=0 same_as_silu=0
+split 3+2 vs whole: rc=0 worst_rel=1.33162e-07
+all-empty routing : zeroed, rc=0
+exactly 64 rows   : rc=0
+row_index >= M    : rc=14 (want 14)
+LFM2 shapes       : rc=0 total=7.03 MB (doc 47 section 11 says 6.92)
+4 MB arena        : rc=2 (want 2)
+profile on vs off : memcmp == 0 (19 descriptors traced when on)
+PROFILE ON/OFF BYTE-IDENTICAL
+PROFILE OFF: TRACE UNTOUCHED
+LFM2 M=1 trace    : 46 pushes 30 waits (plan 46/30, 76 items), depth max 1
+IN-SITU CHUNK PLAN MATCHES KERNEL (46 descriptors)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=0 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=1 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=0 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=1 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=192 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=0 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=0 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=192 rows1=0 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=192 rows1=1 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=384 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=384 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=768 rows1=0 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=768 rows1=1 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=1536 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=1536 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=0 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=0 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=192 rows1=0 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=192 rows1=1 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=384 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=384 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=768 rows1=0 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=768 rows1=1 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=1536 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=1536 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=192 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=0 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=0 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=192 rows1=0 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=192 rows1=1 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=384 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=384 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=768 rows1=0 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=768 rows1=1 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=1536 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=1536 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=0 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=0 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=192 rows1=0 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=192 rows1=1 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=384 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=384 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=768 rows1=0 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=768 rows1=1 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=1536 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=1536 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=0 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=1 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=0 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=1 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=0 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=1 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=0 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=1 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=0 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=1 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=0 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=1 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=192 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=0 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=0 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=192 rows1=0 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=192 rows1=1 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=384 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=384 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=768 rows1=0 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=768 rows1=1 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=1536 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=1536 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=0 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=0 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=192 rows1=0 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=192 rows1=1 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=384 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=384 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=768 rows1=0 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=768 rows1=1 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=1536 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=1536 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=192 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=0 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=0 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=192 rows1=0 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=192 rows1=1 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=384 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=384 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=768 rows1=0 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=768 rows1=1 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=1536 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=1536 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=0 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=0 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=192 rows1=0 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=192 rows1=1 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=384 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=384 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=768 rows1=0 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=768 rows1=1 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=1536 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=1536 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=0 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=1 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=0 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=1 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=0 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=1 feed=0 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=0 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=1 feed=0 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=0 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=1 feed=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=0 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=1 feed=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV PATH BIT-IDENTICAL TO HMX PATH (M=1,2,4, 3 and 5 experts; tiny+real; 21 lead x loop configurations, feed=arena,vtcm)
+M1 GEMV PREFETCH LEAD COVERS EVERY COLUMN (lanes=6; leads 0/192/384/768/1536 KB x rows4,rows1; build default 192 KB rows1=1)
+M1 GEMV DMA BYPASS OK (80 cells, 616906752 B bypassed = the feed cells' weight bytes, 0 on the arena read and on heap copies; output bit-identical to the HMX path)
+M1 GEMV VTCM FEED SCHEDULE OK (1232 pushes, 1232 waits over the cases; whole-matrix descriptors, every read after its wait, 2 slabs <= arena, no l2fetch under the feed; build default feed=1)
+
+ALL CHECKS PASS
+layout rc=0 total=1191936 (act 0 A 4096 B 22528 z 311296 mid 589824 conv_w 659456 stage 667648 tiles 32)
+run rc=0
+output            : mismatches=0 of 158400   worst_rel=0
+conv state        : mismatches=0 of 1088   worst_rel=0
+conv weight bypass: bytes=322048 expected=322048 bad=0
+CONV BLOCK MATCHES REFERENCE
+weight DMA        : 331 KB (want 331)
+blocks            : 3 (want 3)
+M=1 output        : mismatches=0 of 1056   worst_rel=0
+M=1 state         : mismatches=0 of 1088   worst_rel=0
+one row           : ok
+continued output  : mismatches=0 of 158400   worst_rel=0
+continued state   : mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 4/4
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 4/16
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 4/24
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 4/32
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 8/8
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 8/16
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 8/24
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 8/32
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 16/16
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 16/16
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 16/24
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 16/32
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 32/32
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 32/16
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 32/24
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 32/32
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 4/4
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+chunk fallback output: mismatches=0 of 1056   worst_rel=0
+chunk fallback state: mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 4/16
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+chunk fallback output: mismatches=0 of 1056   worst_rel=0
+chunk fallback state: mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 4/24
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+chunk fallback output: mismatches=0 of 1056   worst_rel=0
+chunk fallback state: mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 4/32
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+chunk fallback output: mismatches=0 of 1056   worst_rel=0
+chunk fallback state: mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 8/8
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+chunk fallback output: mismatches=0 of 1056   worst_rel=0
+chunk fallback state: mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 8/16
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+chunk fallback output: mismatches=0 of 1056   worst_rel=0
+chunk fallback state: mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 8/24
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+chunk fallback output: mismatches=0 of 1056   worst_rel=0
+chunk fallback state: mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 8/32
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+chunk fallback output: mismatches=0 of 1056   worst_rel=0
+chunk fallback state: mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 16/16
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+chunk fallback output: mismatches=0 of 1056   worst_rel=0
+chunk fallback state: mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 16/16
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+chunk fallback output: mismatches=0 of 1056   worst_rel=0
+chunk fallback state: mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 16/24
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+chunk fallback output: mismatches=0 of 1056   worst_rel=0
+chunk fallback state: mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 16/32
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+chunk fallback output: mismatches=0 of 1056   worst_rel=0
+chunk fallback state: mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 32/32
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+chunk fallback output: mismatches=0 of 1056   worst_rel=0
+chunk fallback state: mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 32/16
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+chunk fallback output: mismatches=0 of 1056   worst_rel=0
+chunk fallback state: mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 32/24
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+chunk fallback output: mismatches=0 of 1056   worst_rel=0
+chunk fallback state: mismatches=0 of 1088   worst_rel=0
+HVX input/output tiles: 32/32
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+HVX chunk output  : mismatches=0 of 1056   worst_rel=0
+HVX chunk state   : mismatches=0 of 1088   worst_rel=0
+chunk fallback output: mismatches=0 of 1056   worst_rel=0
+chunk fallback state: mismatches=0 of 1088   worst_rel=0
+bad handle shape  : rc=14 (want 14)
+odd batches output: mismatches=0 of 16768   worst_rel=0
+odd batches state : mismatches=0 of 192   worst_rel=0
+LFM2 shapes       : rc=0 total=5.90 MB tiles=32
+4 MB arena        : rc=2 (want 2)
+
+ALL CHECKS PASS
+run rc=0
+three handles     : mismatches=0 of 316800   worst_rel=0
+M=1               : mismatches=0 of 2112   worst_rel=0
+FC M=1 bypass: identical=1 bytes=51200 expected=51200 bad=0
+FC M=150 bypass: identical=1 bytes=51200 expected=51200 bad=0
+HVX chunk=4 accumulate=0 rc=0 exact=1
+HVX chunk=4 accumulate=1 rc=0 exact=1
+HVX chunk=8 accumulate=0 rc=0 exact=1
+HVX chunk=8 accumulate=1 rc=0 exact=1
+HVX chunk=16 accumulate=0 rc=0 exact=1
+HVX chunk=16 accumulate=1 rc=0 exact=1
+HVX chunk=32 accumulate=0 rc=0 exact=1
+HVX chunk=32 accumulate=1 rc=0 exact=1
+HVX tiny arena    : mismatches=0 of 2112   worst_rel=0
+post in epilogue  : rc=0 done=1 bit-identical to the passes after
+post fallback     : mismatches=0 of 316800   worst_rel=0
+post M1 fallback  : mismatches=0 of 2112   worst_rel=0
+accumulate        : mismatches=0 of 316800   worst_rel=0
+2-tile arena      : mismatches=0 of 316800   worst_rel=0
+1-tile arena      : rc=2 (want 2)
+
+ALL CHECKS PASS
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c: In function ‘hvx_worker_pool_create’:
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c:253:43: warning: ‘%u’ directive output may be truncated writing between 1 and 10 bytes into a region of size 8 [-Wformat-truncation=]
+  253 |     snprintf(name, sizeof(name), "hvxpool:%u", (unsigned)i);
+      |                                           ^~
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c:253:34: note: directive argument in the range [0, 4294967294]
+  253 |     snprintf(name, sizeof(name), "hvxpool:%u", (unsigned)i);
+      |                                  ^~~~~~~~~~~~
+In file included from /usr/include/stdio.h:980,
+                 from /tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c:24:
+In function ‘snprintf’,
+    inlined from ‘hvx_worker_pool_create’ at /tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c:253:5:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:54:10: note: ‘__builtin___snprintf_chk’ output between 10 and 19 bytes into a destination of size 16
+   54 |   return __builtin___snprintf_chk (__s, __n, __USE_FORTIFY_LEVEL - 1,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   55 |                                    __glibc_objsize (__s), __fmt,
+      |                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   56 |                                    __va_arg_pack ());
+      |                                    ~~~~~~~~~~~~~~~~~
+POOL RACE OK (6 pools x 2000 rounds)
+WORKER POOL LANES OK
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c: In function ‘hvx_worker_pool_create’:
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c:253:43: warning: ‘%u’ directive output may be truncated writing between 1 and 10 bytes into a region of size 8 [-Wformat-truncation=]
+  253 |     snprintf(name, sizeof(name), "hvxpool:%u", (unsigned)i);
+      |                                           ^~
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c:253:34: note: directive argument in the range [0, 4294967294]
+  253 |     snprintf(name, sizeof(name), "hvxpool:%u", (unsigned)i);
+      |                                  ^~~~~~~~~~~~
+In file included from /usr/include/stdio.h:980,
+                 from /tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c:24:
+In function ‘snprintf’,
+    inlined from ‘hvx_worker_pool_create’ at /tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c:253:5:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:54:10: note: ‘__builtin___snprintf_chk’ output between 10 and 19 bytes into a destination of size 16
+   54 |   return __builtin___snprintf_chk (__s, __n, __USE_FORTIFY_LEVEL - 1,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   55 |                                    __glibc_objsize (__s), __fmt,
+      |                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   56 |                                    __va_arg_pack ());
+      |                                    ~~~~~~~~~~~~~~~~~
+KV I8 POOL hd=64 row0=0 M=0 lanes=4: OK
+KV I8 POOL hd=64 row0=0 M=1 lanes=4: OK
+KV I8 POOL hd=64 row0=0 M=63 lanes=4: OK
+KV I8 POOL hd=64 row0=0 M=64 lanes=4: OK
+KV I8 POOL hd=64 row0=0 M=65 lanes=4: OK
+KV I8 POOL hd=64 row0=0 M=1024 lanes=4: OK
+KV I8 POOL hd=64 row0=1 M=0 lanes=4: OK
+KV I8 POOL hd=64 row0=1 M=1 lanes=4: OK
+KV I8 POOL hd=64 row0=1 M=63 lanes=4: OK
+KV I8 POOL hd=64 row0=1 M=64 lanes=4: OK
+KV I8 POOL hd=64 row0=1 M=65 lanes=4: OK
+KV I8 POOL hd=64 row0=1 M=1024 lanes=4: OK
+KV I8 POOL hd=64 row0=31 M=0 lanes=4: OK
+KV I8 POOL hd=64 row0=31 M=1 lanes=4: OK
+KV I8 POOL hd=64 row0=31 M=63 lanes=4: OK
+KV I8 POOL hd=64 row0=31 M=64 lanes=4: OK
+KV I8 POOL hd=64 row0=31 M=65 lanes=4: OK
+KV I8 POOL hd=64 row0=31 M=1024 lanes=4: OK
+KV I8 POOL hd=64 row0=33 M=0 lanes=4: OK
+KV I8 POOL hd=64 row0=33 M=1 lanes=4: OK
+KV I8 POOL hd=64 row0=33 M=63 lanes=4: OK
+KV I8 POOL hd=64 row0=33 M=64 lanes=4: OK
+KV I8 POOL hd=64 row0=33 M=65 lanes=4: OK
+KV I8 POOL hd=64 row0=33 M=1024 lanes=4: OK
+KV I8 POOL hd=128 row0=0 M=0 lanes=4: OK
+KV I8 POOL hd=128 row0=0 M=1 lanes=4: OK
+KV I8 POOL hd=128 row0=0 M=63 lanes=4: OK
+KV I8 POOL hd=128 row0=0 M=64 lanes=4: OK
+KV I8 POOL hd=128 row0=0 M=65 lanes=4: OK
+KV I8 POOL hd=128 row0=0 M=1024 lanes=4: OK
+KV I8 POOL hd=128 row0=1 M=0 lanes=4: OK
+KV I8 POOL hd=128 row0=1 M=1 lanes=4: OK
+KV I8 POOL hd=128 row0=1 M=63 lanes=4: OK
+KV I8 POOL hd=128 row0=1 M=64 lanes=4: OK
+KV I8 POOL hd=128 row0=1 M=65 lanes=4: OK
+KV I8 POOL hd=128 row0=1 M=1024 lanes=4: OK
+KV I8 POOL hd=128 row0=31 M=0 lanes=4: OK
+KV I8 POOL hd=128 row0=31 M=1 lanes=4: OK
+KV I8 POOL hd=128 row0=31 M=63 lanes=4: OK
+KV I8 POOL hd=128 row0=31 M=64 lanes=4: OK
+KV I8 POOL hd=128 row0=31 M=65 lanes=4: OK
+KV I8 POOL hd=128 row0=31 M=1024 lanes=4: OK
+KV I8 POOL hd=128 row0=33 M=0 lanes=4: OK
+KV I8 POOL hd=128 row0=33 M=1 lanes=4: OK
+KV I8 POOL hd=128 row0=33 M=63 lanes=4: OK
+KV I8 POOL hd=128 row0=33 M=64 lanes=4: OK
+KV I8 POOL hd=128 row0=33 M=65 lanes=4: OK
+KV I8 POOL hd=128 row0=33 M=1024 lanes=4: OK
+KV I8 POOL hd=64 row0=0 M=0 lanes=8: OK
+KV I8 POOL hd=64 row0=0 M=1 lanes=8: OK
+KV I8 POOL hd=64 row0=0 M=63 lanes=8: OK
+KV I8 POOL hd=64 row0=0 M=64 lanes=8: OK
+KV I8 POOL hd=64 row0=0 M=65 lanes=8: OK
+KV I8 POOL hd=64 row0=0 M=1024 lanes=8: OK
+KV I8 POOL hd=64 row0=1 M=0 lanes=8: OK
+KV I8 POOL hd=64 row0=1 M=1 lanes=8: OK
+KV I8 POOL hd=64 row0=1 M=63 lanes=8: OK
+KV I8 POOL hd=64 row0=1 M=64 lanes=8: OK
+KV I8 POOL hd=64 row0=1 M=65 lanes=8: OK
+KV I8 POOL hd=64 row0=1 M=1024 lanes=8: OK
+KV I8 POOL hd=64 row0=31 M=0 lanes=8: OK
+KV I8 POOL hd=64 row0=31 M=1 lanes=8: OK
+KV I8 POOL hd=64 row0=31 M=63 lanes=8: OK
+KV I8 POOL hd=64 row0=31 M=64 lanes=8: OK
+KV I8 POOL hd=64 row0=31 M=65 lanes=8: OK
+KV I8 POOL hd=64 row0=31 M=1024 lanes=8: OK
+KV I8 POOL hd=64 row0=33 M=0 lanes=8: OK
+KV I8 POOL hd=64 row0=33 M=1 lanes=8: OK
+KV I8 POOL hd=64 row0=33 M=63 lanes=8: OK
+KV I8 POOL hd=64 row0=33 M=64 lanes=8: OK
+KV I8 POOL hd=64 row0=33 M=65 lanes=8: OK
+KV I8 POOL hd=64 row0=33 M=1024 lanes=8: OK
+KV I8 POOL hd=128 row0=0 M=0 lanes=8: OK
+KV I8 POOL hd=128 row0=0 M=1 lanes=8: OK
+KV I8 POOL hd=128 row0=0 M=63 lanes=8: OK
+KV I8 POOL hd=128 row0=0 M=64 lanes=8: OK
+KV I8 POOL hd=128 row0=0 M=65 lanes=8: OK
+KV I8 POOL hd=128 row0=0 M=1024 lanes=8: OK
+KV I8 POOL hd=128 row0=1 M=0 lanes=8: OK
+KV I8 POOL hd=128 row0=1 M=1 lanes=8: OK
+KV I8 POOL hd=128 row0=1 M=63 lanes=8: OK
+KV I8 POOL hd=128 row0=1 M=64 lanes=8: OK
+KV I8 POOL hd=128 row0=1 M=65 lanes=8: OK
+KV I8 POOL hd=128 row0=1 M=1024 lanes=8: OK
+KV I8 POOL hd=128 row0=31 M=0 lanes=8: OK
+KV I8 POOL hd=128 row0=31 M=1 lanes=8: OK
+KV I8 POOL hd=128 row0=31 M=63 lanes=8: OK
+KV I8 POOL hd=128 row0=31 M=64 lanes=8: OK
+KV I8 POOL hd=128 row0=31 M=65 lanes=8: OK
+KV I8 POOL hd=128 row0=31 M=1024 lanes=8: OK
+KV I8 POOL hd=128 row0=33 M=0 lanes=8: OK
+KV I8 POOL hd=128 row0=33 M=1 lanes=8: OK
+KV I8 POOL hd=128 row0=33 M=63 lanes=8: OK
+KV I8 POOL hd=128 row0=33 M=64 lanes=8: OK
+KV I8 POOL hd=128 row0=33 M=65 lanes=8: OK
+KV I8 POOL hd=128 row0=33 M=1024 lanes=8: OK
+KV I8 POOL: ALL 96 CASES PASS (host masters, actual worker pool)
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c: In function ‘hvx_worker_pool_create’:
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c:253:43: warning: ‘%u’ directive output may be truncated writing between 1 and 10 bytes into a region of size 8 [-Wformat-truncation=]
+  253 |     snprintf(name, sizeof(name), "hvxpool:%u", (unsigned)i);
+      |                                           ^~
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c:253:34: note: directive argument in the range [0, 4294967294]
+  253 |     snprintf(name, sizeof(name), "hvxpool:%u", (unsigned)i);
+      |                                  ^~~~~~~~~~~~
+In file included from /usr/include/stdio.h:980,
+                 from /tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c:24:
+In function ‘snprintf’,
+    inlined from ‘hvx_worker_pool_create’ at /tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c:253:5:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:54:10: note: ‘__builtin___snprintf_chk’ output between 10 and 19 bytes into a destination of size 16
+   54 |   return __builtin___snprintf_chk (__s, __n, __USE_FORTIFY_LEVEL - 1,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   55 |                                    __glibc_objsize (__s), __fmt,
+      |                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   56 |                                    __va_arg_pack ());
+      |                                    ~~~~~~~~~~~~~~~~~
+KV I8 TILE: ALL 1536 CASES PASS (masters, metadata, WH, partial overwrite, alternate layout, invalid metadata)
+  i    bytes=268435456 workers=1 n=256 payload=1048576 MiB/pass=256
+  i    bytes=268435456 workers=2 n=256 payload=1048576 MiB/pass=256
+  i    bytes=268435456 workers=3 n=256 payload=1048576 MiB/pass=256
+  i    bytes=268435456 workers=4 n=256 payload=1048576 MiB/pass=256
+  i1   bytes=268435456 workers=1 n=256 payload=1048576 MiB/pass=256
+  i1   bytes=268435456 workers=2 n=256 payload=1048576 MiB/pass=256
+  i1   bytes=268435456 workers=3 n=256 payload=1048576 MiB/pass=256
+  i1   bytes=268435456 workers=4 n=256 payload=1048576 MiB/pass=256
+  ii   bytes=268435456 workers=1 n=219 payload=1048576 MiB/pass=219
+  ii   bytes=268435456 workers=2 n=219 payload=1048576 MiB/pass=219
+  ii   bytes=268435456 workers=3 n=219 payload=1048576 MiB/pass=219
+  ii   bytes=268435456 workers=4 n=219 payload=1048576 MiB/pass=219
+  iii  bytes=268435456 workers=1 n=511 payload=524288 MiB/pass=255
+  iii  bytes=268435456 workers=2 n=511 payload=524288 MiB/pass=255
+  iii  bytes=268435456 workers=3 n=511 payload=524288 MiB/pass=255
+  iii  bytes=268435456 workers=4 n=511 payload=524288 MiB/pass=255
+  i    bytes=134217728 workers=1 n=128 payload=1048576 MiB/pass=128
+  i    bytes=134217728 workers=2 n=128 payload=1048576 MiB/pass=128
+  i    bytes=134217728 workers=3 n=128 payload=1048576 MiB/pass=128
+  i    bytes=134217728 workers=4 n=128 payload=1048576 MiB/pass=128
+  i1   bytes=134217728 workers=1 n=128 payload=1048576 MiB/pass=128
+  i1   bytes=134217728 workers=2 n=128 payload=1048576 MiB/pass=128
+  i1   bytes=134217728 workers=3 n=128 payload=1048576 MiB/pass=128
+  i1   bytes=134217728 workers=4 n=128 payload=1048576 MiB/pass=128
+  ii   bytes=134217728 workers=1 n=108 payload=1048576 MiB/pass=108
+  ii   bytes=134217728 workers=2 n=108 payload=1048576 MiB/pass=108
+  ii   bytes=134217728 workers=3 n=108 payload=1048576 MiB/pass=108
+  ii   bytes=134217728 workers=4 n=108 payload=1048576 MiB/pass=108
+  iii  bytes=134217728 workers=1 n=252 payload=524288 MiB/pass=126
+  iii  bytes=134217728 workers=2 n=252 payload=524288 MiB/pass=126
+  iii  bytes=134217728 workers=3 n=252 payload=524288 MiB/pass=126
+  iii  bytes=134217728 workers=4 n=252 payload=524288 MiB/pass=126
+DMA PROBE PLAN OK
+MOE M1 GEMV OPTS: unset=on(0x303e1) 0=off 1=on
+MOE GEMV TUNE OPTS: per-knob tune bits, 64 KB units, round+clamp 127, feed unset/0/1, dma_bypass 0x703e1
+MOE PROFILE ROW: gemv rest>=0 hmx unchanged
+DMA TRACE ARITHMETIC OK
+cell traced        items=76 push=46 wait=30 drain= 0 bytes=22560768 vtcm=[0,5644288) depth=11 fresh=0 load=0 tag_sum=3325632 stale=0
+cell traced_f      items=76 push=46 wait=30 drain= 0 bytes=22560768 vtcm=[0,5644288) depth=11 fresh=1 load=0 tag_sum=3249344 stale=3247488
+cell traced_nowait items=46 push=46 wait= 0 drain= 0 bytes=22560768 vtcm=[0,5644288) depth=46 fresh=0 load=0 tag_sum=3325632 stale=0
+cell traced_gu     items=32 push=32 wait= 0 drain= 0 bytes=14680064 vtcm=[0,569344) depth=32 fresh=0 load=0 tag_sum=1156672 stale=0
+cell traced_dn     items= 8 push= 8 wait= 0 drain= 0 bytes= 7340032 vtcm=[3670016,4603904) depth=8 fresh=0 load=0 tag_sum=1908608 stale=0
+cell iii_chain     items=28 push=28 wait= 0 drain= 0 bytes=14680064 vtcm=[0,4194304) depth=28 fresh=0 load=0 tag_sum=8353792 stale=0
+cell iii_dmstart   items=56 push=28 wait= 0 drain=28 bytes=14680064 vtcm=[0,4194304) depth=1 fresh=0 load=0 tag_sum=8353792 stale=0
+cell iii_link1     items=56 push=28 wait=28 drain= 0 bytes=14680064 vtcm=[0,4194304) depth=1 fresh=0 load=0 tag_sum=8353792 stale=0
+cell iii_strided   items=28 push=28 wait= 0 drain= 0 bytes=14680064 vtcm=[0,3670016) depth=28 fresh=0 load=0 tag_sum=7294720 stale=0
+cell c_star        items=56 push=28 wait= 0 drain=28 bytes=14680064 vtcm=[0,4194304) depth=1 fresh=1 load=0 tag_sum=8366784 stale=8367936
+cell f1            items=48 push=24 wait=24 drain= 0 bytes=22020096 vtcm=[0,2097152) depth=2 fresh=0 load=0 tag_sum=4191040 stale=0
+cell f1_load       items=48 push=24 wait=24 drain= 0 bytes=22020096 vtcm=[0,2097152) depth=2 fresh=0 load=2 tag_sum=4191040 stale=0
+cell f2            items=16 push= 8 wait= 8 drain= 0 bytes=22020096 vtcm=[0,5505024) depth=2 fresh=0 load=0 tag_sum=10972224 stale=0
+cell f2_load       items=16 push= 8 wait= 8 drain= 0 bytes=22020096 vtcm=[0,5505024) depth=2 fresh=0 load=2 tag_sum=10972224 stale=0
+cell f3            items=72 push=36 wait=36 drain= 0 bytes=22020096 vtcm=[0,5505024) depth=2 fresh=0 load=0 tag_sum=10972224 stale=0
+cell f3_load       items=72 push=36 wait=36 drain= 0 bytes=22020096 vtcm=[0,5505024) depth=2 fresh=0 load=2 tag_sum=10972224 stale=0
+REPLAY CELLS PLAN OK (16 cells)
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c: In function ‘hvx_worker_pool_create’:
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c:253:43: warning: ‘%u’ directive output may be truncated writing between 1 and 10 bytes into a region of size 8 [-Wformat-truncation=]
+  253 |     snprintf(name, sizeof(name), "hvxpool:%u", (unsigned)i);
+      |                                           ^~
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c:253:34: note: directive argument in the range [0, 4294967294]
+  253 |     snprintf(name, sizeof(name), "hvxpool:%u", (unsigned)i);
+      |                                  ^~~~~~~~~~~~
+In file included from /usr/include/stdio.h:980,
+                 from /usr/include/malloc.h:25,
+                 from <command-line>:
+In function ‘snprintf’,
+    inlined from ‘hvx_worker_pool_create’ at /tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c:253:5:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:54:10: note: ‘__builtin___snprintf_chk’ output between 10 and 19 bytes into a destination of size 16
+   54 |   return __builtin___snprintf_chk (__s, __n, __USE_FORTIFY_LEVEL - 1,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   55 |                                    __glibc_objsize (__s), __fmt,
+      |                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   56 |                                    __va_arg_pack ());
+      |                                    ~~~~~~~~~~~~~~~~~
+SKEL REPLAY MATCHES TAG SIMULATOR (16 cells)
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c: In function ‘hvx_worker_pool_create’:
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c:253:43: warning: ‘%u’ directive output may be truncated writing between 1 and 10 bytes into a region of size 8 [-Wformat-truncation=]
+  253 |     snprintf(name, sizeof(name), "hvxpool:%u", (unsigned)i);
+      |                                           ^~
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c:253:34: note: directive argument in the range [0, 4294967294]
+  253 |     snprintf(name, sizeof(name), "hvxpool:%u", (unsigned)i);
+      |                                  ^~~~~~~~~~~~
+In file included from /usr/include/stdio.h:980,
+                 from /usr/include/malloc.h:25,
+                 from <command-line>:
+In function ‘snprintf’,
+    inlined from ‘hvx_worker_pool_create’ at /tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c:253:5:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:54:10: note: ‘__builtin___snprintf_chk’ output between 10 and 19 bytes into a destination of size 16
+   54 |   return __builtin___snprintf_chk (__s, __n, __USE_FORTIFY_LEVEL - 1,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   55 |                                    __glibc_objsize (__s), __fmt,
+      |                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   56 |                                    __va_arg_pack ());
+      |                                    ~~~~~~~~~~~~~~~~~
+TWO READER CELL SOUND (bytes=528482304 footprint=168 MiB)
+DMA SETTINGS CELLS SOUND (src_bypass 0/1 x queues 1/2/4, tag = simulator)
+TWO READER BOUNDS OK (3265.6 INVALID, 85.4 INVALID, 67.9 valid, net=1.32 ms/token)
+HVX GEMV NATIVE CHECK SKIPPED (no /Tools/libnative/lib/libnative.a; source tools/htp/env.sh)
+GRAPH VALIDATOR OK: LFM2.5-8B-A1B n_ops=228 moe=22 words=18295 resident=RMSNORM|CONV1D_GATE|QK_NORM|ROPE|ATTN_M1|ADD|ROUTER_TOPK|MOE
+  tiny fixture (head_dim 8), all kinds resident -> AEE_ESCHEMENOTSUPPORTED (0xf)
+  mutation                                  -> code
+  wrong shape (MoE K != hidden)             -> AEE_EINVALIDFORMAT (0x11)
+  unknown kind                              -> AEE_ENOTYPE (0x22)
+  attention op in a conv layer              -> AEE_EINVALIDITEM (0x2a)
+  next_mm points backwards                  -> AEE_EBADITEM (0x10)
+  next_mm names a non-weight op             -> AEE_EBADITEM (0x10)
+  resident bit on a kind with no kernel     -> AEE_ECLASSNOTSUPPORT (0x3)
+  truncated list                            -> AEE_EINCOMPLETEITEM (0x12)
+  bad magic                                 -> AEE_EINVALIDFORMAT (0x11)
+  wrong version                             -> AEE_EUNSUPPORTED (0x14)
+  lm_head not last                          -> AEE_EINVALIDITEM (0x2a)
+  RMSNORM eps_bits 0                        -> AEE_EINVALIDFORMAT (0x11)
+  ROPE before QK_NORM                       -> AEE_EINVALIDITEM (0x2a)
+  ROPE resident at head_dim 32              -> AEE_ESCHEMENOTSUPPORTED (0xf)
+  ATTN_M1 resident at head_dim 32           -> AEE_ESCHEMENOTSUPPORTED (0xf)
+  ATTN_M1 resident, its ROPE not            -> AEE_ENOTALLOWED (0x2b)
+  QK_NORM resident at head_dim 96           -> AEE_ESCHEMENOTSUPPORTED (0xf)
+  RMSNORM resident at K 2080                -> AEE_ESCHEMENOTSUPPORTED (0xf)
+  ADD resident, a RMSNORM not               -> AEE_ENOTALLOWED (0x2b)
+  ROUTER_TOPK resident, its MOE not         -> AEE_ENOTALLOWED (0x2b)
+  ADD out_slot 1                            -> AEE_EINVALIDFORMAT (0x11)
+GRAPH SESSION MASKS OK: S1=ROUTER_TOPK|MOE S2 = the other 9 kinds; LFM2.5 S2 stretches=23 S1 stretches=22 hops/token=44
+GRAPH FORWARD IDENTITY OK (22 start ops, no op resident)
+  missing weight handle                     -> AEE_EINVHANDLE (0x2c)
+  weight handle of another shape            -> AEE_EINVHANDLE (0x2c)
+GRAPH FORWARD BIT-IDENTICAL: MoE op vs direct layer_run, flags 0x0 and 0x1, layers 0-1, resume_at = start + 1
+GRAPH FORWARD REFUSALS OK
+  RMSNORM forward with no gamma bound       -> AEE_EBADSTATE (0xd)
+  CONV1D_GATE forward with no conv_w bound  -> AEE_EBADSTATE (0xd)
+  ROPE forward with no table bound          -> AEE_EBADSTATE (0xd)
+  ATTN_M1 forward with no cache registered  -> AEE_EBADSTATE (0xd)
+  ATTN_M1 forward at a hole (pos > kv_len)  -> AEE_EBADSTATE (0xd)
+GRAPH STRETCH BIT-IDENTICAL: RMSNORM CONV1D_GATE QK_NORM+ROPE+ATTN_M1 (hd64 shape, pos 0/31/32/63, conv chain of 12 with a re-seed)
+  ROUTER_TOPK forward with no weights bound -> AEE_EBADSTATE (0xd)
+GRAPH STRETCH BIT-IDENTICAL: ADD+RMSNORM ADD+RMSNORM+ROUTER_TOPK+MOE+ADD+RMSNORM (hd64 shape, MOE on the stand-in, slot 0 carried across calls, resume_at the next FC)
+  Q4M1 op: no parts / short / K / down / no table -> AEE_EINVHANDLE (0x2c)
+GRAPH Q4M1 NATIVE BIT-IDENTICAL: FC q|k|v DENSE_FFN RMSNORM+LM_HEAD with HTP_GRAPH_FEED_NATIVE vs q4_gemv_native_det (bit 17 refused)
+GRAPH Q4M1 BIT-IDENTICAL: FC q|k|v (3 parts, feed passed) DENSE_FFN (up gate swiglu down) RMSNORM+LM_HEAD (2 slices, argmax first of a tie, LM_BAN skips its ids) vs q4_gemv_cpu_det / m1_swiglu_cpu_det / m1_argmax_first (hd64 shape, the real HVX kernel on hvx_emu)
+GRAPH CHECKS PASS
+GRAPH Q4M1 MUTANT CAUGHT: s/hvx_swiglu_cpu_f32(gate, up, act, op->N,/hvx_swiglu_cpu_f32(up, gate, act, op->N,/ (2 failed checks)
+GRAPH Q4M1 MUTANT CAUGHT: s/y += g->q4m1\[h\[p\]\].N;/y += Q4M1_GROUP;/ (2 failed checks)
+GRAPH Q4M1 MUTANT CAUGHT: s/graph_prep(op, act, op->N, &g->act);/(void)act;/ (2 failed checks)
+GRAPH Q4M1 MUTANT CAUGHT: s/hvx_argmax_first_f32(g->logits, op->N)/hvx_argmax_first_f32(g->logits, op->N \/ 2u)/ (4 failed checks)
+TOKEN DRIVER BIT-IDENTICAL: tokens 10000/10000 (28 distinct ids) logits bit_identical=1 moe_calls 20000/20000 in+out bit_identical=1 hops=40000 (4 x tokens) timeouts=0 stale=0 hop_us<=wait_us (hd64 C A C, S1 = ROUTER_TOPK|MOE on a pthread, S2 = the rest; vs the one-session all-resident run)
+  S2 with no S1          -> AEE_EEXPIRED after 1.00 s, timeouts=1
+  S1 with no S2          -> AEE_EEXPIRED after 1.00 s, timeouts=1
+  S1 reads a stale trailer -> 0x12 (stale=1), code posted to S2
+  S2 reads a stale header  -> 0x12 (stale=1)
+  S1's forward fails     -> S2 returns 0xd after 457 us
+TOKEN DRIVER FAILURE PATHS OK: lost post (both sides) -> AEE_EEXPIRED, stale header / trailer refused, a failed side's code reaches the other
+TOKEN CHECKS PASS
+TOKEN MUTANT CAUGHT: s/    in = tk_row(theirs);/    in = tk_row(mine);/ (2 failed checks)
+TOKEN MUTANT CAUGHT: s/  if (\*(const uint32_t \*)(slot + HEXKL_MBOX_LINE + row) != seq) {/  if (0) {/ (1 failed checks)
+M1 OPS rmsnorm n=2048 chunk=2048 bad=0 max_ulp(fp32)=0.00 max_ulp(double)=2.89
+M1 OPS qk_norm_q n=2048 chunk=64 bad=0 max_ulp(fp32)=4.00 max_ulp(double)=2.35
+M1 OPS qk_norm_k n=512 chunk=64 bad=0 max_ulp(fp32)=3.00 max_ulp(double)=1.91
+M1 OPS NORM spec vs CPU model rows=20006 bad=0; mutant r differs on tree32=2610 nofma=1269 rsqrt=7498 order=1465 rows
+M1 OPS NORM CPU-ORDER OK mutants=4/4
+M1 OPS SQRT/RECIP RN every 251st + exponent edges inputs=8491153 sqrt_bad=0 recip_bad=0 inf_ok=1
+M1 OPS SQRT/RECIP RN OK
+M1 OPS rope64 pos=0 heads=32+8 bad=0
+M1 OPS rope64 pos=1 heads=32+8 bad=0
+M1 OPS rope64 pos=511 heads=32+8 bad=0
+M1 OPS rope64 pos=1023 heads=32+8 bad=0
+M1 OPS rope64 pos=4095 heads=32+8 bad=0
+M1 OPS rope64 (fp16, #152) identity_at_pos0 bad=0 err/tol(double)=0.295 (tol = 2^-8 (|a|+|b|), floor 2^-22)
+M1 OPS conv_gate_m1 C=2048 chain=8 from zero state: bad(spec)=0 bad(cpu fma model)=0
+M1 OPS conv_gate_m1 C=2048 chain=8 from a 7-row prefill state: bad(spec)=0 bad(cpu fma model)=0
+M1 OPS conv_gate_m1 err/tol(fp32)=0.444 err/tol(double)=0.310 (tol = 2^-21 |b| sum|w_i g_i|)
+M1 OPS swiglu_cpu pooled bad_rows=0/12  argmax_first bad=0/40
+ROUTER TOPK K=2048 E=32 top_k=4 rows=24 (random, exact tie, 1-ulp near tie) bad=0 tie_to_lowest=8/8
+ROUTER TOPK K=128 E=4 top_k=2 rows=24 (random, exact tie, 1-ulp near tie) bad=0 tie_to_lowest=8/8
+ROUTER TOPK K=64 E=4 top_k=2 rows=24 (random, exact tie, 1-ulp near tie) bad=0 tie_to_lowest=8/8
+ROUTER CPU-ORDER rows=5000 (+500 exact ties) bad=0 mutants caught: 4-partial=5500 unfused=5500 wsum-in-order=766
+EXPF PORT vs glibc inputs=70134264 bad=0 glibc-corrected pair ulp=2 (0 or 2: one each way if this glibc corrects them)
+SWIGLU CPU-ORDER elems=458752 bad=0 mutants caught: fused-poly=103 libm-expf=82970 recip-mul=115469
+ARGMAX first-of-ties=1 later-max=6
+ROUTER TOPK BIT-IDENTICAL
+M1 OPS BIT-IDENTICAL
+rmsnorm rows M=7 n=2816 chunk=2816 gamma=1 in_place=0: worst_rel=1.73143e-07
+rmsnorm rows M=5 n=2816 chunk=2816 gamma=1 in_place=1: worst_rel=1.67262e-07
+rmsnorm rows M=3 n=4096 chunk=256 gamma=1 in_place=0: worst_rel=2.02365e-07
+rmsnorm rows M=3 n=1024 chunk=512 gamma=1 in_place=1: worst_rel=1.69841e-07
+rmsnorm rows M=4 n=2048 chunk=256 gamma=0 in_place=0: worst_rel=1.42315e-07
+rmsnorm rows M=1 n=64 chunk=32 gamma=1 in_place=0: worst_rel=1.86271e-07
+rmsnorm add M=7 n=2816 two=0 gamma=1 scale=1: worst_rel=1.5035e-07
+rmsnorm add M=5 n=2816 two=1 gamma=1 scale=0.75: worst_rel=1.3917e-07
+rmsnorm add M=2 n=64 two=1 gamma=0 scale=2: worst_rel=1.4996e-07
+add rejection: n%32=-1 untouched=1
+rejections: chunk%32=-1 chunk>n=-1 M=0:-1 untouched=1
+RMSNORM ROWS OK
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.c: In function ‘hvx_dequant_acc_tile_to_f32’:
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.c:163: warning: ignoring ‘#pragma unroll ’ [-Wunknown-pragmas]
+  163 | #pragma unroll(4)
+      |
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.c: In function ‘hvx_dq_tiles_rows_worker’:
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.c:240: warning: ignoring ‘#pragma unroll ’ [-Wunknown-pragmas]
+  240 | #pragma unroll(4)
+      |
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.c: In function ‘hvx_dq_swiglu_worker’:
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.c:323: warning: ignoring ‘#pragma unroll ’ [-Wunknown-pragmas]
+  323 | #pragma unroll(4)
+      |
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.c: In function ‘hvx_dq_mul_worker’:
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.c:397: warning: ignoring ‘#pragma unroll ’ [-Wunknown-pragmas]
+  397 | #pragma unroll(4)
+      |
+DEQUANT PLANES OK: 50 cases (store, accumulate, SwiGLU, GeGLU, Conv)
+DEQUANT SCATTER OK: 90 cases, two contributions each
+ROPE PREFILL HOST PASS cases=576 invalid_transactions=10368
+PASS 572 scope/offset/diagnostic/thread/TU checks
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.c: In function ‘hvx_dequant_acc_tile_to_f32’:
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.c:163: warning: ignoring ‘#pragma unroll ’ [-Wunknown-pragmas]
+  163 | #pragma unroll(4)
+      |
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.c: In function ‘hvx_dq_tiles_rows_worker’:
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.c:240: warning: ignoring ‘#pragma unroll ’ [-Wunknown-pragmas]
+  240 | #pragma unroll(4)
+      |
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.c: In function ‘hvx_dq_swiglu_worker’:
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.c:323: warning: ignoring ‘#pragma unroll ’ [-Wunknown-pragmas]
+  323 | #pragma unroll(4)
+      |
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.c: In function ‘hvx_dq_mul_worker’:
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.c:397: warning: ignoring ‘#pragma unroll ’ [-Wunknown-pragmas]
+  397 | #pragma unroll(4)
+      |
+FC EPILOGUE OK: 108 bit-exact cases, planar/int32/padded, partial rows and guards
+In file included from /tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_softmax_f32.c:19:
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_softmax_util.h: In function ‘load_tail_sf’:
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_softmax_util.h:48:11: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+   48 |   return *(const HVX_Vector *)buf;
+      |           ^~~~~~~~~~~~~~~~~~~~~~~
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_softmax_util.h: In function ‘store_tail_sf’:
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_softmax_util.h:55:4: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+   55 |   *(HVX_Vector *)buf = v;
+      |    ^~~~~~~~~~~~~~~~~
+router rows M=7 K=2816 E=128: worst_rel=1.7126e-07
+router rows M=5 K=2048 E=32: worst_rel=1.33006e-07
+router rows M=9 K=300 E=64: worst_rel=1.45435e-07
+router rows M=1 K=256 E=128: worst_rel=1.0541e-07
+router topk M=7 E=128 top_k=8 n_sel=13 ties=0: sel mismatches=0 weight worst_rel=2.82322e-07
+router topk M=5 E=128 top_k=8 n_sel=8 ties=1: sel mismatches=0 weight worst_rel=2.3337e-07
+router topk M=3 E=32 top_k=4 n_sel=6 ties=0: sel mismatches=0 weight worst_rel=1.12019e-07
+topk rejections: n_sel<top_k=-1 E%32=-1
+rejections: E%32=-1 E>128=-1 M=0:-1 untouched=1
+ROUTER ROWS OK
+rope rows M=7 n=4096 hd=256 rot=256 from=0: mismatches=0
+rope rows M=5 n=2048 hd=256 rot=256 from=500: mismatches=0
+rope rows M=4 n=1024 hd=512 rot=128 from=3: mismatches=0
+rope rows M=3 n=192 hd=64 rot=64 from=1: mismatches=0
+rejections: half%32=-1 n%hd=-1 M=0:-1 untouched=1
+ROPE ROWS OK
+softcap n=262151 cap=30: worst |err|/cap=2.08354e-07; cap 0 rejected=1 untouched=1
+SOFTCAP OK
+tile_f16 transposed: 30 cases, 0 bad
+TILE F16 OK
+Q4 HELPERS pairs=4000000 div_rn bad=0 f32->f16 bad=0 f16->f32 (all 65536) bad=0 fcvtns bad=0
+Q8 QUANT HVX rows=3000 K=2048 bad_rows=0
+Q4 GEMV K=2048 N=6144 rows=4 spec-vs-cpu bad=0 kernel bad=0 layout=ok
+Q4 GEMV K=2048 N=2048 rows=4 spec-vs-cpu bad=0 kernel bad=0 layout=ok
+Q4 GEMV K=2048 N=512 rows=4 spec-vs-cpu bad=0 kernel bad=0 layout=ok
+Q4 GEMV K=7168 N=2048 rows=4 spec-vs-cpu bad=0 kernel bad=0 layout=ok
+Q4 GEMV K=2048 N=7168 rows=4 spec-vs-cpu bad=0 kernel bad=0 layout=ok
+Q4 GEMV K=64 N=128 rows=4 spec-vs-cpu bad=0 kernel bad=0 layout=ok
+Q4 GEMV K=192 N=64 rows=4 spec-vs-cpu bad=0 kernel bad=0 layout=ok
+Q4 GEMV mutants (columns differing from the spec): unfused=22284 partial4=50063 amax*(1/127)=17545 x/d=17414 round-away=18112 f32-d_a=71846
+Q4 GEMV near ties: exact-midpoint steps=16759 round-to-odd moves=85254 cancellations-to-zero=558
+Q8 QUANT NATIVE rows=3000 K=2048 bad_rows=0 newton_id_ulp_max=2
+Q4 NATIVE K=2048 N=6144 rows=4 kernel bad=0
+Q4 NATIVE K=2048 N=2048 rows=4 kernel bad=0
+Q4 NATIVE K=2048 N=512 rows=4 kernel bad=0
+Q4 NATIVE K=7168 N=2048 rows=4 kernel bad=0
+Q4 NATIVE K=2048 N=7168 rows=4 kernel bad=0
+Q4 NATIVE K=64 N=128 rows=4 kernel bad=0
+Q4 NATIVE K=192 N=64 rows=4 kernel bad=0
+Q4 NATIVE bit-exact vs spec 3028/3028 snr_db=149.4 (vs the CPU order, natural rows; quantizer-edge rows 37.6, their distance to the f64 dot -5.2 dB vs the CPU order's)
+Q4 GEMV CPU-ORDER OK mutants=6/6
+Q8 QUANT HVX BIT-IDENTICAL
+Q4 GEMV BIT-IDENTICAL
+MAILBOX payload=0 done=10000/10000 timeouts=0/0 bad=0/0 checksum_ok=1 us_per_hop=0.19 ok
+MAILBOX payload=8192 done=10000/10000 timeouts=0/0 bad=0/0 checksum_ok=1 us_per_hop=0.43 ok
+MAILBOX lone role 0: timeouts=1 after 1001079 us ok
+MAILBOX OK
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c: In function ‘hvx_worker_pool_create’:
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c:253:43: warning: ‘%u’ directive output may be truncated writing between 1 and 10 bytes into a region of size 8 [-Wformat-truncation=]
+  253 |     snprintf(name, sizeof(name), "hvxpool:%u", (unsigned)i);
+      |                                           ^~
+/tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c:253:34: note: directive argument in the range [0, 4294967294]
+  253 |     snprintf(name, sizeof(name), "hvxpool:%u", (unsigned)i);
+      |                                  ^~~~~~~~~~~~
+In file included from /usr/include/stdio.h:980,
+                 from /usr/include/malloc.h:25,
+                 from <command-line>:
+In function ‘snprintf’,
+    inlined from ‘hvx_worker_pool_create’ at /tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c:253:5:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:54:10: note: ‘__builtin___snprintf_chk’ output between 10 and 19 bytes into a destination of size 16
+   54 |   return __builtin___snprintf_chk (__s, __n, __USE_FORTIFY_LEVEL - 1,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   55 |                                    __glibc_objsize (__s), __fmt,
+      |                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   56 |                                    __va_arg_pack ());
+      |                                    ~~~~~~~~~~~~~~~~~
+ATTN M1 F16 exp16 == exp_ps twin at every fp16 d <= 0 (31745): bad=0; kernel table == exp16: bad=0
+ATTN M1 F16 rope64 == fp16 RoPE, 40 heads x 5 positions: bad=0
+ATTN M1 F16 CPU-ORDER L=1 out bad=0 of 2048, l bad=0, pv midpoint cases planted=0, score cases=0
+ATTN M1 F16 CPU-ORDER L=2 out bad=0 of 2048, l bad=0, pv midpoint cases planted=0, score cases=0
+ATTN M1 F16 CPU-ORDER L=63 out bad=0 of 2048, l bad=0, pv midpoint cases planted=433, score cases=120
+ATTN M1 F16 CPU-ORDER L=64 out bad=0 of 2048, l bad=0, pv midpoint cases planted=740, score cases=122
+ATTN M1 F16 CPU-ORDER L=65 out bad=0 of 2048, l bad=0, pv midpoint cases planted=701, score cases=124
+ATTN M1 F16 CPU-ORDER L=512 out bad=0 of 2048, l bad=0, pv midpoint cases planted=655, score cases=1018
+ATTN M1 F16 CPU-ORDER L=513 out bad=0 of 2048, l bad=0, pv midpoint cases planted=596, score cases=1020
+ATTN M1 F16 CPU-ORDER L=1024 out bad=0 of 2048, l bad=0, pv midpoint cases planted=483, score cases=2042
+ATTN M1 F16 mutant no_rto      differs from the spec at 791 values
+ATTN M1 F16 mutant hf_nonfused differs from the spec at 7930 values
+ATTN M1 F16 mutant sum32       differs from the spec at 7010 values
+ATTN M1 F16 mutant unfused_fx  differs from the spec at 0 values (equivalent on fp16 d: exhaustive)
+ATTN M1 F16 mutant rope_f32    differs from the spec at 1918 values
+ATTN M1 F16 CPU-ORDER OK mutants=4/4 equivalent=1
+ATTN M1 PRIM rne16: 39330048 lanes, bad=0
+ATTN M1 PRIM fma16: 6400000 lanes (3200000 midpoint cases), bad=0
+ATTN M1 PRIM div16: 236486145 quotients (7881 with rne16(e*r) off by one, 27049 ties), 134701 batches run, bad=0
+ATTN M1 HF PRIM qfma: adversarial n=76800 hazards=8382 bad=0, zero_sign n=25600 bad=0, random n=1024000 hazards=6 bad=0
+ATTN M1 HF PRIM hf ops, every finite fp16 x 4 random: n=253952 bad add=0 sub=0 mul=0 max=0 mul0.125=0 zero_plus=0
+ATTN M1 HF PRIM f32 -> fp16 bits: 1219231879 values, bad=0, vector bad=0; fp16 -> f32 vector: 63488 values, bad=0
+ATTN M1 HF PRIM vlut16 splat of the zipped q row: 256000 rows x d, bad=0
+ATTN M1 HF PRIM exp16 lookup at every fp16 d <= 0 (31746): vector index bad=0, tab[index] != exp16 bad=0
+ATTN M1 HF PRIM score tree n=256000 bad=0; exp16 at every fp16 d <= 0 (31745) bad=0; div16 on 27049 hard quotients bad=0
+ATTN M1 HF PRIM OK
+ATTN M1 shape=(1,8,64) L=1 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=0
+ATTN M1 shape=(1,8,64) L=63 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=736
+ATTN M1 shape=(1,8,64) L=64 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=946
+ATTN M1 shape=(1,8,64) L=65 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=814
+ATTN M1 shape=(1,8,64) L=512 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=536
+ATTN M1 shape=(1,8,64) L=513 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=755
+ATTN M1 shape=(1,8,64) L=1024 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=639
+ATTN M1 shape=(1,8,64) L=1536 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=469
+ATTN M1 shape=(2,3,64) L=1 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=0
+ATTN M1 shape=(2,3,64) L=63 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=455
+ATTN M1 shape=(2,3,64) L=64 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=801
+ATTN M1 shape=(2,3,64) L=65 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=798
+ATTN M1 shape=(2,3,64) L=512 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=719
+ATTN M1 shape=(2,3,64) L=513 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=652
+ATTN M1 shape=(2,3,64) L=1024 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=433
+ATTN M1 shape=(2,3,64) L=1536 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=537
+ATTN M1 shape=(1,2,64) L=1 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=0
+ATTN M1 shape=(1,2,64) L=63 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=0
+ATTN M1 shape=(1,2,64) L=64 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=0
+ATTN M1 shape=(1,2,64) L=65 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=0
+ATTN M1 shape=(1,2,64) L=512 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=0
+ATTN M1 shape=(1,2,64) L=513 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=0
+ATTN M1 shape=(1,2,64) L=1024 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=0
+ATTN M1 shape=(1,2,64) L=1536 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=0
+ATTN M1 shape=(8,4,64) L=1 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=0
+ATTN M1 shape=(8,4,64) L=63 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=567
+ATTN M1 shape=(8,4,64) L=64 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=564
+ATTN M1 shape=(8,4,64) L=65 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=628
+ATTN M1 shape=(8,4,64) L=512 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=482
+ATTN M1 shape=(8,4,64) L=513 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=673
+ATTN M1 shape=(8,4,64) L=1024 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=374
+ATTN M1 shape=(8,4,64) L=1536 max_seq=2048 workers={0,3,7} bad=0 bad_stats=0 pool_bad=0 prof_bad=0 pv_cases=480
+ATTN M1 append-chain L=65 vs bulk: Kt_equal=1 V_equal=1 out_bad=0 kv_len=65/65
+ATTN M1 L=1: out == rne16(v) bad=0, l == 1.0f bad=0
+ATTN M1 division tie: e=0x1p-24 l=0x1p+1 p=0x0p+0 (tie to even: 0) bad=0
+ATTN M1 error codes and rewind OK
+ATTN M1 PHASES OK
+ATTN M1 BIT-IDENTICAL
+WEIGHT SWAP OK
+min_max bad 0, quant 164800 values: 0 off by one, 0 worse, dequant bad 0
+abs_max: 1800 cases, 0 bad
+ABS MAX OK
+abs_max: aarch64 g++ or qemu-aarch64 missing, NEON path not run
+Q8 ROW REUSE OK: 32 shapes, exact AH bytes and independent transpose reference

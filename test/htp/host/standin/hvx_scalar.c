@@ -12,6 +12,8 @@
  */
 
 #include "hvx_scalar.h"
+#include "hvx_rmsnorm_rows_f32.h"
+#include "hvx_rope_rows_f32.h"
 
 #include "hexkl_micro.h"
 #include "hvx_dequant_i32.h"
@@ -19,8 +21,10 @@
 #include "hvx_quant_u8.h"
 #include "hvx_swiglu_f32.h"
 #include "swiglu_det.h"
+#include <AEEStdErr.h>
 #include <math.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 
 hvx_scalar_hooks hvx_scalar_hook = {NULL, NULL};
@@ -39,7 +43,7 @@ int wh_value(const uint8_t *tile, uint32_t k, uint32_t c) {
   return nib >= 8 ? nib - 16 : nib;
 }
 
-/* Weight tile: 512 bytes = 32k x 32n int4 in the device's WH layout,
+/** Weight tile: 512 bytes = 32k x 32n int4 in the device's WH layout,
    two's complement nibbles. Activation tile: 64 rows x 32 bytes u8. */
 int hexkl_micro_hmx_mm_u8i4(uint8_t *base, uint32_t act_off, uint32_t w_off) {
   const uint8_t *a = base + act_off;
@@ -60,7 +64,7 @@ int hexkl_micro_hmx_acc_read_int32(uint8_t *base, uint32_t cfg, uint32_t off) {
   return 0;
 }
 
-/* ---- the u8i4 GEMV: the same sum as the tile above, over the tiles the
+/** ---- the u8i4 GEMV: the same sum as the tile above, over the tiles the
    kernel points it at. rows1 picks between two HVX loops that compute
    the same int32 sums (hvx_gemm_u8i4_wh.c), so it is one function here;
    the l2fetch entry point is a no-op unless a check hooks it. ---- */
@@ -92,6 +96,18 @@ void hvx_gemm_u8i4_wh_col_nopf(const uint8_t *act_ah, uint32_t m,
     hvx_scalar_hook.gemv(act_ah, m, k_tiles, wh, n_col, nt, rows1, 1, out);
   else
     hvx_scalar_gemv(act_ah, m, k_tiles, wh, n_col, nt, out);
+}
+void hvx_gemv_u8i4_wh_col_aligned_nopf(const uint8_t *act_ah, uint32_t k_tiles,
+                                       const uint8_t *wh, uint32_t n_col,
+                                       uint32_t nt, int32_t *out) {
+  hvx_gemm_u8i4_wh_col_nopf(act_ah, 1u, k_tiles, wh, n_col, nt, 1u, out);
+}
+void hvx_gemv_u8i4_wh_3col_nopf(const uint8_t *act_ah, uint32_t k_tiles,
+                                const uint8_t *wh, uint32_t plane_bytes,
+                                uint32_t n_col, uint32_t nt, int32_t *out) {
+  for (uint32_t w = 0; w < 3u; ++w)
+    hvx_gemm_u8i4_wh_col_nopf(act_ah, 1u, k_tiles, wh + (size_t)w * plane_bytes,
+                              n_col, nt, 1u, out + w * 32u);
 }
 void hvx_gemm_u8i4_wh_col(const uint8_t *act_ah, uint32_t m, uint32_t k_tiles,
                           const uint8_t *wh, uint32_t n_col, uint32_t nt,
@@ -129,7 +145,7 @@ void hvx_quant_rows_u8_params(const float *x, uint32_t m, uint32_t mp,
     zp[r] = (int32_t)z;
   }
 }
-/* A row range, the one scalar formula the two entry points below share so
+/** A row range, the one scalar formula the two entry points below share so
    they cannot drift: the kernel's units are 16-row quarters of a block.
    Tiles run (row_block, inner_tile) at a 2048-byte stride, so a caller
    passing more than 64 rows writes several row blocks. */
@@ -165,6 +181,34 @@ int hvx_quant_pack_u8_ah(const float *x, uint32_t m, uint32_t mp, uint32_t k,
   return hvx_quant_pack_u8_ah_mapped(x, NULL, m, mp, k, scale, zp, out, p);
 }
 
+int hvx_quant_params_pack_u8_ah(const float *x, uint32_t m, uint32_t mp,
+                                uint32_t k, const float *gamma, float eps,
+                                float *scratch, float *scale, int32_t *zp,
+                                uint8_t *out, hvx_worker_pool *p) {
+  // The production scratch holds only a worker's row group, not all M
+  // rows. Keep the stand-in's independent normalized matrix private.
+  float *normed =
+    scratch ? (float *)malloc((size_t)m * k * sizeof(float)) : NULL;
+  if (scratch && !normed)
+    return AEE_ENOMEMORY;
+  if (scratch) {
+    for (uint32_t r = 0; r < m; ++r) {
+      float ss = 0.0f;
+      for (uint32_t c = 0; c < k; ++c)
+        ss += x[(size_t)r * k + c] * x[(size_t)r * k + c];
+      const float inv = 1.0f / sqrtf(ss / k + eps);
+      for (uint32_t c = 0; c < k; ++c)
+        normed[(size_t)r * k + c] =
+          x[(size_t)r * k + c] * inv * (gamma ? gamma[c] : 1.0f);
+    }
+    x = normed;
+  }
+  hvx_quant_rows_u8_params(x, m, mp, k, scale, zp, p);
+  const int rc = hvx_quant_pack_u8_ah(x, m, mp, k, scale, zp, out, p);
+  free(normed);
+  return rc;
+}
+
 void hvx_dequant_acc_tile_to_f32(const int32_t *tile, uint32_t stride,
                                  uint32_t m, const float *as, const int32_t *az,
                                  const int32_t *cs, const float *ws,
@@ -181,7 +225,18 @@ void hvx_dequant_acc_tile_to_f32(const int32_t *tile, uint32_t stride,
         out[(size_t)r * ostride + c] = v;
     }
 }
-/* The DDR fallback's whole-matrix dequant (accumulator layout unusable):
+/* Fixed-width scatter keeps repeated destinations in source-row order. */
+void hvx_scale_add_scatter_tile_f32(float *out, const float *src,
+                                    const uint32_t *rows, const float *weights,
+                                    uint32_t m_count, uint32_t stride) {
+  for (uint32_t r = 0; r < m_count; ++r)
+    for (uint32_t c = 0; c < 32; ++c) {
+      const float weighted = src[(size_t)r * stride + c] * weights[r];
+      out[(size_t)rows[r] * stride + c] += weighted;
+    }
+}
+
+/** The DDR fallback's whole-matrix dequant (accumulator layout unusable):
    the same formula per element, row stride n. */
 void hvx_dequant_i32_to_f32(const int32_t *acc, uint32_t m_valid,
                             uint32_t m_pad, uint32_t n, const float *act_scale,
@@ -201,7 +256,7 @@ void hvx_dequant_i32_to_f32(const int32_t *acc, uint32_t m_valid,
     }
 }
 
-/* The pooled workers: each a loop over the per-tile stand-in above,
+/** The pooled workers: each a loop over the per-tile stand-in above,
    exactly as the real ones are pooled loops over the real per-tile
    kernel, so what a check sees is the kernel's batching arithmetic --
    which tile lands at which staged slot, which column it carries -- and
@@ -227,6 +282,50 @@ void hvx_dq_tiles_worker(uint32_t n_threads, uint32_t i, void *vjob) {
                                 c->bias + c0, out, c->dst_stride, 0);
   }
 }
+/* The same job row-major: each row's tiles, then the row's hook. */
+void hvx_dq_tiles_rows_worker(uint32_t n_threads, uint32_t i, void *vjob) {
+  const hvx_dq_rows_job *jb = (const hvx_dq_rows_job *)vjob;
+  const hvx_dq_tiles_job *c = &jb->t;
+  uint32_t lo, hi;
+  slice(c->m_count, n_threads, i, &lo, &hi);
+  for (uint32_t m = lo; m < hi; ++m) {
+    for (uint32_t j = 0; j < c->n_tiles; ++j) {
+      const uint32_t c0 = (c->nt0 + j) * 32u;
+      const int32_t *tile =
+        (const int32_t *)(c->tiles_base + (size_t)j * c->tile_stride);
+      hvx_dequant_acc_tile_to_f32(
+        tile + (size_t)m * c->row_stride, c->row_stride, 1u, c->act_scale + m,
+        c->act_zp + m, c->colsum_w + c0, c->w_scale + c0, c->bias + c0,
+        c->dst_a + (size_t)m * c->dst_stride + c0, c->dst_stride, 0);
+    }
+    if (jb->row_done)
+      jb->row_done(jb->ctx, c->dst_a + (size_t)m * c->dst_stride + c->nt0 * 32u,
+                   m);
+  }
+}
+void hvx_rmsnorm_row_chunks_f32(const float *x, float *y, const float *gamma,
+                                uint32_t n, uint32_t chunk, float eps) {
+  for (uint32_t c0 = 0; c0 < n; c0 += chunk) {
+    float sum = 0.f;
+    for (uint32_t c = 0; c < chunk; ++c)
+      sum += x[c0 + c] * x[c0 + c];
+    const float inv = 1.f / sqrtf(sum / (float)chunk + eps);
+    for (uint32_t c = 0; c < chunk; ++c)
+      y[c0 + c] = x[c0 + c] * inv * (gamma ? gamma[c] : 1.f);
+  }
+}
+/* hvx_rope_row_f32's formula: per head, a*cos - b*sin and a*sin + b*cos */
+void hvx_rope_row_f32(float *x, uint32_t n, uint32_t hd, const float *cs) {
+  const uint32_t half = hd / 2u;
+  for (uint32_t h = 0; h < n / hd; ++h)
+    for (uint32_t k = 0; k < half; ++k) {
+      float *a = x + (size_t)h * hd + k, *b = a + half;
+      volatile float ac = *a * cs[k], bs = *b * cs[hd + k];
+      volatile float as = *a * cs[hd + k], bc = *b * cs[k];
+      *a = ac - bs;
+      *b = as + bc;
+    }
+}
 void hvx_dequant_acc_tiles_to_f32(
   const uint8_t *tiles_base, uint32_t tile_stride, uint32_t n_tiles,
   uint32_t nt0, uint32_t row_stride, uint32_t m_count, const float *act_scale,
@@ -242,7 +341,7 @@ void hvx_dequant_acc_tiles_to_f32(
                          split,      dst_stride,  n_tiles};
   hvx_dq_tiles_worker(1u, 0u, &jb);
 }
-/* Fused gate/up dequant + SwiGLU: staged slot j is gate column g0 + j and
+/** Fused gate/up dequant + SwiGLU: staged slot j is gate column g0 + j and
    slot n_pairs + j the up column opposite it. The SwiGLU itself is
    swiglu_det.h, which the HVX kernel matches bit for bit (rule 24). */
 void hvx_dq_swiglu_worker(uint32_t n_threads, uint32_t i, void *vjob) {
@@ -269,7 +368,7 @@ void hvx_dq_swiglu_worker(uint32_t n_threads, uint32_t i, void *vjob) {
             : swiglu_det_one(gt[r * 32u + k], ut[r * 32u + k]);
   }
 }
-/* The tail path calls the pooled pair function directly (pool NULL, one
+/** The tail path calls the pooled pair function directly (pool NULL, one
    pair); it is the job above run synchronously, as on device. */
 void hvx_dequant_swiglu_acc_tiles_to_f32(
   const uint8_t *tiles_base, uint32_t tile_stride, uint32_t n_pairs,
@@ -296,7 +395,7 @@ void hvx_dequant_swiglu_acc_tiles_to_f32(
   jb.act = act;
   hvx_dq_swiglu_worker(1u, 0u, &jb);
 }
-/* Dequant + product pair job (the conv block's pre-conv gate): slot j is
+/** Dequant + product pair job (the conv block's pre-conv gate): slot j is
    the first weight's column c0 + 32 j, slot n_pairs + j the second's. */
 void hvx_dq_mul_worker(uint32_t n_threads, uint32_t i, void *vjob) {
   const hvx_dq_mul_job *c = (const hvx_dq_mul_job *)vjob;
@@ -326,4 +425,24 @@ void hvx_swiglu_inplace_f32(float *gate, const float *up, uint32_t m_valid,
   (void)pool;
   for (size_t j = 0, n = (size_t)m_valid * n_out; j < n; ++j)
     gate[j] = swiglu_det_one(gate[j], up[j]);
+}
+
+void hvx_quant_rows_u8_params_rowmajor(const float *x, uint32_t m,
+                                       uint32_t m_pad, uint32_t k, float *scale,
+                                       int32_t *zp, uint8_t *dst,
+                                       hvx_worker_pool *pool) {
+  hvx_quant_rows_u8_params(x, m, m_pad, k, scale, zp, pool);
+  for (uint32_t r = 0; r < m; ++r)
+    for (uint32_t c = 0; c < k; ++c) {
+      int v = (int)nearbyintf(x[(size_t)r * k + c] * (1.0f / scale[r])) + zp[r];
+      dst[(size_t)r * k + c] = v < 0 ? 0 : v > 255 ? 255 : (uint8_t)v;
+    }
+}
+void hvx_gather_rowmajor_u8_ah_rows(const uint8_t *src, const uint32_t *rows,
+                                    uint32_t m0, uint32_t m1, uint32_t k,
+                                    uint8_t *dst) {
+  for (uint32_t r = m0; r < m1; ++r)
+    for (uint32_t c = 0; c < k; ++c)
+      dst[(size_t)(r / 64u) * 64u * k + (c / 32u) * 2048u + (r % 64u) * 32u +
+          c % 32u] = src[(size_t)rows[r] * k + c];
 }

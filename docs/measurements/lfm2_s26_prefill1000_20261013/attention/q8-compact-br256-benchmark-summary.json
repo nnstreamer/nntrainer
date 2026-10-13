@@ -1,0 +1,266 @@
+{
+  "status": "ACCEPTED: isolated81-case parity and paired kernel speedup; cumulative v13 full-model raw parity132/132.",
+  "method": "Arithmetic mean of the two run medians per variant, ABBA; each run10 timed repetitions at1024 and2048 after warmup. Single-layer synthetic harness, not full-modelTPS.",
+  "parity": {
+    "control": {
+      "cases": 81,
+      "sha256": "922671c191db5e4ce4a4be4a498c6cbfaa398cfb2f441f47c475b74d34f78591",
+      "concurrent_pids": []
+    },
+    "candidate": {
+      "cases": 81,
+      "sha256": "922671c191db5e4ce4a4be4a498c6cbfaa398cfb2f441f47c475b74d34f78591",
+      "concurrent_pids": []
+    }
+  },
+  "bench": {
+    "control": {
+      "1024": {
+        "wall_us": 13595.25,
+        "dsp_us": 13173.25,
+        "quant_us": 2128.75,
+        "append_us": 1944.5,
+        "attn_us": 8444.25,
+        "qprep_us": 236.0,
+        "dma_us": 151.75,
+        "qk_us": 575.75,
+        "dequant_us": 0.0,
+        "softmax_us": 5608.5,
+        "pquant_us": 0.0,
+        "pv_us": 687.25,
+        "oupd_us": 788.0,
+        "store_us": 220.75
+      },
+      "2048": {
+        "wall_us": 41305.75,
+        "dsp_us": 40600.25,
+        "quant_us": 4908.5,
+        "append_us": 4263.0,
+        "attn_us": 29348.0,
+        "qprep_us": 605.25,
+        "dma_us": 697.0,
+        "qk_us": 2088.5,
+        "dequant_us": 0.0,
+        "softmax_us": 19593.25,
+        "pquant_us": 0.0,
+        "pv_us": 2437.5,
+        "oupd_us": 3025.75,
+        "store_us": 480.0
+      }
+    },
+    "candidate": {
+      "1024": {
+        "wall_us": 13171.5,
+        "dsp_us": 12765.75,
+        "quant_us": 2030.5,
+        "append_us": 1924.0,
+        "attn_us": 8143.5,
+        "qprep_us": 242.75,
+        "dma_us": 78.5,
+        "qk_us": 573.0,
+        "dequant_us": 0.0,
+        "softmax_us": 5440.5,
+        "pquant_us": 0.0,
+        "pv_us": 673.5,
+        "oupd_us": 796.25,
+        "store_us": 197.75
+      },
+      "2048": {
+        "wall_us": 40151.5,
+        "dsp_us": 39622.25,
+        "quant_us": 4884.25,
+        "append_us": 4258.75,
+        "attn_us": 28382.5,
+        "qprep_us": 634.5,
+        "dma_us": 334.25,
+        "qk_us": 2073.5,
+        "dequant_us": 0.0,
+        "softmax_us": 19118.25,
+        "pquant_us": 0.0,
+        "pv_us": 2429.0,
+        "oupd_us": 3041.25,
+        "store_us": 407.75
+      }
+    }
+  },
+  "change": {
+    "1024": {
+      "wall_us": {
+        "control": 13595.25,
+        "candidate": 13171.5,
+        "saved_us": 423.75,
+        "change_percent": -3.116897445799083
+      },
+      "dsp_us": {
+        "control": 13173.25,
+        "candidate": 12765.75,
+        "saved_us": 407.5,
+        "change_percent": -3.093390013853836
+      },
+      "quant_us": {
+        "control": 2128.75,
+        "candidate": 2030.5,
+        "saved_us": 98.25,
+        "change_percent": -4.61538461538461
+      },
+      "append_us": {
+        "control": 1944.5,
+        "candidate": 1924.0,
+        "saved_us": 20.5,
+        "change_percent": -1.0542555926973507
+      },
+      "attn_us": {
+        "control": 8444.25,
+        "candidate": 8143.5,
+        "saved_us": 300.75,
+        "change_percent": -3.5615951683097946
+      },
+      "qprep_us": {
+        "control": 236.0,
+        "candidate": 242.75,
+        "saved_us": -6.75,
+        "change_percent": 2.8601694915254328
+      },
+      "dma_us": {
+        "control": 151.75,
+        "candidate": 78.5,
+        "saved_us": 73.25,
+        "change_percent": -48.27018121911038
+      },
+      "qk_us": {
+        "control": 575.75,
+        "candidate": 573.0,
+        "saved_us": 2.75,
+        "change_percent": -0.4776378636560996
+      },
+      "dequant_us": {
+        "control": 0.0,
+        "candidate": 0.0,
+        "saved_us": 0.0,
+        "change_percent": null
+      },
+      "softmax_us": {
+        "control": 5608.5,
+        "candidate": 5440.5,
+        "saved_us": 168.0,
+        "change_percent": -2.995453329767317
+      },
+      "pquant_us": {
+        "control": 0.0,
+        "candidate": 0.0,
+        "saved_us": 0.0,
+        "change_percent": null
+      },
+      "pv_us": {
+        "control": 687.25,
+        "candidate": 673.5,
+        "saved_us": 13.75,
+        "change_percent": -2.0007275372862843
+      },
+      "oupd_us": {
+        "control": 788.0,
+        "candidate": 796.25,
+        "saved_us": -8.25,
+        "change_percent": 1.046954314720816
+      },
+      "store_us": {
+        "control": 220.75,
+        "candidate": 197.75,
+        "saved_us": 23.0,
+        "change_percent": -10.419026047565117
+      }
+    },
+    "2048": {
+      "wall_us": {
+        "control": 41305.75,
+        "candidate": 40151.5,
+        "saved_us": 1154.25,
+        "change_percent": -2.794405137299283
+      },
+      "dsp_us": {
+        "control": 40600.25,
+        "candidate": 39622.25,
+        "saved_us": 978.0,
+        "change_percent": -2.4088521622403825
+      },
+      "quant_us": {
+        "control": 4908.5,
+        "candidate": 4884.25,
+        "saved_us": 24.25,
+        "change_percent": -0.49404094937353094
+      },
+      "append_us": {
+        "control": 4263.0,
+        "candidate": 4258.75,
+        "saved_us": 4.25,
+        "change_percent": -0.09969505043396776
+      },
+      "attn_us": {
+        "control": 29348.0,
+        "candidate": 28382.5,
+        "saved_us": 965.5,
+        "change_percent": -3.289832356548994
+      },
+      "qprep_us": {
+        "control": 605.25,
+        "candidate": 634.5,
+        "saved_us": -29.25,
+        "change_percent": 4.832713754646845
+      },
+      "dma_us": {
+        "control": 697.0,
+        "candidate": 334.25,
+        "saved_us": 362.75,
+        "change_percent": -52.044476327116215
+      },
+      "qk_us": {
+        "control": 2088.5,
+        "candidate": 2073.5,
+        "saved_us": 15.0,
+        "change_percent": -0.7182188173330162
+      },
+      "dequant_us": {
+        "control": 0.0,
+        "candidate": 0.0,
+        "saved_us": 0.0,
+        "change_percent": null
+      },
+      "softmax_us": {
+        "control": 19593.25,
+        "candidate": 19118.25,
+        "saved_us": 475.0,
+        "change_percent": -2.4243042884666943
+      },
+      "pquant_us": {
+        "control": 0.0,
+        "candidate": 0.0,
+        "saved_us": 0.0,
+        "change_percent": null
+      },
+      "pv_us": {
+        "control": 2437.5,
+        "candidate": 2429.0,
+        "saved_us": 8.5,
+        "change_percent": -0.34871794871794703
+      },
+      "oupd_us": {
+        "control": 3025.75,
+        "candidate": 3041.25,
+        "saved_us": -15.5,
+        "change_percent": 0.5122696852020159
+      },
+      "store_us": {
+        "control": 480.0,
+        "candidate": 407.75,
+        "saved_us": 72.25,
+        "change_percent": -15.052083333333332
+      }
+    }
+  },
+  "limits": [
+    "No monitored concurrent process; all before/after thermal status0, AP27.0C/BAT26.1C/SKIN28.3C.",
+    "Kernel timing is consistent between both candidate runs. Quantization differs by197us between candidate runs although that source is unchanged; wall improvement includes this noise.",
+    "At1024, attention-kernel saving300.75us/layer implies only about3.0ms across10 layers; full-model effect must be measured.",
+    "No changed precision, weights, KV column-block width, registry capacity or DSP mode."
+  ]
+}

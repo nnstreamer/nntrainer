@@ -1,0 +1,398 @@
+{
+  "scope": "Source/log-only comparison of one profiled v15 stage64 run and one earlier profiled v12 stage0 run; not a controlled clean A/B.",
+  "versions": {
+    "v15": {
+      "stem": "v15-pub-stage64-profile-an1",
+      "artifacts": {
+        ".log": "ec9dc29c9994d79889022c3019da4df8e3ae560e01428f3a06fed7cc21772123",
+        "-logcat.txt": "d0e8f16b8f3fd9be9f4b5c1cbe8c17a520714f711a3b2b031c09cdd80135fd74",
+        ".json": "0955367804f6fcf1dee6a702a4d719bd1f224dc535186729fe65025e4131fbc7"
+      },
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1046,
+        "tps": 978.967
+      },
+      "op_time_node_count": 205,
+      "op_time_total_ms": 1033.4632320000005,
+      "timer_minus_op_time_ms": 12.536767999999483,
+      "groups": {
+        "attention": {
+          "graph_calls": 30,
+          "ms": 218.087449
+        },
+        "conv": {
+          "graph_calls": 30,
+          "ms": 153.04223800000003
+        },
+        "moe": {
+          "graph_calls": 38,
+          "ms": 605.5847389999999
+        },
+        "other": {
+          "graph_calls": 107,
+          "ms": 56.748805999999995
+        }
+      },
+      "op_types": {
+        "input": {
+          "calls": 21,
+          "ms": 0.021929999999999998
+        },
+        "tie_word_embeddings": {
+          "calls": 2,
+          "ms": 3.618125
+        },
+        "multiout": {
+          "calls": 1,
+          "ms": 0.0010940000000000001
+        },
+        "rms_norm": {
+          "calls": 81,
+          "ms": 3.9113020000000005
+        },
+        "conv_block": {
+          "calls": 30,
+          "ms": 153.04223800000005
+        },
+        "dense_ffn": {
+          "calls": 2,
+          "ms": 49.196355
+        },
+        "qkv_layer": {
+          "calls": 10,
+          "ms": 44.813074
+        },
+        "mha_core": {
+          "calls": 10,
+          "ms": 160.73380200000003
+        },
+        "fully_connected": {
+          "calls": 10,
+          "ms": 12.540573
+        },
+        "lfm2_moe": {
+          "calls": 38,
+          "ms": 605.584739
+        }
+      },
+      "htp_router_norm_prefill_calls": 38,
+      "htp_router_norm_prefill_rpc_ms": 119.074,
+      "first_moe_node_start_ms": 85.287711,
+      "first_moe_node_end_ms": 106.542086,
+      "second_moe_node_end_ms": 126.391044,
+      "third_moe_node_end_ms": 144.431462,
+      "last_moe_node_end_ms": 1031.2340130000005,
+      "post_last_moe_ms": 2.2292190000000573,
+      "prefetch": {
+        "read_count": 1596,
+        "ready_when_asked": 1509,
+        "exposed_wait_ms": 50.6,
+        "per_reader_expert_ms_rounded": 4.41,
+        "aggregate_reader_service_ms_estimate": 7038.360000000001,
+        "ideal_seven_reader_service_wall_ms_estimate": 1005.4800000000001
+      },
+      "logcat": {
+        "prefill_graph_start_anchor_seconds": 69141.53582359149,
+        "anchor_spread_ms": 0.7526560075348243,
+        "prefill_rpc_counts": {
+          "0x1f070500": 30,
+          "0x1f040300": 3,
+          "0x1f090100": 12,
+          "0x1f040200": 2,
+          "0x1f080500": 10,
+          "0x1f050400": 10,
+          "0x1f050200": 10,
+          "0xa030100": 10,
+          "0x1f050500": 38,
+          "0x1f060200": 38,
+          "0x1f060300": 25,
+          "0x1f040100": 1
+        },
+        "prefill_rpc_count": 189,
+        "first_moe_rpc_end_ms_relative_to_graph_anchor": 100.17640850855969,
+        "large_router_to_update_gaps": [
+          {
+            "moe_index": 34,
+            "graph_layer": 36,
+            "gap_ms_rounded": 15.0
+          },
+          {
+            "moe_index": 35,
+            "graph_layer": 37,
+            "gap_ms_rounded": 16.0
+          },
+          {
+            "moe_index": 37,
+            "graph_layer": 39,
+            "gap_ms_rounded": 18.0
+          }
+        ],
+        "final_graph_rpc_to_teardown_ms_rounded": 27.999999991152436,
+        "attention_trace_aggregate_us": {
+          "prepare_us": 6,
+          "rpc_us": 140951,
+          "wall_us": 140960,
+          "dsp_us": 134901,
+          "quant_us": 24221,
+          "append_us": 21526,
+          "attn_us": 82187
+        }
+      },
+      "before": {
+        "status": 0,
+        "temperatures": {
+          "AP": 26.0,
+          "BAT": 25.7,
+          "PA": 26.5,
+          "SKIN": 27.9,
+          "SUBBAT": 0.0,
+          "USB": 25.8
+        }
+      },
+      "after": {
+        "status": 0,
+        "temperatures": {
+          "AP": 27.8,
+          "BAT": 25.7,
+          "PA": 27.2,
+          "SKIN": 28.2,
+          "SUBBAT": 0.0,
+          "USB": 25.8
+        }
+      }
+    },
+    "v12": {
+      "stem": "v12-align-gamma-r7-profile-w4",
+      "artifacts": {
+        ".log": "a1818c4fdcd4d2239893cb7eb6544a07947b1cc71478517906a6e54789b3c96e",
+        "-logcat.txt": "fa59cce111013c81dec09d4a9edd1e82f211b7c18a804d28964b35762c8c953e",
+        ".json": "05856ec86c14383a0a72dbddb1a07799535857fbecbc31e343632f897de430f4"
+      },
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1088,
+        "tps": 941.176
+      },
+      "op_time_node_count": 205,
+      "op_time_total_ms": 1087.8640109999994,
+      "timer_minus_op_time_ms": 0.13598900000056346,
+      "groups": {
+        "attention": {
+          "graph_calls": 30,
+          "ms": 220.503751
+        },
+        "conv": {
+          "graph_calls": 30,
+          "ms": 151.892867
+        },
+        "moe": {
+          "graph_calls": 38,
+          "ms": 661.210517
+        },
+        "other": {
+          "graph_calls": 107,
+          "ms": 54.256876000000005
+        }
+      },
+      "op_types": {
+        "input": {
+          "calls": 21,
+          "ms": 0.022764
+        },
+        "tie_word_embeddings": {
+          "calls": 2,
+          "ms": 2.932031
+        },
+        "multiout": {
+          "calls": 1,
+          "ms": 0.000885
+        },
+        "rms_norm": {
+          "calls": 81,
+          "ms": 3.833437
+        },
+        "conv_block": {
+          "calls": 30,
+          "ms": 151.892867
+        },
+        "dense_ffn": {
+          "calls": 2,
+          "ms": 47.46775900000001
+        },
+        "qkv_layer": {
+          "calls": 10,
+          "ms": 44.43031200000001
+        },
+        "mha_core": {
+          "calls": 10,
+          "ms": 163.15401099999997
+        },
+        "fully_connected": {
+          "calls": 10,
+          "ms": 12.919428
+        },
+        "lfm2_moe": {
+          "calls": 38,
+          "ms": 661.2105170000001
+        }
+      },
+      "htp_router_norm_prefill_calls": 38,
+      "htp_router_norm_prefill_rpc_ms": 119.388,
+      "first_moe_node_start_ms": 81.35151,
+      "first_moe_node_end_ms": 97.246041,
+      "second_moe_node_end_ms": 114.76760500000002,
+      "third_moe_node_end_ms": 131.220103,
+      "last_moe_node_end_ms": 1085.7014589999997,
+      "post_last_moe_ms": 2.1625519999997778,
+      "prefetch": {
+        "read_count": 1596,
+        "ready_when_asked": 1411,
+        "exposed_wait_ms": 105.6,
+        "per_reader_expert_ms_rounded": 4.31,
+        "aggregate_reader_service_ms_estimate": 6878.759999999999,
+        "ideal_seven_reader_service_wall_ms_estimate": 982.68
+      },
+      "logcat": {
+        "prefill_graph_start_anchor_seconds": 62542.341710648005,
+        "anchor_spread_ms": 0.8476520015392452,
+        "prefill_rpc_counts": {
+          "0x1f070500": 30,
+          "0x1f040300": 3,
+          "0x1f090100": 12,
+          "0x1f040200": 2,
+          "0x1f080500": 10,
+          "0x1f050400": 10,
+          "0x1f050200": 10,
+          "0xa030100": 10,
+          "0x1f050500": 38,
+          "0x1f060200": 38,
+          "0x1f060300": 25,
+          "0x1f040100": 1
+        },
+        "prefill_rpc_count": 189,
+        "first_moe_rpc_end_ms_relative_to_graph_anchor": 95.28935199341504,
+        "large_router_to_update_gaps": [
+          {
+            "moe_index": 29,
+            "graph_layer": 31,
+            "gap_ms_rounded": 8.0
+          },
+          {
+            "moe_index": 30,
+            "graph_layer": 32,
+            "gap_ms_rounded": 17.0
+          },
+          {
+            "moe_index": 31,
+            "graph_layer": 33,
+            "gap_ms_rounded": 15.0
+          },
+          {
+            "moe_index": 33,
+            "graph_layer": 35,
+            "gap_ms_rounded": 16.0
+          },
+          {
+            "moe_index": 34,
+            "graph_layer": 36,
+            "gap_ms_rounded": 16.0
+          },
+          {
+            "moe_index": 35,
+            "graph_layer": 37,
+            "gap_ms_rounded": 16.0
+          },
+          {
+            "moe_index": 37,
+            "graph_layer": 39,
+            "gap_ms_rounded": 17.0
+          }
+        ],
+        "final_graph_rpc_to_teardown_ms_rounded": 14.000000002852175,
+        "attention_trace_aggregate_us": {
+          "prepare_us": 5,
+          "rpc_us": 143966,
+          "wall_us": 143975,
+          "dsp_us": 137320,
+          "quant_us": 24345,
+          "append_us": 20774,
+          "attn_us": 85085
+        }
+      },
+      "before": {
+        "status": 0,
+        "temperatures": {
+          "AP": 26.1,
+          "BAT": 25.8,
+          "PA": 26.5,
+          "SKIN": 27.9,
+          "SUBBAT": 0.0,
+          "USB": 25.9
+        }
+      },
+      "after": {
+        "status": 0,
+        "temperatures": {
+          "AP": 28.2,
+          "BAT": 25.8,
+          "PA": 27.9,
+          "SKIN": 28.4,
+          "SUBBAT": 0.0,
+          "USB": 25.9
+        }
+      }
+    }
+  },
+  "limitations": [
+    "NNTR_MOE_IO_PROFILE differs (v15=1, v12=0), source/artifacts and execution dates differ; similar starting temperatures do not establish identical frequency/storage state.",
+    "OP-TIME is the sum of node bodies, not the complete app prefill timer; graph bookkeeping, sampling, staging scope setup and cleanup are outside node bodies.",
+    "HTP process summaries include constructor warmups and model load. QS2 IO read/copy counters span load plus prefill, not prefill alone.",
+    "Reader per-record clocks run concurrently; the aggregate is not elapsed latency. Reader allocation, queue waits and stage promotions are not included in addPrefetchRead.",
+    "Logcat timestamps have millisecond resolution and there are no per-record start/end events or staging scope start/end events. First queue-release times and cleanup attribution are therefore inferred.",
+    "Deferred RMSNorm cost is included in its consuming Conv/QKV/router operation; tiny norm-node times do not mean norm arithmetic was removed."
+  ],
+  "delta_v15_minus_v12": {
+    "prefill_ms": -42,
+    "op_time_ms": -54.40077899999892,
+    "moe_ms": -55.62577800000008,
+    "non_moe_ms": 1.2249990000011621,
+    "exposed_wait_ms": -54.99999999999999,
+    "timer_minus_op_time_ms": 12.40077899999892
+  },
+  "interpretation": {
+    "bank64": {
+      "payload_bytes": 153616896,
+      "read": 64,
+      "consumed": 64,
+      "transition_wait_ms": 5.0,
+      "timeline": "First MoE DSP RPC completes around100.18ms from graph start, then next Conv begins around106.18ms; the5ms cumulative bank wait is consistent with the all-record read barrier after first safe slot release. Some initial reads had not finished by that boundary. This run does not support the earlier assumption that the bank fills in40ms and remains idle until first release."
+    },
+    "late_io": "Large visible wait gaps decrease from7 batches (v12) to3 batches (v15), concentrated at graph layers36,37,39. MoE-node improvement55.626ms closely follows exposed-wait reduction55.0ms. HTP layer-call summary changes812.0->814.5ms; no large compute-speed gain is indicated.",
+    "reader_idle": "v15 measured reader service totals approximately7038.36ms across7 workers, or1005.48ms under ideal full occupancy. Graph lasts1033.46ms. The remaining~28ms envelope also has uncounted allocations, host promotions and queue overhead, and may include pre-graph reader service. There is no measured large post-prefix idle reservoir; exact idle time cannot be recovered. One-shot first60 host promotions postpone new disk jobs until the second64-slot release (~126.39ms graph endpoint), giving a bounded early queue bubble, not evidence for whole-run rolling staging.",
+    "cleanup": "The timer-minus-node residual increases12.40ms. Final graph RPC to first teardown is~28ms versus~14ms; reported total-minus-prefill is13ms in both. The header keeps all consumed payloads until cancelAndWait, so scope-end freeing is the leading source-level explanation, but scope timings are absent.",
+    "remaining_target": {
+      "tokens": 1024,
+      "target_ms": 1024,
+      "this_profile_gap_ms": 22,
+      "clean_v15_pub_mean_ms_from_parent": 1048.5,
+      "clean_gap_ms": 24.5,
+      "service_reduction_per_expert_ms_for_25ms_wall_if_fully_critical": 0.10964912280701754,
+      "service_reduction_fraction_if_fully_critical": 0.024863746668257945,
+      "caution": "These are sensitivity estimates, not predicted gains. Earlier release can overlap cleanup but competes for the same readers. v16 only changes64 initial staged records; it cannot assume a uniform reduction across1596 records."
+    }
+  },
+  "early_payload_release_source_audit": {
+    "status": "valid candidate; no implementation performed",
+    "proof": [
+      "All reads finish before any take; each record admits one Lease via taken=true. Shared copies share the same last destructor.",
+      "Production raw record access is confined to synchronous copyPart in readExpertPart. Registry reads arena copies, not payload pointers.",
+      "readExpert drops the lease after GU/DN finish; parallel demand drops leases after joining both halves.",
+      "Move payload under bank mutex, free outside it, then decrement leases and notify. cancelAndWait must observe leases>0 until free completes.",
+      "Keep source descriptor ownership until ordinary end; failed/unconsumed records retain cancellation cleanup.",
+      "Rare cancellation and rollback callers may already hold queue or handle locks; the new free would be outside bank mutex but not guaranteed outside every outer lock."
+    ],
+    "expected_scope": "Overlap early consumed payload cleanup with subsequent graph work, while keeping all allocation/read/free within measured prefill.",
+    "unproven": "The12.4ms residual is not an exact measured free cost, and concurrent free can affect next reader jobs."
+  }
+}

@@ -13,7 +13,7 @@
  *
  * Plan docs/plans/141-dspq-moe.md section 3.6. Two fixed rings of 16
  * packets (ARM -> DSP and DSP -> ARM), each packet a 4 KiB message and up
- * to two buffer references, under one mutex and condition variable.
+ * to three buffer references, under one mutex and condition variable.
  * import(id) returns the DSP end of the object create made. A buffer
  * reference resolves fd -> address through rpc_standin.c and is refused
  * with AEE_ENOSUCHMAP when the fd was not fastrpc_mmap'd, the device's own
@@ -40,7 +40,7 @@
 #define EXPORT __attribute__((visibility("default")))
 #define SQ_SLOTS 16u
 #define SQ_MAX_MSG 4096u
-#define SQ_MAX_BUFS 2u
+#define SQ_MAX_BUFS 3u
 
 void *rpc_standin_mapped_ptr(int fd); /* rpc_standin.c */
 

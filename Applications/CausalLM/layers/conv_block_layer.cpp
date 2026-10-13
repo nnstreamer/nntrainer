@@ -11,6 +11,7 @@
  */
 
 #include "htp_decode_hook.h"
+#include "htp_strict.h"
 #include <conv_block_layer.h>
 
 #include <compute_ops.h>
@@ -184,22 +185,57 @@ void ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
   const float *w_ptr = conv_w.getData<float>();
   float *state = state_t.getData<float>();
 
-  // The whole block as one accelerator call at prefill; it hands back the
-  // conv state decode continues from. Decode's single row stays on the
-  // CPU for the reason every FC gate has (accelerates_q4_0_at_m1): one
-  // row cannot amortize the call.
+  // Both projections, the two gates and the causal conv share one NPU
+  // call, including decode. State is copied in and out so a continuation
+  // consumes exactly the two gated inputs left by its preceding call.
   const auto q4 = ml::train::TensorDim::DataType::Q4_0;
+  const auto qs4cx = ml::train::TensorDim::DataType::QS4CX;
+  const auto qs4cx_wh = ml::train::TensorDim::DataType::QS4CX_WH;
+  const auto wtype = in_w.getDataType();
+  const bool weights_wh = wtype == qs4cx_wh;
   auto *ops = in_step.getOps();
-  const bool use_htp = rows > 1 && ops != nullptr &&
-                       ops->supports_gemm_q4_0_conv_block_fp32() &&
-                       in_w.getDataType() == q4 && out_w.getDataType() == q4;
-  const bool compare =
-    use_htp && (convBlockDiffEnabled() || convBlockShadowEnabled());
+  const bool row_resident = rows == 1 && htpDecodeRowResident(from);
+  // Diagnostic control: keep the NPU projections but run the gates and
+  // convolution through the original layer path for a same-binary A/B.
+  static const bool fused = [] {
+    const char *e = std::getenv("NNTR_CONV_BLOCK_FUSED");
+    return !e || *e != '0';
+  }();
+  const bool use_htp =
+    fused && !row_resident && ops != nullptr && out_w.getDataType() == wtype &&
+    ((wtype == q4 && ops->supports_gemm_q4_0_conv_block_fp32()) ||
+     ((wtype == qs4cx || weights_wh) &&
+      ops->supports_gemm_qs4cx_conv_block_fp32(weights_wh)));
+  // The independent comparison below uses the CPU Q4_0 kernel and a
+  // fresh prefill. It cannot interpret QS4CX or WH weights.
+  const bool compare = use_htp && wtype == q4 && rows > 1 && from == 0 &&
+                       (convBlockDiffEnabled() || convBlockShadowEnabled());
+  if (htpStrict() && (!use_htp || compare))
+    throw std::runtime_error("NNTR_HTP_STRICT: conv block would use CPU");
+  if (from == 0) {
+    std::fill_n(state, 2 * C, 0.0f);
+    htp_owns_state_ = false;
+  }
+  if (use_htp) {
+    NNTR_THROW_IF(htp_owns_state_ && from > 0, std::runtime_error)
+      << "conv_block: resident decode owns the convolution state";
+  }
   if (use_htp && !compare) {
-    ops->gemm_q4_0_conv_block_fp32(
-      in_w.getData<char>(), w_ptr, out_w.getData<char>(),
-      in_step.getData<float>(), out_step.getData<float>(), state, rows, K, C,
-      N);
+    if (wtype == q4) {
+      ops->gemm_q4_0_conv_block_fp32(
+        in_w.getData<char>(), w_ptr, out_w.getData<char>(),
+        in_step.getData<float>(), out_step.getData<float>(), state, rows, K, C,
+        N);
+    } else {
+      ops->gemm_qs4cx_conv_block_fp32(
+        in_w.getData<char>(), w_ptr, out_w.getData<char>(),
+        in_step.getData<float>(), out_step.getData<float>(), state, rows, K, C,
+        N, in_w.getScale<float>(), out_w.getScale<float>(), weights_wh);
+    }
+    static const bool trace = std::getenv("NNTR_CONV_BLOCK_TRACE") != nullptr;
+    if (trace)
+      std::fprintf(stderr, "[conv_block] %s NPU fused from=%u rows=%u WH=%d\n",
+                   context.getName().c_str(), from, rows, weights_wh);
     return;
   }
 
@@ -229,7 +265,6 @@ void ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
   // [#132 Part B] every kind resident: the HTP runs this row's in_proj,
   // gate, conv and out_proj; the CONV1D_GATE hook below still binds its
   // weights, and neither projection's result would be read
-  const bool row_resident = rows == 1 && htpDecodeRowResident(from);
   if (compare) {
     nntrainer::gemm_q4_0<float>(rows, 3 * C, K, in_step.getData<float>(), K,
                                 in_w.getData<char>(), 3 * C,

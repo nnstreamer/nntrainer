@@ -37,6 +37,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <map>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -100,6 +102,9 @@ public:
    */
   void free_shared(void *block);
 
+  /** Whether the complete range belongs to a live shared allocation. */
+  bool isSharedRange(const void *ptr, size_t bytes);
+
   /**
    * @brief [#141] Runs fn in ~HtpBackend, in registration order, before
    *        the session is closed: the shutdown hook for state that makes
@@ -153,6 +158,8 @@ public:
   HtpBackend &operator=(const HtpBackend &) = delete;
 
 private:
+  std::mutex shared_mutex_;
+  std::map<uintptr_t, size_t> shared_blocks_;
   HtpBackend();
 
   void openSecondNow();

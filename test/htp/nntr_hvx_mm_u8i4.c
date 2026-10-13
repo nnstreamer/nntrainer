@@ -33,7 +33,9 @@
 #include "hvx_rope_rows_f32.h"
 #include "hvx_router_rows_f32.h"
 #include "nntr_hvx.h"
+#include "nntr_hvx_expert_update.h"
 #include "nntr_hvx_session.h"
+#include <htp_backend/htp_qs2_lut_layout.h>
 
 /** @brief Rounds @a v up to a multiple of @a a. */
 #define ROUND_UP(v, a) ((((v) + ((a)-1)) / (a)) * (a))
@@ -148,7 +150,7 @@ int nntr_hvx_weight_release_u8i4(remote_handle64 handle, uint32 w_handle) {
   if (!s) {
     return AEE_EBADPARM;
   }
-  /* [#85] The arena_detach rule, one level up: a handle the live graph's
+  /** [#85] The arena_detach rule, one level up: a handle the live graph's
      MoE ops name stays registered until graph_release. */
   if (hexkl_graph_uses_handle(s->graph, w_handle)) {
     FARF(ERROR, "weight_release_u8i4: handle %u is bound in the graph",
@@ -181,6 +183,8 @@ enum {
   FC_T_ACC_COPY,      /**< VTCM -> DDR staging; 0 on the in-place path */
   FC_T_DRAIN,         /**< DMA waits */
   FC_T_ACC_STRIDE,    /**< not a time: the derived row stride, 0 if fallback */
+  FC_T_MM,   /**< HVX GEMV + dequant + worker join, disjoint from DMA wait */
+  FC_T_PATH, /**< nonzero: M=1 HVX */
   FC_N_STAGES
 };
 
@@ -199,7 +203,7 @@ enum {
  * lazily would otherwise report a ceiling that does not exist once the
  * pages are actually written.
  */
-/* Gate 0c. HAP_mem.h is the first use of that header in this tree, so the
+/** Gate 0c. HAP_mem.h is the first use of that header in this tree, so the
    probe reports "unavailable" rather than failing the build if the SDK in
    use does not ship it -- a probe that cannot compile is worse than one
    that answers no. */
@@ -231,7 +235,7 @@ int nntr_hvx_arena_probe(remote_handle64 handle, int32 fd, uint32 bytes,
   }
   {
     uint64_t t0 = HAP_perf_qtimer_count_to_us(HAP_perf_get_qtimer_count());
-    /* prot and flags are written numerically because PROT_* and MAP_* are
+    /** prot and flags are written numerically because PROT_* and MAP_* are
        host macros and a missing one would be a build break in a probe whose
        job is to answer. That cost a device cycle: attempt 2 passed flags=0,
        and POSIX mmap requires exactly one of MAP_SHARED or MAP_PRIVATE, so
@@ -253,7 +257,7 @@ int nntr_hvx_arena_probe(remote_handle64 handle, int32 fd, uint32 bytes,
     uint64_t t1 = t0;
     int used_get = 0;
 
-    /* Ask for the mapping the host already made, before trying to make one.
+    /** Ask for the mapping the host already made, before trying to make one.
        HAP_mem.h declares this as (fd, void **vaddr, uint64 *paddr) -- the
        third argument is the physical address, not a size, so there is
        nothing to check the length against here; the host sized the buffer.
@@ -283,7 +287,7 @@ int nntr_hvx_arena_probe(remote_handle64 handle, int32 fd, uint32 bytes,
         res[6] = ti + 1u; /* 1-based: 0 stays "none worked" */
         break;
       }
-      /* Null and MAP_FAILED apart: null reads as "this fd is unknown here",
+      /** Null and MAP_FAILED apart: null reads as "this fd is unknown here",
          MAP_FAILED as "known and refused". Attempt 1 could not tell them
          apart and spent a cycle on it. Two bits per attempt. */
       res[7] |= (uint32)((p == NULL ? 1u : 2u) << (ti * 2u));
@@ -299,7 +303,7 @@ int nntr_hvx_arena_probe(remote_handle64 handle, int32 fd, uint32 bytes,
     res[1] = (uint32)(t1 - t0);
     (void)n_try;
 
-    /* One 2D transfer out of the mapping into VTCM, same shape the weight
+    /** One 2D transfer out of the mapping into VTCM, same shape the weight
        pusher uses, so the rate is comparable to the 27-33 GB/s the profile
        already reports for DSP-heap weights. */
     {
@@ -317,7 +321,7 @@ int nntr_hvx_arena_probe(remote_handle64 handle, int32 fd, uint32 bytes,
       res[3] = dma_bytes;
     }
 
-    /* Summed so the transfer cannot be elided and an all-zero mapping --
+    /** Summed so the transfer cannot be elided and an all-zero mapping --
        which would look like a success with a garbage rate -- is visible. */
     {
       uint32_t sum = 0;
@@ -327,7 +331,7 @@ int nntr_hvx_arena_probe(remote_handle64 handle, int32 fd, uint32 bytes,
       }
       res[4] = sum;
     }
-    /* Release through whichever call handed it over: a mapping obtained
+    /** Release through whichever call handed it over: a mapping obtained
        with HAP_mmap_get belongs to the host's attachment and is given back
        with HAP_mmap_put, not unmapped. */
     if (used_get) {
@@ -477,6 +481,27 @@ int nntr_hvx_weight_register_u8i4_arena(remote_handle64 handle, uint32 K,
                                           w_handle);
 }
 
+int nntr_hvx_weight_prepare_conv_decode(remote_handle64 handle, uint32 w_handle,
+                                        uint32 arena, uint32 off,
+                                        uint32 chunk) {
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  if (!s || w_handle >= HEXKL_MM_U8I4_MAX_WEIGHTS)
+    return AEE_EBADPARM;
+  const hexkl_weight_u8i4 *w = &s->weights_u8i4.slots[w_handle];
+  uint8_t *dst = NULL;
+  if (chunk) {
+    if (!w->in_use || off % 512u)
+      return AEE_EBADPARM;
+    dst = (uint8_t *)arena_weight_at(s, arena, off, w->K, w->N, 0);
+    if (!dst)
+      return AEE_EBADPARM;
+  }
+  return hexkl_conv_block_prepare_decode(
+    &s->weights_u8i4, s->vtcm_base,
+    s->vtcm_size < s->config_off ? s->vtcm_size : s->config_off, w_handle, dst,
+    chunk);
+}
+
 /** @brief One weight of a swap: registered from the arena with the given
  *  arrays, or, when @a w_scale is NULL, with the scales and column sums
  *  that follow it there and a zero bias. */
@@ -513,7 +538,7 @@ int nntr_hvx_weight_swap_u8i4_arena(
   const uint32 n_gu = 2u * inter;
   const int release_old =
     !(old_gu == NNTR_HVX_NO_HANDLE && old_dn == NNTR_HVX_NO_HANDLE);
-  /* [doc 52 section 10.30] Empty sequences: the scales and column sums are
+  /** [doc 52 section 10.30] Empty sequences: the scales and column sums are
      in the arena after each weight's WH bytes, and the registry takes them
      from there. The host's expert pool always sends them that way now; the
      arrays stay accepted for the tests and for an older host. */
@@ -536,7 +561,7 @@ int nntr_hvx_weight_swap_u8i4_arena(
     gu_scale = dn_scale = NULL;
     gu_colsum = dn_colsum = NULL;
   }
-  /* Checked before anything is registered, so a bad pair costs nothing:
+  /** Checked before anything is registered, so a bad pair costs nothing:
      both or neither, both arena-borrowed, and not the same handle twice. */
   if (release_old &&
       (old_gu == old_dn || !swap_releasable(&s->weights_u8i4, old_gu) ||
@@ -545,7 +570,7 @@ int nntr_hvx_weight_swap_u8i4_arena(
          (unsigned)old_gu, (unsigned)old_dn);
     return AEE_EBADPARM;
   }
-  /* [doc 52 section 10.25] The retired pair has the new expert's shape --
+  /** [doc 52 section 10.25] The retired pair has the new expert's shape --
      every swap in the expert pool -- so rebind both handles in place: no
      allocation, no free, no slot search, which were most of a swap's DSP
      time. Everything that can refuse is checked before either is touched,
@@ -556,7 +581,7 @@ int nntr_hvx_weight_swap_u8i4_arena(
       s->weights_u8i4.slots[old_dn].N == N_out) {
     const uint8_t *wg = arena_weight_at(s, arena, off_gu, K, n_gu, tail);
     const uint8_t *wd = arena_weight_at(s, arena, off_dn, inter, N_out, tail);
-    /* 512: the registry's WEIGHT_TILE_BYTES_U8I4, which rebind also checks
+    /** 512: the registry's WEIGHT_TILE_BYTES_U8I4, which rebind also checks
        -- checked here too so the second rebind cannot refuse after the
        first has landed. */
     if (!wg || !wd || ((uintptr_t)wg % 512u) != 0u ||
@@ -633,7 +658,7 @@ int nntr_hvx_weight_swap_batch_u8i4_arena(
     FARF(ERROR, "weight_swap_batch_u8i4_arena: bad lengths (n=%d)", n);
     return AEE_EBADPARM;
   }
-  /* One expert at a time through the single call, so each keeps its
+  /** One expert at a time through the single call, so each keeps its
      all-or-nothing guarantee and the batch stops at the first refusal. */
   for (i = 0; i < n; ++i) {
     rc = tail
@@ -654,6 +679,187 @@ int nntr_hvx_weight_swap_batch_u8i4_arena(
     *n_done = (uint32)(i + 1);
   }
   return AEE_SUCCESS; /* a partial batch reports through n_done and err */
+}
+
+/** Compact arena layout: codes, f32 scales, i32 sums, four palette bytes. */
+static const uint8_t *arena_weight_u2_at(nntr_hvx_session *s, uint32 arena,
+                                         uint32 off, uint32 K, uint32 N) {
+  const nntr_hvx_arena *a = nntr_hvx_arena_slot(s, arena);
+  const uint64_t codes = (uint64_t)K * N / 4u;
+  if (!a || !K || !N || K % 32u || N % 32u || off % 512u ||
+      (uint64_t)off + codes + 8u * N + 4u > a->bytes)
+    return NULL;
+  const int8_t *pal = (const int8_t *)(a->va + off + codes + 8u * N);
+  hexkl_dcache_inva(pal, 4u);
+  for (unsigned i = 0; i < 4; ++i)
+    if (pal[i] < -8 || pal[i] > 7)
+      return NULL;
+  return a->va + off;
+}
+
+int nntr_hvx_weight_swap_u2i4_arena(remote_handle64 handle, uint32 old_gu,
+                                    uint32 old_dn, uint32 K, uint32 inter,
+                                    uint32 N_out, uint32 arena, uint32 off_gu,
+                                    uint32 off_dn, uint32 *h_gu, uint32 *h_dn) {
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  if (!s || !h_gu || !h_dn || inter > UINT32_MAX / 2u)
+    return AEE_EBADPARM;
+  const uint32 n_gu = 2u * inter;
+  const uint8_t *wg = arena_weight_u2_at(s, arena, off_gu, K, n_gu);
+  const uint8_t *wd = arena_weight_u2_at(s, arena, off_dn, inter, N_out);
+  if (!wg || !wd)
+    return AEE_EBADPARM;
+  const int8_t *pg = (const int8_t *)(wg + (uint64_t)K * n_gu / 4u + 8u * n_gu);
+  const int8_t *pd =
+    (const int8_t *)(wd + (uint64_t)inter * N_out / 4u + 8u * N_out);
+  const int release_old =
+    !(old_gu == NNTR_HVX_NO_HANDLE && old_dn == NNTR_HVX_NO_HANDLE);
+  if (release_old &&
+      (old_gu == old_dn || !swap_releasable(&s->weights_u8i4, old_gu) ||
+       !swap_releasable(&s->weights_u8i4, old_dn)))
+    return AEE_EBADPARM;
+  if (release_old && s->weights_u8i4.slots[old_gu].K == K &&
+      s->weights_u8i4.slots[old_gu].N == n_gu &&
+      s->weights_u8i4.slots[old_dn].K == inter &&
+      s->weights_u8i4.slots[old_dn].N == N_out) {
+    int rc = hexkl_weight_u2i4_rebind_arena(&s->weights_u8i4, old_gu, K, n_gu,
+                                            wg, pg, NULL, NULL);
+    if (rc != AEE_SUCCESS)
+      return rc;
+    rc = hexkl_weight_u2i4_rebind_arena(&s->weights_u8i4, old_dn, inter, N_out,
+                                        wd, pd, NULL, NULL);
+    if (rc != AEE_SUCCESS)
+      return rc;
+    *h_gu = old_gu;
+    *h_dn = old_dn;
+    return AEE_SUCCESS;
+  }
+  uint32 g, d;
+  int rc = hexkl_weight_u2i4_register_arena(&s->weights_u8i4, s->vtcm_size, K,
+                                            n_gu, wg, pg, NULL, NULL, NULL, &g);
+  if (rc != AEE_SUCCESS)
+    return rc;
+  rc = hexkl_weight_u2i4_register_arena(&s->weights_u8i4, s->vtcm_size, inter,
+                                        N_out, wd, pd, NULL, NULL, NULL, &d);
+  if (rc != AEE_SUCCESS) {
+    hexkl_weight_u8i4_release(&s->weights_u8i4, g);
+    return rc;
+  }
+  if (release_old) {
+    hexkl_weight_u8i4_release(&s->weights_u8i4, old_gu);
+    hexkl_weight_u8i4_release(&s->weights_u8i4, old_dn);
+  }
+  *h_gu = g;
+  *h_dn = d;
+  return AEE_SUCCESS;
+}
+
+int nntr_hvx_expert_update_batch(remote_handle64 handle, uint32_t K,
+                                 uint32_t inter, uint32_t N_out,
+                                 const htp_dspq_expert_update *updates,
+                                 uint32_t count) {
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  if (!s || !updates || !count || count > HTP_DSPQ_MAX_EXPERT_UPDATES ||
+      inter > UINT32_MAX / 2u)
+    return AEE_EBADPARM;
+  hexkl_weight_u2i4_binding bindings[2 * HTP_DSPQ_MAX_EXPERT_UPDATES];
+  for (uint32_t i = 0; i < count; ++i) {
+    const htp_dspq_expert_update *u = updates + i;
+    const uint8_t *gu =
+      arena_weight_u2_at(s, u->arena, u->off_gu, K, 2u * inter);
+    const uint8_t *dn =
+      arena_weight_u2_at(s, u->arena, u->off_dn, inter, N_out);
+    if (!gu || !dn)
+      return AEE_EBADPARM;
+    bindings[2u * i] = (hexkl_weight_u2i4_binding){
+      u->h_gu, K, 2u * inter, gu,
+      (const int8_t *)(gu + (uint64_t)K * (2u * inter) / 4u + 16u * inter)};
+    bindings[2u * i + 1u] = (hexkl_weight_u2i4_binding){
+      u->h_dn, inter, N_out, dn,
+      (const int8_t *)(dn + (uint64_t)inter * N_out / 4u + 8u * N_out)};
+  }
+  return hexkl_weight_u2i4_rebind_batch(&s->weights_u8i4, bindings, 2u * count);
+}
+
+int nntr_hvx_weight_swap_batch_u2i4_arena(
+  remote_handle64 handle, uint32 K, uint32 inter, uint32 N_out,
+  const uint32 *old_gu, int old_guLen, const uint32 *old_dn, int old_dnLen,
+  const uint32 *arena, int arenaLen, const uint32 *off_gu, int off_guLen,
+  const uint32 *off_dn, int off_dnLen, uint32 *h_gu, int h_guLen, uint32 *h_dn,
+  int h_dnLen, uint32 *n_done, int32 *err) {
+  if (!handle || !n_done || !err)
+    return AEE_EBADPARM;
+  *n_done = 0;
+  *err = AEE_SUCCESS;
+  const int n = old_guLen;
+  if (n < 0 || old_dnLen != n || arenaLen != n || off_guLen != n ||
+      off_dnLen != n || h_guLen != n || h_dnLen != n ||
+      (n &&
+       (!old_gu || !old_dn || !arena || !off_gu || !off_dn || !h_gu || !h_dn)))
+    return AEE_EBADPARM;
+  for (int i = 0; i < n; ++i) {
+    *err = nntr_hvx_weight_swap_u2i4_arena(handle, old_gu[i], old_dn[i], K,
+                                           inter, N_out, arena[i], off_gu[i],
+                                           off_dn[i], &h_gu[i], &h_dn[i]);
+    if (*err != AEE_SUCCESS)
+      break;
+    *n_done = (uint32)i + 1u;
+  }
+  return AEE_SUCCESS;
+}
+
+/** Validate both appended decode images before retiring either handle. */
+int nntr_hvx_weight_swap_u2lut_arena(remote_handle64 handle, uint32 old_gu,
+                                     uint32 old_dn, uint32 K, uint32 inter,
+                                     uint32 N_out, uint32 arena, uint32 off_gu,
+                                     uint32 off_dn, uint32 *h_gu,
+                                     uint32 *h_dn) {
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  if (!s || !h_gu || !h_dn || !K || !inter || !N_out || K % 32u ||
+      inter % 128u || N_out % 128u || inter > UINT32_MAX / 2u)
+    return AEE_EBADPARM;
+  const nntr_hvx_arena *a = nntr_hvx_arena_slot(s, arena);
+  const uint64_t lg = (uint64_t)off_gu + htp_qs2_lut_offset(K, 2u * inter);
+  const uint64_t ld = (uint64_t)off_dn + htp_qs2_lut_offset(inter, N_out);
+  const uint64_t eg = lg + (uint64_t)K * (2u * inter) / 4u;
+  const uint64_t ed = ld + (uint64_t)inter * N_out / 4u;
+  if (!a || eg > a->bytes || ed > a->bytes ||
+      !((eg <= off_dn) || (ed <= off_gu)))
+    return AEE_EBADPARM;
+  const int rc = nntr_hvx_weight_swap_u2i4_arena(
+    handle, old_gu, old_dn, K, inter, N_out, arena, off_gu, off_dn, h_gu, h_dn);
+  if (rc == AEE_SUCCESS) {
+    s->weights_u8i4.slots[*h_gu].lut_bytes = a->va + lg;
+    s->weights_u8i4.slots[*h_dn].lut_bytes = a->va + ld;
+  }
+  return rc;
+}
+
+int nntr_hvx_weight_swap_batch_u2lut_arena(
+  remote_handle64 handle, uint32 K, uint32 inter, uint32 N_out,
+  const uint32 *old_gu, int old_guLen, const uint32 *old_dn, int old_dnLen,
+  const uint32 *arena, int arenaLen, const uint32 *off_gu, int off_guLen,
+  const uint32 *off_dn, int off_dnLen, uint32 *h_gu, int h_guLen, uint32 *h_dn,
+  int h_dnLen, uint32 *n_done, int32 *err) {
+  if (!handle || !n_done || !err)
+    return AEE_EBADPARM;
+  *n_done = 0;
+  *err = AEE_SUCCESS;
+  const int n = old_guLen;
+  if (n < 0 || old_dnLen != n || arenaLen != n || off_guLen != n ||
+      off_dnLen != n || h_guLen != n || h_dnLen != n ||
+      (n &&
+       (!old_gu || !old_dn || !arena || !off_gu || !off_dn || !h_gu || !h_dn)))
+    return AEE_EBADPARM;
+  for (int i = 0; i < n; ++i) {
+    *err = nntr_hvx_weight_swap_u2lut_arena(handle, old_gu[i], old_dn[i], K,
+                                            inter, N_out, arena[i], off_gu[i],
+                                            off_dn[i], &h_gu[i], &h_dn[i]);
+    if (*err != AEE_SUCCESS)
+      break;
+    *n_done = (uint32)i + 1u;
+  }
+  return AEE_SUCCESS;
 }
 
 int nntr_hvx_mem_probe_dsp_heap(remote_handle64 handle, uint32 chunk_mb,
@@ -759,6 +965,25 @@ static int check_layer_args(const nntr_hvx_session *s, uint32 M, uint32 K,
   return AEE_SUCCESS;
 }
 
+/** Session-cached AH for all FC entry points, including QKV norm and the
+ * timed/u8-input variants. No new transport call and no per-token malloc. */
+static int fc_layer_run(nntr_hvx_session *s, uint32_t M, uint32_t K,
+                        const uint32_t *handles, uint32_t count, const float *x,
+                        float *out, const hexkl_mm_opts *opts) {
+  hexkl_mm_opts o = *opts;
+  if (M == 1u && K != 0u && K <= 16384u && K % 32u == 0u &&
+      (s->moe_flags & HTP_FC_FLAG_M1_HVX)) {
+    const int rc = hexkl_moe_scratch_reserve(&s->moe_scratch, (size_t)64u * K);
+    if (rc != AEE_SUCCESS)
+      return rc;
+    o.m1_scratch = s->moe_scratch.base;
+    o.m1_chunk_tiles = htp_fc_chunk_tiles(s->moe_flags);
+  }
+  return hexkl_mm_u8i4_layer_run(&s->weights_u8i4, s->vtcm_base, s->vtcm_size,
+                                 s->config_off, M, K, handles, count, x, out,
+                                 &o);
+}
+
 int nntr_hvx_mm_u8i4_layer(remote_handle64 handle, uint32 M, uint32 K,
                            const uint32 *w_handles, int w_handlesLen,
                            const float *act_f32, int act_f32Len, float *out_cat,
@@ -771,10 +996,46 @@ int nntr_hvx_mm_u8i4_layer(remote_handle64 handle, uint32 M, uint32 K,
   }
   /** No probe reset here: this is the production path, and hexkl_probe_on stays
    * wherever the last timed call left it -- off, unless one ran. */
-  return hexkl_mm_u8i4_layer_run(&s->weights_u8i4, s->vtcm_base, s->vtcm_size,
-                                 s->config_off, M, K, w_handles,
-                                 (uint32_t)w_handlesLen, act_f32, out_cat,
-                                 &(const hexkl_mm_opts){.pool = s->quant_pool});
+  return fc_layer_run(
+    s, M, K, w_handles, (uint32_t)w_handlesLen, act_f32, out_cat,
+    &(const hexkl_mm_opts){.pool = s->quant_pool,
+                           .weight_src_bypass =
+                             (s->moe_flags & HEXKL_MOE_FLAG_DMA_BYPASS) != 0u});
+}
+
+/** Preserve FC quantization, dequantization and sigmoid ordering while
+ * keeping the M x E logits off the host transport. Separate cached scratch
+ * avoids aliasing the FC's own scratch, including a one-row chunk tail. */
+int nntr_hvx_router_q4_prefill(remote_handle64 handle, uint32 M, uint32 K,
+                               uint32 E, uint32 w_handle, const float *x,
+                               int xLen, uint32 top_k, uint32 n_sel,
+                               const float *bias, int biasLen, uint32 *sel,
+                               int selLen, float *weight, int weightLen) {
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  if (s)
+    s->router_prepare_cookie = 0;
+  if (!s || !x || !bias || !sel || !weight || !M || !K || K % 32u || !E ||
+      E > 128u || E % 32u || !top_k || top_k > n_sel || n_sel > E ||
+      (uint64_t)M * K != (uint64_t)xLen || (uint32_t)biasLen != E ||
+      (uint64_t)M * n_sel != (uint64_t)selLen ||
+      (uint64_t)M * top_k != (uint64_t)weightLen ||
+      (uint64_t)M * E > INT32_MAX || w_handle >= HEXKL_MM_U8I4_MAX_WEIGHTS ||
+      !s->weights_u8i4.slots[w_handle].in_use ||
+      s->weights_u8i4.slots[w_handle].K != K ||
+      s->weights_u8i4.slots[w_handle].N != E)
+    return AEE_EBADPARM;
+  int rc = hexkl_moe_scratch_reserve(&s->router_q4_scratch,
+                                     (size_t)M * E * sizeof(float));
+  if (rc != AEE_SUCCESS)
+    return rc;
+  float *logits = (float *)s->router_q4_scratch.base;
+  rc = nntr_hvx_mm_u8i4_layer(handle, M, K, &w_handle, 1, x, xLen, logits,
+                              (int)(M * E));
+  if (rc != AEE_SUCCESS)
+    return rc;
+  return nntr_hvx_sigmoid_topk_f32(handle, M, E, top_k, n_sel, logits,
+                                   (int)(M * E), bias, biasLen, sel, selLen,
+                                   weight, weightLen);
 }
 
 int nntr_hvx_mm_u8i4_layer_res_add(remote_handle64 handle, uint32 M, uint32 K,
@@ -816,10 +1077,11 @@ int nntr_hvx_mm_u8i4_layer_res_add(remote_handle64 handle, uint32 M, uint32 K,
       return AEE_ENOMEMORY;
     }
   }
-  rc = hexkl_mm_u8i4_layer_run(&s->weights_u8i4, s->vtcm_base, s->vtcm_size,
-                               s->config_off, M, K, w_handles,
-                               (uint32_t)w_handlesLen, act_f32, s->moe_res,
-                               &(const hexkl_mm_opts){.pool = s->quant_pool});
+  rc = fc_layer_run(
+    s, M, K, w_handles, (uint32_t)w_handlesLen, act_f32, s->moe_res,
+    &(const hexkl_mm_opts){.pool = s->quant_pool,
+                           .weight_src_bypass =
+                             (s->moe_flags & HEXKL_MOE_FLAG_DMA_BYPASS) != 0u});
   if (rc != AEE_SUCCESS) {
     return rc;
   }
@@ -885,7 +1147,7 @@ static int layer_norm_impl(nntr_hvx_session *s, uint32 M, uint32 K, float eps,
   if (rc != AEE_SUCCESS) {
     return rc;
   }
-  /* The norms' shapes: K a multiple of 32 for the pre norm; every post
+  /** The norms' shapes: K a multiple of 32 for the pre norm; every post
      chunk a multiple of 32 dividing its handle's N; the gammas exactly as
      long as the chunks they serve. */
   if ((pre_gammaLen != 0 && ((uint32_t)pre_gammaLen != K || K % 32u != 0u)) ||
@@ -910,7 +1172,7 @@ static int layer_norm_impl(nntr_hvx_session *s, uint32 M, uint32 K, float eps,
          post_gammaLen, (unsigned)gamma_total);
     return AEE_EBADPARM;
   }
-  /* RoPE's shape: the head dim's half a multiple of 32, a table row per
+  /** RoPE's shape: the head dim's half a multiple of 32, a table row per
      activation row, every rotated handle a whole number of heads. */
   if (rope_hd != 0u) {
     if ((rope_hd / 2u) % 32u != 0u || rope_handles > (uint32_t)w_handlesLen ||
@@ -928,10 +1190,28 @@ static int layer_norm_impl(nntr_hvx_session *s, uint32 M, uint32 K, float eps,
     }
   }
 
-  /* The pre norm goes into the quant pass, rows normed four at a time into
+  /** The pre norm goes into the quant pass, rows normed four at a time into
      a worker's slice of norm_rows: the normed rows stay in cache. */
-  hexkl_mm_opts opts = {
-    .pool = s->quant_pool, .out_off = out_off, .out_ld = out_ld};
+  int post_done = 0;
+  uint32_t chunks[HEXKL_MM_U8I4_MAX_WEIGHTS] = {0};
+  if ((uint32_t)w_handlesLen > HEXKL_MM_U8I4_MAX_WEIGHTS) {
+    return AEE_EBADPARM;
+  }
+  for (i = 0; i < post_chunkLen; ++i) {
+    chunks[i] = post_chunk[i];
+  }
+  hexkl_mm_opts opts = {.pool = s->quant_pool,
+                        .weight_src_bypass =
+                          (s->moe_flags & HEXKL_MOE_FLAG_DMA_BYPASS) != 0u,
+                        .out_off = out_off,
+                        .out_ld = out_ld,
+                        .post_done = &post_done,
+                        .post_chunk = chunks,
+                        .post_gamma = post_gamma,
+                        .post_eps = eps,
+                        .rope_hd = rope_hd,
+                        .rope_handles = rope_handles,
+                        .rope_cs = rope_cs};
   if (pre_gammaLen != 0) {
     if (!norm_rows_reserve(s, (size_t)M * K)) {
       return AEE_ENOMEMORY;
@@ -940,16 +1220,15 @@ static int layer_norm_impl(nntr_hvx_session *s, uint32 M, uint32 K, float eps,
     opts.pre_gamma = pre_gamma;
     opts.pre_eps = eps;
   }
-  rc = hexkl_mm_u8i4_layer_run(&s->weights_u8i4, s->vtcm_base, s->vtcm_size,
-                               s->config_off, M, K, w_handles,
-                               (uint32_t)w_handlesLen, act_f32, out_cat, &opts);
+  rc = fc_layer_run(s, M, K, w_handles, (uint32_t)w_handlesLen, act_f32,
+                    out_cat, &opts);
   if (rc != AEE_SUCCESS) {
     return rc;
   }
   /* The post norms, in place on each handle's rows. */
   size_t off = 0;
   const float *g = post_gamma;
-  for (i = 0; i < post_chunkLen; ++i) {
+  for (i = 0; !post_done && i < post_chunkLen; ++i) {
     const uint32_t n_i = s->weights_u8i4.slots[w_handles[i]].N;
     const uint32_t c = post_chunk[i];
     float *o_i = out_off ? out_cat + out_off[i] : out_cat + off;
@@ -962,7 +1241,7 @@ static int layer_norm_impl(nntr_hvx_session *s, uint32 M, uint32 K, float eps,
   }
   /* Then RoPE on the first rope_handles handles' rows, after their norms. */
   off = 0;
-  for (i = 0; rope_hd != 0u && i < (int)rope_handles; ++i) {
+  for (i = 0; !post_done && rope_hd != 0u && i < (int)rope_handles; ++i) {
     const uint32_t n_i = s->weights_u8i4.slots[w_handles[i]].N;
     hvx_rope_rows_ld_f32(out_off ? out_cat + out_off[i] : out_cat + off, M, n_i,
                          out_ld ? out_ld[i] : n_i, rope_hd, rope_cs,
@@ -999,7 +1278,7 @@ int nntr_hvx_mm_u8i4_layer_norm_ld(
       out_ldLen != w_handlesLen || M == 0u) {
     return AEE_EBADPARM;
   }
-  /* Every handle's rows inside out_cat (the rectangles apart is the
+  /** Every handle's rows inside out_cat (the rectangles apart is the
      caller's to keep; overlapping ones only garble its own output). */
   for (int i = 0; i < w_handlesLen; ++i) {
     if (w_handles[i] >= HEXKL_MM_U8I4_MAX_WEIGHTS ||
@@ -1034,7 +1313,7 @@ int nntr_hvx_mm_u8i4_layer_timed(remote_handle64 handle, uint32 M, uint32 K,
   if (rc != AEE_SUCCESS) {
     return rc;
   }
-  if (!stage_us || stage_usLen != FC_N_STAGES) {
+  if (!stage_us || (stage_usLen != 7 && stage_usLen != FC_N_STAGES)) {
     FARF(ERROR, "mm_u8i4_layer_timed: stage_usLen %d, expected %d", stage_usLen,
          (int)FC_N_STAGES);
     return AEE_EBADPARM;
@@ -1042,10 +1321,11 @@ int nntr_hvx_mm_u8i4_layer_timed(remote_handle64 handle, uint32 M, uint32 K,
 
   hexkl_probe_reset(1);
   t0 = hexkl_probe_now();
-  rc = hexkl_mm_u8i4_layer_run(&s->weights_u8i4, s->vtcm_base, s->vtcm_size,
-                               s->config_off, M, K, w_handles,
-                               (uint32_t)w_handlesLen, act_f32, out_cat,
-                               &(const hexkl_mm_opts){.pool = s->quant_pool});
+  rc = fc_layer_run(
+    s, M, K, w_handles, (uint32_t)w_handlesLen, act_f32, out_cat,
+    &(const hexkl_mm_opts){.pool = s->quant_pool,
+                           .weight_src_bypass =
+                             (s->moe_flags & HEXKL_MOE_FLAG_DMA_BYPASS) != 0u});
   t1 = hexkl_probe_now();
   /** Left off again on the way out: the production entry point above shares
    * these globals, and an instrumented run must not make the next
@@ -1059,6 +1339,10 @@ int nntr_hvx_mm_u8i4_layer_timed(remote_handle64 handle, uint32 M, uint32 K,
   stage_us[FC_T_ACC_COPY] = (uint32)hexkl_probe_us[HEXKL_PROBE_ACC_COPY];
   stage_us[FC_T_DRAIN] = (uint32)hexkl_probe_us[HEXKL_PROBE_DRAIN];
   stage_us[FC_T_ACC_STRIDE] = (uint32)hexkl_probe_us[HEXKL_PROBE_ACC_STRIDE];
+  if (stage_usLen == FC_N_STAGES) {
+    stage_us[FC_T_MM] = (uint32)hexkl_probe_us[HEXKL_PROBE_MM];
+    stage_us[FC_T_PATH] = (uint32)hexkl_probe_us[HEXKL_PROBE_PATH];
+  }
   return rc;
 }
 
@@ -1110,10 +1394,11 @@ int nntr_hvx_mm_u8i4_layer_u8in(remote_handle64 handle, uint32 M, uint32 K,
   if (rc != AEE_SUCCESS) {
     return rc;
   }
-  return hexkl_mm_u8i4_layer_run(
-    &s->weights_u8i4, s->vtcm_base, s->vtcm_size, s->config_off, M, K,
-    w_handles, (uint32_t)w_handlesLen, /*act_f32=*/NULL, out_cat,
+  return fc_layer_run(
+    s, M, K, w_handles, (uint32_t)w_handlesLen, /*act_f32=*/NULL, out_cat,
     &(const hexkl_mm_opts){.pool = s->quant_pool,
+                           .weight_src_bypass =
+                             (s->moe_flags & HEXKL_MOE_FLAG_DMA_BYPASS) != 0u,
                            .act_scale = act_scale,
                            .act_zp = act_zp,
                            .act_ah_prepacked = act_ah});
@@ -1131,7 +1416,7 @@ int nntr_hvx_mm_u8i4_layer_u8in_timed(
   if (rc != AEE_SUCCESS) {
     return rc;
   }
-  if (!stage_us || stage_usLen != FC_N_STAGES) {
+  if (!stage_us || (stage_usLen != 7 && stage_usLen != FC_N_STAGES)) {
     FARF(ERROR, "mm_u8i4_layer_u8in_timed: stage_usLen %d, expected %d",
          stage_usLen, (int)FC_N_STAGES);
     return AEE_EBADPARM;
@@ -1139,10 +1424,11 @@ int nntr_hvx_mm_u8i4_layer_u8in_timed(
 
   hexkl_probe_reset(1);
   t0 = hexkl_probe_now();
-  rc = hexkl_mm_u8i4_layer_run(
-    &s->weights_u8i4, s->vtcm_base, s->vtcm_size, s->config_off, M, K,
-    w_handles, (uint32_t)w_handlesLen, /*act_f32=*/NULL, out_cat,
+  rc = fc_layer_run(
+    s, M, K, w_handles, (uint32_t)w_handlesLen, /*act_f32=*/NULL, out_cat,
     &(const hexkl_mm_opts){.pool = s->quant_pool,
+                           .weight_src_bypass =
+                             (s->moe_flags & HEXKL_MOE_FLAG_DMA_BYPASS) != 0u,
                            .act_scale = act_scale,
                            .act_zp = act_zp,
                            .act_ah_prepacked = act_ah});
@@ -1156,6 +1442,10 @@ int nntr_hvx_mm_u8i4_layer_u8in_timed(
   stage_us[FC_T_ACC_COPY] = (uint32)hexkl_probe_us[HEXKL_PROBE_ACC_COPY];
   stage_us[FC_T_DRAIN] = (uint32)hexkl_probe_us[HEXKL_PROBE_DRAIN];
   stage_us[FC_T_ACC_STRIDE] = (uint32)hexkl_probe_us[HEXKL_PROBE_ACC_STRIDE];
+  if (stage_usLen == FC_N_STAGES) {
+    stage_us[FC_T_MM] = (uint32)hexkl_probe_us[HEXKL_PROBE_MM];
+    stage_us[FC_T_PATH] = (uint32)hexkl_probe_us[HEXKL_PROBE_PATH];
+  }
   return rc;
 }
 
@@ -1233,7 +1523,10 @@ int nntr_hvx_mm_u8i4_layer_fused(remote_handle64 handle, uint32 M, uint32 K,
    * mm_u8i4_layer above. */
   return hexkl_mm_u8i4_fused_run(
     &s->weights_u8i4, s->vtcm_base, s->vtcm_size, s->config_off, M, K,
-    w_handles, act_f32, out_f32, &(const hexkl_mm_opts){.pool = s->quant_pool});
+    w_handles, act_f32, out_f32,
+    &(const hexkl_mm_opts){.pool = s->quant_pool,
+                           .weight_src_bypass =
+                             (s->moe_flags & HEXKL_MOE_FLAG_DMA_BYPASS) != 0u});
 }
 
 int nntr_hvx_mm_u8i4_layer_fused_timed(remote_handle64 handle, uint32 M,
@@ -1257,9 +1550,12 @@ int nntr_hvx_mm_u8i4_layer_fused_timed(remote_handle64 handle, uint32 M,
 
   hexkl_probe_reset(1);
   t0 = hexkl_probe_now();
-  rc = hexkl_mm_u8i4_fused_run(&s->weights_u8i4, s->vtcm_base, s->vtcm_size,
-                               s->config_off, M, K, w_handles, act_f32, out_f32,
-                               &(const hexkl_mm_opts){.pool = s->quant_pool});
+  rc = hexkl_mm_u8i4_fused_run(
+    &s->weights_u8i4, s->vtcm_base, s->vtcm_size, s->config_off, M, K,
+    w_handles, act_f32, out_f32,
+    &(const hexkl_mm_opts){.pool = s->quant_pool,
+                           .weight_src_bypass =
+                             (s->moe_flags & HEXKL_MOE_FLAG_DMA_BYPASS) != 0u});
   t1 = hexkl_probe_now();
   hexkl_probe_on = 0;
 
@@ -1608,8 +1904,8 @@ int nntr_hvx_mm_u8i4_moe_layer_norm(
   }
   const int rc = nntr_hvx_mm_u8i4_moe_layer(
     handle, M, K, inter, N_out, act, h_gate_up, h_gate_upLen, h_down, h_downLen,
-    row_index, row_indexLen, row_count, row_countLen, row_weight,
-    row_weightLen, in, act_f32Len, out_f32, out_f32Len);
+    row_index, row_indexLen, row_count, row_countLen, row_weight, row_weightLen,
+    in, act_f32Len, out_f32, out_f32Len);
   if (rc == AEE_SUCCESS && post_gammaLen != 0) {
     hvx_rmsnorm_rows_f32(out_f32, out_f32, M, N_out, N_out, post_gamma, eps,
                          s->quant_pool);
@@ -1704,7 +2000,7 @@ int nntr_hvx_mm_u8i4_moe_layer_timed(
 
 uint32_t nntr_hvx_moe_stage_count(void) { return MOE_N_STAGES; }
 
-/* [#85] The slot fill, shared with forward_debug (nntr_hvx_graph.c). Read
+/** [#85] The slot fill, shared with forward_debug (nntr_hvx_graph.c). Read
    after hexkl_probe_on is cleared, as moe_layer_timed always did; the
    column copy itself is moe_fill_stage_us, which the conv block's timed
    entry shares. */
@@ -1763,10 +2059,11 @@ int nntr_hvx_mm_u8i4_conv_block(remote_handle64 handle, uint32 M, uint32 K,
   if (rc != AEE_SUCCESS) {
     return rc;
   }
-  return hexkl_conv_block_run(&s->weights_u8i4, s->vtcm_base, s->vtcm_size,
-                              s->config_off, M, K, C, N_out, h_in[0], h_in[1],
-                              h_in[2], h_out, conv_w, act_f32, out_f32,
-                              state_f32, s->quant_pool, &s->moe_scratch);
+  return hexkl_conv_block_run(
+    &s->weights_u8i4, s->vtcm_base, s->vtcm_size, s->config_off, M, K, C, N_out,
+    h_in[0], h_in[1], h_in[2], h_out, conv_w, act_f32, out_f32, state_f32,
+    s->quant_pool, &s->moe_scratch,
+    (s->moe_flags & HEXKL_MOE_FLAG_DMA_BYPASS) != 0u, s->moe_flags);
 }
 
 int nntr_hvx_mm_u8i4_conv_block_timed(
@@ -1789,14 +2086,131 @@ int nntr_hvx_mm_u8i4_conv_block_timed(
   }
   hexkl_probe_reset(1);
   t0 = hexkl_probe_now();
-  rc = hexkl_conv_block_run(&s->weights_u8i4, s->vtcm_base, s->vtcm_size,
-                            s->config_off, M, K, C, N_out, h_in[0], h_in[1],
-                            h_in[2], h_out, conv_w, act_f32, out_f32, state_f32,
-                            s->quant_pool, &s->moe_scratch);
+  rc = hexkl_conv_block_run(
+    &s->weights_u8i4, s->vtcm_base, s->vtcm_size, s->config_off, M, K, C, N_out,
+    h_in[0], h_in[1], h_in[2], h_out, conv_w, act_f32, out_f32, state_f32,
+    s->quant_pool, &s->moe_scratch,
+    (s->moe_flags & HEXKL_MOE_FLAG_DMA_BYPASS) != 0u, s->moe_flags);
   t1 = hexkl_probe_now();
   hexkl_probe_on = 0;
   moe_fill_stage_us(stage_us, (uint32)(t1 - t0));
   return rc;
+}
+
+/** Publish graph norm outputs while packing the Conv's input rows. */
+int nntr_hvx_mm_u8i4_conv_block_prefill_norm(
+  remote_handle64 handle, uint32 M, uint32 K, uint32 C, uint32 N_out,
+  const uint32 *h_in, int h_inLen, uint32 h_out, const float *conv_w,
+  int conv_wLen, float eps, const float *x, int xLen, const float *residual,
+  int residualLen, const float *gamma, int gammaLen, float *sum, int sumLen,
+  float *norm, int normLen, float *result, int resultLen, float *state,
+  int stateLen, uint32 *stage_us, int stage_usLen) {
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  const uint64_t count = (uint64_t)M * K;
+  const uint64_t out_count = (uint64_t)M * N_out;
+  const uint64_t conv_count = (uint64_t)3u * C;
+  if (M < 2u || count > INT32_MAX / sizeof(float) ||
+      out_count > INT32_MAX / sizeof(float) ||
+      conv_count > INT32_MAX / sizeof(float) || !h_in || !x || !norm ||
+      !gamma || !conv_w || !result || !state || xLen != (int)count ||
+      normLen != (int)count || gammaLen != (int)K ||
+      (residual ? residualLen != (int)count || !sum || sumLen != (int)count
+                : residualLen != 0 || sumLen != 0) ||
+      (stage_usLen != 0 && stage_usLen != MOE_N_STAGES) ||
+      (stage_usLen && !stage_us))
+    return AEE_EBADPARM;
+  int rc = check_conv_block_args(s, M, K, C, N_out, h_inLen, conv_wLen, xLen,
+                                 resultLen, stateLen);
+  if (rc)
+    return rc;
+  const hexkl_conv_block_norm input_norm = {residual, gamma, sum, norm, eps};
+  const int timed = stage_usLen != 0;
+  if (timed)
+    hexkl_probe_reset(1);
+  const uint64_t t0 = timed ? hexkl_probe_now() : 0;
+  rc = hexkl_conv_block_run_norm(
+    &s->weights_u8i4, s->vtcm_base, s->vtcm_size, s->config_off, M, K, C, N_out,
+    h_in[0], h_in[1], h_in[2], h_out, conv_w, x, result, state, s->quant_pool,
+    &s->moe_scratch, (s->moe_flags & HEXKL_MOE_FLAG_DMA_BYPASS) != 0u,
+    s->moe_flags, &input_norm);
+  if (timed) {
+    const uint64_t t1 = hexkl_probe_now();
+    hexkl_probe_on = 0;
+    moe_fill_stage_us(stage_us, (uint32)(t1 - t0));
+  }
+  return rc;
+}
+
+/** Decode norm and conv share the existing HMX-owning FastRPC thread. */
+int nntr_hvx_mm_u8i4_conv_block_norm(
+  remote_handle64 handle, uint32 K, uint32 C, uint32 N_out, const uint32 *h_in,
+  int h_inLen, uint32 h_out, const float *conv_w, int conv_wLen, uint32 add,
+  float eps, const float *packed_norm, int packed_normLen, float *norm_result,
+  int norm_resultLen, float *result, int resultLen, float *state, int stateLen,
+  uint32 *stage_us, int stage_usLen) {
+  if (!K || K > 4096 || K % 32 || add > 1 || !packed_norm || !norm_result ||
+      packed_normLen != (int)((add ? 3u : 2u) * K) ||
+      norm_resultLen != (int)(2u * K) ||
+      (stage_usLen != 0 && stage_usLen != MOE_N_STAGES))
+    return AEE_EBADPARM;
+  int rc = check_conv_block_args((nntr_hvx_session *)handle, 1, K, C, N_out,
+                                 h_inLen, conv_wLen, K, resultLen, stateLen);
+  if (rc)
+    return rc;
+  const uint64_t start = hexkl_probe_now();
+  if (!add)
+    memcpy(norm_result, packed_norm, K * sizeof(float));
+  rc = nntr_hvx_inference_math_f32(
+    handle, add ? 7u : 0u, 1, K, K, eps, 1.0f, packed_norm, K,
+    add ? packed_norm + K : NULL, add ? K : 0,
+    packed_norm + K * (add ? 2u : 1u), K,
+    (uint8 *)(add ? norm_result : norm_result + K), (add ? 8u : 4u) * K);
+  if (rc)
+    return rc;
+  const uint32 norm_us = (uint32)(hexkl_probe_now() - start);
+  if (stage_usLen) {
+    rc = nntr_hvx_mm_u8i4_conv_block_timed(
+      handle, 1, K, C, N_out, h_in, h_inLen, h_out, conv_w, conv_wLen,
+      norm_result + K, K, result, resultLen, state, stateLen, stage_us,
+      stage_usLen);
+    if (!rc)
+      stage_us[0] += norm_us;
+    return rc;
+  }
+  return nntr_hvx_mm_u8i4_conv_block(handle, 1, K, C, N_out, h_in, h_inLen,
+                                     h_out, conv_w, conv_wLen, norm_result + K,
+                                     K, result, resultLen, state, stateLen);
+}
+
+int nntr_hvx_mm_u8i4_layer_norm_ld_input(
+  remote_handle64 handle, uint32 K, float eps, const float *pre_gamma,
+  int pre_gammaLen, const uint32 *post_chunk, int post_chunkLen,
+  const float *post_gamma, int post_gammaLen, uint32 rope_hd,
+  uint32 rope_handles, const float *rope_cs, int rope_csLen,
+  const uint32 *w_handles, int w_handlesLen, const uint32 *out_off,
+  int out_offLen, const uint32 *out_ld, int out_ldLen, uint32 add,
+  float norm_eps, const float *packed_norm, int packed_normLen, float *result,
+  int resultLen) {
+  if (!K || K > 4096 || K % 32 || add > 1 || !packed_norm || !result ||
+      packed_normLen != (int)((add ? 3u : 2u) * K) ||
+      resultLen <= (int)(2u * K))
+    return AEE_EBADPARM;
+  const int out_len = resultLen - 2u * K;
+  float *norm_result = result + out_len;
+  if (!add)
+    memcpy(norm_result, packed_norm, K * sizeof(float));
+  int rc = nntr_hvx_inference_math_f32(
+    handle, add ? 7u : 0u, 1, K, K, norm_eps, 1.0f, packed_norm, K,
+    add ? packed_norm + K : NULL, add ? K : 0,
+    packed_norm + K * (add ? 2u : 1u), K,
+    (uint8 *)(add ? norm_result : norm_result + K), (add ? 8u : 4u) * K);
+  if (rc)
+    return rc;
+  return nntr_hvx_mm_u8i4_layer_norm_ld(
+    handle, 1, K, eps, pre_gamma, pre_gammaLen, post_chunk, post_chunkLen,
+    post_gamma, post_gammaLen, rope_hd, rope_handles, rope_cs, rope_csLen,
+    w_handles, w_handlesLen, out_off, out_offLen, out_ld, out_ldLen,
+    norm_result + K, K, result, out_len);
 }
 
 int nntr_hvx_moe_dma_trace_read(remote_handle64 handle, uint32 *words,
@@ -1805,7 +2219,7 @@ int nntr_hvx_moe_dma_trace_read(remote_handle64 handle, uint32 *words,
   if (!s || !words || wordsLen <= 0 || !n_words) {
     return AEE_EBADPARM;
   }
-  /* The tables of the last mm_u8i4_moe_layer_timed call: static, so they
+  /** The tables of the last mm_u8i4_moe_layer_timed call: static, so they
      survive until the next timed call overwrites them. A buffer too small
      for the whole trace gets 0 words rather than a truncated one. */
   *n_words = hexkl_dma_trace_serialize(words, (uint32_t)wordsLen);
@@ -1818,7 +2232,7 @@ int nntr_hvx_moe_set_opts(remote_handle64 handle, uint32 flags,
   if (!s || !applied) {
     return AEE_EBADPARM;
   }
-  /* Only the bits this skel knows are kept; the echo is how the ARM side
+  /** Only the bits this skel knows are kept; the echo is how the ARM side
      tells "took" from "ignored by an older skel". Since #113 that covers
      the tune bit and the (lead, rows1) field beside it, so a skel without
      them echoes a different word and the ARM side throws rather than
@@ -1881,4 +2295,482 @@ int nntr_hvx_mm_u8i4_gate_up_swiglu_timed(remote_handle64 handle, uint32 M,
   stage_us[GU_T_DRAIN] = (uint32)hexkl_probe_us[HEXKL_PROBE_DRAIN];
   stage_us[GU_T_ACC_STRIDE] = (uint32)hexkl_probe_us[HEXKL_PROBE_ACC_STRIDE];
   return rc;
+}
+
+/** One compact LUT image occupies the ordinary compact arena span. */
+int nntr_hvx_weight_swap_u2lut_single_arena(remote_handle64 handle,
+                                            uint32 old_gu, uint32 old_dn,
+                                            uint32 K, uint32 inter,
+                                            uint32 N_out, uint32 arena,
+                                            uint32 off_gu, uint32 off_dn,
+                                            uint32 *h_gu, uint32 *h_dn) {
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  if (!s || !K || !inter || !N_out || K % 32u || inter % 128u || N_out % 128u ||
+      inter > UINT32_MAX / 2u)
+    return AEE_EBADPARM;
+  const uint64_t eg = (uint64_t)off_gu + (uint64_t)K * (2u * inter) / 4u +
+                      16u * (uint64_t)inter + 4u;
+  const uint64_t ed =
+    (uint64_t)off_dn + (uint64_t)inter * N_out / 4u + 8u * (uint64_t)N_out + 4u;
+  if (!(eg <= off_dn || ed <= off_gu))
+    return AEE_EBADPARM;
+  const int rc = nntr_hvx_weight_swap_u2i4_arena(
+    handle, old_gu, old_dn, K, inter, N_out, arena, off_gu, off_dn, h_gu, h_dn);
+  if (rc == AEE_SUCCESS) {
+    s->weights_u8i4.slots[*h_gu].lut_bytes =
+      s->weights_u8i4.slots[*h_gu].wh_bytes;
+    s->weights_u8i4.slots[*h_dn].lut_bytes =
+      s->weights_u8i4.slots[*h_dn].wh_bytes;
+  }
+  return rc;
+}
+int nntr_hvx_weight_swap_batch_u2lut_single_arena(
+  remote_handle64 handle, uint32 K, uint32 inter, uint32 N_out,
+  const uint32 *old_gu, int old_guLen, const uint32 *old_dn, int old_dnLen,
+  const uint32 *arena, int arenaLen, const uint32 *off_gu, int off_guLen,
+  const uint32 *off_dn, int off_dnLen, uint32 *h_gu, int h_guLen, uint32 *h_dn,
+  int h_dnLen, uint32 *n_done, int32 *err) {
+  if (!handle || !n_done || !err)
+    return AEE_EBADPARM;
+  *n_done = 0;
+  *err = AEE_SUCCESS;
+  const int n = old_guLen;
+  if (n < 0 || old_dnLen != n || arenaLen != n || off_guLen != n ||
+      off_dnLen != n || h_guLen != n || h_dnLen != n ||
+      (n &&
+       (!old_gu || !old_dn || !arena || !off_gu || !off_dn || !h_gu || !h_dn)))
+    return AEE_EBADPARM;
+  for (int i = 0; i < n; ++i) {
+    *err = nntr_hvx_weight_swap_u2lut_single_arena(
+      handle, old_gu[i], old_dn[i], K, inter, N_out, arena[i], off_gu[i],
+      off_dn[i], &h_gu[i], &h_dn[i]);
+    if (*err != AEE_SUCCESS)
+      break;
+    *n_done = (uint32)i + 1u;
+  }
+  return AEE_SUCCESS;
+}
+
+/* Bounded internal byte packing for the prepared Q4 router. */
+typedef struct {
+  const uint8_t *rows;
+  const uint32_t *map;
+  uint8_t *ah;
+  uint32_t M, K;
+} router_prepared_pack_ctx;
+
+static void router_prepared_pack_worker(uint32_t threads, uint32_t thread,
+                                        void *opaque) {
+  const router_prepared_pack_ctx *c = opaque;
+  const uint32_t units = c->M / 16u;
+  const uint32_t lo = (uint64_t)units * thread / threads;
+  const uint32_t hi = (uint64_t)units * (thread + 1u) / threads;
+  hvx_gather_rowmajor_u8_ah_rows(c->rows, c->map, lo * 16u, hi * 16u, c->K,
+                                 c->ah);
+}
+
+typedef struct {
+  const float *residual, *gamma;
+  float *sum, *norm;
+  float eps;
+} router_prepared_norm;
+
+typedef struct {
+  const router_prepared_norm *norm;
+  const float *x;
+  float *cached, *scale;
+  int32_t *zp;
+  uint8_t *rows;
+  uint32_t M, K;
+} router_prepared_norm_quant_ctx;
+
+static void router_prepared_norm_quant_worker(uint32_t threads, uint32_t thread,
+                                              void *opaque) {
+  const router_prepared_norm_quant_ctx *c = opaque;
+  const uint32_t lo = (uint64_t)c->M * thread / threads;
+  const uint32_t hi = (uint64_t)c->M * (thread + 1u) / threads;
+  const router_prepared_norm *n = c->norm;
+  // Quantize each small normalized batch while its f32 rows are cached.
+  for (uint32_t row = lo; row < hi; row += 16u) {
+    const uint32_t count = hi - row < 16u ? hi - row : 16u;
+    const size_t off = (size_t)row * c->K;
+    hvx_rmsnorm_rows_cached_f32(
+      c->x + off, n->residual ? n->residual + off : NULL,
+      n->residual ? n->sum + off : NULL, n->norm + off, c->cached + off, count,
+      c->K, n->gamma, n->eps);
+    hvx_quant_rows_u8_params_rowmajor(c->cached + off, count, count, c->K,
+                                      c->scale + row, c->zp + row,
+                                      c->rows + off, NULL);
+  }
+}
+
+static int router_q4_prefill_prepare_impl(
+  remote_handle64 handle, uint32 M, uint32 K, uint32 E, uint32 w_handle,
+  const float *x, int xLen, uint32 top_k, uint32 n_sel, const float *bias,
+  int biasLen, uint32 *sel, int selLen, float *weight, int weightLen,
+  uint64 *cookie, const router_prepared_norm *input_norm) {
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  if (cookie)
+    *cookie = 0;
+  if (!s)
+    return AEE_EBADPARM;
+  s->router_prepare_cookie = 0;
+  s->router_prepared = (hexkl_moe_prepared_input){0};
+  if (!cookie || !x || !bias || !sel || !weight || M <= 4u || M > 2048u || !K ||
+      K > 4096u || K % 128u || !E || E > 128u || E % 32u || !top_k ||
+      top_k > n_sel || n_sel > E || (uint64_t)M * K != (uint64_t)xLen ||
+      (uint32_t)biasLen != E || (uint64_t)M * n_sel != (uint64_t)selLen ||
+      (uint64_t)M * top_k != (uint64_t)weightLen ||
+      w_handle >= HEXKL_MM_U8I4_MAX_WEIGHTS ||
+      !s->weights_u8i4.slots[w_handle].in_use ||
+      s->weights_u8i4.slots[w_handle].K != K ||
+      s->weights_u8i4.slots[w_handle].N != E ||
+      s->weights_u8i4.slots[w_handle].bits != 4u)
+    return AEE_EBADPARM;
+  if (!s->hmx_locked)
+    return AEE_EUNSUPPORTED;
+  const uint32_t padded = (M + 63u) & ~63u;
+  const size_t row_bytes = (size_t)padded * K;
+  const uint32_t arena =
+    s->vtcm_size < s->config_off ? s->vtcm_size : s->config_off;
+  /* The FC's exact activation + two weight buffers + minimum two result
+   * tiles must fit before the preparation writes any VTCM byte. */
+  if (row_bytes > 4u * 1024u * 1024u ||
+      row_bytes + (size_t)K * E + 2u * 8192u > arena)
+    return AEE_EUNSUPPORTED;
+  const size_t need =
+    row_bytes + 3u * padded * sizeof(uint32_t) + (size_t)M * E * sizeof(float);
+  int rc = hexkl_moe_scratch_reserve(&s->router_q4_scratch, need);
+  if (rc != AEE_SUCCESS)
+    return rc;
+  const size_t norm_count = (size_t)M * K;
+  if (input_norm &&
+      !norm_rows_reserve(s, norm_count + (input_norm->gamma ? K : 0u)))
+    return AEE_ENOMEMORY;
+  uint8_t *cur = s->router_q4_scratch.base;
+  uint8_t *rows = hexkl_moe_carve(&cur, row_bytes);
+  float *scale = hexkl_moe_carve(&cur, padded * sizeof(float));
+  int32_t *zp = hexkl_moe_carve(&cur, padded * sizeof(int32_t));
+  uint32_t *map = hexkl_moe_carve(&cur, padded * sizeof(uint32_t));
+  float *logits = (float *)cur;
+  for (uint32_t r = 0; r < padded; ++r)
+    map[r] = r;
+  if (M < padded)
+    memset(rows + (size_t)M * K, 0, (size_t)(padded - M) * K);
+  if (input_norm) {
+    for (uint32_t row = M; row < padded; ++row) {
+      scale[row] = 1.0f;
+      zp[row] = 0;
+    }
+    // Keep gamma in cached DSP memory across all rows, as Conv/QKV do.
+    router_prepared_norm cached_norm = *input_norm;
+    if (input_norm->gamma) {
+      float *cached_gamma = s->norm_rows + norm_count;
+      memcpy(cached_gamma, input_norm->gamma, (size_t)K * sizeof(float));
+      cached_norm.gamma = cached_gamma;
+    }
+    const router_prepared_norm_quant_ctx norm_quant = {
+      &cached_norm, x, s->norm_rows, scale, zp, rows, M, K};
+    hvx_worker_pool_run(s->quant_pool, router_prepared_norm_quant_worker,
+                        (void *)&norm_quant, M);
+  } else {
+    hvx_quant_rows_u8_params_rowmajor(x, M, padded, K, scale, zp, rows,
+                                      s->quant_pool);
+  }
+  router_prepared_pack_ctx pack = {rows, map, s->vtcm_base, padded, K};
+  hvx_worker_pool_run(s->quant_pool, router_prepared_pack_worker, &pack,
+                      padded / 16u);
+  const hexkl_mm_opts opts = {
+    .pool = s->quant_pool,
+    .act_scale = scale,
+    .act_zp = zp,
+    .act_ah_prepacked = s->vtcm_base,
+    .weight_src_bypass = (s->moe_flags & HEXKL_MOE_FLAG_DMA_BYPASS) != 0u};
+  rc = fc_layer_run(s, M, K, &w_handle, 1u, NULL, logits, &opts);
+  if (rc == AEE_SUCCESS)
+    rc = nntr_hvx_sigmoid_topk_f32(handle, M, E, top_k, n_sel, logits,
+                                   (int)(M * E), bias, biasLen, sel, selLen,
+                                   weight, weightLen);
+  if (rc != AEE_SUCCESS) {
+    // EUNSUPPORTED promises that no graph output has been published. Once
+    // norm output can alias an input, replaying the add/norm is unsafe.
+    if (input_norm && (rc == AEE_EUNSUPPORTED || rc == AEE_EUNSUPPORTEDAPI))
+      return AEE_EFAILED;
+    return rc;
+  }
+  if (++s->router_prepare_serial == 0)
+    ++s->router_prepare_serial;
+  s->router_prepared = (hexkl_moe_prepared_input){rows, scale, zp, M, K};
+  s->router_prepare_cookie = s->router_prepare_serial;
+  *cookie = s->router_prepare_cookie;
+  return AEE_SUCCESS;
+}
+
+int nntr_hvx_mm_u8i4_moe_layer_prepared(
+  remote_handle64 handle, uint64 cookie, uint32 M, uint32 K, uint32 inter,
+  uint32 N_out, uint32 act, const uint32 *h_gate_up, int h_gate_upLen,
+  const uint32 *h_down, int h_downLen, const uint32 *row_index,
+  int row_indexLen, const uint32 *row_count, int row_countLen,
+  const float *row_weight, int row_weightLen, float *out_f32, int out_f32Len,
+  uint32 *stage_us, int stage_usLen) {
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  if (!s)
+    return AEE_EBADPARM;
+  const int matched = cookie && cookie == s->router_prepare_cookie &&
+                      s->router_prepared.M == M && s->router_prepared.K == K;
+  const hexkl_moe_prepared_input prepared = s->router_prepared;
+  /* A failed consume expires the lease too. No replay can re-enter a
+   * kernel after the first attempt, successful or otherwise. */
+  s->router_prepare_cookie = 0;
+  s->router_prepared = (hexkl_moe_prepared_input){0};
+  if (!matched || !out_f32 || !h_gate_up || !h_down || !row_index ||
+      !row_count || !row_weight || act > 1u ||
+      (stage_usLen != 0 && (stage_usLen != MOE_N_STAGES || !stage_us)) ||
+      (uint64_t)M * K > INT32_MAX / sizeof(float) ||
+      (uint64_t)M * N_out > INT32_MAX / sizeof(float) ||
+      (uint64_t)K * inter > INT32_MAX / 2u ||
+      (uint64_t)inter * N_out > INT32_MAX)
+    return AEE_EBADPARM;
+  int rc = check_moe_layer_args(s, M, K, inter, N_out, h_gate_upLen, h_downLen,
+                                row_indexLen, row_countLen, row_weightLen,
+                                (int)(M * K), out_f32Len);
+  if (rc == AEE_SUCCESS)
+    rc = check_moe_row_totals(row_count, h_gate_upLen, row_indexLen);
+  if (rc != AEE_SUCCESS)
+    return rc;
+  uint64_t begin = 0, end = 0;
+  if (stage_usLen) {
+    hexkl_probe_reset(1);
+    begin = hexkl_probe_now();
+  }
+  rc = hexkl_mm_u8i4_moe_layer_run_prepared(
+    &s->weights_u8i4, s->vtcm_base, s->vtcm_size, s->config_off, M, K, inter,
+    N_out, (uint32_t)h_gate_upLen, h_gate_up, h_down, row_index, row_count,
+    row_weight, NULL, out_f32, s->quant_pool, &s->moe_scratch,
+    s->moe_flags | (act ? HEXKL_MOE_FLAG_GELU_TANH : 0u), &prepared);
+  if (stage_usLen) {
+    end = hexkl_probe_now();
+    hexkl_probe_on = 0;
+    return nntr_hvx_moe_stage_fill(stage_us, begin, end, rc);
+  }
+  return rc;
+}
+
+int nntr_hvx_router_q4_prefill_prepare(remote_handle64 handle, uint32 M,
+                                       uint32 K, uint32 E, uint32 w_handle,
+                                       const float *x, int xLen, uint32 top_k,
+                                       uint32 n_sel, const float *bias,
+                                       int biasLen, uint32 *sel, int selLen,
+                                       float *weight, int weightLen,
+                                       uint64 *cookie) {
+  return router_q4_prefill_prepare_impl(
+    handle, M, K, E, w_handle, x, xLen, top_k, n_sel, bias, biasLen, sel,
+    selLen, weight, weightLen, cookie, NULL);
+}
+
+static int router_prepare_overlap(const void *a, size_t a_bytes, const void *b,
+                                  size_t b_bytes) {
+  const uintptr_t x = (uintptr_t)a, y = (uintptr_t)b;
+  return a && b && (x < y ? y - x < a_bytes : x - y < b_bytes);
+}
+
+int nntr_hvx_router_q4_prefill_norm_prepare(
+  remote_handle64 handle, uint32 M, uint32 K, uint32 E, uint32 w_handle,
+  uint32 top_k, uint32 n_sel, float eps, const float *x, int xLen,
+  const float *residual, int residualLen, const float *gamma, int gammaLen,
+  float *sum, int sumLen, float *norm, int normLen, const float *bias,
+  int biasLen, uint32 *sel, int selLen, float *weight, int weightLen,
+  uint64 *cookie) {
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  if (cookie)
+    *cookie = 0;
+  if (!s)
+    return AEE_EBADPARM;
+  s->router_prepare_cookie = 0;
+  s->router_prepared = (hexkl_moe_prepared_input){0};
+  const uint64_t count = (uint64_t)M * K;
+  if (count > INT32_MAX / sizeof(float) || !x || !norm || xLen != (int)count ||
+      normLen != (int)count ||
+      (gammaLen != 0 && (gammaLen != (int)K || !gamma)) ||
+      (residualLen != 0 && (residualLen != (int)count || !residual)) ||
+      (residualLen ? !sum || sumLen != (int)count : sumLen != 0) || !bias ||
+      !sel || !weight || !cookie || selLen < 0 || weightLen < 0)
+    return AEE_EBADPARM;
+  if (!residualLen)
+    residual = NULL;
+  if (!gammaLen)
+    gamma = NULL;
+  if (!residual)
+    sum = NULL;
+  const size_t bytes = (size_t)count * sizeof(float);
+  if (router_prepare_overlap(sum, bytes, norm, bytes))
+    return AEE_EBADPARM;
+  const float *inputs[] = {x, residual};
+  float *outputs[] = {sum, norm};
+  for (uint32_t i = 0; i < 2u; ++i) {
+    for (uint32_t j = 0; j < 2u; ++j)
+      if (outputs[i] != inputs[j] &&
+          router_prepare_overlap(outputs[i], bytes, inputs[j], bytes))
+        return AEE_EBADPARM;
+    if (router_prepare_overlap(outputs[i], bytes, gamma,
+                               (size_t)K * sizeof(float)) ||
+        router_prepare_overlap(outputs[i], bytes, bias,
+                               (size_t)E * sizeof(float)) ||
+        router_prepare_overlap(outputs[i], bytes, sel,
+                               (size_t)selLen * sizeof(uint32)) ||
+        router_prepare_overlap(outputs[i], bytes, weight,
+                               (size_t)weightLen * sizeof(float)))
+      return AEE_EBADPARM;
+  }
+  const router_prepared_norm input_norm = {residual, gamma, sum, norm, eps};
+  return router_q4_prefill_prepare_impl(
+    handle, M, K, E, w_handle, x, xLen, top_k, n_sel, bias, biasLen, sel,
+    selLen, weight, weightLen, cookie, &input_norm);
+}
+
+/** Prefill QKV with graph norm publication and three direct output bases. */
+int nntr_hvx_mm_u8i4_qkv_prefill_norm(
+  remote_handle64 handle, uint32 M, uint32 K, uint32 Nq, uint32 Nk, uint32 Nv,
+  const uint32 *w_handles, int w_handlesLen, float post_eps,
+  const uint32 *post_chunk, int post_chunkLen, const float *post_gamma,
+  int post_gammaLen, uint32 rope_hd, uint32 rope_handles, const float *rope_cs,
+  int rope_csLen, float norm_eps, const float *x, int xLen,
+  const float *residual, int residualLen, const float *gamma, int gammaLen,
+  float *sum, int sumLen, float *norm, int normLen, float *q, int qLen,
+  float *k, int kLen, float *v, int vLen) {
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  const uint64_t count = (uint64_t)M * K;
+  const uint32_t widths[3] = {Nq, Nk, Nv};
+  const int out_lens[3] = {qLen, kLen, vLen};
+  float *out_base[3] = {q, k, v};
+  uint32_t handles[3], chunks[3] = {0u, 0u, 0u};
+  if (!s || M < 2u || M > 2048u || !K || K > 4096u || K % 128u ||
+      count > INT32_MAX / sizeof(float) || !x || !norm || xLen != (int)count ||
+      normLen != (int)count || !w_handles || w_handlesLen != 3 ||
+      (gammaLen != 0 && (gammaLen != (int)K || !gamma)) ||
+      (residualLen != 0 && (residualLen != (int)count || !residual)) ||
+      (residualLen ? !sum || sumLen != (int)count : sumLen != 0) ||
+      (post_chunkLen != 0 && (post_chunkLen != 3 || !post_chunk)) ||
+      post_gammaLen < 0 || rope_csLen < 0)
+    return AEE_EBADPARM;
+  if (!s->hmx_locked)
+    return AEE_EUNSUPPORTED;
+  if (!residualLen) {
+    residual = NULL;
+    sum = NULL;
+  }
+  if (!gammaLen)
+    gamma = NULL;
+  uint32_t widest = 0u, gamma_total = 0u;
+  for (uint32_t i = 0; i < 3u; ++i) {
+    const uint32_t n = widths[i];
+    const uint64_t n_out = (uint64_t)M * n;
+    handles[i] = w_handles[i];
+    if (!n || n > 4096u || n % 32u || n_out > INT32_MAX / sizeof(float) ||
+        !out_base[i] || out_lens[i] != (int)n_out ||
+        handles[i] >= HEXKL_MM_U8I4_MAX_WEIGHTS)
+      return AEE_EBADPARM;
+    const hexkl_weight_u8i4 *h = &s->weights_u8i4.slots[handles[i]];
+    if (!h->in_use || h->K != K || h->N != n ||
+        (h->bits != 0u && h->bits != 4u))
+      return AEE_EBADPARM;
+    widest = n > widest ? n : widest;
+    chunks[i] = post_chunkLen ? post_chunk[i] : 0u;
+    if (chunks[i] && (chunks[i] % 32u || n % chunks[i]))
+      return AEE_EBADPARM;
+    gamma_total += chunks[i];
+  }
+  if ((uint32_t)post_gammaLen != gamma_total || (gamma_total && !post_gamma) ||
+      rope_handles > 3u)
+    return AEE_EBADPARM;
+  if (rope_hd) {
+    if (rope_hd % 64u || !rope_cs ||
+        (uint64_t)rope_csLen != (uint64_t)M * 2u * rope_hd)
+      return AEE_EBADPARM;
+    for (uint32_t i = 0; i < rope_handles; ++i)
+      if (widths[i] % rope_hd)
+        return AEE_EBADPARM;
+  } else if (rope_csLen) {
+    return AEE_EBADPARM;
+  }
+
+  /* The three graph projections may reuse raw input storage: the whole
+   * activation is packed before any projection writes. Both published norm
+   * outputs must survive the call, and all still-used metadata stays disjoint.
+   */
+  const size_t bytes = (size_t)count * sizeof(float);
+  const float *inputs[2] = {x, residual};
+  float *outputs[5] = {sum, norm, q, k, v};
+  const size_t sizes[5] = {bytes, bytes, (size_t)qLen * sizeof(float),
+                           (size_t)kLen * sizeof(float),
+                           (size_t)vLen * sizeof(float)};
+  const void *metadata[5] = {gamma, post_gamma, rope_cs, w_handles, post_chunk};
+  const size_t meta_sizes[5] = {
+    (size_t)gammaLen * sizeof(float), (size_t)post_gammaLen * sizeof(float),
+    (size_t)rope_csLen * sizeof(float), 3u * sizeof(uint32),
+    (size_t)post_chunkLen * sizeof(uint32)};
+  for (uint32_t i = 0; i < 5u; ++i) {
+    for (uint32_t j = 0; j < i; ++j)
+      if (router_prepare_overlap(outputs[i], sizes[i], outputs[j], sizes[j]))
+        return AEE_EBADPARM;
+    for (uint32_t j = 0; j < 5u; ++j)
+      if (meta_sizes[j] && router_prepare_overlap(outputs[i], sizes[i],
+                                                  metadata[j], meta_sizes[j]))
+        return AEE_EBADPARM;
+    if (i < 2u)
+      for (uint32_t j = 0; j < 2u; ++j)
+        if (outputs[i] != inputs[j] &&
+            router_prepare_overlap(outputs[i], bytes, inputs[j], bytes))
+          return AEE_EBADPARM;
+  }
+
+  const uint32_t padded = (M + 63u) & ~63u;
+  const uint32_t arena =
+    s->vtcm_size < s->config_off ? s->vtcm_size : s->config_off;
+  /* K%128 and N%32 make each weight buffer 2048-byte aligned. Match the
+   * FC activation + two widest weight buffers + two result tiles exactly. */
+  if ((uint64_t)padded * K + (uint64_t)K * widest + 2u * 8192u > arena)
+    return AEE_EUNSUPPORTED;
+  if (!norm_rows_reserve(s, (size_t)count + K))
+    return AEE_ENOMEMORY;
+  float *cached_gamma = s->norm_rows + (size_t)count;
+  if (gamma)
+    memcpy(cached_gamma, gamma, (size_t)K * sizeof(float));
+  int post_done = 0;
+  hexkl_mm_opts opts = {.pool = s->quant_pool,
+                        .pre_scratch = s->norm_rows,
+                        .pre_gamma = gamma ? cached_gamma : NULL,
+                        .pre_eps = norm_eps,
+                        .weight_src_bypass =
+                          (s->moe_flags & HEXKL_MOE_FLAG_DMA_BYPASS) != 0u,
+                        .post_done = &post_done,
+                        .post_chunk = chunks,
+                        .post_gamma = post_gamma,
+                        .post_eps = post_eps,
+                        .rope_hd = rope_hd,
+                        .rope_handles = rope_handles,
+                        .rope_cs = rope_cs,
+                        .pre_residual = residual,
+                        .pre_sum = sum,
+                        .pre_norm = norm,
+                        .out_base = out_base};
+  int rc = fc_layer_run(s, M, K, handles, 3u, x, NULL, &opts);
+  /* A failed kernel may have published aliased sum/norm already. Never
+   * advertise a retryable fallback after crossing that publication point. */
+  if (rc == AEE_EUNSUPPORTED || rc == AEE_EUNSUPPORTEDAPI)
+    return AEE_EFAILED;
+  if (rc != AEE_SUCCESS)
+    return rc;
+  const float *g = post_gamma;
+  for (uint32_t i = 0; !post_done && i < 3u; ++i) {
+    if (chunks[i]) {
+      hvx_rmsnorm_rows_ld_f32(out_base[i], out_base[i], M, widths[i], widths[i],
+                              chunks[i], g, post_eps, s->quant_pool);
+      g += chunks[i];
+    }
+  }
+  for (uint32_t i = 0; !post_done && rope_hd && i < rope_handles; ++i)
+    hvx_rope_rows_ld_f32(out_base[i], M, widths[i], widths[i], rope_hd, rope_cs,
+                         s->quant_pool);
+  return AEE_SUCCESS;
 }

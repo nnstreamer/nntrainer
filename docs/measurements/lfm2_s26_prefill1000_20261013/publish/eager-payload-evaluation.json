@@ -1,0 +1,220 @@
+{
+  "topic": "Release each staged expert payload after its final GU/DN promotion, while keeping cancellation joined through physical free.",
+  "input_tokens": 1024,
+  "output_tokens": 64,
+  "staging_experts": 64,
+  "readers": 7,
+  "npu_cache_experts_per_layer": 22,
+  "registry_limit": 2048,
+  "decision": "Accept shorter memory retention and reduced scope-end cleanup; the median improved8ms but the full-sample mean did not improve. Retain64-expert setting.",
+  "samples": [
+    {
+      "file": "v17-pub-stage64-clean-au1.json",
+      "variant": "combined-v17-publish",
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1076,
+        "tps": 951.673
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 1915,
+        "tps": 33.4204
+      },
+      "raw_log_sha256": "325b16e10a935ce1cbd40675849f52cb6388c6589cf0dd791bca5267e8ece67b"
+    },
+    {
+      "file": "v16-pub-stage64-clean-au2.json",
+      "variant": "combined-v16-publish",
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1046,
+        "tps": 978.967
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 1876,
+        "tps": 34.1151
+      },
+      "raw_log_sha256": "a211550405d1d7b161245e514b4e806e33c3315ce3f99b8ff4cad6749e00c3c2"
+    },
+    {
+      "file": "v16-pub-stage64-clean-au3.json",
+      "variant": "combined-v16-publish",
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1045,
+        "tps": 979.904
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 1887,
+        "tps": 33.9163
+      },
+      "raw_log_sha256": "6566dfee999bad566b065c3812cf3a78be089aad90f4e9ab5130ae6a74c7211e"
+    },
+    {
+      "file": "v17-pub-stage64-clean-au4.json",
+      "variant": "combined-v17-publish",
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1032,
+        "tps": 992.248
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 1889,
+        "tps": 33.8804
+      },
+      "raw_log_sha256": "f918d2c53ac3ecbd8f3486b0efe5cb6ab0927488eebc754fa5357e4d401cb2f1"
+    },
+    {
+      "file": "v16-pub-stage64-clean-aw1.json",
+      "variant": "combined-v16-publish",
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1052,
+        "tps": 973.384
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 1870,
+        "tps": 34.2246
+      },
+      "raw_log_sha256": "f1f06d6d6d0017aab702077e4d49442e9a35f501d3c722c6f0075dfdbf025c91"
+    },
+    {
+      "file": "v17-pub-stage64-clean-aw2.json",
+      "variant": "combined-v17-publish",
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1039,
+        "tps": 985.563
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 1877,
+        "tps": 34.097
+      },
+      "raw_log_sha256": "0f5bcc82ee081c44455572abcd643d09523879a6a39d69473cdb64b7fbb0b2f1"
+    },
+    {
+      "file": "v17-pub-stage64-clean-aw3.json",
+      "variant": "combined-v17-publish",
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1036,
+        "tps": 988.417
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 1924,
+        "tps": 33.264
+      },
+      "raw_log_sha256": "98a19c2e39230a2b76292236222c85fc6907e56d4058f02c857ad494e196ac26"
+    },
+    {
+      "file": "v16-pub-stage64-clean-aw4.json",
+      "variant": "combined-v16-publish",
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1040,
+        "tps": 984.615
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 1924,
+        "tps": 33.264
+      },
+      "raw_log_sha256": "b28ad5ca8d6bc21185cea8c6a07fe1b7d2eb4f3bc44567e9780384d2fa063a20"
+    }
+  ],
+  "groups": {
+    "v16": {
+      "ms": [
+        1046,
+        1045,
+        1052,
+        1040
+      ],
+      "mean_ms": 1045.75,
+      "median_ms": 1045.5,
+      "median_effective_tps": 979.4356767097082,
+      "effective_tps_from_total": 979.2015300023907
+    },
+    "v17": {
+      "ms": [
+        1076,
+        1032,
+        1039,
+        1036
+      ],
+      "mean_ms": 1045.75,
+      "median_ms": 1037.5,
+      "median_effective_tps": 986.9879518072289,
+      "effective_tps_from_total": 979.2015300023907
+    }
+  },
+  "target_met": false,
+  "excluded_clean_samples": [],
+  "diagnostic_profiles": {
+    "v15-pub-stage64-profile-an1": {
+      "prefill_ms": 1046,
+      "node_sum_ms": 1033.463232,
+      "outside_node_ms": 12.536767999999938,
+      "raw_log_sha256": "ec9dc29c9994d79889022c3019da4df8e3ae560e01428f3a06fed7cc21772123"
+    },
+    "v17-pub-stage64-profile-av1": {
+      "prefill_ms": 1089,
+      "node_sum_ms": 1087.486666,
+      "outside_node_ms": 1.5133339999999862,
+      "raw_log_sha256": "aed75774ae2493ba779b0807c9e7c05b487d2229d4aed3dfa64260d1afcaa759"
+    }
+  },
+  "profile_limitations": [
+    "Separate profiled runs are not a controlled clean A/B.",
+    "Timer-minus-node reduction supports earlier cleanup but is not a direct free() timer.",
+    "The slower candidate profile has late expert-read waits; no reader claim/finish timestamps establish the cause."
+  ],
+  "raw_parity": {
+    "file": "parity/v17-pub-stage64-parity-at1-raw-output-comparison.json",
+    "files": 132,
+    "exact": true
+  },
+  "host_checks": {
+    "helper_assertions": 3916,
+    "backend_assertions": 758,
+    "normal": "PASS",
+    "asan_ubsan": "PASS",
+    "android_core_app_build": "PASS",
+    "source_artifacts": "publish/eager-payload-artifacts.json"
+  },
+  "screen_128": {
+    "file": "v17-pub-stage128-screen-ax1.json",
+    "ms": 1124,
+    "tps": 911.032,
+    "decision": "Reject larger bank; single clean screen does not support increasing128.",
+    "raw_log_sha256": "dcb17813bb3f3e494bde93afcd8632837b356e831277eaeb89aeb7eff74e9256"
+  },
+  "screen_v16_settings": [
+    {
+      "file": "v16-pub-stage48-screen-ar1.json",
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1040,
+        "tps": 984.615
+      },
+      "raw_log_sha256": "5195511735bd82d2245c6ab3067e4c08814b624054681eac140b5d084eda618d"
+    },
+    {
+      "file": "v16-pub-stage32-screen-ar2.json",
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1054,
+        "tps": 971.537
+      },
+      "raw_log_sha256": "c0acc5fb3ab9b1ca44efbbfa3322ca134869dd7c30a38e8c474c4ed995ec0dcf"
+    }
+  ],
+  "reference_before_candidate": "v16-pub-stage64-clean-as1.json"
+}

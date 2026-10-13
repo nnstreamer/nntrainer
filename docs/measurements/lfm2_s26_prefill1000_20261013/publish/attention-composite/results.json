@@ -1,0 +1,98 @@
+{
+  "status": "PRIVATE SOURCE/BUILD GATES PASS; DEVICE AND FULL-MODEL GATES PENDING",
+  "base_commit": "3103136e938e08e212e505ddedc81d0eb35359c6",
+  "intent": "Remove one FastRPC boundary from each of 10 eligible 1024-row attention layers, preserving the two original numerical entries and their public FP16 K/V buffers.",
+  "expected_opportunity_ms": 6.144,
+  "opportunity_limit": "Derived from one profiled preparation RPC-minus-DSP sum; not a predicted or measured full-model gain.",
+  "eligibility": {
+    "rows": 1024,
+    "heads_q": 32,
+    "heads_kv": 8,
+    "head_dim": 64,
+    "cache_range": [
+      0,
+      1024
+    ],
+    "cache_kind": "dynamic Q8",
+    "tensor_types": "Q/K/V/output FP32, public K/V FP16 or UINT16",
+    "requires": [
+      "NNTR_HTP_PREFILL_ATTN_COMPOSITE nonzero",
+      "NNTR_HTP_PREFILL_QKV_PREPARE nonzero",
+      "NNTR_HTP_ATTN_Q8_WIRE nonzero",
+      "NNTR_HTP_ATTN_Q8_NPU unset or nonzero",
+      "strict HTP backend",
+      "causal RoPE",
+      "existing valid cache handle",
+      "all graph ranges shared and supported aliases"
+    ],
+    "excludes": [
+      "sink overload",
+      "effective sliding window",
+      "nonzero softcap",
+      "PrefillRopeFused",
+      "tail/incremental/2048 rows",
+      "fixed Q8 scales"
+    ]
+  },
+  "state_contract": {
+    "outer_nonzero": "Throw; no replay, including EUNSUPPORTED. Completion may be uncertain.",
+    "phase0": "Preparation failed; throw exactly as the existing preparation failure path.",
+    "phase1": "Preparation published; attention failed, possibly after resident append. Retire quantized handles, mark q_cache_failed, skip preparation, enter existing FP16 attention fallback.",
+    "phase2": "Both stages completed; direct FP32 output, synced=1024.",
+    "phase3": "Proven prepublication unsupported, all other status words must be zero; original sequence allowed."
+  },
+  "tests": {
+    "host_normal": "1101 assertions PASS",
+    "host_asan_ubsan": "1101 assertions PASS",
+    "portable_header": "PASS without ENABLE_HEXKL",
+    "portable_fixture_guard": "PASS without Linux/Android macros",
+    "negative_guard": "Removing actual caller composite_prepared short-circuit causes an observed second preparation; fixture rejects it.",
+    "host_limit": "Legacy numerical kernels are observable callbacks; control flow, aliases and publication ordering are tested, not HVX arithmetic parity.",
+    "android_backend_syntax": "PASS with new generated IDL header",
+    "android_mha_syntax": "PASS",
+    "android_device_checker_link": "PASS with its own new generated client stub",
+    "dsp": "v81 SDK6.4.0.1/tools19.0.04/HexKL6.4.0.2 PASS, 69 accepted runtime imports",
+    "idl": "Append-only verified byte prefix"
+  },
+  "device_checker": {
+    "program": "artifacts/attention_composite_device_check",
+    "arguments": [],
+    "expected_tag": "ALL_ATTENTION_COMPOSITE_CASES_PASSED cases=3",
+    "kernel_rpcs": 21,
+    "registration_release_rpcs": 12,
+    "checks": [
+      "3 deterministic finite input patterns including signed zero/subnormals/FP16 rounding boundaries",
+      "sequential prepare + Q8 NPU vs composite Q FP32 bit parity",
+      "public K/V FP16 bit parity",
+      "raw K/V input preservation",
+      "prefill output bit parity",
+      "17-row continuation through both resulting resident caches",
+      "1-row decode through both resulting resident caches"
+    ],
+    "benchmark_arguments": [
+      "--bench"
+    ],
+    "benchmark_repeats": 8,
+    "discarded_repeats": 2,
+    "order": "alternates separate/composite and composite/separate",
+    "timing_excludes": "input reset/copy and parity checks",
+    "runtime": "Use a new cloned accepted runtime, new skel and this checker; no existing runtime or registry/cache-size changes. HtpBackend ABI unchanged. No device calls made by this agent."
+  },
+  "parent_required_gates": [
+    "Standalone actual device byte parity and cache continuation",
+    "New matching core/app/stub/skel build before full-model opt-in",
+    "Full-model 132 raw files equal baseline",
+    "Clean ABBA with opt-in only difference; count 10 composite prefill RPCs in trace/summary"
+  ],
+  "files_edited_outside_private_snapshot": [],
+  "build_commands": [
+    "android-backend-command.json",
+    "android-mha-command.json",
+    "device-build-commands.json"
+  ],
+  "dsp_build_command": "HEXAGON_SDK_ROOT=/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1 DEFAULT_HEXAGON_TOOLS_ROOT=/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04 HEXKL_ROOT=/home/jungone-lee/workspace/nntrainer/hexkl_addon HEXKL_SDK_VER=6.4.0.2 HEX_ARCH=v81 bash test/htp/build.sh",
+  "host_repro": [
+    "python3 source/test/htp/host/run_attention_composite_host_checks.py --repo-root source",
+    "python3 source/test/htp/host/run_attention_composite_host_checks.py --repo-root source --sanitize"
+  ]
+}

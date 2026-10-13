@@ -21,19 +21,16 @@
 /**
  * @brief Attention for few query rows, one (row, head) per work unit, no HMX.
  *
- * llama.cpp sends decode (fewer than 5 tokens, head_dim <= 128) to a
- * pure-HVX kernel rather than HMX: with one or two real rows per 32-row
- * tile the matrix unit is almost entirely padding, and the accumulator
- * round trips dominate. This is that path for nntrainer's cache layout.
- * Same math and options as hexkl_attn_f16_prefill (causal/window ranges,
- * softcap, sinks), but scores are computed as fp16 dot products on HVX,
- * probabilities in fp16, and the output accumulates in f32 -- so it is
- * also the more precise of the two.
+ * Computes QK and PV without padding query rows to an HMX tile. It
+ * supports the same causal/window ranges, softcap and sinks as the FP16
+ * prefill kernel. Dot products and probabilities use FP16 operands;
+ * output accumulation uses FP32. Performance relative to HMX depends on
+ * the cache length and GQA shape and must be measured at the call site.
  *
  * K and V are read straight from DDR with vector loads; nothing touches
  * VTCM or the DMA engine, which is what lets every pool worker run its
  * own (row, head) units with no shared state. Requires head_dim in
- * {32, 64, 96, 128}.
+ * [32, 512], in multiples of 32.
  *
  * @param pool  may be NULL
  * @param us    may be NULL; total on-DSP microseconds

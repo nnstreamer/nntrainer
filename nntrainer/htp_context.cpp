@@ -17,9 +17,33 @@
 #include <app_context.h>
 #include <compute_ops.h>
 #include <context_data.h>
+#include <cstdlib>
+#include <cstring>
 #include <htp_backend.h>
+#include <mem_allocator.h>
+#include <stdexcept>
 
 namespace nntrainer {
+
+namespace {
+// Activation pools only: weight placement continues to use the CPU allocator.
+class HtpActivationAllocator final : public MemAllocator {
+public:
+  void alloc(void **ptr, size_t size, size_t alignment) override {
+    *ptr = HtpBackend::global().alloc_shared(size);
+    if (!*ptr)
+      throw std::bad_alloc();
+    if (reinterpret_cast<uintptr_t>(*ptr) % alignment) {
+      HtpBackend::global().free_shared(*ptr);
+      *ptr = nullptr;
+      throw std::runtime_error("HTP activation alignment is unsupported");
+    }
+    std::memset(*ptr, 0, size);
+  }
+  void free(void *ptr) override { HtpBackend::global().free_shared(ptr); }
+  std::string getName() override { return "htp-rpcmem"; }
+};
+} // namespace
 
 std::unique_ptr<nntrainer::Layer>
 HtpContext::createLayerObject(const std::string &type,
@@ -57,7 +81,11 @@ void HtpContext::initialize() noexcept {
     // still runs, transparently, on the CPU.
     if (HtpBackend::global().enabled()) {
       cd->setComputeOps(get_htp_ops());
-      // Model tensors (weights, activations) keep the default CPU allocator.
+      const char *shared = std::getenv("NNTR_HTP_SHARED_ACTIVATIONS");
+      if (shared && std::atoi(shared))
+        cd->setMemAllocator(std::make_shared<HtpActivationAllocator>());
+
+      // Unless opted in for activations above, model tensors use CPU memory.
       // The kernels stage into NPU-accessible (ION/rpcmem) buffers per call;
       // routing every model tensor through an NPU allocator exhausts the DMA
       // pool on a full transformer model.

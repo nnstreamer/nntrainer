@@ -1,0 +1,35 @@
+{
+  "base_commit": "3103136e938e08e212e505ddedc81d0eb35359c6",
+  "production": {
+    "Applications/CausalLM/layers/mha_core.cpp": "dd380c3dec27e4f59d1a4d6adfa12ea16814bd053ae272921ddff20541ca6ee4",
+    "Applications/CausalLM/layers/mha_core.h": "06bf5391f259e940b43659cba11e1dc45d12bb5adf8acc114840c4cdee0dfa7f",
+    "nntrainer/tensor/htp_backend/htp_rope_prefill.h": "d51028a12078b2b49eab034f97bb75d1c5a7bfebc8cff58242b73f623ffcde7f",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "a87f510368f385407545d656ae5b730fd977f2485a0437e2e18dcbb79a85427a",
+    "test/htp/nntr_hvx_attn_q.c": "631da5406d70db9064e210178433edc0f99b939489124b866b339e5a270a7bd8",
+    "test/htp/nntr_hvx.idl": "a183e90733f6035f9ac104944aba24e705f5db68f0a8b2cffedd757d93f37673"
+  },
+  "tests": {
+    "test/htp/host/attention_composite_host_check.cpp": "30d4e6d37c39bb33e101e4af73551a59b76862e575a300f05c8915429cd4d5ae",
+    "test/htp/host/run_attention_composite_host_checks.py": "56f2692bda617365a394766915b7fdf39cd8ab20169b23fe8eb67dcad42eabc9",
+    "test/htp/attention_composite_device_check.cpp": "33ce273d2656985aac4816becbb70a4ac998fcdf7dd811102ddbb4c9a79face9"
+  },
+  "patches": {
+    "production.patch": "d329678d59096576ffede7fc2a4a56604964baff5a1836e64fa302cfca31fd4a",
+    "tests.patch": "2932430424bef49ec374159df55b0df91dce9d1b9cf8d2c890c6f29eafa23f95"
+  },
+  "artifacts": {
+    "nntr_hvx_stub.c": "cfac4f560b5ab75ae39bc5fb59e328ce790bf022bac872194dd09e8d3c0414f1",
+    "nntr_hvx.h": "28d3095d5664f20f5efe6cc8c4d071b21e333efc3eb1d42755334b23991c9c95",
+    "libnntr_hvx_skel.so": "7b2985262f3026f4df3df679886bd25f0876e6139c93768fd37ff98fc3a112d6",
+    "attention_composite_device_check": "033b00ead872b7cbea52b62a568e152706ce76d9edbd9d35525b48ac5cf1420e"
+  },
+  "toolchain": {
+    "SDK": "6.4.0.1",
+    "Hexagon": "19.0.04",
+    "HexKL": "6.4.0.2",
+    "arch": "v81"
+  },
+  "unchanged_registry_max": 2048,
+  "new_idl_methods": 1,
+  "changed_numerical_kernels": 0
+}

@@ -1,0 +1,137 @@
+{
+  "date": "2026-10-10",
+  "status": "implemented_validated_and_faster_than_original_lut_in_same_binary_comparison",
+  "previous_report": "docs/measurements/lfm2_24ba2b_s26_qs2_offline_lut.json",
+  "hardware": "S26 Ultra / Hexagon v81 / R5KL30G6MCX",
+  "problem": "Previous offline path retained/read/copied two weight layouts and ran full software CRC32 on both files every expert miss, regressing decoding from about 23.32 to 12.29 tokens/s.",
+  "measured_causes": {
+    "crc_microbenchmark": "K=2048, N=3072, 1.5MiB codes: full source plus payload software CRC took 1.51-1.67ms, compared with 0.18-0.23ms combined cached file reads (3 samples, 100 iterations each). ARM hardware CRC reduced those checks to 0.47-0.52ms.",
+    "uncached_arena_microbenchmark": "100 iterations on actual rpcmem uncached storage: baseline source read+copy 209.515us; prepared read+copy with reused validation 207.037us; prepared direct-to-arena read 142.731us. These are isolated timings, not full-model gains.",
+    "whole_model_profile": "Removing runtime DSP repack reduced MoE decode DSP time from 251.9 to 188.2us/call (2432 calls in the profiled workload). Deployment-time validation removed the approximately 920ms exposed prefill validation wait seen without a receipt.",
+    "remaining_limit": "Final profiled expert file handling was 1.45ms/miss versus 1.27ms/miss for the original single model file. Per-artifact I/O/stamp checks still offset some DSP savings; the final TPS claim uses actual full-model measurements, not kernel extrapolation."
+  },
+  "changes": [
+    "Version-2 artifacts store one LUT code image plus unchanged palette/scales/sums. Expert arena code storage returns to K*N/4 bytes, the same as compact-WH baseline.",
+    "Prefill and fallback restore compact WH in VTCM with an exact HVX inverse permutation before existing palette expansion. Decode uses LUT codes directly.",
+    "Single-layout RPC methods are appended; legacy method ordinals and dual-layout RPC behavior remain available. Rebinding resets prepared-image pointers.",
+    "The first unverified load checks full source/payload CRCs. Per-file validation is reused only while model/artifact identities, size and nanosecond mtime/ctime match. ARM CRC instructions are runtime feature-guarded; portable fallback remains.",
+    "Verified code bytes are read directly into the uncached shared arena; only small metadata uses CPU scratch. No duplicate code copy or layout expansion in host memory.",
+    "validate_qs2_lut performs full verification once on the target and writes an atomic CRC-protected receipt bound to local model/artifact identities. Runtime reuses it across processes only when identities/header match. Missing/stale/malformed receipts use full validation.",
+    "Activation precision, palette values, zero-point handling, scales, sums and generated output remain unchanged. Dense LUT mode6 and offline mode7 remain explicit opt-ins."
+  ],
+  "deployment_validation": {
+    "artifacts": 4864,
+    "artifact_bytes": 5837753344,
+    "offline_validation_seconds": 6.94,
+    "cost_accounting": "One-time target deployment validation is excluded from per-request inference times. First full validation remains in the inference path if the receipt is absent or stale. Re-run validation after transferring/replacing model or artifacts."
+  },
+  "final_benchmark": {
+    "conditions": {
+      "prompt": 1024,
+      "generation": 64,
+      "expert_cache": 8,
+      "runs_per_variant": 6,
+      "order": "two opposite balanced six-run sequences",
+      "model": "/data/local/tmp/nntr_int8_kv_20261009/model"
+    },
+    "aggregation": "64 tokens / mean generation wall time; all successful runs included, profiling disabled",
+    "results": {
+      "baseline": {
+        "runs": 6,
+        "decode_ms": [
+          2823,
+          2758,
+          2760,
+          2761,
+          2748,
+          2792
+        ],
+        "decode_tps": 23.074149741617596,
+        "decode_tps_range": [
+          22.670917463691108,
+          23.28966521106259
+        ],
+        "prefill_ms": [
+          2060,
+          2091,
+          2137,
+          2058,
+          2046,
+          2093
+        ],
+        "mean_prefill_ms": 2080.8333333333335,
+        "mean_total_ms": 4854.5
+      },
+      "fixed": {
+        "runs": 6,
+        "decode_ms": [
+          2704,
+          2736,
+          2707,
+          2700,
+          2698,
+          2706
+        ],
+        "decode_tps": 23.629315119069595,
+        "decode_tps_range": [
+          23.391812865497077,
+          23.721275018532246
+        ],
+        "prefill_ms": [
+          2006,
+          2013,
+          2006,
+          2013,
+          2021,
+          2016
+        ],
+        "mean_prefill_ms": 2012.5,
+        "mean_total_ms": 4721
+      }
+    },
+    "decode_gain_percent": 2.406005784259424,
+    "prefill_time_reduction_percent": 3.283940728874657,
+    "total_time_reduction_percent": 2.750025749304774,
+    "all_outputs_match": true,
+    "all_runs_no_detected_overlap": true,
+    "limits": "One prompt/model configuration, 6 runs each; small gain, not a guarantee for all routing/cache workloads. Raw temperatures, times, commands and binary hashes are retained."
+  },
+  "validation": {
+    "reader_converter_receipt": "6 Python tests pass, compiling a C++17 reader and native validator: real shapes, independent C layout reference, cold/warm direct reads with guards, source/artifact mutations, missing/corrupt/truncated files, valid/stale/corrupt deployment receipts, CLI conversion/verification.",
+    "host_suite": "bash test/htp/host/run_host_checks.sh returned 0; host stand-ins do not substitute for device arithmetic tests.",
+    "sanitizers": "ASan+UBSan exact LUT/WH roundtrip and inverse conversion tests passed for 15 shape/palette cases.",
+    "device_moe": "M=1/4/65/193, five cache generations (WH -> dual -> WH -> single LUT -> WH), all kernel options and mixed QS2/QS4 fallback are bit-identical to expanded reference; bad palette and overlapping single-layout registration rejected.",
+    "builds": "Android ARM64 core, DSP v81 and deployment validator build. LUT kernel also compiles for v79 with -Wall -Werror; v79 hardware not tested.",
+    "format": "clang-format14 applied to changed C/C++ lines; git diff --check passes for edited tracked sources.",
+    "scope": "No full cross-platform CI matrix, commit or PR performed."
+  },
+  "usage": {
+    "convert": "python3 tools/htp/prepare_qs2_lut.py --model model.bin --manifest-log experts.log --output prepared_experts",
+    "build_validator": "TARGET_CXX -O3 -std=c++17 -Inntrainer/tensor/htp_backend tools/htp/validate_qs2_lut.cpp -o validate_qs2_lut",
+    "after_deployment_on_target": "./validate_qs2_lut /absolute/model.bin /absolute/prepared_experts",
+    "runtime_env": {
+      "NNTR_HTP_QS2_VTCM": "1",
+      "NNTR_HTP_QS2_GEMV": "7",
+      "NNTR_HTP_QS2_PREPARED_DIR": "/absolute/prepared_experts"
+    },
+    "device_validated_runtime": "/data/local/tmp/nntr_qs2_fix_20261010",
+    "migration": "Regenerate old v1 artifacts with the current converter. A receipt is device/file-instance-specific: create it after deploying, not before copying files."
+  },
+  "evidence_directory": "docs/measurements/lfm2_s26_qs2_offline_fix_20261010",
+  "source_sha256": {
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "0676de3c81585f3a7ce4ca8743ed471a2e2aafcf1c3f4ef023be1c1a89b5d158",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "ee4f59248dd4a99c473ab940a2acdd9aaec6e3ab6f3c5e36dd33020b93b8fa7c",
+    "nntrainer/tensor/htp_backend/htp_prepared_qs2.h": "e067d57dbbcdbf28e7a51b5738558b3899f04cce5ddcc93f5608f2caeea9299f",
+    "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8i2_lut.c": "fa390a9078b89aa692d1a7ac578fcbb6ea52a4aef6b4647cfaff02cc8f445484",
+    "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8i2_lut.h": "ed0c5608fa31ab2e1496e6c9f467b49f2df8e07ddc784b696b106189605beeac",
+    "test/htp/host/prepared_qs2_check.cpp": "8c1eeb83f417018d8eafa0d66acbc9320eb2add0c92db39b53d550cd66d9ac31",
+    "test/htp/host/qs2_lut_check.c": "d992733875d616c57261b21128c573cf5c47b02c7a1a2b12b9ad85321dc10772",
+    "test/htp/nntr_hvx.idl": "0469a457153bb0cc9ed15d274c7ad5de7fcd2d02ba28ee5963f512205044d24e",
+    "test/htp/nntr_hvx_mm_u8i4.c": "5489ea405e52d856f746841257fd8dba1529ce21c6ecae11b914db6bc1a0b12a",
+    "test/tools/test_prepare_qs2_lut.py": "092fbe7e7e7fd84b9f1cc6060921d7b4d59299aadd05235d01a4e9d831bbbb1a",
+    "test/unittest/unittest_hvx_mm_u8i4.cpp": "0df81a31e9bc12dafc290f8f25ce33b5a7369604f5553f1849a1e64b4dfbfb2b",
+    "tools/htp/prepare_qs2_lut.py": "1acc42df29e6df020c1e065a1c758a2989ac2efa6c48e90020576922bb92b897",
+    "tools/htp/validate_qs2_lut.cpp": "3855e4219815de1ec75dd489284915b1542df7860a1451d35991d6615a298ba9"
+  },
+  "source_build_note": "Benchmark binaries contain the final runtime logic. Subsequent edits are clang-format whitespace and a duplicate-offset guard in the standalone deployment validator; reader/validator tests were rerun."
+}

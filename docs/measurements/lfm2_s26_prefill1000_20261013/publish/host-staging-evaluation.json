@@ -1,0 +1,306 @@
+{
+  "input_tokens": 1024,
+  "output_tokens": 64,
+  "target_tps": 1000,
+  "target_met": false,
+  "implementation": "Opt-in timed ordinary-memory expert staging; existing7 reader threads, cache22, registry2048; no extra NPU slots.",
+  "scope": "Read, promotion, join and payload cleanup are inside prefill timer; initial model loading protocol is unchanged.",
+  "configuration": {
+    "recommended_candidate_experts": 64,
+    "default_experts": 0,
+    "maximum_experts": 160,
+    "payload_limit_bytes": 402653184,
+    "payload64_bytes": 153616896
+  },
+  "accuracy": {
+    "publication_raw_comparison": "parity/v15-pub-stage64-raw-ai1-raw-output-comparison.json",
+    "files": 132,
+    "exact": true
+  },
+  "tests": {
+    "normal_assertions": 4592,
+    "asan_ubsan_assertions": 4592,
+    "non_linux_header": "PASS",
+    "android_core_app_build_install": "PASS",
+    "clang_format14": "PASS"
+  },
+  "groups": {
+    "live64": {
+      "samples": [
+        {
+          "file": "v15-stage0-clean-ae1.json",
+          "count": 0,
+          "prefill_ms": 1045,
+          "prefill_tps": 979.904,
+          "decode_tps": 33.2813,
+          "raw_log_sha256": "8abc360172228919c1bc4309b813dd8fa7a0ba2ddde803b86c6230196a5d993e"
+        },
+        {
+          "file": "v15-stage64-clean-ae2.json",
+          "count": 64,
+          "prefill_ms": 1045,
+          "prefill_tps": 979.904,
+          "decode_tps": 33.195,
+          "raw_log_sha256": "3e6c18a8de1275deb409666393fcb356fdbbd613d4f5c6fcd3ec0b2332553d95"
+        },
+        {
+          "file": "v15-stage64-clean-ae3.json",
+          "count": 64,
+          "prefill_ms": 1034,
+          "prefill_tps": 990.329,
+          "decode_tps": 33.8266,
+          "raw_log_sha256": "9cf3f09408dda86635f0e732d621221f724519a00354dc8bc0088bef428661aa"
+        },
+        {
+          "file": "v15-stage0-clean-ae4.json",
+          "count": 0,
+          "prefill_ms": 1118,
+          "prefill_tps": 915.921,
+          "decode_tps": 33.8266,
+          "raw_log_sha256": "61f782cb20f9f42e9a89bcad869bc457555799ac5b414ef8a79f7c898ee8bfb1"
+        }
+      ],
+      "mean_ms_by_count": {
+        "0": 1081.5,
+        "64": 1039.5
+      },
+      "effective_tps_by_count": {
+        "0": 946.833102172908,
+        "64": 985.088985088985
+      }
+    },
+    "live128": {
+      "samples": [
+        {
+          "file": "v15-stage0-clean-ag1.json",
+          "count": 0,
+          "prefill_ms": 1116,
+          "prefill_tps": 917.563,
+          "decode_tps": 33.2813,
+          "raw_log_sha256": "fb5273d9657561afb014c1cbd076c0cfbef990d0abe7a151e12f8fb9cdf58397"
+        },
+        {
+          "file": "v15-stage128-clean-ag2.json",
+          "count": 128,
+          "prefill_ms": 1065,
+          "prefill_tps": 961.502,
+          "decode_tps": 33.3333,
+          "raw_log_sha256": "a36d8643011faf8872b606f7c5c2e498f9ba698f049892889a8b5698db17d6b6"
+        },
+        {
+          "file": "v15-stage128-clean-ag3.json",
+          "count": 128,
+          "prefill_ms": 1047,
+          "prefill_tps": 978.032,
+          "decode_tps": 34.5946,
+          "raw_log_sha256": "969b3ec76fdd69d49cb76d2bb00ba78818d1a6659878479a4a164f40491e9aca"
+        },
+        {
+          "file": "v15-stage0-clean-ag4.json",
+          "count": 0,
+          "prefill_ms": 1115,
+          "prefill_tps": 918.386,
+          "decode_tps": 33.1778,
+          "raw_log_sha256": "ca6e71fc9f1b84e6c49784d239665c1cf4d3f020c2e41e095aff0f70c7dd7804"
+        }
+      ],
+      "mean_ms_by_count": {
+        "0": 1115.5,
+        "128": 1056
+      },
+      "effective_tps_by_count": {
+        "0": 917.974002689377,
+        "128": 969.6969696969697
+      }
+    },
+    "publication64": {
+      "samples": [
+        {
+          "file": "v15-pub-stage0-clean-aj1.json",
+          "count": 0,
+          "prefill_ms": 1110,
+          "prefill_tps": 922.523,
+          "decode_tps": 33.3855,
+          "raw_log_sha256": "89c2ce3ce4bcccedf5ece9b18180c06f7d2d4697967f051cafeeb3ec2e7f3970"
+        },
+        {
+          "file": "v15-pub-stage64-clean-aj2.json",
+          "count": 64,
+          "prefill_ms": 1043,
+          "prefill_tps": 981.783,
+          "decode_tps": 34.0607,
+          "raw_log_sha256": "fbfe237b84e18301e5f52a33d21994c0baf502ee684f2bcccf522018d1180b5e"
+        },
+        {
+          "file": "v15-pub-stage64-clean-aj3.json",
+          "count": 64,
+          "prefill_ms": 1054,
+          "prefill_tps": 971.537,
+          "decode_tps": 34.3164,
+          "raw_log_sha256": "a5cf017669eb29c181b3746a8b762089c899777b071d01cee4ab9e9e7d3d2904"
+        },
+        {
+          "file": "v15-pub-stage0-clean-aj4.json",
+          "count": 0,
+          "prefill_ms": 1102,
+          "prefill_tps": 929.22,
+          "decode_tps": 33.1778,
+          "raw_log_sha256": "f1967a6d5699209e4c47a0fb944039ac20be341494d95a8bb4785ae85dd044da"
+        }
+      ],
+      "mean_ms_by_count": {
+        "0": 1106,
+        "64": 1048.5
+      },
+      "effective_tps_by_count": {
+        "0": 925.8589511754069,
+        "64": 976.6332856461612
+      }
+    }
+  },
+  "screens": [
+    {
+      "file": "v15-stage64-screen-ac1.json",
+      "variant": "combined-v15-host-stage",
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1035,
+        "tps": 989.372
+      },
+      "host_staging": {
+        "requested": 64,
+        "active": [
+          {
+            "token": 1,
+            "count": 64,
+            "payload_bytes": 153616896
+          }
+        ],
+        "done": [
+          {
+            "token": 1,
+            "count": 64,
+            "read": 64,
+            "consumed": 64
+          }
+        ],
+        "verified": true
+      },
+      "memory_peak_kb": {
+        "VmRSS": 717068,
+        "VmHWM": 717580,
+        "RssAnon": 671120,
+        "RssFile": 45556,
+        "RssShmem": 392
+      },
+      "min_available_kb": 3541176,
+      "raw_log_sha256": "9eb68eca11ec647c4f32f6fbfd851b2a5d809b948aeba913d66d8fe2aa639754"
+    },
+    {
+      "file": "v15-stage0-screen-ac2.json",
+      "variant": "combined-v15-host-stage",
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1107,
+        "tps": 925.023
+      },
+      "host_staging": {
+        "requested": 0,
+        "active": [],
+        "done": [],
+        "verified": true
+      },
+      "memory_peak_kb": {
+        "VmRSS": 595088,
+        "VmHWM": 602120,
+        "RssAnon": 548960,
+        "RssFile": 45832,
+        "RssShmem": 296
+      },
+      "min_available_kb": 3616680,
+      "raw_log_sha256": "42b9defd02d2ce3bba2c0c15fbe16b88c3e652c0475ca440d28cefb81814def6"
+    },
+    {
+      "file": "v15-stage128-screen-af1.json",
+      "variant": "combined-v15-host-stage",
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1042,
+        "tps": 982.726
+      },
+      "host_staging": {
+        "requested": 128,
+        "active": [
+          {
+            "token": 1,
+            "count": 128,
+            "payload_bytes": 307233792
+          }
+        ],
+        "done": [
+          {
+            "token": 1,
+            "count": 128,
+            "read": 128,
+            "consumed": 128
+          }
+        ],
+        "verified": true
+      },
+      "memory_peak_kb": {
+        "VmRSS": 867088,
+        "VmHWM": 867616,
+        "RssAnon": 821408,
+        "RssFile": 45272,
+        "RssShmem": 408
+      },
+      "min_available_kb": 3487560,
+      "raw_log_sha256": "13b40bc22f8189f74289f6b29b7dc902326de06c243967d0699dd78878462059"
+    },
+    {
+      "file": "v15-pub-stage160-screen-ah1.json",
+      "variant": "combined-v15-publish",
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1082,
+        "tps": 946.396
+      },
+      "host_staging": {
+        "requested": 160,
+        "active": [
+          {
+            "token": 1,
+            "count": 160,
+            "payload_bytes": 384042240
+          }
+        ],
+        "done": [
+          {
+            "token": 1,
+            "count": 160,
+            "read": 160,
+            "consumed": 160
+          }
+        ],
+        "verified": true
+      },
+      "memory_peak_kb": {
+        "VmRSS": 940776,
+        "VmHWM": 941716,
+        "RssAnon": 896508,
+        "RssFile": 44984,
+        "RssShmem": 408
+      },
+      "min_available_kb": 3384976,
+      "raw_log_sha256": "1ca382ea74a29fd089db1902c4ebce26a065ec4e53b9836fed61750082cd4e44"
+    }
+  ],
+  "limitations": [
+    "Small ABBA samples are reported individually; the first live64 control varied73ms.",
+    "Live and publication binaries differ because unrelated preexisting workspace edits were excluded from publication; compare timing within each runtime.",
+    "Screen/diagnostic timings are excluded from clean throughput claims.",
+    "Staging128 was not faster than64 in these screens;160 exposed59.429ms transition wait. No monotonic scaling claim.",
+    "1000TPS has not been achieved for1024 tokens."
+  ],
+  "raw_log_policy": "Ignored raw .log files remain local; immutable hashes are recorded here. JSON measurements and reproducible source-backed host fixtures are committed."
+}

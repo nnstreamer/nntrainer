@@ -1,0 +1,323 @@
+--- a/nntrainer/utils/weight_direct_file.h
++++ b/nntrainer/utils/weight_direct_file.h
+@@ -89,6 +89,51 @@
+   WeightDirectFile &operator=(const WeightDirectFile &) = delete;
+   uint64_t size() const { return size_; }
+ 
++  /** Read an enclosing page-aligned range into exclusively owned memory.
++   * The logical record begins at base + offset % 4096. Prefix/suffix bytes
++   * belong only to this allocation; callers must not publish them. This does
++   * not change read() or allow direct reads into arbitrary arena slots.
++   * A final short read is valid only when the complete logical record exists.
++   */
++  int readOwnedEnvelope(void *base, size_t allocated, size_t bytes,
++                        uint64_t offset) const {
++    if (offset > size_ || bytes > size_ - offset)
++      return -1;
++    if (!bytes)
++      return 0;
++    const size_t head = offset % alignment;
++    if (!base || reinterpret_cast<uintptr_t>(base) % alignment ||
++        bytes > std::numeric_limits<size_t>::max() - head - (alignment - 1))
++      return EINVAL;
++    const size_t logical_end = head + bytes;
++    const size_t span = (logical_end + alignment - 1) / alignment * alignment;
++    if (allocated < span || reinterpret_cast<uintptr_t>(base) >
++                              std::numeric_limits<uintptr_t>::max() - span)
++      return EINVAL;
++    const uint64_t start = offset - head;
++    auto *out = static_cast<uint8_t *>(base);
++    for (size_t done = 0; done < span;) {
++      const size_t request = std::min(capacity, span - done);
++      if (start > uint64_t(std::numeric_limits<off_t>::max()) - done)
++        return EOVERFLOW;
++      ssize_t got;
++      do {
++        got = pread(fd_, out + done, request, static_cast<off_t>(start + done));
++      } while (got < 0 && errno == EINTR);
++      if (got < 0)
++        return errno;
++      const size_t needed = std::min(request, logical_end - done);
++      if (static_cast<size_t>(got) < needed)
++        return -1;
++      // Never resume from an unaligned short-read offset. Only the final
++      // envelope may be short, with all required logical bytes present.
++      if (static_cast<size_t>(got) < request)
++        return 0;
++      done += request;
++    }
++    return 0;
++  }
++
+   /** 0 on success, errno on error, -1 on EOF. Arbitrary offsets/destinations
+    * use a bounded aligned bounce buffer, including unaligned file tails.
+    * Each thread owns scratch only (no retained weight cache).
+@@ -142,12 +187,10 @@
+   std::map<std::tuple<dev_t, ino_t, off_t>, std::unique_ptr<WeightDirectFile>>
+     files_;
+ 
+-public:
+-  int read(int fd, void *dst, size_t bytes, uint64_t offset) {
++  int find(int fd, const WeightDirectFile *&file) {
+     struct stat st {};
+     if (fstat(fd, &st))
+       return errno;
+-    const WeightDirectFile *file;
+     try {
+       std::lock_guard<std::mutex> lock(mutex_);
+       const auto key = std::make_tuple(st.st_dev, st.st_ino, st.st_size);
+@@ -160,7 +203,20 @@
+     } catch (const std::invalid_argument &) {
+       return EINVAL;
+     }
+-    return file->read(dst, bytes, offset);
++    return 0;
++  }
++
++public:
++  int read(int fd, void *dst, size_t bytes, uint64_t offset) {
++    const WeightDirectFile *file = nullptr;
++    const int rc = find(fd, file);
++    return rc ? rc : file->read(dst, bytes, offset);
++  }
++  int readOwnedEnvelope(int fd, void *base, size_t allocated, size_t bytes,
++                        uint64_t offset) {
++    const WeightDirectFile *file = nullptr;
++    const int rc = find(fd, file);
++    return rc ? rc : file->readOwnedEnvelope(base, allocated, bytes, offset);
+   }
+ };
+ 
+--- a/nntrainer/tensor/htp_backend/htp_expert_host_staging.h
++++ b/nntrainer/tensor/htp_backend/htp_expert_host_staging.h
+@@ -8,6 +8,7 @@
+ #include <cerrno>
+ #include <condition_variable>
+ #include <cstdint>
++#include <cstdlib>
+ #include <cstring>
+ #include <limits>
+ #include <map>
+@@ -108,18 +109,41 @@
+   };
+ 
+ public:
++  struct PayloadDelete {
++    bool aligned = false;
++    void operator()(uint8_t *p) const {
++      if (aligned)
++        std::free(p);
++      else
++        delete[] p;
++    }
++  };
++  using Payload = std::unique_ptr<uint8_t[], PayloadDelete>;
+   struct Record {
+     Descriptor d;
+     std::shared_ptr<Source> source;
+     size_t gu_bytes, dn_bytes;
+-    std::unique_ptr<uint8_t[]> payload;
++    Payload payload;
+     int rc = 0;
+     bool taken = false;
++    bool aligned = false;
++    size_t gu_head = 0, dn_head = 0, gu_span = 0, dn_span = 0;
+     int fd() const { return source->fd; }
++    size_t allocatedBytes() const {
++      return aligned ? gu_span + dn_span : gu_bytes + dn_bytes;
++    }
++    uint8_t *data(bool down) const {
++      return payload.get() + (aligned ? (down ? gu_span + dn_head : gu_head)
++                                      : (down ? gu_bytes : 0));
++    }
++    uint8_t *envelope(bool down) const {
++      return payload.get() + (down ? gu_span : 0);
++    }
++    size_t envelopeBytes(bool down) const { return down ? dn_span : gu_span; }
+   };
+   struct Stats {
+     size_t count = 0, read = 0, taken = 0, cancelled = 0, failed = 0;
+-    size_t bytes = 0;
++    size_t bytes = 0, allocated_bytes = 0;
+   };
+   struct Lease {
+     std::shared_ptr<HtpExpertHostStaging> bank;
+@@ -131,7 +155,7 @@
+     Lease(Lease &&) = delete;
+     Lease &operator=(Lease &&) = delete;
+     ~Lease() {
+-      std::unique_ptr<uint8_t[]> payload;
++      Payload payload;
+       {
+         std::lock_guard<std::mutex> lock(bank->mutex_);
+         payload = std::move(bank->records_[index].payload);
+@@ -154,14 +178,14 @@
+       const size_t count = down ? r.dn_bytes : r.gu_bytes;
+       if (!destination || capacity < count)
+         return EINVAL;
+-      std::memcpy(destination, r.payload.get() + (down ? r.gu_bytes : 0),
+-                  count);
++      std::memcpy(destination, r.data(down), count);
+       return 0;
+     }
+   };
+ 
+   HtpExpertHostStaging(const std::vector<Descriptor> &descriptors,
+-                       uint64_t token, const void *owner) :
++                       uint64_t token, const void *owner,
++                       bool aligned = false) :
+     token_(token), owner_(owner) {
+     if (!token || !owner || descriptors.empty() || descriptors.size() > 160)
+       throw std::invalid_argument("invalid host expert bank");
+@@ -179,7 +203,13 @@
+           throw std::invalid_argument("duplicate host expert descriptor");
+       const size_t gu = bytes(d.K, 2u * d.inter);
+       const size_t dn = bytes(d.inter, d.N_out);
+-      if (gu + dn > (size_t(384) << 20) - stats_.bytes)
++      const size_t gu_head = aligned ? d.off_gu % 4096 : 0;
++      const size_t dn_head = aligned ? d.off_dn % 4096 : 0;
++      const size_t gu_span = aligned ? (gu_head + gu + 4095) / 4096 * 4096 : gu;
++      const size_t dn_span = aligned ? (dn_head + dn + 4095) / 4096 * 4096 : dn;
++      // The shape guards above bound each size. Charge all page padding,
++      // including disjoint GU/DN envelopes, against the existing bank cap.
++      if (gu_span + dn_span > (size_t(384) << 20) - stats_.allocated_bytes)
+         throw std::invalid_argument("host expert bank exceeds byte limit");
+       auto &source = sources[d.fd];
+       if (!source)
+@@ -187,8 +217,20 @@
+       if (d.off_gu > source->size || gu > source->size - d.off_gu ||
+           d.off_dn > source->size || dn > source->size - d.off_dn)
+         throw std::invalid_argument("host expert record exceeds source");
+-      records_.push_back({d, source, gu, dn, {}, 0, false});
++      records_.push_back({d,
++                          source,
++                          gu,
++                          dn,
++                          {},
++                          0,
++                          false,
++                          aligned,
++                          gu_head,
++                          dn_head,
++                          gu_span,
++                          dn_span});
+       stats_.bytes += gu + dn;
++      stats_.allocated_bytes += gu_span + dn_span;
+     }
+     stats_.count = records_.size();
+   }
+@@ -213,8 +255,22 @@
+     }
+     Record &record = records_[at];
+     try {
+-      record.payload.reset(new uint8_t[record.gu_bytes + record.dn_bytes]);
+-      record.rc = reader(record);
++      if (record.aligned) {
++#if defined(__linux__) || defined(__ANDROID__)
++        void *memory = nullptr;
++        record.rc = posix_memalign(&memory, 4096, record.allocatedBytes());
++        if (!record.rc) {
++          record.payload.get_deleter().aligned = true;
++          record.payload.reset(static_cast<uint8_t *>(memory));
++        }
++#else
++        record.rc = EINVAL;
++#endif
++      } else {
++        record.payload.reset(new uint8_t[record.allocatedBytes()]);
++      }
++      if (!record.rc)
++        record.rc = reader(record);
+     } catch (const std::bad_alloc &) {
+       record.rc = ENOMEM;
+     } catch (...) {
+--- a/nntrainer/tensor/htp_backend/htp_compute_ops.cpp
++++ b/nntrainer/tensor/htp_backend/htp_compute_ops.cpp
+@@ -4056,7 +4056,10 @@
+     uint64_t token = ++host_expert_epoch_;
+     if (!token)
+       token = ++host_expert_epoch_;
+-    auto bank = std::make_shared<HostExpertBank>(selected, token, owner);
++    const char *aligned_env = std::getenv("NNTR_MOE_HOST_STAGE_ALIGNED");
++    const bool aligned = aligned_env && std::atoi(aligned_env) != 0;
++    auto bank =
++      std::make_shared<HostExpertBank>(selected, token, owner, aligned);
+     startPrefetchReaders();
+     {
+       std::lock_guard<std::mutex> lock(prefetch_mutex_);
+@@ -4071,8 +4074,10 @@
+     const auto stats = bank->stats();
+     std::fprintf(
+       stderr,
+-      "[HTP-HOST-STAGING-ACTIVE] token=%llu count=%zu payload_bytes=%zu\n",
+-      (unsigned long long)token, stats.count, stats.bytes);
++      "[HTP-HOST-STAGING-ACTIVE] token=%llu count=%zu payload_bytes=%zu "
++      "allocated_bytes=%zu aligned=%u\n",
++      (unsigned long long)token, stats.count, stats.bytes,
++      stats.allocated_bytes, unsigned(aligned));
+     return token;
+   }
+ 
+@@ -7977,14 +7982,19 @@
+     uint32_t h_gu, h_dn;
+   };
+ 
++#if defined(__linux__) || defined(__ANDROID__)
++  static WeightDirectFiles &directWeightFiles() {
++    static WeightDirectFiles files;
++    return files;
++  }
++#endif
++
+   /** @brief pread that finishes: 0, or the errno, or -1 at end of file.
+    *  Does not throw, so a worker thread can call it. */
+   static int preadAll(int fd, void *dst, size_t len, uint64_t off) {
+ #if defined(__linux__) || defined(__ANDROID__)
+-    if (weightDirectIO()) {
+-      static WeightDirectFiles direct_files;
+-      return direct_files.read(fd, dst, len, off);
+-    }
++    if (weightDirectIO())
++      return directWeightFiles().read(fd, dst, len, off);
+ #endif
+     uint8_t *p = static_cast<uint8_t *>(dst);
+     while (len != 0) {
+@@ -8435,11 +8445,23 @@
+       const uint64_t begin = HtpProfile::nowUs();
+       const auto &d = record.d;
+       const bool profile = hostExpertProfile();
+-      auto read_part = [&](uint64_t off, uint32_t K, uint32_t N, uint8_t *dst,
++      auto read_part = [&](bool down, uint64_t off, uint32_t K, uint32_t N,
+                            size_t bytes) {
++        uint8_t *dst = record.data(down);
+         HtpQs2ReadStats stats;
+         const int rc = htpReadQs2CompactInPlace(
+           [&](void *out, size_t len, uint64_t at) {
++            if (record.aligned) {
++              if (out != dst || len != bytes || at != off)
++                return EINVAL;
++#if defined(__linux__) || defined(__ANDROID__)
++              return directWeightFiles().readOwnedEnvelope(
++                record.fd(), record.envelope(down), record.envelopeBytes(down),
++                len, at);
++#else
++              return EINVAL;
++#endif
++            }
+             return preadAll(record.fd(), out, len, at);
+           },
+           off, K, N, dst, bytes, profile ? &stats : nullptr);
+@@ -8453,11 +8475,9 @@
+         }
+         return rc;
+       };
+-      int rc = read_part(d.off_gu, d.K, 2u * d.inter, record.payload.get(),
+-                         record.gu_bytes);
++      int rc = read_part(false, d.off_gu, d.K, 2u * d.inter, record.gu_bytes);
+       if (!rc)
+-        rc = read_part(d.off_dn, d.inter, d.N_out,
+-                       record.payload.get() + record.gu_bytes, record.dn_bytes);
++        rc = read_part(true, d.off_dn, d.inter, d.N_out, record.dn_bytes);
+       if (HtpProfile::global().level())
+         HtpProfile::global().addPrefetchRead(HtpProfile::nowUs() - begin);
+       return rc;

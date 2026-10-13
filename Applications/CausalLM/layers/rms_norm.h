@@ -33,8 +33,19 @@
 
 namespace causallm {
 
+namespace props {
+/** An explicit graph contract: the named HTP consumer publishes the norm. */
+class DeferredNormConsumer : public nntrainer::Property<std::string> {
+public:
+  DeferredNormConsumer() : nntrainer::Property<std::string>("none") {}
+  static constexpr const char *key = "defer_consumer";
+  using prop_tag = nntrainer::str_prop_tag;
+};
+} // namespace props
+
 /**
- * @brief A custom RMS normalization layer for llama.
+ * @brief RMS normalization, optionally consuming a residual pair on HTP.
+ * Two inputs produce normalized sum (output 0) and raw sum (output 1).
  *
  */
 WIN_EXPORT class RMSNormLayer final : public nntrainer::Layer {
@@ -113,9 +124,10 @@ public:
 private:
   std::array<unsigned int, 1> wt_idx;
   std::tuple<props::RMS_NORM_GAMMA_INIT, nntrainer::props::Epsilon,
-             nntrainer::props::SkipPrefill>
+             nntrainer::props::SkipPrefill, props::DeferredNormConsumer>
     rms_props;
   bool skip_prefill = false;
+  std::string deferred_consumer_;
 };
 
 } // namespace causallm

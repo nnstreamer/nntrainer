@@ -65,6 +65,15 @@ public:
   using prop_tag = nntrainer::str_prop_tag;
 };
 
+/** Router matrix storage; independent of the expert weight dtype. */
+class RouterDtype : public nntrainer::Property<std::string> {
+public:
+  RouterDtype(const std::string &value = "FP32") :
+    nntrainer::Property<std::string>(value) {}
+  static constexpr const char *key = "router_dtype";
+  using prop_tag = nntrainer::str_prop_tag;
+};
+
 /**
  * @brief Per-layer expert cache size C for the streamed (virtual) expert
  *  path, doc 52/55. 0 keeps the experts resident. NNTR_MOE_CACHE_EXPERTS in
@@ -162,8 +171,17 @@ public:
 };
 
 /**
- * @brief RopeTheta
+ * @brief QKV supplies rotated Q/K for multi-row calls; single-row calls
+ *        retain the attention core's RoPE. Set on both connected layers.
  */
+class PrefillRopeFused : public nntrainer::Property<bool> {
+public:
+  PrefillRopeFused(bool value = false) { set(value); }
+  using prop_tag = nntrainer::bool_prop_tag;
+  static constexpr const char *key = "prefill_rope_fused";
+};
+
+/** @brief RoPE frequency base. */
 class RopeTheta : public nntrainer::Property<unsigned int> {
 public:
   RopeTheta(unsigned int value = 500000) { set(value); };

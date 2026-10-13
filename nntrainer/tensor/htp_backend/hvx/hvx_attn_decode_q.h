@@ -40,4 +40,10 @@
 int hvx_attn_decode_q(const hexkl_attn_f16_shape *s, const hexkl_attn_q_io *io,
                       hvx_worker_pool *pool, uint64_t *us);
 
+/** @brief Same decode kernel consuming producer-quantized UINT8 Q. */
+int hvx_attn_decode_q_u8(const hexkl_attn_f16_shape *s,
+                         const hexkl_attn_q_io *io,
+                         const hexkl_attn_q8_input *q8, hvx_worker_pool *pool,
+                         uint64_t *us);
+
 #endif /* __NNTRAINER_HVX_ATTN_DECODE_Q_H__ */

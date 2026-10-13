@@ -1,0 +1,216 @@
+{
+  "decision": "ACCEPT_OPT_IN_1024_ATTENTION_COMPOSITE",
+  "activation": "NNTR_HTP_PREFILL_ATTN_COMPOSITE=1 with the established Q8 prepare configuration; absent/0 uses the existing path",
+  "purpose": "Combine the existing numerical preparation and Q8 attention kernels into one FastRPC per eligible layer; remove ten prefill boundaries.",
+  "primary_goal_1000tps_at1024_achieved": false,
+  "source_files": {
+    "Applications/CausalLM/layers/mha_core.cpp": "dd380c3dec27e4f59d1a4d6adfa12ea16814bd053ae272921ddff20541ca6ee4",
+    "Applications/CausalLM/layers/mha_core.h": "06bf5391f259e940b43659cba11e1dc45d12bb5adf8acc114840c4cdee0dfa7f",
+    "nntrainer/tensor/htp_backend/htp_rope_prefill.h": "d51028a12078b2b49eab034f97bb75d1c5a7bfebc8cff58242b73f623ffcde7f",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "a87f510368f385407545d656ae5b730fd977f2485a0437e2e18dcbb79a85427a",
+    "test/htp/nntr_hvx_attn_q.c": "631da5406d70db9064e210178433edc0f99b939489124b866b339e5a270a7bd8",
+    "test/htp/nntr_hvx.idl": "a183e90733f6035f9ac104944aba24e705f5db68f0a8b2cffedd757d93f37673",
+    "test/htp/host/attention_composite_host_check.cpp": "30d4e6d37c39bb33e101e4af73551a59b76862e575a300f05c8915429cd4d5ae",
+    "test/htp/host/run_attention_composite_host_checks.py": "56f2692bda617365a394766915b7fdf39cd8ab20169b23fe8eb67dcad42eabc9",
+    "test/htp/attention_composite_device_check.cpp": "33ce273d2656985aac4816becbb70a4ac998fcdf7dd811102ddbb4c9a79face9"
+  },
+  "unchanged_registry_limit": 2048,
+  "cache_experts": 22,
+  "host_stage_experts": 64,
+  "readers": 7,
+  "correctness": {
+    "host_normal_and_asan_ubsan_assertions": 1101,
+    "root_foreign_preservation_normal_assertions": 1101,
+    "portable_guards": "PASS",
+    "android_core_app_stub_dsp_matched": "PASS",
+    "private_standalone_device_cases": 3,
+    "standalone_exact_scope": "Q FP32, public K/V FP16, raw K/V, output, continuation17 and decode1",
+    "publication_raw_model_files": 132,
+    "different_files": [],
+    "publication_composite_calls": 10,
+    "no_model_quantization_or_numerical_kernel_changes": true,
+    "diagnostic_complete_phase2_calls": 10,
+    "diagnostic_call_phase_log_sha256": "e53de609e930d478ce7d3907dc0cf2f5b8bce6521e7e770786d991958bf1ac62"
+  },
+  "clean_1024_abba": {
+    "order": "off,on,on,off; same full binary bundle",
+    "runs": [
+      {
+        "label": "v19-pub-stage64-composite0-clean-bd1",
+        "enabled": false,
+        "prefill": {
+          "tokens": 1024,
+          "ms": 1044,
+          "tps": 980.843
+        },
+        "generation": {
+          "tokens": 64,
+          "ms": 1904,
+          "tps": 33.6134
+        },
+        "calls": 0,
+        "json_sha256": "a94a884f88b1fecf1af0ff56404759bc897e1fa9cb324f5d8491014bd1d9d639",
+        "log_sha256": "160b0cc2c81dc5e5838a474976ec6068b0623f506fef4388e7b45d548cb1e141"
+      },
+      {
+        "label": "v19-pub-stage64-composite1-clean-bd2",
+        "enabled": true,
+        "prefill": {
+          "tokens": 1024,
+          "ms": 1034,
+          "tps": 990.329
+        },
+        "generation": {
+          "tokens": 64,
+          "ms": 1867,
+          "tps": 34.2796
+        },
+        "calls": 10,
+        "json_sha256": "60ab824917c9639371851f452059732adbd42f621c08697028bbcb7adf38bac8",
+        "log_sha256": "5f175235ee22b8e2e98daa082dbbc40deaa21db987caa899071f9cd9b744571e"
+      },
+      {
+        "label": "v19-pub-stage64-composite1-clean-bd3",
+        "enabled": true,
+        "prefill": {
+          "tokens": 1024,
+          "ms": 1033,
+          "tps": 991.288
+        },
+        "generation": {
+          "tokens": 64,
+          "ms": 1882,
+          "tps": 34.0064
+        },
+        "calls": 10,
+        "json_sha256": "c3738e2cb51d4676947a86a9e7adfef95532e6d4d7115998bc697a01b8c0c380",
+        "log_sha256": "91d0804162df425009f1971ce3e3f9d56f191724bbc8da69b26dddc348db7cbc"
+      },
+      {
+        "label": "v19-pub-stage64-composite0-clean-bd4",
+        "enabled": false,
+        "prefill": {
+          "tokens": 1024,
+          "ms": 1069,
+          "tps": 957.905
+        },
+        "generation": {
+          "tokens": 64,
+          "ms": 1881,
+          "tps": 34.0245
+        },
+        "calls": 0,
+        "json_sha256": "c1e0ca5fe540ecccdae141f359a064d0938d14eb5fbb050443be0cf207cb699a",
+        "log_sha256": "576a1c6b947bbdb518691702ad4683c2df620311ec05f7260242164a3942b38e"
+      }
+    ],
+    "off_ms": [
+      1044,
+      1069
+    ],
+    "on_ms": [
+      1034,
+      1033
+    ],
+    "off_mean_ms": 1056.5,
+    "on_mean_ms": 1033.5,
+    "on_effective_tps": 990.8079342041606,
+    "limitation": "Two samples per setting; 25 ms control span. The observed full-model difference is not a precise effect estimate. Both candidate samples remain below the primary 1000 TPS goal."
+  },
+  "clean_2048_repeats": {
+    "runs": [
+      {
+        "label": "v19-pub-stage64-i2048-clean-be1",
+        "prefill": {
+          "tokens": 2048,
+          "ms": 1989,
+          "tps": 1029.66
+        },
+        "generation": {
+          "tokens": 64,
+          "ms": 2400,
+          "tps": 26.6667
+        },
+        "calls": 0,
+        "json_sha256": "6d9ac71b517009406d8e0548fd3b5bedba6b764e822d4fcc080b0a35746fe62e",
+        "log_sha256": "c19daac19ec8f8fcda05a8db8664925bd7ba2f68219e6ee12f83b60704c8be34"
+      },
+      {
+        "label": "v19-pub-stage64-i2048-clean-be2",
+        "prefill": {
+          "tokens": 2048,
+          "ms": 1981,
+          "tps": 1033.82
+        },
+        "generation": {
+          "tokens": 64,
+          "ms": 2330,
+          "tps": 27.4678
+        },
+        "calls": 0,
+        "json_sha256": "a8905b5f8bbad3dd5c87aff7bda09c8e1c5cb161dd3a1dd1fb5e0e8c5e9c47e9",
+        "log_sha256": "45d5955132c6d063c0e027f4ac36fe9495cfa029873bd1200542c5165069edce"
+      },
+      {
+        "label": "v19-pub-stage64-i2048-clean-be3",
+        "prefill": {
+          "tokens": 2048,
+          "ms": 1980,
+          "tps": 1034.34
+        },
+        "generation": {
+          "tokens": 64,
+          "ms": 2363,
+          "tps": 27.0842
+        },
+        "calls": 0,
+        "json_sha256": "1ed92577869a7f0f7ff0cc3bbbd9d94c10652ae433c7054537d242322b11d01f",
+        "log_sha256": "0271b80ede4adde2095edf2800d1a0a32fc175d8254699787482155c8e75c07d"
+      }
+    ],
+    "median_tps": 1033.82,
+    "all_above1000": true,
+    "composite_calls": 0,
+    "interpretation": "The new composite deliberately excludes 2048 and falls back to the accepted separate path. These measurements describe the current full runtime with staging64; do not attribute this throughput to the composite feature.",
+    "correctness_limit": "The 132-file model output gate is at1024. 2048 speed runs report normal completion and matching final text only."
+  },
+  "private_standalone_timing": {
+    "separate": {
+      "count": 18,
+      "median_us": 15962.0,
+      "mean_us": 15980.055555555555
+    },
+    "composite": {
+      "count": 18,
+      "median_us": 15496.0,
+      "mean_us": 15467.611111111111
+    }
+  },
+  "numerical_and_error_contract": {
+    "eligible_shape": "initial1024, Q32/KV8/head64, dynamicQ8, causalRoPE, existing valid cache handle, shared buffers, no sinks/softcap/effective window",
+    "unsupported": "Only an explicit prepublication status permits the original preparation sequence",
+    "prepared_attention_failed": "Retire quantized cache; do not rotate Q twice; use existing FP16 fallback",
+    "transport_uncertainty": "Throw without replay"
+  },
+  "artifact_hashes": {
+    "libnntrainer.so": "01b740f720da0809096f3fe2231dd4002a18f83ef50a657b8c92fdb68b22c1e5",
+    "libccapi-nntrainer.so": "1fd18484dc116f2b75fdfcc1b7908bc00383258d534695a24802314ca9c83b74",
+    "libcausallm_core.so": "cd09776090af0cd75ac973e8fe77f5cbe41b7eb0c67e0a24b6d3a51e10752832",
+    "nntrainer_causallm": "b6b3810484a0573ece103af9701946be4da7dbfa83c413d0b76de913218c718d",
+    "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+    "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+    "libnntr_hvx_skel.so": "3660c0c7fbf7d10331d87cdf00530a3bda38b7617319611e2e343f02b3dd8211"
+  },
+  "diagnostic_artifact_hashes": {
+    "libnntrainer.so": "01b740f720da0809096f3fe2231dd4002a18f83ef50a657b8c92fdb68b22c1e5",
+    "libccapi-nntrainer.so": "1fd18484dc116f2b75fdfcc1b7908bc00383258d534695a24802314ca9c83b74",
+    "libcausallm_core.so": "3f00bc0b6836ed045923464e573129c0478c1ba449f9fbc8eddfb3daa9b31945",
+    "nntrainer_causallm": "b6b3810484a0573ece103af9701946be4da7dbfa83c413d0b76de913218c718d",
+    "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+    "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+    "libnntr_hvx_skel.so": "3660c0c7fbf7d10331d87cdf00530a3bda38b7617319611e2e343f02b3dd8211"
+  },
+  "private_vs_public_dsp": "ELF text differs despite matching source inputs; actual public bundle independently passed the full-model raw gate. Private kernel timings are supporting evidence, not the public full-model timing.",
+  "raw_logs": "Stored locally under ignore rules; hashes retained, no binaries or raw dumps committed.",
+  "routing_diagnostic_limit": "NNTR_MOE_TRACE disables the final-layer64-row tail; do not use its latency or final-layer full1024 counts as normal production behavior."
+}

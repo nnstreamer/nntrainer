@@ -1,0 +1,30 @@
+{
+  "core": {
+    "cwd": "/tmp/lfm2-prefill1000-20261013/publish",
+    "command": [
+      "/home/jungone-lee/workspace/nntrainer/android-ndk-r30/ndk-build",
+      "NDK_PROJECT_PATH=/tmp/lfm2-prefill1000-20261013/publish-build",
+      "APP_BUILD_SCRIPT=/tmp/lfm2-prefill1000-20261013/publish-build/Android-core.mk",
+      "NDK_APPLICATION_MK=/tmp/lfm2-prefill1000-20261013/Application-core.mk",
+      "NDK_OUT=/tmp/lfm2-prefill1000-20261013/publish-build/core-obj",
+      "NDK_LIBS_OUT=/tmp/lfm2-prefill1000-20261013/publish-build/core-libs",
+      "-j8",
+      "APP_MODULES=nntrainer ccapi-nntrainer"
+    ]
+  },
+  "app": {
+    "cwd": "/tmp/lfm2-prefill1000-20261013/publish/Applications/CausalLM/jni",
+    "command": [
+      "/home/jungone-lee/workspace/nntrainer/android-ndk-r30/ndk-build",
+      "NDK_PROJECT_PATH=/tmp/lfm2-prefill1000-20261013/publish-build",
+      "APP_BUILD_SCRIPT=/tmp/lfm2-prefill1000-20261013/publish/Applications/CausalLM/jni/Android.mk",
+      "NDK_APPLICATION_MK=/tmp/lfm2-prefill1000-20261013/publish/Applications/CausalLM/jni/Application.mk",
+      "NDK_OUT=/tmp/lfm2-prefill1000-20261013/publish-build/app-obj",
+      "NDK_LIBS_OUT=/tmp/lfm2-prefill1000-20261013/publish-build/app-libs",
+      "NNTRAINER_ROOT=/tmp/lfm2-prefill1000-20261013/publish",
+      "ANDROID_NDK=/home/jungone-lee/workspace/nntrainer/android-ndk-r30",
+      "-j8",
+      "APP_MODULES=causallm_core nntrainer_causallm"
+    ]
+  }
+}

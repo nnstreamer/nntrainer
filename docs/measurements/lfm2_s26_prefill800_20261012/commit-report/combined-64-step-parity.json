@@ -1,0 +1,856 @@
+{
+  "serial": "R5KL30G6MCX",
+  "remote": "/data/local/tmp/lfm2_prefill800_parity_20261013/dump_combined_v2_64_c22_r4",
+  "reference": "/home/jungone-lee/workspace/nntrainer/docs/measurements/lfm2_s26_prefill800_20261012/reconnected-20261013/dump_accepted64-c8-r6",
+  "captured_steps": 64,
+  "compared_steps": 64,
+  "throughput_eligible": false,
+  "files": [
+    {
+      "file": "prompt.i64",
+      "bytes": 8192,
+      "sha256": "19bda888f1985c4db751e02466669c7c6100dbd67b7136f628ce93570e366c87",
+      "exact": true
+    },
+    {
+      "file": "logits_manifest.tsv",
+      "bytes": 2422,
+      "sha256": "72e7afcd85e7e168ab41d35b27895549eb7c6a2c8ad3accd9f8245afd4fc52fe",
+      "manifest_valid": true,
+      "exact": true
+    },
+    {
+      "file": "logits_00000.f32",
+      "bytes": 262144,
+      "sha256": "abcec6499b445a88ba11cceb698a3555398122fffd5f66b3171f05ebd6aaea38",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00000.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00001.f32",
+      "bytes": 262144,
+      "sha256": "fc9c175fb4ce671e60bebf6e77f3f1ff53fbae6e96fdd14ee1b7bb35bd7e4888",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00001.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00002.f32",
+      "bytes": 262144,
+      "sha256": "196522fe84158b11ca2b029cae8270b47833ebf11fa465b4518b8aa4bc003f2f",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00002.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00003.f32",
+      "bytes": 262144,
+      "sha256": "32f1c4e7052712322a9059a5ac1ab4644f337d7e1a513cfae8be4b6acf86ad1e",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00003.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00004.f32",
+      "bytes": 262144,
+      "sha256": "e14adfd5d09c4919d57d3fb7e9b8d059d7285bfc51251f3e308d676e9a34df97",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00004.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00005.f32",
+      "bytes": 262144,
+      "sha256": "d4b56b7ea555fe8efc20c34259b99ed84fff7082993688ce7c4bfec8eca68b40",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00005.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00006.f32",
+      "bytes": 262144,
+      "sha256": "fa9a7b162896eecd6f5ccd16e8d8fbe42ed9b939cb6d07d3ef1d5b26cba5c2a3",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00006.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00007.f32",
+      "bytes": 262144,
+      "sha256": "918be1bc993c7e2140ccb31df5715466518f7d6064dd3a8a9e200d79670240c6",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00007.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00008.f32",
+      "bytes": 262144,
+      "sha256": "5e244c54657c6f2874f7b352237b630f9af4aa80cb68771c44c45f88e0995a24",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00008.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00009.f32",
+      "bytes": 262144,
+      "sha256": "6c5fe1a4e3dec8ddf8b62ac832a97250805717a39dc69b7879b619cf128718aa",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00009.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00010.f32",
+      "bytes": 262144,
+      "sha256": "997b66b3cdf482e45743d5ce07e8d11932df90eb293586721d85cb269be270bd",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00010.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00011.f32",
+      "bytes": 262144,
+      "sha256": "bfce7760108ba2468ca5a991a3daafaae782390b40bbb21aa8050b78253ddfa1",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00011.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00012.f32",
+      "bytes": 262144,
+      "sha256": "2ea57b5054fe571208e3114da8f11119fa01d7f99e001902d6c23ab0fd4d1698",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00012.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00013.f32",
+      "bytes": 262144,
+      "sha256": "234db8d3574a95fb9014cbc6d618b21d160ff45659ce14c7df2c2402a964cf9c",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00013.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00014.f32",
+      "bytes": 262144,
+      "sha256": "3f009de789e43f9d6799b1a3089d0478a9d6b59c7ec202a6151b152d415d384c",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00014.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00015.f32",
+      "bytes": 262144,
+      "sha256": "b6917b6044568c6798d3967effca8423367a82efc7655d964214fe5d4eadd24f",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00015.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00016.f32",
+      "bytes": 262144,
+      "sha256": "907bcd088bdfbd45ec653d7c77a53d9386121d1774d05364d962636b6bb72c6c",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00016.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00017.f32",
+      "bytes": 262144,
+      "sha256": "f59e8d6699a178a1f17644ac33db8cc0fd2af96b37ac5151d0468e99b72d5577",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00017.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00018.f32",
+      "bytes": 262144,
+      "sha256": "26d926f97a9fa2b883c4f605e6ac9d109e09ce31e8513c59c5099c4e38183663",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00018.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00019.f32",
+      "bytes": 262144,
+      "sha256": "beacc87a7677e410b0c192afed825527695e2d902ac00bfed928b8229715e2d2",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00019.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00020.f32",
+      "bytes": 262144,
+      "sha256": "119381fdd47814c26ec79cceffd58ec07a3f76b29e4b6add4b5ea20e1822b107",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00020.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00021.f32",
+      "bytes": 262144,
+      "sha256": "6e7fbdaf03034a8fd8f6b08751af84cd2bc65e16ef8e2dc5aa7f3eebdc0e68b1",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00021.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00022.f32",
+      "bytes": 262144,
+      "sha256": "849417ccbfdce3f87fbb9968c79d5e0dee53de55a0016d7565777be88f72664c",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00022.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00023.f32",
+      "bytes": 262144,
+      "sha256": "a703f5344a8f25eec1b28cdc856f3eb7666471ab1427338366d8443e7d0f9712",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00023.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00024.f32",
+      "bytes": 262144,
+      "sha256": "27fd503d4c9ca83c25df676e5a2d62b947d49dc80ffdb5a28db5cfa3d35ded2f",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00024.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00025.f32",
+      "bytes": 262144,
+      "sha256": "e10b22733731780172532228c7dcaa91f2108fb1d9cf0256ae86ca5be5ed7216",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00025.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00026.f32",
+      "bytes": 262144,
+      "sha256": "977505a21bb796dd890212ee49e27657829aa0f86eb6d0531205bcbfa3d7e44e",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00026.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00027.f32",
+      "bytes": 262144,
+      "sha256": "241fd60a3928a32e3e50f8db537f149a3a5616b681fce1652580f04b25c31379",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00027.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00028.f32",
+      "bytes": 262144,
+      "sha256": "c4ff7ddc5470c51537f0ee8de01a80418ce1845752628b5aa20156c2cc3dc474",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00028.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00029.f32",
+      "bytes": 262144,
+      "sha256": "aebfe27669de48d326157263a753f303b32458a18550f8f5681e5ce9a046331b",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00029.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00030.f32",
+      "bytes": 262144,
+      "sha256": "e2788443a8cf5f1d4d0788da9162e4d2000fba9f995c27205c446c6f1d614736",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00030.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00031.f32",
+      "bytes": 262144,
+      "sha256": "b247e72f275b6b5456b49abb7638e459433c652cc5ad1d178576fda1ee196890",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00031.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00032.f32",
+      "bytes": 262144,
+      "sha256": "00ed38ec75928997895f4ea7bc033ab626ca2b71d4f92c1e35d4b0fb5910fbc7",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00032.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00033.f32",
+      "bytes": 262144,
+      "sha256": "9c53b4d5dae3aed7767743b3edf1f6b79df015acc72bc86290ba841c3e9c6735",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00033.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00034.f32",
+      "bytes": 262144,
+      "sha256": "d04efba119fd209f056dab8e3c32f4e2df47f26f47fe4ccf84679e28f1ee4186",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00034.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00035.f32",
+      "bytes": 262144,
+      "sha256": "5ce3145e5cd19aa94c6bdba57628b0d8621d358e40f81e883839cda0acb8466f",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00035.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00036.f32",
+      "bytes": 262144,
+      "sha256": "04b3f304976ee4603081200d0d793a26f6cebf43d3072873c7418cedd87dca50",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00036.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00037.f32",
+      "bytes": 262144,
+      "sha256": "54c3036a29141e516204c405353e09329e80d5f474a7d70fd8d266274b293d6e",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00037.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00038.f32",
+      "bytes": 262144,
+      "sha256": "ee1bdb6b738b8f52babd7288508221ad19df9011e594670bf6b18d2864ed5289",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00038.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00039.f32",
+      "bytes": 262144,
+      "sha256": "e257e695eb1bc128816743d71c4aa69c8252ace394ccfaf396a8eea12e49d951",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00039.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00040.f32",
+      "bytes": 262144,
+      "sha256": "9f60aa347eb2e0fe0330a514400169c6c27187574b66f3464446e85dc1137124",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00040.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00041.f32",
+      "bytes": 262144,
+      "sha256": "637bab46f7a2641cf2d198a3edc73d1f7b9e5daf068e1e8b6d1fb0a71a505406",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00041.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00042.f32",
+      "bytes": 262144,
+      "sha256": "d3208a5b28d518ae5eebe5fc6022ad2bcb1b3d4b50c4385090ba3c12054a7854",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00042.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00043.f32",
+      "bytes": 262144,
+      "sha256": "b12c28d3d6a85cccb7452fd1a5bba65530aa1f07e32e1c8ccddc009bde8ddedc",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00043.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00044.f32",
+      "bytes": 262144,
+      "sha256": "c42b80993095b2e56b2f263b16a573f3d4e4f67b63b3d34a2ac8ae4aff08a4fd",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00044.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00045.f32",
+      "bytes": 262144,
+      "sha256": "9d848a22f79df08ba40405a9eec37c84dabcef7f81f0b56dbebb7d45c76aad9a",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00045.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00046.f32",
+      "bytes": 262144,
+      "sha256": "ec5c832588e7afac5db0e57f081d40009af539f5f68c16db59b9fe80ff08508c",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00046.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00047.f32",
+      "bytes": 262144,
+      "sha256": "5a5dc47ec008587a4f3d300da410d05107d5613aaca1e9fb3857444131c543fd",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00047.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00048.f32",
+      "bytes": 262144,
+      "sha256": "14f163a269357afb0132734e3e1c0fec6fc948f3587e28801b977f2223394341",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00048.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00049.f32",
+      "bytes": 262144,
+      "sha256": "a87ca410965cfe3b826999c2e8bea5a0c7f40227ee70a9331f88709ffd825eb2",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00049.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00050.f32",
+      "bytes": 262144,
+      "sha256": "034088f5a2cce817c24c34a6d3b738f8a12e6785d19d530b2d2a42ad7f9eac35",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00050.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00051.f32",
+      "bytes": 262144,
+      "sha256": "e8143b50f2c4054a5de36f031551bd111d5ff629c371714e4a5f3993ad07ced0",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00051.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00052.f32",
+      "bytes": 262144,
+      "sha256": "52fca26a333844d365d424b3f261b3f1cb3c4a6390682bb24901a10776a6b566",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00052.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00053.f32",
+      "bytes": 262144,
+      "sha256": "052e8369ab2dcbf489e4907fd0f6c1c803612e6f92c3b2039ff35c98b52b6afa",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00053.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00054.f32",
+      "bytes": 262144,
+      "sha256": "7879fc18932c0073e0caaa2e99e06c43f84d408debd6e112dbdda81f42c473a5",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00054.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00055.f32",
+      "bytes": 262144,
+      "sha256": "3db4a383b4b1c80cd38268aadf826da7179234e881178b8a19f62f66affeb3ec",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00055.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00056.f32",
+      "bytes": 262144,
+      "sha256": "54a27b9dad7f6e75658142869e49cd37a14976e199dd0e23b5fc24503ef0eab8",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00056.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00057.f32",
+      "bytes": 262144,
+      "sha256": "71ea7d1ea8389383f0b22d5f13a134ae182306c66e6be7008d50304dc6c78bb1",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00057.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00058.f32",
+      "bytes": 262144,
+      "sha256": "75f71f7462da5816ec3f41131c0f691b5c5994c8865a812024f2057e8c14ad4b",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00058.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00059.f32",
+      "bytes": 262144,
+      "sha256": "92da500f62c49bb7179d813de9958b4f694b4dd3e2ee9410d7e8bd092447617c",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00059.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00060.f32",
+      "bytes": 262144,
+      "sha256": "c283a77aae245dd835d009fcc36b36299ed37bd3b6a8cdd73667773fdccab5d1",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00060.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00061.f32",
+      "bytes": 262144,
+      "sha256": "c68715d8321917219c53bda59082d60b689c555b6ad8c634644e61a2d1fae6f3",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00061.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00062.f32",
+      "bytes": 262144,
+      "sha256": "15e64a85b3f7c2402cc21d86bc7e0d9f7160930678901a77108951ed9128ca84",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00062.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    },
+    {
+      "file": "logits_00063.f32",
+      "bytes": 262144,
+      "sha256": "2ad3d4d002bc3effe671ad1e13dd3debc7b361af3cb31e0bb7f334173fe2b71f",
+      "finite": true,
+      "exact": true
+    },
+    {
+      "file": "token_00063.u32",
+      "bytes": 4,
+      "sha256": "3aa1c55a0846ebd983d028524616929d562b0a0ec9bdc539e02f77f5591a1083",
+      "exact": true
+    }
+  ],
+  "strict_pass": true
+}

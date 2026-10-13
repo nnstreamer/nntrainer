@@ -113,7 +113,7 @@ TEST(HexklAttnF16Plan, TilingRejectsBadShapes) {
   t = tiling(16, 100); // bc not a tile multiple
   EXPECT_EQ(hexkl_attn_f16_tiling_init(&s, &t), HEXKL_ATTN_EBADPARM);
   t = tiling(16, 128);
-  s = shape(128, 0, 128, 16, 4, 288); // head_dim > 256
+  s = shape(128, 0, 128, 16, 4, 544); // head_dim > 512
   EXPECT_EQ(hexkl_attn_f16_tiling_init(&s, &t), HEXKL_ATTN_EBADPARM);
 }
 
@@ -169,6 +169,83 @@ TEST(HexklAttnF16Plan, LayoutReportsWhenItDoesNotFit) {
             HEXKL_ATTN_ENOMEM);
   // And an arena smaller than the config itself is rejected outright.
   EXPECT_EQ(hexkl_attn_f16_plan(&s, &t, 128, 256, &L), HEXKL_ATTN_ENOMEM);
+}
+
+TEST(HexklAttnF16Plan, HeadTilesReuseFitsBelowConfig) {
+  auto s = shape(1024, 0, 1024, 32, 8, 64);
+  auto t = tiling(16, 256);
+  ASSERT_EQ(hexkl_attn_f16_tiling_init(&s, &t), HEXKL_ATTN_OK);
+  hexkl_attn_f16_layout L{};
+  ASSERT_EQ(hexkl_attn_f16_plan(&s, &t, 2u * 1024u * 1024u, 256, &L),
+            HEXKL_ATTN_OK);
+  hexkl_attn_f16_head_tiles H{};
+  ASSERT_TRUE(hexkl_attn_f16_head_tiles_plan(&s, &t, &L, &H));
+  EXPECT_EQ(H.kb_lo, 0u);
+  EXPECT_EQ(H.kb_hi, 4u);
+  EXPECT_EQ(H.kt_wh, L.total);
+  EXPECT_EQ(H.v_wh, H.kt_wh + 128u * 1024u);
+  EXPECT_EQ(H.total, L.total + 256u * 1024u);
+  EXPECT_EQ(H.kt_wh % TB, 0u);
+  EXPECT_EQ(H.v_wh % TB, 0u);
+  EXPECT_LE(H.total, L.cfg_f16);
+
+  // Exactly reaching config is legal; one byte less cannot hold the
+  // cache, and streaming must still have its original layout available.
+  L.cfg_f16 = H.total;
+  EXPECT_TRUE(hexkl_attn_f16_head_tiles_plan(&s, &t, &L, &H));
+  --L.cfg_f16;
+  EXPECT_FALSE(hexkl_attn_f16_head_tiles_plan(&s, &t, &L, &H));
+  EXPECT_EQ(L.total, H.kt_wh);
+}
+
+TEST(HexklAttnF16Plan, HeadTilesCoverWindowAndRaggedPadding) {
+  // Positions 1000..1064 with a 96-row window: only blocks [14, 17)
+  // are needed, including padding to row1088 in the final block. The
+  // extra valid future rows up to cache_to must not extend the cache.
+  auto s = shape(65, 1000, 1200, 12, 4, 64, 96);
+  auto t = tiling(16, 64);
+  ASSERT_EQ(hexkl_attn_f16_tiling_init(&s, &t), HEXKL_ATTN_OK);
+  hexkl_attn_f16_layout L{};
+  ASSERT_EQ(hexkl_attn_f16_plan(&s, &t, 2u * 1024u * 1024u, 256, &L),
+            HEXKL_ATTN_OK);
+  hexkl_attn_f16_head_tiles H{};
+  ASSERT_TRUE(hexkl_attn_f16_head_tiles_plan(&s, &t, &L, &H));
+  EXPECT_EQ(H.kb_lo, 14u);
+  EXPECT_EQ(H.kb_hi, 17u);
+  EXPECT_EQ(H.block_bytes, 64u * 64u * 2u);
+  EXPECT_EQ(H.total - L.total, 3u * 2u * H.block_bytes);
+  for (uint32_t qb = 0; qb < hexkl_attn_f16_n_q_blocks(&s, &t); ++qb) {
+    uint32_t lo, hi;
+    hexkl_attn_f16_kv_block_range(&s, &t, qb, &lo, &hi);
+    EXPECT_GE(lo, H.kb_lo);
+    EXPECT_LE(hi, H.kb_hi);
+  }
+  s.cache_to = 1065; // raw DMA zero-fills rows1065..1087 in the same slot
+  hexkl_attn_f16_head_tiles ragged{};
+  ASSERT_TRUE(hexkl_attn_f16_head_tiles_plan(&s, &t, &L, &ragged));
+  EXPECT_EQ(ragged.total, H.total);
+  EXPECT_EQ(ragged.kb_hi * t.bc - s.cache_to, 23u);
+}
+
+TEST(HexklAttnF16Plan, HeadTilesFallbackForNoReuseOrInvalidRange) {
+  auto s = shape(128, 0, 128, 8, 8, 64, 1);
+  auto t = tiling(64, 32);
+  ASSERT_EQ(hexkl_attn_f16_tiling_init(&s, &t), HEXKL_ATTN_OK);
+  hexkl_attn_f16_layout L{};
+  ASSERT_EQ(hexkl_attn_f16_plan(&s, &t, 2u * 1024u * 1024u, 256, &L),
+            HEXKL_ATTN_OK);
+  hexkl_attn_f16_head_tiles H{};
+  EXPECT_FALSE(hexkl_attn_f16_head_tiles_plan(&s, &t, &L, &H));
+  s.window = 0;
+  ASSERT_TRUE(hexkl_attn_f16_head_tiles_plan(&s, &t, &L, &H));
+  s.n_q = t.br; // no reuse across query blocks
+  EXPECT_FALSE(hexkl_attn_f16_head_tiles_plan(&s, &t, &L, &H));
+  s.n_q = 128;
+  s.cache_from = UINT32_MAX - 63u; // addition must not wrap
+  EXPECT_FALSE(hexkl_attn_f16_head_tiles_plan(&s, &t, &L, &H));
+  s.cache_from = 0;
+  t.bc = UINT32_MAX - 31u; // block allocation must not wrap
+  EXPECT_FALSE(hexkl_attn_f16_head_tiles_plan(&s, &t, &L, &H));
 }
 
 TEST(HexklAttnF16Plan, RowRangeIsCausalAndWindowed) {
@@ -250,6 +327,35 @@ TEST(HexklAttnF16Plan, KvBlockRangeHonoursTheWindowLowerBound) {
   EXPECT_FALSE(hexkl_attn_f16_kv_block_unmasked(&s, &t, 0, 8)); // diagonal
 }
 
+TEST(HexklAttnF16Plan, DecodeCacheFitsAndPadsWithoutOverlap) {
+  for (unsigned cache : {1u, 256u, 1025u, 1088u, 4096u}) {
+    auto s = shape(1, cache - 1, cache, 32, 8, 64);
+    auto t = tiling(1, 256);
+    ASSERT_EQ(hexkl_attn_f16_tiling_init(&s, &t), HEXKL_ATTN_OK);
+    hexkl_attn_f16_layout L{};
+    ASSERT_EQ(hexkl_attn_f16_plan(&s, &t, 8u * 1024u * 1024u, 256, &L),
+              HEXKL_ATTN_OK);
+    hexkl_attn_f16_decode_cache C{};
+    const int fits = hexkl_attn_f16_decode_cache_plan(&s, &t, &L, &C);
+    if (cache == 4096) {
+      EXPECT_EQ(fits, 0); // raw cache alone fills VTCM; retain streaming
+      continue;
+    }
+    ASSERT_EQ(fits, 1);
+    EXPECT_EQ(C.k, L.total);
+    EXPECT_EQ(C.v, C.k + C.bytes);
+    EXPECT_EQ(C.total, C.v + C.bytes);
+    EXPECT_LE(C.total, L.cfg_f16);
+    EXPECT_EQ(C.valid_bytes, cache * 8u * 64u * 2u);
+    EXPECT_GE(C.bytes, C.valid_bytes);
+    EXPECT_EQ(C.bytes, ((cache + 255u) / 256u) * 256u * 8u * 64u * 2u);
+    L.cfg_f16 = C.total - 1;
+    EXPECT_EQ(hexkl_attn_f16_decode_cache_plan(&s, &t, &L, &C), 0);
+    s.n_q = 2;
+    EXPECT_EQ(hexkl_attn_f16_decode_cache_plan(&s, &t, &L, &C), 0);
+  }
+}
+
 TEST(HexklAttnF16Plan, ChooserGivesValidTilingsAcrossShapes) {
   struct Case {
     uint32_t n_q, cache_to, nh_q, nh_kv;
@@ -259,9 +365,10 @@ TEST(HexklAttnF16Plan, ChooserGivesValidTilingsAcrossShapes) {
     {128, 1024, 16, 4, 16, 256}, // long cache: bc capped at 256
     {128, 128, 16, 4, 16, 64},   // 128/3 = 42 -> below 64 -> 64
     {1, 40, 16, 4, 1, 32},       // tiny cache: 32-row blocks
-    {128, 700, 8, 8, 64, 192},   // MHA: br 64, 700/3 = 233 -> 192
-    {40, 512, 24, 8, 21, 128},   // G=3: 21 rows -> 63 -> padded to 64
-    {5, 5, 8, 2, 5, 32},         // fewer rows than br
+    {1, 4096, 32, 8, 1, 2048},
+    {128, 700, 8, 8, 64, 192}, // MHA: br 64, 700/3 = 233 -> 192
+    {40, 512, 24, 8, 21, 128}, // G=3: 21 rows -> 63 -> padded to 64
+    {5, 5, 8, 2, 5, 32},       // fewer rows than br
   };
   for (const auto &c : cases) {
     auto s = shape(c.n_q, 0, c.cache_to, c.nh_q, c.nh_kv, 64);

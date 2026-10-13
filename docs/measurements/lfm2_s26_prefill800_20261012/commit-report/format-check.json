@@ -1,0 +1,195 @@
+{
+  "tool": "clang-format version 14.0.6 (https://github.com/ssciwr/clang-format-wheel e79d44a98fc6eeb3e9751220e441da03812564c1)",
+  "files": [
+    {
+      "path": "Applications/CausalLM/layers/generation_prefill_tail.h",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "Applications/CausalLM/layers/mha_core.cpp",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "Applications/CausalLM/layers/rms_norm.cpp",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "Applications/CausalLM/models/lfm2/lfm2_causallm.cpp",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "nntrainer/tensor/htp_backend/hmx/hexkl_conv_block.c",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "nntrainer/tensor/htp_backend/hmx/hexkl_kv_q.c",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "nntrainer/tensor/htp_backend/hmx/hexkl_mm_opts.h",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.c",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "nntrainer/tensor/htp_backend/htp_compute_ops.cpp",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "nntrainer/tensor/htp_backend/htp_rope_prefill.h",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "nntrainer/tensor/htp_backend/htp_rope_prefill_shape.h",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "nntrainer/tensor/htp_backend/hvx/hvx_conv_gate_f32.c",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.c",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.h",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "nntrainer/tensor/htp_backend/hvx/hvx_kv_quant.c",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "nntrainer/tensor/htp_backend/hvx/hvx_kv_quant.h",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "nntrainer/tensor/htp_backend/hvx/hvx_rmsnorm_rows_f32.c",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "nntrainer/tensor/htp_backend/hvx/hvx_rmsnorm_rows_f32.h",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "nntrainer/tensor/htp_backend/hvx/hvx_rope_rows_f32.c",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "nntrainer/tensor/htp_backend/hvx/hvx_rope_rows_f32.h",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "test/htp/attention_pipeline_device_check.cpp",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "test/htp/fc_shared_output_device_check.cpp",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "test/htp/host/dequant_planes_host_check.c",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "test/htp/host/fc_epilogue_host_check.c",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "test/htp/host/fc_layer_host_check.c",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "test/htp/host/generation_prefill_tail_host_check.cpp",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "test/htp/host/generation_prefill_tail_host_peer.cpp",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "test/htp/host/kv_i8_tile_host_check.c",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "test/htp/host/rope_prefill_host_check.c",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "test/htp/host/standin/hvx_scalar.c",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "test/htp/nntr_hvx_attn_q.c",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "test/htp/nntr_hvx_mm_u8i4.c",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "test/htp/nntr_hvx_small_ops.c",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "test/htp/residual_norm_device_check.cpp",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "test/htp/rope_fp16_device_check.cpp",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    },
+    {
+      "path": "test/htp/rope_prefill_device_check.cpp",
+      "formatted_changed_lines": true,
+      "format_changed": false
+    }
+  ]
+}

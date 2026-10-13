@@ -1,0 +1,28 @@
+{
+  "input_tokens": 2048,
+  "decode_tokens": 64,
+  "runtime": "combined-v13-br256",
+  "cache_experts_per_layer": 22,
+  "readers": 7,
+  "weight_io": "O_DIRECT",
+  "measurements": [
+    "v13-br256-r7-i2048-clean-ab1.json",
+    "v13-br256-r7-i2048-clean-ab2.json",
+    "v13-br256-r7-i2048-clean-ab3.json"
+  ],
+  "prefill_tps": [
+    1044.9,
+    974.31,
+    968.78
+  ],
+  "median_prefill_tps": 974.31,
+  "prefill_ms": [
+    1960,
+    2102,
+    2114
+  ],
+  "median_decode_tps": 27.5743,
+  "interpretation": "Highest single sample1044.9TPS was not reproduced. Median974.31TPS; do not claim sustained1000TPS. Original target remains input1024.",
+  "validation": "All three clean runs valid, thermal status0, no concurrent measured application PID. Raw132-file parity evidence is for input1024 cumulative v13; this2048 timing set only checks successful generation and last-line digest.",
+  "timing": "Same app timer, model loading excluded, entire prefill included; no extra host staging enabled."
+}

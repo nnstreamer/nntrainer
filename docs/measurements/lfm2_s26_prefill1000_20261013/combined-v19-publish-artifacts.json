@@ -1,0 +1,5 @@
+{
+  "runtime": "/data/local/tmp/lfm2_prefill1000_20261013/combined-v19-publish",
+  "serial": "R5KL30G6MCX",
+  "sha256": "b6b3810484a0573ece103af9701946be4da7dbfa83c413d0b76de913218c718d  nntrainer_causallm\n01b740f720da0809096f3fe2231dd4002a18f83ef50a657b8c92fdb68b22c1e5  libnntrainer.so\ncd09776090af0cd75ac973e8fe77f5cbe41b7eb0c67e0a24b6d3a51e10752832  libcausallm_core.so\n3660c0c7fbf7d10331d87cdf00530a3bda38b7617319611e2e343f02b3dd8211  libnntr_hvx_skel.so\n1fd18484dc116f2b75fdfcc1b7908bc00383258d534695a24802314ca9c83b74  libccapi-nntrainer.so\n7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df  libc++_shared.so\n63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe  libsdkl.so"
+}

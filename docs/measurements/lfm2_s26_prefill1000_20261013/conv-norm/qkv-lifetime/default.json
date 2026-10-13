@@ -1,0 +1,22 @@
+{
+  "artifact": {
+    "serial": "R5KL30G6MCX",
+    "runtime": "/data/local/tmp/lfm2_prefill1000_20261013/qkv-lifetime-v8",
+    "source": "combined-v8-qkvnorm-artifacts",
+    "sha256": "91cab386744c0802c0134059f58977e446719999add378ad9d6ba335803e4d19  libnntrainer.so\n8cf2317c902f3a3393f394659178c1a20be1cfee0e94952c41e8cae04070fcbd  libcausallm_core.so\nc940b2afd8d8cbc90a0d272e31890e2d0aba02f43f06832be3c392f2e41395ec  libccapi-nntrainer.so\n2f00b66059b755211dafb7753f9dfffc2aa7fd28ce71ca69d6ab6618a0d79755  libnntr_hvx_skel.so\n059b7719d05f4f5c125a52340c16c1070a6fcbb3d062457c92f53735e88aacd7  qkv_norm_lifetime_device_check\nb5d97c38a728afe28d341cda3369f512d35eaf9c680c1b0563cd6a63e395230f  libc++_shared.so\nc698d5d32aa89af4c94139f1e88542ea01960ea0cb5febc4de921461bcf8f6c7  libsdkl.so",
+    "local": {
+      "libnntrainer.so": "91cab386744c0802c0134059f58977e446719999add378ad9d6ba335803e4d19",
+      "libcausallm_core.so": "8cf2317c902f3a3393f394659178c1a20be1cfee0e94952c41e8cae04070fcbd",
+      "libccapi-nntrainer.so": "c940b2afd8d8cbc90a0d272e31890e2d0aba02f43f06832be3c392f2e41395ec",
+      "libnntr_hvx_skel.so": "2f00b66059b755211dafb7753f9dfffc2aa7fd28ce71ca69d6ab6618a0d79755",
+      "qkv_norm_lifetime_device_check": "059b7719d05f4f5c125a52340c16c1070a6fcbb3d062457c92f53735e88aacd7"
+    }
+  },
+  "command": "cd /data/local/tmp/lfm2_prefill1000_20261013/qkv-lifetime-v8 && echo NNTR_BENCH_PID=$$ && exec env LD_LIBRARY_PATH=. ADSP_LIBRARY_PATH=. NNTR_HTP_PREFILL_SHARED_IO=7 NNTR_HTP_NORM_CONSUMER_FUSION=1 ./qkv_norm_lifetime_device_check default",
+  "mode": "default",
+  "returncode": 0,
+  "concurrent_pids": [],
+  "wall_seconds": 0.5796936039987486,
+  "passed": true,
+  "valid": true
+}

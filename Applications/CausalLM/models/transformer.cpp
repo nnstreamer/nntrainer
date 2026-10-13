@@ -21,6 +21,7 @@
 #include <tokenizers_cpp.h>
 #include <transformer.h>
 
+#include "htp_strict.h"
 #include <dense_ffn_layer.h>
 #include <embedding_layer.h>
 #include <lfm2_moe_layer.h>
@@ -310,6 +311,38 @@ void Transformer::load_weight(const std::string &weight_path) {
 
   try {
     model->load(weight_path, formatFromExtension(weight_path));
+    if (const char *manifest_path = std::getenv("NNTR_HTP_WEIGHT_MANIFEST")) {
+      std::ifstream source(weight_path, std::ios::binary | std::ios::ate);
+      if (!source || source.tellg() < 0)
+        throw std::runtime_error("Cannot inspect weight file for HTP manifest");
+      json manifest = {{"schema_version", 1},
+                       {"dtype", "QS4CX_WH"},
+                       {"model_size", static_cast<uint64_t>(source.tellg())},
+                       {"source_path", weight_path},
+                       {"weights", json::array()}};
+      model->forEachLayer(
+        [&manifest](ml::train::Layer &layer,
+                    nntrainer::RunLayerContext &context, void *) {
+          if (layer.getType() != "conv_block" && layer.getType() != "dense_ffn")
+            return;
+          for (auto *weight : context.getWeights()) {
+            const auto &tensor = weight->getVariableRef();
+            if (tensor.getDataType() !=
+                ml::train::TensorDim::DataType::QS4CX_WH)
+              continue;
+            manifest["weights"].push_back(
+              {{"file_offset", tensor.getFileOffset()},
+               {"K", tensor.height()},
+               {"N", tensor.width()},
+               {"name", weight->getName()},
+               {"layer_type", layer.getType()}});
+          }
+        },
+        nullptr);
+      std::ofstream output(manifest_path);
+      if (!output || !(output << manifest.dump(2) << '\n'))
+        throw std::runtime_error("Cannot write HTP weight manifest");
+    }
   } catch (const std::exception &e) {
     throw std::runtime_error("Failed to load model weights: " +
                              std::string(e.what()));
@@ -382,8 +415,18 @@ void Transformer::repack_weight() {
     void *data;
     const float *scale; ///< QS4CX per-channel scales; null for Q4_0
     unsigned int K, N;
+    bool weights_wh;
   };
   std::vector<PendingFc> fc_pending;
+  struct PendingPreparedFc {
+    nntrainer::ComputeOps *ops;
+    void *data;
+    const float *scale;
+    unsigned int K, N;
+    uint64_t file_offset;
+  };
+  std::vector<PendingPreparedFc> prepared_pending;
+  const char *prepared_dir = std::getenv("NNTR_HTP_PREPARED_DIR");
   struct PendingDense {
     nntrainer::ComputeOps *ops;
     void *up, *gate, *down;
@@ -396,6 +439,8 @@ void Transformer::repack_weight() {
     void *in_proj, *out_proj;
     const float *conv_w;
     unsigned int K, C, N;
+    const float *in_scale = nullptr, *out_scale = nullptr;
+    bool weights_wh = false;
   };
   std::vector<PendingConv> conv_pending;
   // [#132 Part B E5g] the MoE warm-up call, kept until every MoE weight is
@@ -429,8 +474,8 @@ void Transformer::repack_weight() {
 
   std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
     fn = [&fc_pending, &dense_pending, &conv_pending, &moe_warm, &tie_pending,
-          &mha_pending](ml::train::Layer &l,
-                        nntrainer::RunLayerContext &context, void *) {
+          &mha_pending, &prepared_pending, prepared_dir](
+           ml::train::Layer &l, nntrainer::RunLayerContext &context, void *) {
       // forEachLayer hands out LayerNodes.
       if (l.getType() == MHACoreLayer::type) {
         if (auto *m = dynamic_cast<MHACoreLayer *>(
@@ -459,6 +504,36 @@ void Transformer::repack_weight() {
       // A dense_ffn layer's three Q4_0 weights are registered as one
       // fused set (doc 51), after the walk like the FCs below -- not as
       // three FC weights, which the loop below would otherwise do.
+      if (prepared_dir &&
+          (l.getType() == "conv_block" || l.getType() == "dense_ffn")) {
+        for (auto *w : context.getWeights()) {
+          auto &t = w->getVariableRef();
+          if (t.getDataType() != ml::train::TensorDim::DataType::QS4CX_WH)
+            continue;
+          prepared_pending.push_back(
+            {context.getComputeOps(), t.getData<char>(), t.getScale<float>(),
+             static_cast<unsigned int>(t.height()),
+             static_cast<unsigned int>(t.width()), t.getFileOffset()});
+        }
+      }
+      // WH dense FFNs use individual FC calls, so prepare their weights
+      // before the first prefill too.
+      if (l.getType() == "dense_ffn") {
+        bool has_wh = false;
+        for (auto *w : context.getWeights()) {
+          auto &t = w->getVariableRef();
+          if (t.getDataType() != ml::train::TensorDim::DataType::QS4CX_WH)
+            continue;
+          has_wh = true;
+          if (context.getComputeOps())
+            fc_pending.push_back({context.getComputeOps(), t.getData<char>(),
+                                  t.getScale<float>(),
+                                  static_cast<unsigned int>(t.height()),
+                                  static_cast<unsigned int>(t.width()), true});
+        }
+        if (has_wh)
+          return;
+      }
       if (l.getType() == "dense_ffn") {
         // By name: with its norms folded in (in_norm / out_norm) the layer
         // also holds two FP32 gammas, and gate_first swaps the first two.
@@ -517,14 +592,20 @@ void Transformer::repack_weight() {
           auto &in_proj = weights[0]->getVariableRef();
           auto &conv = weights[1]->getVariableRef();
           auto &out_proj = weights[2]->getVariableRef();
-          if (in_proj.getDataType() == ml::train::TensorDim::DataType::Q4_0 &&
-              out_proj.getDataType() == ml::train::TensorDim::DataType::Q4_0) {
+          const auto dtype = in_proj.getDataType();
+          const bool qs4cx = dtype == ml::train::TensorDim::DataType::QS4CX ||
+                             dtype == ml::train::TensorDim::DataType::QS4CX_WH;
+          if ((dtype == ml::train::TensorDim::DataType::Q4_0 || qs4cx) &&
+              out_proj.getDataType() == dtype) {
             conv_pending.push_back(
               {context.getComputeOps(), in_proj.getData<char>(),
                out_proj.getData<char>(), conv.getData<float>(),
                static_cast<unsigned int>(in_proj.height()),
                static_cast<unsigned int>(conv.width()),
-               static_cast<unsigned int>(out_proj.width())});
+               static_cast<unsigned int>(out_proj.width()),
+               qs4cx ? in_proj.getScale<float>() : nullptr,
+               qs4cx ? out_proj.getScale<float>() : nullptr,
+               dtype == ml::train::TensorDim::DataType::QS4CX_WH});
           }
         }
         return;
@@ -542,7 +623,7 @@ void Transformer::repack_weight() {
       // is only non-null when nntr_config.json routed it to an engine, and
       // a backend that has nothing to register says so and is skipped. The
       // expert weight tensors are [K, N] as the kernel sees them; the router
-      // gate and expert bias are FP32 and never reach this branch.
+      // bias remains FP32; a quantized router is registered as an FC below.
       auto *ops = l.getType() == "lfm2_moe" ? context.getComputeOps() : nullptr;
       // [doc 50] A fully_connected layer under engine=htp registers its
       // Q4_0 weight here for the same reason: gemm_q4_0_accel_fp32's first
@@ -552,7 +633,12 @@ void Transformer::repack_weight() {
       auto *fc_ops =
         l.getType() == "lfm2_moe" ? nullptr : context.getComputeOps();
 
+      auto *moe_layer = l.getType() == "lfm2_moe"
+                          ? dynamic_cast<Lfm2MoELayer *>(
+                              static_cast<nntrainer::LayerNode &>(l).getLayer())
+                          : nullptr;
       auto weights = context.getWeights();
+      unsigned int weight_index = 0;
       std::vector<void *> gu_data, dn_data;
       std::vector<float *> gu_scale, dn_scale;
       unsigned int gu_h = 0, gu_w = 0, dn_h = 0, dn_w = 0;
@@ -560,6 +646,16 @@ void Transformer::repack_weight() {
       for (auto &w : weights) {
         auto &t = w->getVariableRef();
         const auto dtype = t.getDataType();
+        const bool is_router =
+          moe_layer && weight_index == moe_layer->routerWeightIndex();
+        ++weight_index;
+        if (ops && is_router &&
+            dtype == ml::train::TensorDim::DataType::QS4CX) {
+          fc_pending.push_back({ops, t.getData<char>(), t.getScale<float>(),
+                                static_cast<unsigned int>(t.height()),
+                                static_cast<unsigned int>(t.width()), false});
+          continue; // Never put the router in the expert warm-up batch.
+        }
         if (dtype == ml::train::TensorDim::DataType::QS4CX && !t.isVirtual()) {
           t.pack();
         }
@@ -567,19 +663,26 @@ void Transformer::repack_weight() {
         // registered here too, through the key gemm_qs4cx_accel_fp32 looks
         // up: the weight's own data pointer and scales.
         if (fc_ops && (dtype == ml::train::TensorDim::DataType::Q4_0 ||
-                       (dtype == ml::train::TensorDim::DataType::QS4CX &&
+                       ((dtype == ml::train::TensorDim::DataType::QS4CX ||
+                         dtype == ml::train::TensorDim::DataType::QS4CX_WH) &&
                         !t.isVirtual()))) {
-          const bool qs4cx = dtype == ml::train::TensorDim::DataType::QS4CX;
-          fc_pending.push_back({fc_ops, t.getData<char>(),
-                                qs4cx ? t.getScale<float>() : nullptr,
-                                static_cast<unsigned int>(t.height()),
-                                static_cast<unsigned int>(t.width())});
+          const bool qs4cx = dtype != ml::train::TensorDim::DataType::Q4_0;
+          fc_pending.push_back(
+            {fc_ops, t.getData<char>(), qs4cx ? t.getScale<float>() : nullptr,
+             static_cast<unsigned int>(t.height()),
+             static_cast<unsigned int>(t.width()),
+             dtype == ml::train::TensorDim::DataType::QS4CX_WH});
         }
         if (ops && (dtype == ml::train::TensorDim::DataType::QS4CX ||
-                    dtype == ml::train::TensorDim::DataType::QS4CX_WH)) {
+                    dtype == ml::train::TensorDim::DataType::QS4CX_WH ||
+                    dtype == ml::train::TensorDim::DataType::QS2CX_WH)) {
+          if (dtype == ml::train::TensorDim::DataType::QS2CX_WH &&
+              !t.isVirtual())
+            throw std::invalid_argument("QS2CX_WH requires virtual HTP experts "
+                                        "with NNTR_MOE_CACHE_EXPERTS > 0");
           const auto h = static_cast<unsigned int>(t.height());
           const auto wd = static_cast<unsigned int>(t.width());
-          weights_wh = dtype == ml::train::TensorDim::DataType::QS4CX_WH;
+          weights_wh = dtype != ml::train::TensorDim::DataType::QS4CX;
           // [doc 52] A virtual expert has no bytes here: preloadExperts
           // below reads it from the model file into the accelerator's slot
           // pool, keyed by the tensor itself, and the warm-up passes that
@@ -645,6 +748,16 @@ void Transformer::repack_weight() {
     };
   try {
     model->forEachLayer(fn, nullptr);
+    if (prepared_dir && prepared_pending.empty())
+      throw std::runtime_error(
+        "NNTR_HTP_PREPARED_DIR requires QS4CX_WH conv or dense FFN weights");
+    // Map prepared FC weights after the MoE arenas, before warm-up grows
+    // the DSP heap. No WH unpacking or slice construction occurs here.
+    for (const auto &p : prepared_pending) {
+      if (!p.ops || !p.ops->register_prepared_qs4cx_wh_weight(
+                      p.data, p.scale, p.K, p.N, p.file_offset, prepared_dir))
+        throw std::runtime_error("Backend cannot register prepared WH weights");
+    }
     // The MoE warm-up (doc 47 section 20.1, lever 6): one call through the
     // layer kernel at load, now after the walk (see PendingMoeWarm).
     if (moe_warm.ops != nullptr) {
@@ -687,6 +800,15 @@ void Transformer::repack_weight() {
     bool fc_warmed = false;
     for (const auto &p : fc_pending) {
       const bool qs4cx = p.scale != nullptr;
+      if (p.weights_wh) {
+        if (!p.ops->supports_gemm_qs4cx_wh_accel_fp32())
+          continue;
+        std::vector<float> act(static_cast<size_t>(64) * p.K, 0.0f);
+        std::vector<float> out(static_cast<size_t>(64) * p.N, 0.0f);
+        p.ops->gemm_qs4cx_wh_accel_fp32(p.data, const_cast<float *>(p.scale),
+                                        act.data(), out.data(), 64, p.N, p.K);
+        continue;
+      }
       if (qs4cx ? !p.ops->supports_gemm_qs4cx_accel_fp32()
                 : !p.ops->register_q4_0_weight(p.data, p.K, p.N))
         continue;
@@ -721,10 +843,9 @@ void Transformer::repack_weight() {
       const unsigned int M = 512;
       std::vector<float> act(static_cast<size_t>(M) * p.K, 0.0f);
       std::vector<float> out(static_cast<size_t>(M) * p.N, 0.0f);
-      p.ops->gemm_q4_0_dense_ffn_fp32(p.up, p.gate, p.down, act.data(),
-                                      out.data(), M, p.K, p.I, p.N, false,
-                                      nullptr, nullptr, 0.0f, p.up_s, p.gate_s,
-                                      p.down_s);
+      p.ops->gemm_q4_0_dense_ffn_fp32(
+        p.up, p.gate, p.down, act.data(), out.data(), M, p.K, p.I, p.N, false,
+        nullptr, nullptr, 0.0f, p.up_s, p.gate_s, p.down_s);
       ml_logd("dense FFN HTP kernel warmed up at load (M=%u, K=%u, I=%u, N=%u)",
               M, p.K, p.I, p.N);
     }
@@ -733,19 +854,33 @@ void Transformer::repack_weight() {
     // the staging buffers already grown to this shape.
     bool conv_warmed = false;
     for (const auto &p : conv_pending) {
-      if (!p.ops->register_q4_0_conv_block(p.in_proj, p.out_proj, p.K, p.C,
-                                           p.N))
+      const bool quantized = p.in_scale != nullptr;
+      const bool supported =
+        quantized ? p.ops->supports_gemm_qs4cx_conv_block_fp32(p.weights_wh)
+                  : p.ops->supports_gemm_q4_0_conv_block_fp32();
+      if (!supported)
         continue;
-      if (conv_warmed || !p.ops->supports_gemm_q4_0_conv_block_fp32())
+      const bool registered =
+        quantized ? p.ops->register_qs4cx_conv_block(p.in_proj, p.out_proj, p.K,
+                                                     p.C, p.N, p.in_scale,
+                                                     p.out_scale, p.weights_wh)
+                  : p.ops->register_q4_0_conv_block(p.in_proj, p.out_proj, p.K,
+                                                    p.C, p.N);
+      if (!registered || conv_warmed)
         continue;
       conv_warmed = true;
       const unsigned int M = 512;
       std::vector<float> act(static_cast<size_t>(M) * p.K, 0.0f);
       std::vector<float> out(static_cast<size_t>(M) * p.N, 0.0f);
       std::vector<float> state(static_cast<size_t>(2) * p.C, 0.0f);
-      p.ops->gemm_q4_0_conv_block_fp32(p.in_proj, p.conv_w, p.out_proj,
-                                       act.data(), out.data(), state.data(), M,
-                                       p.K, p.C, p.N);
+      if (quantized)
+        p.ops->gemm_qs4cx_conv_block_fp32(
+          p.in_proj, p.conv_w, p.out_proj, act.data(), out.data(), state.data(),
+          M, p.K, p.C, p.N, p.in_scale, p.out_scale, p.weights_wh);
+      else
+        p.ops->gemm_q4_0_conv_block_fp32(p.in_proj, p.conv_w, p.out_proj,
+                                         act.data(), out.data(), state.data(),
+                                         M, p.K, p.C, p.N);
       ml_logd(
         "conv block HTP kernel warmed up at load (M=%u, K=%u, C=%u, N=%u)", M,
         p.K, p.C, p.N);
@@ -780,15 +915,26 @@ void Transformer::run(const WSTR prompt, bool do_sample,
 /**
  * @brief Create one decoder block with attention and feed-forward layers.
  */
+Tensor Transformer::normalizeBlockInput(LayerHandle &norm, Tensor &input) {
+  if (!has_block_residual_)
+    return norm(input);
+  Tensor fused = norm({block_residual_, input});
+  input = fused.output(1);
+  has_block_residual_ = false;
+  return fused.output(0);
+}
+
 Tensor Transformer::createTransformerDecoderBlock(const int layer_id,
                                                   Tensor input) {
 
   LayerHandle attn_norm(createLayer(
     "rms_norm",
     {withKey("name", "layer" + std::to_string(layer_id) + "_attention_norm"),
+     withKey("defer_consumer",
+             defer_block_residual_ && htpStrictFusion() ? "qkv" : "none"),
      withKey("epsilon", std::to_string(NORM_EPS)),
      withKey("packed", "false")}));
-  Tensor normed = attn_norm(input);
+  Tensor normed = normalizeBlockInput(attn_norm, input);
 
   Tensor att_out = createAttention(layer_id, INIT_SEQ_LEN, NUM_HEADS, HEAD_DIM,
                                    normed, normed, normed);
@@ -796,16 +942,34 @@ Tensor Transformer::createTransformerDecoderBlock(const int layer_id,
   LayerHandle decoder_add(createLayer(
     RESIDUAL_ADD_TYPE,
     {withKey("name", "layer" + std::to_string(layer_id) + "_decoder_add")}));
-  Tensor residual = decoder_add({input, att_out});
+  Tensor residual;
+  if (!htpAddNormFusion())
+    residual = decoder_add({input, att_out});
 
   LayerHandle ffn_norm(createLayer(
     "rms_norm",
     {withKey("name", "layer" + std::to_string(layer_id) + "_ffn_norm"),
+     withKey("defer_consumer", htpStrictFusion() && fuseMoeInputNorm(layer_id)
+                                 ? "router"
+                                 : "none"),
      withKey("epsilon", std::to_string(NORM_EPS)),
      withKey("packed", "false")}));
-  Tensor ffn_normed = ffn_norm(residual);
+  Tensor ffn_normed;
+  if (htpAddNormFusion()) {
+    Tensor fused = ffn_norm({input, att_out});
+    ffn_normed = fused.output(0);
+    residual = fused.output(1);
+  } else {
+    ffn_normed = ffn_norm(residual);
+  }
 
   Tensor ffn_out = createMlp(layer_id, DIM, INTERMEDIATE_SIZE, ffn_normed);
+
+  if (defer_block_residual_) {
+    block_residual_ = residual;
+    has_block_residual_ = true;
+    return ffn_out;
+  }
 
   LayerHandle decoder_output(createLayer(
     RESIDUAL_ADD_TYPE,
@@ -940,6 +1104,7 @@ Tensor Transformer::createMlp(const int layer_id, int dim, int hidden_dim,
     LayerHandle ffn(
       createLayer("dense_ffn",
                   {withKey("name", "layer" + std::to_string(layer_id) + "_ffn"),
+                   withKey("weight_dtype", FC_LAYER_DTYPE),
                    withKey("unit", hidden_dim), withKey("engine", eng)}));
     return ffn(input);
   }
@@ -947,15 +1112,17 @@ Tensor Transformer::createMlp(const int layer_id, int dim, int hidden_dim,
   LayerHandle ffn_up(createLayer(
     "fully_connected",
     {withKey("name", "layer" + std::to_string(layer_id) + "_ffn_up"),
-     withKey("unit", hidden_dim), withKey("disable_bias", "true"),
-     withKey("weight_initializer", "ones"), withKey("engine", eng)}));
+     withKey("weight_dtype", FC_LAYER_DTYPE), withKey("unit", hidden_dim),
+     withKey("disable_bias", "true"), withKey("weight_initializer", "ones"),
+     withKey("engine", eng)}));
   Tensor up = ffn_up(input);
 
   LayerHandle ffn_gate(createLayer(
     "fully_connected",
     {withKey("name", "layer" + std::to_string(layer_id) + "_ffn_gate"),
-     withKey("unit", hidden_dim), withKey("disable_bias", "true"),
-     withKey("weight_initializer", "ones"), withKey("engine", eng)}));
+     withKey("weight_dtype", FC_LAYER_DTYPE), withKey("unit", hidden_dim),
+     withKey("disable_bias", "true"), withKey("weight_initializer", "ones"),
+     withKey("engine", eng)}));
   Tensor gate = ffn_gate(input);
 
   /// @note nntrainer binary stores mlp weights in up, gate order.
@@ -971,8 +1138,9 @@ Tensor Transformer::createMlp(const int layer_id, int dim, int hidden_dim,
   LayerHandle ffn_down(createLayer(
     "fully_connected",
     {withKey("name", "layer" + std::to_string(layer_id) + "_ffn_down"),
-     withKey("unit", dim), withKey("disable_bias", "true"),
-     withKey("weight_initializer", "ones"), withKey("engine", eng)}));
+     withKey("weight_dtype", FC_LAYER_DTYPE), withKey("unit", dim),
+     withKey("disable_bias", "true"), withKey("weight_initializer", "ones"),
+     withKey("engine", eng)}));
   return ffn_down(act);
 }
 

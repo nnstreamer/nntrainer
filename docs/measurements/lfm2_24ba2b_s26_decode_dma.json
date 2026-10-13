@@ -1,0 +1,160 @@
+{
+  "date": "2026-10-09",
+  "pr": "https://github.com/nntrainer/nntrainer/pull/4412",
+  "pr_head": "4c3953bb161d0f7d799a72ddf9bdf9462e3ed482",
+  "local_head": "bdc40c2ab21d2850d4658787dd199677ec41efcf",
+  "baseline": "local HEAD plus pre-existing uncommitted LFM2 strict NPU and QS2 changes; existing rpc_fusion runtime",
+  "device": "SM-S948N / R5KL30G6MCX / v81",
+  "model": "LFM2-24B-A2B",
+  "fc_dtype": "QS4CX_WH",
+  "expert_file_dtype": "QS2CX_WH",
+  "expert_arena_dtype": "expanded signed int4 WH (unchanged)",
+  "embedding_and_tied_head_dtype": "Q4_0 (existing fixture, unchanged)",
+  "environment": {
+    "NNTR_HTP_STRICT": "1",
+    "NNTR_MOE_CACHE_EXPERTS": "8",
+    "NNTR_MOE_PREFETCH_EARLY": "1",
+    "NNTR_MOE_PREFETCH_READERS": "6",
+    "NNTR_NUM_THREADS": "8"
+  },
+  "measurement_order": [
+    "baseline",
+    "dma",
+    "baseline",
+    "dma"
+  ],
+  "runs": [
+    {
+      "variant": "baseline",
+      "run": 1,
+      "battery_c": 25.6,
+      "input_tokens": 1024,
+      "prefill_ms": 7123,
+      "decode_tokens": 64,
+      "decode_ms": 8940,
+      "decode_tps": 7.15884,
+      "log": "/tmp/nntr-lfm2-decode-4412/baseline-1.log",
+      "text_sha256": "a10a2601c90df2698a33547bedbc7ccb97d337d62bd99c986c83b55e054416de"
+    },
+    {
+      "variant": "dma",
+      "run": 1,
+      "battery_c": 25.6,
+      "input_tokens": 1024,
+      "prefill_ms": 2876,
+      "decode_tokens": 64,
+      "decode_ms": 8086,
+      "decode_tps": 7.91491,
+      "log": "/tmp/nntr-lfm2-decode-4412/dma-1.log",
+      "text_sha256": "a10a2601c90df2698a33547bedbc7ccb97d337d62bd99c986c83b55e054416de"
+    },
+    {
+      "variant": "baseline",
+      "run": 2,
+      "battery_c": 26.9,
+      "input_tokens": 1024,
+      "prefill_ms": 7078,
+      "decode_tokens": 64,
+      "decode_ms": 8450,
+      "decode_tps": 7.57396,
+      "log": "/tmp/nntr-lfm2-decode-4412/baseline-2.log",
+      "text_sha256": "a10a2601c90df2698a33547bedbc7ccb97d337d62bd99c986c83b55e054416de"
+    },
+    {
+      "variant": "dma",
+      "run": 2,
+      "battery_c": 28.1,
+      "input_tokens": 1024,
+      "prefill_ms": 2904,
+      "decode_tokens": 64,
+      "decode_ms": 8106,
+      "decode_tps": 7.89539,
+      "log": "/tmp/nntr-lfm2-decode-4412/dma-2.log",
+      "text_sha256": "a10a2601c90df2698a33547bedbc7ccb97d337d62bd99c986c83b55e054416de"
+    }
+  ],
+  "summary": {
+    "baseline": {
+      "mean_prefill_ms": 7100.5,
+      "aggregate_decode_tps": 7.360552041403105,
+      "decode_tps_range": [
+        7.15884,
+        7.57396
+      ]
+    },
+    "dma": {
+      "mean_prefill_ms": 2890,
+      "aggregate_decode_tps": 7.905138339920948,
+      "decode_tps_range": [
+        7.89539,
+        7.91491
+      ]
+    }
+  },
+  "aggregate_decode_gain_percent": 7.398715415019752,
+  "prefill_speedup": 2.4569204152249133,
+  "output_text_equal": true,
+  "output_comparison": "hash of non-diagnostic stdout before statistics (prompt and generated text); token IDs not captured",
+  "quality_limitation": "Baseline already generates repeated cred tokens. Equality validates this optimization, not checkpoint quality. No PPL conclusion.",
+  "rejected_experiment": {
+    "change": "WH FC M=1 HVX GEMV using existing whole-weight VTCM double buffer, not PR 4412 per-lane tiled DMA feed",
+    "decode_tps": 6.82812,
+    "baseline_profile_tps": 7.57038,
+    "in_final_code": false
+  },
+  "artifacts_directory": "/tmp/nntr-lfm2-decode-4412",
+  "candidate_runtime": "/data/local/tmp/nntr_lfm2_decode_4412/bin",
+  "measured_candidate_dsp_sha256": "a7291c6548f3a3c7b833fbe8240d1bafba77088d0d6afda80962de2c6308513c",
+  "original_build_dsp_sha256": "f57f58d1b0f9f6fad5b9c22b3cf6a54e79f1a36d3b999f4832cc3f2ca06b9aaf",
+  "runtime_sha256": {
+    "baseline": {
+      "libnntr_hvx_skel.so": "a26ac58c00ba74bd017f55c644e9d96f4bebf8fdf5c045e9fd3a2715b4555ea1",
+      "libnntrainer.so": "0dfe9a5b1dbac8ec1e6079e49197b0aff7e1431f6c9b82149ae0b871ad46d0ff",
+      "libcausallm_core.so": "abd27f234d0e4b05fac7cf8866d6987c10cc47671e62b166936caa89eb23600d",
+      "nntrainer_causallm": "1b78fc83a9da781590e954ed661066c0b93eb6c46c756e846a7720c04a4cea88"
+    },
+    "dma": {
+      "libnntr_hvx_skel.so": "a7291c6548f3a3c7b833fbe8240d1bafba77088d0d6afda80962de2c6308513c",
+      "libnntrainer.so": "0dfe9a5b1dbac8ec1e6079e49197b0aff7e1431f6c9b82149ae0b871ad46d0ff",
+      "libcausallm_core.so": "abd27f234d0e4b05fac7cf8866d6987c10cc47671e62b166936caa89eb23600d",
+      "nntrainer_causallm": "1b78fc83a9da781590e954ed661066c0b93eb6c46c756e846a7720c04a4cea88"
+    }
+  },
+  "changed_code_files": [
+    "nntrainer/tensor/htp_backend/htp_moe_opts.h",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.h",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.h",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.c",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_conv_block.c",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_conv_block.h",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_opts.h",
+    "test/htp/nntr_hvx_mm_u8i4.c",
+    "test/htp/host/hvx_scalar_stubs.c",
+    "test/htp/host/fc_layer_host_check.c",
+    "test/htp/host/conv_block_host_check.c",
+    "test/htp/host/hvx_scalar_stubs.h",
+    "test/htp/host/standin/hvx_scalar.c",
+    "test/unittest/unittest_hvx_mm_u8i4.cpp",
+    "test/htp/host/swap_host_check.c"
+  ],
+  "final_dsp_sha256": "dc3c7a74a94f9eb9a0f8893dc123fa41e8bcca104b50fb93dba02f505cd3d2c3",
+  "validation": {
+    "v81_dsp_build": "passed",
+    "device_kernel_tests": 4,
+    "device_tests_result": "passed",
+    "fc_host_check": "passed",
+    "conv_host_check": "passed",
+    "swap_host_check": "passed after adding fail-fast stubs for unrelated entry points",
+    "broad_host_script": "passed through attention; initially stopped at swap linking due missing existing entry point stubs; repaired swap rerun separately",
+    "format": "clang-format 14.0.6 on changed lines",
+    "diff_check": "passed"
+  },
+  "final_rebuild_confirmation": {
+    "prefill_ms": 2838,
+    "decode_ms": 8100,
+    "decode_tps": 7.90123,
+    "text_sha256": "a10a2601c90df2698a33547bedbc7ccb97d337d62bd99c986c83b55e054416de",
+    "equals_baseline": true
+  }
+}

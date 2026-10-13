@@ -1,0 +1,55 @@
+{
+  "status": "PRIVATE DIAGNOSTIC ONLY; not deployed; not TPS eligible",
+  "base": "Published v17 9b2ced98f source (copied while v17 was pending; helper SHA e877e18f unchanged by commit)",
+  "patch": "/tmp/lfm2-prefill1000-20261013/attention-followup/staging-timeline-diagnostic/diagnostic.patch",
+  "patch_sha256": "cc5da8c4c2c6e050f7168c4da63ca21686c78e972e22d117183b739b978154f6",
+  "source_sha256": {
+    "nntrainer/tensor/htp_backend/htp_expert_host_staging.h": "69eaf26d04b79b80f1d9830d39f324957aa745ba3670c077746d9ee4a0b11f40",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "f0ed86115f53b845faec4894e3bd42065fc6fabaeff2625513e75e97828f9a9f"
+  },
+  "files": [
+    "nntrainer/tensor/htp_backend/htp_expert_host_staging.h",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp"
+  ],
+  "instrumentation_gate": "NNTR_MOE_IO_PROFILE=1 at begin_qs2_host_prefetch; immutable per-bank begin timestamp=0 disables new clocks",
+  "new_hotpath_atomics": 0,
+  "new_per_record_printf": 0,
+  "extra_summary_lines_per_scope": 1,
+  "clocks": "std::chrono::steady_clock microseconds, same clock as HtpProfile::nowUs",
+  "timestamps": {
+    "begin_us": "Entry to begin_qs2_host_prefetch before catalog validation, FD duplication and worker activation",
+    "first_read_us": "Earliest successful readOne invocation, before bank lock, payload new[] and reader callback",
+    "last_read_us": "Last completed readOne, measured under existing bank completion lock before publishing done; includes payload allocation, first-touch and callback",
+    "read_service_us": "Sum of successful readOne durations including allocation, callback, scheduling and completion-lock wait; failures still included",
+    "first_wait_begin_us": "Caller timestamp in first waitHostExpertReads before waitReads",
+    "first_wait_end_us": "First waitReads completion before releasing its existing lock",
+    "cancel_begin_us": "cancelAndWait entry before its existing bank lock",
+    "cancel_end_us": "cancelAndWait after joining active reads/leases and freeing residual payloads/FDs"
+  },
+  "derived_metrics": {
+    "startup_bank_ms": "(last_read_us-begin_us)/1000",
+    "bank_ready_slack_ms": "(first_wait_begin_us-last_read_us)/1000; positive proves bank ready before transition; negative means overlap/wait",
+    "first_transition_wait_ms": "(first_wait_end_us-first_wait_begin_us)/1000",
+    "scope_cancel_free_ms": "(cancel_end_us-cancel_begin_us)/1000",
+    "read_service_mean_ms": "read_service_us/read/1000"
+  },
+  "limitations": [
+    "The bank-ready slack is a scheduling opportunity, not proof every reader thread stayed idle throughout it.",
+    "read_service_us is concurrent aggregate duration and cannot be directly subtracted from model wall time.",
+    "No unstarted/cancelled read has a readOne timestamp; zero fields mean unobserved, not time zero.",
+    "Allocation/free and production work remain in the same scopes; this changes instrumentation only."
+  ],
+  "checks": {
+    "normal_helper": 3916,
+    "normal_backend": 758,
+    "sanitized_helper": 3916,
+    "sanitized_backend": 758,
+    "timeline_normal_assertions": 45,
+    "timeline_asan_ubsan_assertions": 45,
+    "portable_header": "PASS",
+    "changed_lines_clang_format_14": "PASS",
+    "git_apply_check_on_v17_PUB": "PASS"
+  },
+  "source_mutations_elsewhere": false,
+  "devices_touched": false
+}

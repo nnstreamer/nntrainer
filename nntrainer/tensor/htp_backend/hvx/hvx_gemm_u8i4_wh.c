@@ -32,7 +32,7 @@
 void hvx_gemm_u8i4_wh_prefetch(const uint8_t *wh, uint32_t n_col, uint32_t nt,
                                uint32_t n_tiles, uint32_t k_tiles) {
 #if defined(__hexagon__)
-  /* Rtt: [47:32] stride, [31:16] width, [15:0] height -- 16 bits each. The
+  /** Rtt: [47:32] stride, [31:16] width, [15:0] height -- 16 bits each. The
      callers' strides are 112*512 and 64*512; the width is n_tiles*512, so
      n_tiles must stay below 128 (128*512 = 65536 wraps the field to 0).
      The MoE caller clamps its lead to 127 units for exactly that
@@ -84,6 +84,56 @@ static inline void gemm_row1(const uint8_t *act_ah, uint32_t r0,
   *(HVX_UVector *)(out + (size_t)r0 * 32u) = Q6_Vw_vasr_VwR(acc, 4);
 }
 
+static inline HVX_Vector gemv_quarter(HVX_Vector acc, const uint8_t *weights,
+                                      HVX_Vector a_lo, HVX_Vector a_hi,
+                                      HVX_Vector mask) {
+  const HVX_Vector v = *(const HVX_Vector *)weights;
+  const HVX_Vector wlo = Q6_V_vand_VV(Q6_Vh_vasl_VhR(v, 4), mask);
+  const HVX_Vector whi = Q6_V_vand_VV(v, mask);
+  acc = Q6_Vw_vrmpyacc_VwVubVb(acc, a_lo, wlo);
+  return Q6_Vw_vrmpyacc_VwVubVb(acc, a_hi, whi);
+}
+
+void hvx_gemv_u8i4_wh_col_aligned_nopf(const uint8_t *act_ah, uint32_t k_tiles,
+                                       const uint8_t *wh, uint32_t n_col,
+                                       uint32_t nt, int32_t *out) {
+  const HVX_Vector mask = Q6_V_vsplat_R((int)0xF0F0F0F0u);
+  HVX_Vector acc = Q6_V_vzero();
+  const uint8_t *col = wh + (size_t)nt * WH_TILE_BYTES;
+  for (uint32_t kt = 0; kt < k_tiles; ++kt) {
+    const uint8_t *tile = col + (size_t)kt * n_col * WH_TILE_BYTES;
+    const uint32_t *a = (const uint32_t *)(act_ah + (size_t)kt * AH_TILE_BYTES);
+    for (uint32_t g = 0; g < 4u; ++g)
+      acc = gemv_quarter(acc, tile + g * 128u, Q6_V_vsplat_R((int)a[2u * g]),
+                         Q6_V_vsplat_R((int)a[2u * g + 1u]), mask);
+  }
+  *(HVX_Vector *)out = Q6_Vw_vasr_VwR(acc, 4);
+}
+
+void hvx_gemv_u8i4_wh_3col_nopf(const uint8_t *act_ah, uint32_t k_tiles,
+                                const uint8_t *wh, uint32_t plane_bytes,
+                                uint32_t n_col, uint32_t nt, int32_t *out) {
+  const HVX_Vector mask = Q6_V_vsplat_R((int)0xF0F0F0F0u);
+  HVX_Vector acc0 = Q6_V_vzero(), acc1 = Q6_V_vzero(), acc2 = Q6_V_vzero();
+  const uint8_t *col = wh + (size_t)nt * WH_TILE_BYTES;
+  for (uint32_t kt = 0; kt < k_tiles; ++kt) {
+    const uint8_t *tile = col + (size_t)kt * n_col * WH_TILE_BYTES;
+    const uint32_t *a = (const uint32_t *)(act_ah + (size_t)kt * AH_TILE_BYTES);
+    for (uint32_t g = 0; g < 4u; ++g) {
+      const HVX_Vector a_lo = Q6_V_vsplat_R((int)a[2u * g]);
+      const HVX_Vector a_hi = Q6_V_vsplat_R((int)a[2u * g + 1u]);
+      acc0 = gemv_quarter(acc0, tile + g * 128u, a_lo, a_hi, mask);
+      acc1 =
+        gemv_quarter(acc1, tile + plane_bytes + g * 128u, a_lo, a_hi, mask);
+      acc2 = gemv_quarter(acc2, tile + 2u * plane_bytes + g * 128u, a_lo, a_hi,
+                          mask);
+    }
+  }
+  *(HVX_Vector *)out = Q6_Vw_vasr_VwR(acc0, 4);
+  *(HVX_Vector *)(out + 32u) = Q6_Vw_vasr_VwR(acc1, 4);
+  *(HVX_Vector *)(out + 64u) = Q6_Vw_vasr_VwR(acc2, 4);
+}
+
 /**
  * @brief The four rows [r0, r0+4) of one column, all k-tiles, accumulators
  *        in registers.
@@ -104,7 +154,7 @@ static inline void gemm_rows4(const uint8_t *act_ah, uint32_t r0, uint32_t rows,
   const HVX_Vector mask = Q6_V_vsplat_R((int)0xF0F0F0F0u);
   HVX_Vector acc0 = Q6_V_vzero(), acc1 = Q6_V_vzero(), acc2 = Q6_V_vzero(),
              acc3 = Q6_V_vzero();
-  /* Rows past the count read row r0's bytes and are never stored: the
+  /** Rows past the count read row r0's bytes and are never stored: the
      block's AH tile has 64 rows, so the reads are in range. */
   const uint32_t r1 = (rows > 1u) ? r0 + 1u : r0;
   const uint32_t r2 = (rows > 2u) ? r0 + 2u : r0;

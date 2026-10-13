@@ -1,0 +1,7 @@
+UNDEFINED SYMBOLS OK (69 runtime imports)
+built: /tmp/lfm2-prefill800-commit-9yma5dz_/source/test/htp/build/libnntr_hvx_skel.so (v81, hexkl 6.4.0.2)
+NOTE: this is the DSP skel only. If nntr_hvx.idl changed, the ARM client
+      stub needs regenerating too, or the build fails on the new symbols
+      (or worse, an old client meets this skel and the call returns
+      EBADPARM):
+        bash /tmp/lfm2-prefill800-commit-9yma5dz_/source/nntrainer/tensor/htp_backend/generate_stub.sh

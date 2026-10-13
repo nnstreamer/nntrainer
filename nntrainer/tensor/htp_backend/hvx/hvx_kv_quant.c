@@ -46,8 +46,13 @@ static inline void load_row_f32(const uint16_t *x_hf, uint32_t hd,
   }
   if (hd % 64u) {
     // 32 trailing values: the half vector's upper lanes are zero.
-    HVX_Vector h = Q6_V_vzero();
-    memcpy(&h, x_hf + (hd & ~63u), 64u);
+    // A 64-byte memcpy can become a 128-byte HVX load, crossing the end
+    // of a FastRPC mapping. Volatile halfword loads keep this tail bounded.
+    uint16_t tail[64] = {0};
+    const volatile uint16_t *src = x_hf + (hd & ~63u);
+    for (uint32_t i = 0; i < 32u; ++i)
+      tail[i] = src[i];
+    const HVX_Vector h = hvx_tile_load_u(tail);
     HVX_Vector hi;
     widen64(h, &v[hd / 32u - 1u], &hi);
   }
@@ -86,6 +91,177 @@ static inline void pack_bytes(const HVX_Vector *w, uint32_t hd, int8_t *q) {
     hvx_tile_store_u(tmp, b);
     memcpy(q + 32u * i, tmp, 32u);
   }
+}
+
+/* Keep the IEEE product boundary before round-to-nearest-even. Otherwise
+ * the Hexagon combiner can feed a wider qf32 product into the magic add. */
+static inline HVX_Vector rounded_product(HVX_Vector x, HVX_Vector inv) {
+  HVX_Vector product = Q6_Vsf_vmpy_VsfVsf(x, inv);
+#if defined(__hexagon__)
+  __asm__ volatile("" : "+v"(product));
+#endif
+  return product;
+}
+
+typedef struct {
+  const uint16_t *k, *v;
+  const float *q;
+  uint8_t *k8, *v8, *q8;
+  float *kv_scales, *q_scales;
+  int32_t *q_zp;
+  uint32_t kv_heads, q_heads, hd;
+  int invalid;
+} attn_quant_ctx;
+
+static inline __attribute__((always_inline)) int
+quant_attention_head_impl(const void *input, uint32_t hd, int query,
+                          uint8_t *output, float *scale, int32_t *zp) {
+  HVX_Vector x[8], words[8];
+  const uint32_t n = hd / 32u;
+  if (query) {
+    for (uint32_t i = 0; i < n; ++i)
+      x[i] = hvx_tile_load_u((const float *)input + 32u * i);
+  } else {
+    load_row_f32(input, hd, x);
+  }
+  const HVX_Vector mask = Q6_V_vsplat_R(0x7FFFFFFF);
+  HVX_Vector lo = Q6_V_vzero(), hi = Q6_V_vzero(), abs = Q6_V_vzero();
+  for (uint32_t i = 0; i < n; ++i) {
+    abs = Q6_Vw_vmax_VwVw(abs, Q6_V_vand_VV(x[i], mask));
+    if (query) {
+      lo = Q6_Vsf_vmin_VsfVsf(lo, x[i]);
+      hi = Q6_Vsf_vmax_VsfVsf(hi, x[i]);
+    }
+  }
+  for (int rot = 64; rot >= 4; rot >>= 1) {
+    abs = Q6_Vw_vmax_VwVw(abs, Q6_V_vror_VR(abs, rot));
+    if (query) {
+      lo = Q6_Vsf_vmin_VsfVsf(lo, Q6_V_vror_VR(lo, rot));
+      hi = Q6_Vsf_vmax_VsfVsf(hi, Q6_V_vror_VR(hi, rot));
+    }
+  }
+  if ((uint32_t)Q6_R_vextract_VR(abs, 0) >= 0x7F800000u)
+    return -1;
+  float inv;
+  int32_t zero = 0;
+  if (query) {
+    const float a = hvx_attn_lane0_f32(lo), b = hvx_attn_lane0_f32(hi);
+    *scale = a == b ? 1.0f : (b - a) / 255.0f;
+    uint32_t scale_bits;
+    memcpy(&scale_bits, scale, sizeof(scale_bits));
+    if (!(*scale > 0.0f) || (scale_bits & 0x7F800000u) == 0x7F800000u)
+      return -1;
+    zero = Q6_R_vextract_VR(hvx_sf_to_w_rne(hvx_splat_sf(-a / *scale)), 0);
+    zero = zero < 0 ? 0 : zero > 255 ? 255 : zero;
+    *zp = zero;
+    inv = 1.0f / *scale;
+  } else {
+    const float peak = hvx_attn_lane0_f32(abs);
+    *scale = peak == 0.0f ? 1.0f : peak / 127.0f;
+    inv = peak == 0.0f ? 0.0f : 127.0f / peak;
+  }
+  const HVX_Vector vinv = hvx_splat_sf(inv);
+  const HVX_Vector vz = Q6_V_vsplat_R(zero);
+  const HVX_Vector vmin = Q6_V_vsplat_R(query ? 0 : -127);
+  const HVX_Vector vmax = Q6_V_vsplat_R(query ? 255 : 127);
+  for (uint32_t i = 0; i < n; ++i) {
+    HVX_Vector w = hvx_sf_to_w_rne(rounded_product(x[i], vinv));
+    w = Q6_Vw_vadd_VwVw(w, vz);
+    words[i] = Q6_Vw_vmin_VwVw(Q6_Vw_vmax_VwVw(w, vmin), vmax);
+  }
+  for (uint32_t i = 0; i < n; i += 4u) {
+    const HVX_Vector a = words[i];
+    const HVX_Vector b = i + 1u < n ? words[i + 1u] : a;
+    const HVX_Vector c = i + 2u < n ? words[i + 2u] : a;
+    const HVX_Vector d = i + 3u < n ? words[i + 3u] : a;
+    const HVX_Vector h0 = Q6_Vh_vpack_VwVw_sat(b, a);
+    const HVX_Vector h1 = Q6_Vh_vpack_VwVw_sat(d, c);
+    const HVX_Vector bytes =
+      query ? Q6_Vub_vpack_VhVh_sat(h1, h0) : Q6_Vb_vpack_VhVh_sat(h1, h0);
+    if (i + 4u <= n) {
+      hvx_tile_store_u(output + 32u * i, bytes);
+    } else {
+      uint8_t tail[128];
+      hvx_tile_store_u(tail, bytes);
+      memcpy(output + 32u * i, tail, (n - i) * 32u);
+    }
+  }
+  return 0;
+}
+
+/* The common 64-channel LFM2 heads use constant bounds, so the compiler
+ * keeps their two vectors in registers instead of materializing the generic
+ * eight-vector arrays on every head. */
+static int quant_query64(const float *input, uint8_t *output, float *scale,
+                         int32_t *zp) {
+  return quant_attention_head_impl(input, 64u, 1, output, scale, zp);
+}
+
+static int quant_kv64(const uint16_t *input, uint8_t *output, float *scale) {
+  return quant_attention_head_impl(input, 64u, 0, output, scale, NULL);
+}
+
+static int quant_attention_head(const void *input, uint32_t hd, int query,
+                                uint8_t *output, float *scale, int32_t *zp) {
+  return quant_attention_head_impl(input, hd, query, output, scale, zp);
+}
+
+static void attn_quant_worker(uint32_t n_threads, uint32_t tid, void *opaque) {
+  attn_quant_ctx *c = opaque;
+  /* Partition K/V and Q separately: query quantization costs more per head.
+   * Assigning contiguous parts of K,V,Q together leaves some workers idle. */
+  const uint32_t kv_lo = (uint32_t)((uint64_t)c->kv_heads * tid / n_threads);
+  const uint32_t kv_hi =
+    (uint32_t)((uint64_t)c->kv_heads * (tid + 1u) / n_threads);
+  const uint32_t q_lo = (uint32_t)((uint64_t)c->q_heads * tid / n_threads);
+  const uint32_t q_hi =
+    (uint32_t)((uint64_t)c->q_heads * (tid + 1u) / n_threads);
+  for (uint32_t h = kv_lo; h < kv_hi; ++h) {
+    const size_t offset = (size_t)h * c->hd;
+    const int rk =
+      c->hd == 64u
+        ? quant_kv64(c->k + offset, c->k8 + offset, c->kv_scales + 2u * h)
+        : quant_attention_head(c->k + offset, c->hd, 0, c->k8 + offset,
+                               c->kv_scales + 2u * h, NULL);
+    const int rv =
+      c->hd == 64u
+        ? quant_kv64(c->v + offset, c->v8 + offset, c->kv_scales + 2u * h + 1u)
+        : quant_attention_head(c->v + offset, c->hd, 0, c->v8 + offset,
+                               c->kv_scales + 2u * h + 1u, NULL);
+    if (rk || rv) {
+      __atomic_store_n(&c->invalid, 1, __ATOMIC_RELAXED);
+      return;
+    }
+  }
+  for (uint32_t h = q_lo; h < q_hi; ++h) {
+    const size_t offset = (size_t)h * c->hd;
+    const int rc =
+      c->hd == 64u
+        ? quant_query64(c->q + offset, c->q8 + offset, c->q_scales + h,
+                        c->q_zp + h)
+        : quant_attention_head(c->q + offset, c->hd, 1, c->q8 + offset,
+                               c->q_scales + h, c->q_zp + h);
+    if (rc) {
+      __atomic_store_n(&c->invalid, 1, __ATOMIC_RELAXED);
+      return;
+    }
+  }
+}
+
+int hvx_attn_quant_rows_q8(const uint16_t *k, const uint16_t *v, const float *q,
+                           uint32_t kv_heads, uint32_t q_heads, uint32_t hd,
+                           uint8_t *k8, uint8_t *v8, float *kv_scales,
+                           uint8_t *q8, float *q_scales, int32_t *q_zp,
+                           hvx_worker_pool *pool) {
+  const uint64_t heads = (uint64_t)kv_heads * 2u + q_heads;
+  if (!q || !q8 || !q_scales || !q_zp || !q_heads || !hd || hd % 32u ||
+      hd > 256u || heads > UINT32_MAX ||
+      (kv_heads && (!k || !v || !k8 || !v8 || !kv_scales)))
+    return -1;
+  attn_quant_ctx c = {k,        v,    q,        k8,      v8, q8, kv_scales,
+                      q_scales, q_zp, kv_heads, q_heads, hd, 0};
+  hvx_worker_pool_run(pool, attn_quant_worker, &c, (uint32_t)heads);
+  return __atomic_load_n(&c.invalid, __ATOMIC_RELAXED) ? -1 : 0;
 }
 
 void hvx_kv_quant_k_row(const uint16_t *x_hf, uint32_t hd, int32_t qmax,

@@ -47,14 +47,17 @@
 #include <AEEStdErr.h>
 
 #include "hexkl_acc_tile.h"
+#include "hexkl_cvt.h"
 #include "hexkl_dma_ring.h"
 #include "hexkl_dma_trace.h"
 #include "hexkl_hmx_mm.h"
 #include "hexkl_micro.h"
 #include "hexkl_probe.h"
 #include "hvx_dequant_i32.h"
+#include "hvx_expand_i2i4.h"
 #include "hvx_gather_ah_u8.h"
 #include "hvx_gemm_u8i4_wh.h"
+#include "hvx_gemv_u8i2_lut.h"
 #include "hvx_quant_u8.h"
 #include "hvx_scale_add_f32.h"
 
@@ -105,6 +108,61 @@ void *hexkl_moe_carve(uint8_t **cur, size_t bytes) {
 #define ACC_TILE_BYTES 8192u
 #define MAX_DMA_ROW_BYTES 16384u
 
+/** @brief Build-time control for comparing the SDK accumulator reader. */
+#ifndef NNTR_MOE_ACC_PLANES
+#define NNTR_MOE_ACC_PLANES 1
+#endif
+
+/** @brief The SDK reader drains four byte planes, then synchronously zips
+ * them into int32 on the issuing thread. Keep those planes in the existing
+ * double-buffered stage instead: the epilogue reconstructs its four-row
+ * groups in registers while the issuing thread starts the next HMX batch.
+ *
+ * Only use the known SDK configuration and row layout. A different SDK
+ * keeps its reader, as does the host's scalar HMX stand-in. Configuration
+ * is read only; its four bias blocks remain owned by HexKL.
+ */
+static int moe_acc_planes_supported(const uint8_t *config, const uint8_t *stage,
+                                    const hexkl_acc_layout *layout) {
+#if defined(__hexagon__) && NNTR_MOE_ACC_PLANES
+  if (layout->base != 0u || layout->row_stride != HEXKL_ACC_TILE_COLS ||
+      ((uintptr_t)config & (HEXKL_CVT_BLOCK_BYTES - 1u)) != 0u ||
+      ((uintptr_t)stage & (HEXKL_CVT_PLANE_ALIGN - 1u)) != 0u) {
+    return 0;
+  }
+  const uint32_t scale[4] = {0x6000u, 0x4000u, 0x2000u, 0u};
+  const uint32_t *words = (const uint32_t *)config;
+  for (uint32_t p = 0; p < 4u; ++p) {
+    for (uint32_t w = 0; w < HEXKL_CVT_BLOCK_BYTES / sizeof(uint32_t); ++w) {
+      if (words[p * (HEXKL_CVT_BLOCK_BYTES / sizeof(uint32_t)) + w] !=
+          (w < 64u ? scale[p] : 0u)) {
+        return 0;
+      }
+    }
+  }
+  return 1;
+#else
+  (void)config;
+  (void)stage;
+  (void)layout;
+  return 0;
+#endif
+}
+
+/** @brief Same four convert passes as HexKL, without its synchronous zip. */
+static inline void moe_acc_read_planes(const uint8_t *config, uint8_t *stage) {
+  for (uint32_t p = 0; p < 4u; ++p) {
+    hexkl_cvt_issue(config + p * HEXKL_CVT_BLOCK_BYTES,
+                    stage + p * HEXKL_CVT_PLANE_BYTES);
+  }
+#if defined(__hexagon__)
+  /** The SDK's zip waited for the convert writes before the next clear.
+     Keep that dependency with one load from the final plane's last vector,
+     also ensuring the stage is complete before its worker is published. */
+  (void)*(const volatile HVX_Vector *)(stage + ACC_TILE_BYTES - 128u);
+#endif
+}
+
 /** @brief Largest power-of-two row size that divides the transfer, so a
  *         2D descriptor covers it exactly. Same rule as
  *         hexkl_mm_u8i4_dma.c's dma_row_size_dividing. */
@@ -136,13 +194,89 @@ static uint32_t moe_dma_row_size(uint32_t total_bytes) {
  *         the ring itself: one DSP thread drives both. */
 static int g_moe_src_bypass;
 
+/** @brief Units a chunk's expansion is split into on the background lane.
+ *  Small row ranges let foreground epilogues preempt between units. */
+#define MOE_EXPAND_UNITS 16u
+
+/** @brief Background expansion slots: gate_up chunk c in slot c, down
+ *  chunk c in slot MOE_EXP_DN + c. Larger shapes use synchronous expansion. */
+#define MOE_EXP_DN 8u
+#define MOE_EXP_SLOTS 16u
+
+/** @brief One queued chunk expansion. Up to two column runs -- gate_up
+ *  arrives as a gate/up pair -- and its own copy of the lookup table,
+ *  because the job outlives the frame that submitted it. */
+typedef struct {
+  uint8_t *base[2];
+  uint32_t nbase;
+  uint32_t stride;
+  uint32_t src_bytes; /**< half a row: where the codes landed */
+  uint32_t nrows;
+  int prepared;
+  uint8_t lut[HVX_EXPAND_TABLE_BYTES];
+} moe_expand_ctx;
+
+static void moe_expand_unit(uint32_t n_units, uint32_t u, void *vctx) {
+  moe_expand_ctx *c = (moe_expand_ctx *)vctx;
+  const uint32_t total = c->nbase * c->nrows;
+  const uint32_t i0 = total * u / n_units;
+  const uint32_t i1 = total * (u + 1u) / n_units;
+  /** A unit visits contiguous k rows in at most two bases. Select a base
+   * once per run so the inner row loop does not perform integer division. */
+  for (uint32_t b = 0u; b < c->nbase; ++b) {
+    const uint32_t base0 = b * c->nrows, base1 = base0 + c->nrows;
+    const uint32_t lo = i0 > base0 ? i0 : base0;
+    const uint32_t hi = i1 < base1 ? i1 : base1;
+    if (lo >= hi)
+      continue;
+    uint8_t *dst = c->base[b] + (size_t)(lo - base0) * c->stride;
+    for (uint32_t i = lo; i < hi; ++i, dst += c->stride) {
+      if (c->prepared)
+        hvx_i2_lut_unrepack_row(dst + c->src_bytes, c->src_bytes);
+      hvx_expand_i2i4(dst + c->src_bytes, c->src_bytes, c->lut, dst);
+    }
+  }
+}
+
+/**
+ * @brief Queues a chunk's expansion behind whatever the workers are doing.
+ *
+ * The caller must already have waited for the chunk's DMA. Queue it ahead
+ * of the HMX batch that reads the chunk, overlapping intervening HMX work.
+ *
+ * @param nt1 second column run, or UINT32_MAX for one
+ */
+static void moe_expand_submit(hvx_worker_pool *pool, hvx_bg_job *job,
+                              moe_expand_ctx *ctx, uint8_t *done,
+                              uint8_t *vtcm_base, uint32_t dst_off,
+                              const hexkl_weight_u8i4 *h, uint32_t k_tiles,
+                              uint32_t n_col, uint32_t nt0, uint32_t nt1,
+                              uint32_t cn) {
+  const uint32_t row = cn * WEIGHT_TILE_BYTES_U8I4;
+  ctx->stride = n_col * WEIGHT_TILE_BYTES_U8I4;
+  ctx->src_bytes = row / 2u;
+  ctx->nrows = k_tiles;
+  ctx->prepared = h->lut_bytes == h->wh_bytes;
+  ctx->base[0] = vtcm_base + dst_off + nt0 * WEIGHT_TILE_BYTES_U8I4;
+  ctx->nbase = 1u;
+  if (nt1 != UINT32_MAX) {
+    ctx->base[1] = vtcm_base + dst_off + nt1 * WEIGHT_TILE_BYTES_U8I4;
+    ctx->nbase = 2u;
+  }
+  hvx_expand_i2i4_table(h->pal, ctx->lut);
+  job->func = moe_expand_unit;
+  job->ctx = ctx;
+  job->n_units = MOE_EXPAND_UNITS;
+  job->done = done;
+  hvx_worker_pool_submit_bg(pool, job);
+}
+
 /** @brief The src_bypass a weight's descriptor gets: the knob, and only for
- *         an arena-backed (borrowed) slot -- the CPU wrote those bytes and
- *         the DSP never does. A heap slot was memcpy'd by the DSP, so its
- *         lines may still be dirty in the L2 a bypassing read skips. */
+ *         an arena-backed slot or an immutable heap image whose cache
+ *         flush succeeded. Dirty heap images must still read through L2. */
 static inline int moe_weight_src_bypass(const hexkl_weight_u8i4 *h,
                                         int src_bypass) {
-  return src_bypass && h->borrowed;
+  return hexkl_weight_u8i4_src_bypass(h, src_bypass);
 }
 
 uint32_t hexkl_moe_push_weight_chunk(uint8_t *vtcm_base, uint32_t dst_off,
@@ -153,8 +287,27 @@ uint32_t hexkl_moe_push_weight_chunk(uint8_t *vtcm_base, uint32_t dst_off,
   const uint32_t row = cn * WEIGHT_TILE_BYTES_U8I4;
   const uint32_t stride = n_col * WEIGHT_TILE_BYTES_U8I4;
   const uint32_t off = nt0 * WEIGHT_TILE_BYTES_U8I4;
-  const uint32_t idx = hexkl_dma_ring_next_idx();
   uint64_t pt = 0;
+  uint32_t idx;
+  if (h->bits == 2u) {
+    /** Half the bytes, landed in the TOP half of the int4 slot they will
+       expand into, so the expansion needs no VTCM of its own: output byte
+       2j+1 only ever reaches source byte j, so the writes never pass the
+       reads (doc 54 5.6, checked by expand_i2i4_host_check). Rows stay
+       independent, which keeps the pool split and the 2D descriptor. */
+    const uint32_t row2 = row / 2u;
+    const uint32_t stride2 = stride / 2u;
+    idx = hexkl_dma_ring_next_idx();
+    HEXKL_PROBE_COUNT(HEXKL_PROBE_DMA_KB, (row2 * k_tiles) >> 10);
+    HEXKL_PROBE_T0(pt);
+    hexkl_dma_ring_push2d(vtcm_base + dst_off + off + row2,
+                          h->wh_bytes + off / 2u, stride, stride2, row2,
+                          k_tiles, moe_weight_src_bypass(h, src_bypass),
+                          /*dst_vtcm=*/1);
+    HEXKL_PROBE_ADD(HEXKL_PROBE_PUSH, pt);
+    return idx;
+  }
+  idx = hexkl_dma_ring_next_idx();
   HEXKL_PROBE_COUNT(HEXKL_PROBE_DMA_KB, (row * k_tiles) >> 10);
   HEXKL_PROBE_T0(pt);
   /* push2d's src_vtcm is what sets the descriptor's src_bypass. */
@@ -163,6 +316,42 @@ uint32_t hexkl_moe_push_weight_chunk(uint8_t *vtcm_base, uint32_t dst_off,
                         moe_weight_src_bypass(h, src_bypass), /*dst_vtcm=*/1);
   HEXKL_PROBE_ADD(HEXKL_PROBE_PUSH, pt);
   return idx;
+}
+
+void hexkl_moe_expand_chunk(uint8_t *vtcm_base, uint32_t dst_off,
+                            const hexkl_weight_u8i4 *h, uint32_t k_tiles,
+                            uint32_t n_col, uint32_t nt0, uint32_t cn,
+                            hvx_worker_pool *pool) {
+  uint8_t lut[HVX_EXPAND_TABLE_BYTES] __attribute__((aligned(128)));
+  const uint32_t row = cn * WEIGHT_TILE_BYTES_U8I4;
+  const uint32_t stride = n_col * WEIGHT_TILE_BYTES_U8I4;
+  const uint32_t off = nt0 * WEIGHT_TILE_BYTES_U8I4;
+  if (h->bits != 2u) {
+    return;
+  }
+  /** Rebuilt per chunk rather than kept per weight: 128 bytes of stores
+     against a chunk of a megabyte, and it keeps the registry to the four
+     palette codes. */
+  hvx_expand_i2i4_table(h->pal, lut);
+  /** One dispatch for all k_tiles rows, not one a row: a wake-up a row cost
+     42% of decode TPS the first time this ran (doc 54 5.10). */
+  if (h->lut_bytes == h->wh_bytes) {
+    moe_expand_ctx ctx;
+    ctx.base[0] = vtcm_base + dst_off + off;
+    ctx.nbase = 1u;
+    ctx.stride = stride;
+    ctx.src_bytes = row / 2u;
+    ctx.nrows = k_tiles;
+    ctx.prepared = 1;
+    memcpy(ctx.lut, lut, sizeof(lut));
+    if (pool)
+      hvx_worker_pool_run(pool, moe_expand_unit, &ctx, k_tiles);
+    else
+      moe_expand_unit(1u, 0u, &ctx);
+  } else {
+    hvx_expand_i2i4_rows(vtcm_base + dst_off + off, stride, row / 2u, k_tiles,
+                         lut, pool);
+  }
 }
 
 /** @brief hexkl_moe_push_weight_chunk with a #87 trace record. kind /
@@ -177,9 +366,10 @@ static uint32_t moe_push_weight_chunk(uint8_t *vtcm_base, uint32_t dst_off,
   const uint32_t idx = hexkl_moe_push_weight_chunk(
     vtcm_base, dst_off, h, k_tiles, n_col, nt0, cn, g_moe_src_bypass);
   if (hexkl_probe_on) {
-    hexkl_dma_trace_push(hexkl_probe_now_ticks(), idx, kind, expert, chunk,
-                         cn * WEIGHT_TILE_BYTES_U8I4, k_tiles,
-                         n_col * WEIGHT_TILE_BYTES_U8I4);
+    hexkl_dma_trace_push(
+      hexkl_probe_now_ticks(), idx, kind, expert, chunk,
+      cn * WEIGHT_TILE_BYTES_U8I4 / (h->bits == 2u ? 2u : 1u), k_tiles,
+      n_col * WEIGHT_TILE_BYTES_U8I4 / (h->bits == 2u ? 2u : 1u));
   }
   return idx;
 }
@@ -283,9 +473,9 @@ static uint32_t moe_push_act_block(uint8_t *vtcm_base, uint32_t act_off,
  * dealt round-robin over the workers so the few heavy requant units do
  * not all land on one.
  *
- * ponytail: the scatter is 64 one-vector calls per tile where the row
- * split made 64 calls of 64 vectors; a tile-shaped scale-add would trim
- * the call overhead if the DN epilogue ever shows above its batch.
+ * Scatter one complete column tile per call, keeping VTCM dequantization
+ * separate from DDR output updates while avoiding a call for every row.
+ * Output rows still receive their expert contributions in the same order.
  */
 typedef struct {
   /* the batch's tiles */
@@ -302,7 +492,7 @@ typedef struct {
   const uint32_t *rows;
   const float *weights;
   uint32_t N_out;
-  /* A second run of rows of the SAME expert: its tail block, computed on
+  /** A second run of rows of the SAME expert: its tail block, computed on
      the HVX (moe_tail_* below) and scattered with the expert's last HMX
      block so a token's four contributions still add in expert order.
      n_rows_b == 0 when the expert has no tail. */
@@ -315,7 +505,8 @@ typedef struct {
   uint32_t rq_m_blk, inter;
   float *rq_scale; /**< 64 each, the params the next down dequantizes with */
   int32_t *rq_zp;
-  uint8_t *mid; /**< the mid buffer it packs into */
+  uint8_t *mid;       /**< the mid buffer it packs into */
+  uint32_t next_tile; /**< Combined jobs balance DN after requantization. */
 } moe_dn_ctx;
 
 #define MOE_RQ_UNIT_ROWS 16u
@@ -328,7 +519,7 @@ static void moe_dn_worker(uint32_t n_threads, uint32_t i, void *vctx) {
   uint64_t t0 = 0;
   HEXKL_PROBE_T0(t0);
   if (c->gate) {
-    /* Rows [m_blk, m4) are padding the pack takes whole, zeroed so the
+    /** Rows [m_blk, m4) are padding the pack takes whole, zeroed so the
        bytes are deterministic; rows past m4 are not packed and never
        read. Row params are per row, so a unit's are its own. */
     const uint32_t m4 = ROUND_UP_U32(c->rq_m_blk, 4u);
@@ -352,7 +543,16 @@ static void moe_dn_worker(uint32_t n_threads, uint32_t i, void *vctx) {
                                 c->rq_zp, c->mid);
     }
   }
-  for (uint32_t j = i; j < c->nb; j += n_threads) {
+  /** A requant unit costs more than a down tile. Workers without a unit
+   * start down tiles immediately; the other workers join when their unit is
+   * complete. A tile's rows stay on one worker, preserving every output's
+   * accumulation order. Jobs without requant keep their static partition. */
+  const int shared = c->gate && n_threads > MOE_RQ_UNITS;
+  uint32_t j =
+    shared ? __atomic_fetch_add(&c->next_tile, 1u, __ATOMIC_RELAXED) : i;
+  for (; j < c->nb;
+       j = shared ? __atomic_fetch_add(&c->next_tile, 1u, __ATOMIC_RELAXED)
+                  : j + n_threads) {
     const uint32_t c0 = (c->nt0 + j) * HEXKL_ACC_TILE_COLS;
     const int32_t *tile =
       (const int32_t *)(c->tiles_base + (size_t)j * c->tile_stride);
@@ -360,11 +560,8 @@ static void moe_dn_worker(uint32_t n_threads, uint32_t i, void *vctx) {
     hvx_dequant_acc_tile_to_f32(tile, c->row_stride, c->m_count, c->act_scale,
                                 c->act_zp, c->colsum_w + c0, c->w_scale + c0,
                                 c->bias + c0, res, c->N_out, 0);
-    for (uint32_t r = 0; r < c->m_count; ++r) {
-      hvx_scale_add_rows_f32(c->out + (size_t)c->rows[r] * c->N_out + c0,
-                             res + (size_t)r * c->N_out, c->weights[r],
-                             HEXKL_ACC_TILE_COLS);
-    }
+    hvx_scale_add_scatter_tile_f32(c->out + c0, res, c->rows, c->weights,
+                                   c->m_count, c->N_out);
     for (uint32_t q = 0; q < c->n_rows_b; ++q) {
       hvx_scale_add_rows_f32(c->out + (size_t)c->rows_b[q] * c->N_out + c0,
                              c->res_b + (size_t)q * c->N_out + c0,
@@ -383,7 +580,7 @@ static void moe_gu_worker(uint32_t n_threads, uint32_t i, void *vctx) {
   moe_worker_probe_add(t0);
 }
 
-/* ---- O1: an expert's tail block on the HVX ------------------------------
+/** ---- O1: an expert's tail block on the HVX ------------------------------
  *
  * The HMX computes 64 rows whatever the count, 252 us a block; 13.6 of a
  * prefill call's 45.6 blocks are an expert's second block of 10-20 rows
@@ -405,7 +602,7 @@ static void moe_gu_worker(uint32_t n_threads, uint32_t i, void *vctx) {
  * until measured: HVX_GEMM_U8I4_MAX_ROWS (16) is where a row-group unit is
  * ~20 us; the average tail here is 10-20 rows.
  */
-/* OFF by default (0 rows): measured on device (doc 47 section 21.1) the path
+/** OFF by default (0 rows): measured on device (doc 47 section 21.1) the path
    took 3.5 tails a call off the HMX (-0.59 ms) and cost 1.07 ms in return --
    the tails were not done when their expert's scatter needed them (SCATTER
    +0.45) and the units held workers the requant and epilogue runs were
@@ -467,7 +664,7 @@ static void moe_tail_pair_unit(uint32_t n_units, uint32_t j, void *v) {
   HEXKL_PROBE_T0(t0);
   const moe_tail_ctx *t = (const moe_tail_ctx *)v;
   int32_t *tiles = t->sh->acc_gu + (size_t)j * 2u * MOE_TAIL_TILE_I32;
-  /* rows1 = 0: the tail is a prefill shape, so a lone last row stays on
+  /** rows1 = 0: the tail is a prefill shape, so a lone last row stays on
      gemm_rows4; HVX_GEMV_M1_ROWS1 is the M=1 path's knob (moe_m1_*). */
   hvx_gemm_u8i4_wh_col(t->act_ah, t->m, t->k_tiles, t->g->wh_bytes,
                        t->gu_ntiles, j, 0u, tiles);
@@ -492,7 +689,7 @@ static void moe_tail_requant_unit(uint32_t n_units, uint32_t u, void *v) {
   const moe_tail_ctx *t = (const moe_tail_ctx *)v;
   const moe_tail_shared *sh = t->sh;
   const uint32_t m4 = ROUND_UP_U32(t->m, 4u);
-  /* The pack takes whole row groups; rows [m, m4) are padding it packs and
+  /** The pack takes whole row groups; rows [m, m4) are padding it packs and
      nothing reads, zeroed so the bytes are deterministic. */
   if (m4 > t->m) {
     memset(sh->gate_f32 + (size_t)t->m * t->inter, 0,
@@ -524,14 +721,15 @@ static void moe_tail_down_unit(uint32_t n_units, uint32_t nt, void *v) {
 
 /** @brief Rows of expert e's tail, 0 when it has none: a block of at most
  *         MOE_TAIL_MAX_ROWS after at least one full one. */
-static uint32_t moe_tail_rows(uint32_t n_e) {
+static uint32_t moe_tail_rows(uint32_t n_e, int allow) {
   const uint32_t r = n_e % HEXKL_HMX_INT8_BLOCK_N_ROW;
-  return (n_e > HEXKL_HMX_INT8_BLOCK_N_ROW && r != 0u && r <= MOE_TAIL_MAX_ROWS)
+  return (allow && n_e > HEXKL_HMX_INT8_BLOCK_N_ROW && r != 0u &&
+          r <= MOE_TAIL_MAX_ROWS)
            ? r
            : 0u;
 }
 
-/* ---- The M=1 path: every expert on the HVX GEMV, no 64-row block ---------
+/** ---- The M=1 path: every expert on the HVX GEMV, no 64-row block ---------
  *
  * Decode routes one token (M=1; a few at a small batch) to four experts,
  * and the block loop above computes a 64-row HMX block for each of them
@@ -633,6 +831,167 @@ typedef struct {
   uint32_t u_lo, u_hi;
   uint32_t act; /**< HVX_GLU_SILU or HVX_GLU_GELU_TANH */
 } moe_m1_ctx;
+
+/** Single-token QS2 experiment. Reuse the existing DMA slabs and joins;
+ * the LUT uses their lower halves while compact codes stay in the upper
+ * halves. The table region sits after both slabs, never in a DMA target. */
+typedef struct {
+  const moe_m1_ctx *m1;
+  const moe_m1_expert *e;
+  uint32_t mode, down;
+  int16_t *tables;
+} moe_qs2_ctx;
+
+static void moe_qs2_prepare(uint32_t threads, uint32_t id, void *v) {
+  const moe_qs2_ctx *c = v;
+  const uint32_t kt = c->down ? c->m1->inter_ktiles : c->m1->k_tiles;
+  const uint32_t N = c->down ? c->m1->N_out : c->m1->inter * 2u;
+  uint8_t *base = (uint8_t *)(c->down ? c->e->dn_wh : c->e->gu_wh);
+  const uint8_t *act = c->down ? c->e->mid_ah : c->e->act_ah;
+  const int8_t *pal = c->down ? c->e->d->pal : c->e->g->pal;
+  const uint32_t lo = kt * id / threads, hi = kt * (id + 1u) / threads;
+  const hexkl_weight_u8i4 *w = c->down ? c->e->d : c->e->g;
+  if (c->mode != 7u && w->lut_bytes == w->wh_bytes)
+    for (uint32_t k = lo; k < hi; ++k)
+      hvx_i2_lut_unrepack_row(base + (size_t)k * N * 16u + N * 8u, N * 8u);
+  if (c->mode == 1u)
+    return;
+  if (c->mode != 7u)
+    hvx_i2_lut_repack(base + N * 8u, N, N * 16u, base, N * 16u, 1024u, lo, hi);
+  if (c->mode >= 6u) {
+    hvx_i2_lut_prepare_dense(act, pal, lo, hi, c->tables);
+    return;
+  }
+  if (c->mode == 5u)
+    hvx_i2_lut_prepare_centered(act, pal, lo, hi, c->tables);
+  else
+    hvx_i2_lut_prepare(act, pal, lo, hi, c->tables);
+}
+
+static void moe_qs2_compute(uint32_t threads, uint32_t id, void *v) {
+  const moe_qs2_ctx *c = v;
+  const moe_m1_ctx *m = c->m1;
+  const moe_m1_expert *e = c->e;
+  const uint32_t pair_down = c->mode >= 3u && c->down && m->N_out % 256u == 0u;
+  const uint32_t width = pair_down ? 256u : c->mode >= 2u ? 128u : 32u;
+  const uint32_t N = c->down ? m->N_out : m->inter * 2u;
+  const uint32_t units = (c->down ? m->N_out : m->inter) / width;
+  const uint32_t kt = c->down ? m->inter_ktiles : m->k_tiles;
+  const uint8_t *base = c->down ? e->dn_wh : e->gu_wh;
+  const uint8_t *act = c->down ? e->mid_ah : e->act_ah;
+  uint8_t expand[128] __attribute__((aligned(128)));
+  int32_t acc[256] __attribute__((aligned(128)));
+  if (c->mode == 1u)
+    hvx_expand_i2i4_table(c->down ? e->d->pal : e->g->pal, expand);
+  for (uint32_t u = units * id / threads; u < units * (id + 1u) / threads;
+       ++u) {
+    const uint32_t col = u * width;
+    if (c->mode >= 3u && (!c->down || pair_down)) {
+      const uint32_t first = col / 128u;
+      const uint32_t second = c->down ? first + 1u : first + m->inter / 128u;
+      if (c->mode >= 6u)
+        hvx_gemv_u8i2_lut_dense_pair(base + first * 1024u,
+                                     base + second * 1024u, kt, N * 16u,
+                                     c->tables, acc, acc + 128u);
+      else if (c->mode == 5u)
+        hvx_gemv_u8i2_lut_pair_centered(base + first * 1024u,
+                                        base + second * 1024u, kt, N * 16u,
+                                        c->tables, acc, acc + 128u);
+      else
+        hvx_gemv_u8i2_lut_pair(base + first * 1024u, base + second * 1024u, kt,
+                               N * 16u, c->tables, acc, acc + 128u);
+    } else if (c->mode >= 6u) {
+      hvx_gemv_u8i2_lut_dense_pair(base + u * 1024u, base + u * 1024u, kt,
+                                   N * 16u, c->tables, acc, acc);
+    } else if (c->mode >= 2u) {
+      hvx_gemv_u8i2_lut_strided(base + u * 1024u, kt, N * 16u, c->tables, acc);
+      if (!c->down)
+        hvx_gemv_u8i2_lut_strided(base + (u + units) * 1024u, kt, N * 16u,
+                                  c->tables, acc + width);
+    } else {
+      hvx_gemv_u8i2_wh_fused_strided(act, kt, base + N * 8u, N * 16u, col / 32u,
+                                     expand, acc);
+      if (!c->down)
+        hvx_gemv_u8i2_wh_fused_strided(act, kt, base + N * 8u, N * 16u,
+                                       (col + m->inter) / 32u, expand,
+                                       acc + width);
+    }
+    /** Restore integer sums before conversion to float. Shifting zp instead
+     * could change FP32 rounding for large sums or out-of-range zero points. */
+    if (c->mode == 5u) {
+      hvx_i2_lut_restore(acc, (c->down ? e->d : e->g)->colsum_w + col, width);
+      if (!c->down)
+        hvx_i2_lut_restore(acc + width, e->g->colsum_w + m->inter + col, width);
+    }
+    for (uint32_t q = 0; q < width; q += 32u) {
+      if (c->down) {
+        hvx_dequant_acc_tile_to_f32(
+          acc + q, 32u, 1u, e->rq_scale, e->rq_zp, e->d->colsum_w + col + q,
+          e->d->w_scale + col + q, e->d->bias + col + q, e->res + col + q,
+          m->N_out, 0);
+      } else {
+        hvx_dequant_swiglu_acc_tiles_to_f32(
+          (const uint8_t *)(acc + q), width * 4u, 1u, (col + q) / 32u, 32u, 1u,
+          e->act_scale, e->act_zp, e->g->colsum_w, e->g->w_scale, e->g->bias,
+          m->inter, m->act, e->gate_f32, m->inter, NULL);
+      }
+    }
+  }
+}
+
+static void moe_qs2_run(const moe_m1_ctx *m1, uint32_t expert, uint32_t down,
+                        uint32_t mode, int16_t *tables, hvx_worker_pool *pool) {
+  moe_qs2_ctx c = {m1, &m1->ex[expert], mode, down, tables};
+  const hexkl_weight_u8i4 *w = down ? c.e->d : c.e->g;
+  if (mode >= 2u || w->lut_bytes == w->wh_bytes)
+    hvx_worker_pool_run(pool, moe_qs2_prepare, &c,
+                        down ? m1->inter_ktiles : m1->k_tiles);
+  hvx_worker_pool_run(pool, moe_qs2_compute, &c,
+                      (down ? m1->N_out : m1->inter) /
+                        (mode >= 3u && down && m1->N_out % 256u == 0u ? 256u
+                         : mode >= 2u                                 ? 128u
+                                                                      : 32u));
+}
+
+/** Partition the existing worker pool between two independent experts.
+ * Never invoke the pool recursively; the caller joins before DMA slab reuse. */
+typedef struct {
+  moe_qs2_ctx item[2];
+  uint32_t count;
+  uint32_t prepare;
+} moe_qs2_batch_ctx;
+
+static void moe_qs2_batch_worker(uint32_t threads, uint32_t id, void *v) {
+  const moe_qs2_batch_ctx *b = v;
+  void (*work)(uint32_t, uint32_t, void *) =
+    b->prepare ? moe_qs2_prepare : moe_qs2_compute;
+  if (b->count == 1u || threads == 1u) {
+    for (uint32_t i = 0; i < b->count; ++i)
+      work(threads, id, (void *)&b->item[i]);
+  } else {
+    const uint32_t cut = threads / 2u;
+    const uint32_t e = id >= cut;
+    work(e ? threads - cut : cut, e ? id - cut : id, (void *)&b->item[e]);
+  }
+}
+
+static void moe_qs2_batch_run(const moe_m1_ctx *m1, uint32_t first,
+                              uint32_t count, uint32_t down, int16_t *tables,
+                              size_t table_bytes, hvx_worker_pool *pool) {
+  moe_qs2_batch_ctx b;
+  b.count = count;
+  for (uint32_t i = 0; i < count; ++i) {
+    b.item[i] = (moe_qs2_ctx){m1, &m1->ex[first + i], 4u, down,
+                              (int16_t *)((uint8_t *)tables + i * table_bytes)};
+  }
+  b.prepare = 1u;
+  hvx_worker_pool_run(pool, moe_qs2_batch_worker, &b,
+                      count * (down ? m1->inter_ktiles : m1->k_tiles));
+  b.prepare = 0u;
+  const uint32_t width = down && m1->N_out % 256u == 0u ? 256u : 128u;
+  hvx_worker_pool_run(pool, moe_qs2_batch_worker, &b,
+                      count * (down ? m1->N_out : m1->inter) / width);
+}
 
 /** @brief Lane @a i's contiguous share [lo, hi) of the units [u_lo, u_hi). */
 static inline void moe_m1_slice(uint32_t u_lo, uint32_t u_hi, uint32_t n_lanes,
@@ -804,9 +1163,9 @@ typedef struct {
 
 static void moe_blk_set(moe_blk *b, uint32_t i, uint32_t mb,
                         const uint32_t *order, const uint32_t *row_count,
-                        const uint32_t *slot_of) {
+                        const uint32_t *slot_of, int allow_tail) {
   const uint32_t n_e = row_count[order[i]];
-  const uint32_t hmx_rows = n_e - moe_tail_rows(n_e);
+  const uint32_t hmx_rows = n_e - moe_tail_rows(n_e, allow_tail);
   b->i = i;
   b->e = order[i];
   b->mb = mb;
@@ -820,20 +1179,21 @@ static void moe_blk_set(moe_blk *b, uint32_t i, uint32_t mb,
 
 /** @brief Steps @a b to the block after it; 0 when it was the last. */
 static int moe_blk_next(moe_blk *b, uint32_t n_active, const uint32_t *order,
-                        const uint32_t *row_count, const uint32_t *slot_of) {
+                        const uint32_t *row_count, const uint32_t *slot_of,
+                        int allow_tail) {
   if (!b->last) {
     moe_blk_set(b, b->i, b->mb + HEXKL_HMX_INT8_BLOCK_N_ROW, order, row_count,
-                slot_of);
+                slot_of, allow_tail);
     return 1;
   }
   if (b->i + 1u < n_active) {
-    moe_blk_set(b, b->i + 1u, 0u, order, row_count, slot_of);
+    moe_blk_set(b, b->i + 1u, 0u, order, row_count, slot_of, allow_tail);
     return 1;
   }
   return 0;
 }
 
-/* ---- The M=1 feed's slabs and ring calls (#117; the schedule is in the
+/** ---- The M=1 feed's slabs and ring calls (#117; the schedule is in the
    M=1 block of hexkl_mm_u8i4_moe_layer_run) ------------------------------ */
 
 /** @brief VTCM offset of expert @a i's gate_up: slab i & 1. */
@@ -858,16 +1218,18 @@ static inline uint32_t moe_m1_dn_off(uint32_t j, uint32_t gu_bytes,
 static inline uint32_t moe_m1_push(uint8_t *vtcm_base, uint32_t dst_off,
                                    const hexkl_weight_u8i4 *h, uint32_t k_tiles,
                                    uint32_t n_col, uint32_t kind,
-                                   uint32_t expert) {
+                                   uint32_t expert, int prepared) {
   const uint32_t row = n_col * WEIGHT_TILE_BYTES_U8I4;
+  const uint32_t width = h->bits == 2u ? row / 2u : row;
   const uint32_t idx = hexkl_dma_ring_next_idx();
-  HEXKL_PROBE_COUNT(HEXKL_PROBE_DMA_KB, (row * k_tiles) >> 10);
-  hexkl_dma_ring_push2d(vtcm_base + dst_off, h->wh_bytes, row, row, row,
-                        k_tiles, moe_weight_src_bypass(h, g_moe_src_bypass),
-                        /*dst_vtcm=*/1);
+  HEXKL_PROBE_COUNT(HEXKL_PROBE_DMA_KB, (width * k_tiles) >> 10);
+  hexkl_dma_ring_push2d(vtcm_base + dst_off + (prepared ? 0u : row - width),
+                        prepared ? h->lut_bytes : h->wh_bytes, row, width,
+                        width, k_tiles,
+                        moe_weight_src_bypass(h, g_moe_src_bypass), 1);
   if (hexkl_probe_on) {
-    hexkl_dma_trace_push(hexkl_probe_now_ticks(), idx, kind, expert, 0u, row,
-                         k_tiles, row);
+    hexkl_dma_trace_push(hexkl_probe_now_ticks(), idx, kind, expert, 0u, width,
+                         k_tiles, width);
   }
   return idx;
 }
@@ -901,6 +1263,21 @@ void hexkl_moe_pack_bg_worker(uint32_t n_units, uint32_t u, void *vctx) {
   hvx_quant_pack_u8_ah_rows(c->act_c, c->slot_row, u * HEXKL_MOE_PACK_UNIT_ROWS,
                             (u + 1u) * HEXKL_MOE_PACK_UNIT_ROWS, c->K,
                             c->slot_scale, c->slot_zp, c->act_ah);
+}
+
+typedef struct {
+  const uint8_t *src;
+  const uint32_t *rows;
+  uint32_t k;
+  uint8_t *dst;
+} moe_pack_q8_ctx;
+
+static void moe_pack_q8_worker(uint32_t n_units, uint32_t u, void *vctx) {
+  (void)n_units;
+  const moe_pack_q8_ctx *c = vctx;
+  hvx_gather_rowmajor_u8_ah_rows(c->src, c->rows, u * HEXKL_MOE_PACK_UNIT_ROWS,
+                                 (u + 1u) * HEXKL_MOE_PACK_UNIT_ROWS, c->k,
+                                 c->dst);
 }
 
 /**
@@ -987,16 +1364,16 @@ int hexkl_mm_u8i4_moe_layout(uint32_t K, uint32_t inter, uint32_t N_out,
     ROUND_UP_U32(L.w_gu_off + gu_bytes, HEXKL_HMX_ACTIVATION_ALIGNMENT);
   L.gate_off =
     ROUND_UP_U32(L.w_dn_off + dn_bytes, HEXKL_HMX_ACTIVATION_ALIGNMENT);
-  /* No up region: the fused epilogue writes silu(gate)*up straight into
+  /** No up region: the fused epilogue writes silu(gate)*up straight into
      gate_off and up is never materialised. */
   L.mid_off =
     ROUND_UP_U32(L.gate_off + inter_rows, HEXKL_HMX_ACTIVATION_ALIGNMENT);
-  /* Two mid buffers: block n's down reads one while block n+1 is
+  /** Two mid buffers: block n's down reads one while block n+1 is
      requantized into the other (see the block loop). */
   L.result_off =
     ROUND_UP_U32(L.mid_off + 2u * mid_bytes, HEXKL_HMX_ACTIVATION_ALIGNMENT);
 
-  /* Two staging buffers of acc_tiles accumulator tiles: the HMX fills one
+  /** Two staging buffers of acc_tiles accumulator tiles: the HMX fills one
      while the pool dequantizes the other, which is what lets the epilogue
      hide behind the next batch's issue instead of following it. res_f32
      comes after them and no longer aliases gate -- the scatter reads it
@@ -1010,16 +1387,24 @@ int hexkl_mm_u8i4_moe_layout(uint32_t K, uint32_t inter, uint32_t N_out,
     if (arena_bytes > fixed) {
       fits = (arena_bytes - fixed) / (2u * ACC_TILE_BYTES);
     }
-    /* Capped, not maximised. This count is also the weight chunk size (see
+    /** Capped, not maximised. This count is also the weight chunk size (see
        moe_push_weight_chunk): a bigger batch parallelises the dequant no
        better once it is well past the worker count, and a smaller chunk is
        what makes the matmul start sooner. 32 leaves gate_up in 4 paired
        chunks and down in 2. */
-    if (want > 32u) {
-      want = 32u;
+    uint32_t cap = 32u;
+#if defined(__HEXAGON_ARCH__) && __HEXAGON_ARCH__ >= 81
+    // The LFM2 expert on 8 MiB VTCM uses two GU chunks and one down chunk.
+    // Smaller arenas and other expert shapes retain their measured layout.
+    if (K == 2048u && inter == 1536u && N_out == 2048u &&
+        arena_bytes >= 7u * 1024u * 1024u)
+      cap = 64u;
+#endif
+    if (want > cap) {
+      want = cap;
     }
     L.acc_tiles = (fits < want) ? fits : want;
-    /* Pairs: the gate_up epilogue dequantizes gate tile j and up tile j
+    /** Pairs: the gate_up epilogue dequantizes gate tile j and up tile j
        together (hvx_dq_swiglu_worker), so a staged batch is an even count
        with room for at least one pair. */
     L.acc_tiles &= ~1u;
@@ -1045,12 +1430,30 @@ int hexkl_mm_u8i4_moe_layer_run(
   const uint32_t *row_index, const uint32_t *row_count, const float *row_weight,
   const float *act_f32, float *out_f32, hvx_worker_pool *pool,
   hexkl_moe_scratch *scratch, uint32_t flags) {
+  return hexkl_mm_u8i4_moe_layer_run_prepared(
+    tbl, vtcm_base, vtcm_size, config_off, M, K, inter, N_out, n_experts,
+    h_gate_up, h_down, row_index, row_count, row_weight, act_f32, out_f32, pool,
+    scratch, flags, NULL);
+}
+
+int hexkl_mm_u8i4_moe_layer_run_prepared(
+  hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base, uint32_t vtcm_size,
+  uint32_t config_off, uint32_t M, uint32_t K, uint32_t inter, uint32_t N_out,
+  uint32_t n_experts, const uint32_t *h_gate_up, const uint32_t *h_down,
+  const uint32_t *row_index, const uint32_t *row_count, const float *row_weight,
+  const float *act_f32, float *out_f32, hvx_worker_pool *pool,
+  hexkl_moe_scratch *scratch, uint32_t flags,
+  const hexkl_moe_prepared_input *prepared) {
 
   if (!tbl || !vtcm_base || !h_gate_up || !h_down || !row_index || !row_count ||
-      !row_weight || !act_f32 || !out_f32 || !scratch || M == 0u ||
-      n_experts == 0u) {
+      !row_weight || (!act_f32 && !prepared) || !out_f32 || !scratch ||
+      M == 0u || n_experts == 0u) {
     return AEE_EBADPARM;
   }
+  if (prepared &&
+      (!prepared->rows || !prepared->scale || !prepared->zp ||
+       prepared->M != M || prepared->K != K || M <= 4u || K % 128u != 0u))
+    return AEE_EBADPARM;
   const uint32_t act =
     (flags & HEXKL_MOE_FLAG_GELU_TANH) != 0u ? HVX_GLU_GELU_TANH : HVX_GLU_SILU;
 
@@ -1062,7 +1465,7 @@ int hexkl_mm_u8i4_moe_layer_run(
     return rc;
   }
 
-  /* Validate every handle and its shape before any work: a bad handle
+  /** Validate every handle and its shape before any work: a bad handle
      found halfway through would leave out_f32 partly written, and the
      caller cannot tell that from a correct result. */
   uint32_t n_rows = 0u, n_with_rows = 0u, widest = 0u;
@@ -1084,7 +1487,19 @@ int hexkl_mm_u8i4_moe_layer_run(
     }
     n_rows += row_count[e];
   }
-  /* Bounds are checked because out_f32 is indexed by these; distinctness
+  int single_lut = 0;
+  for (uint32_t e = 0; e < n_experts; ++e)
+    if (row_count[e] &&
+        (tbl->slots[h_gate_up[e]].lut_bytes ==
+           tbl->slots[h_gate_up[e]].wh_bytes ||
+         tbl->slots[h_down[e]].lut_bytes == tbl->slots[h_down[e]].wh_bytes))
+      single_lut = 1;
+  if (single_lut) {
+    L.acc_tiles &= ~7u;
+    if (L.acc_tiles < 8u)
+      return AEE_ENOMEMORY;
+  }
+  /** Bounds are checked because out_f32 is indexed by these; distinctness
      within one expert's slice is NOT, and moe_scatter_worker needs it (see
      its comment) or two workers read-modify-write one output row. Top-k
      routing gives it for free -- a token picks k distinct experts -- and
@@ -1105,23 +1520,44 @@ int hexkl_mm_u8i4_moe_layer_run(
     return AEE_EUNSUPPORTED;
   }
   hexkl_probe_us[HEXKL_PROBE_ACC_STRIDE] = acc->row_stride;
-  /* The M=1 GEMV path (moe_m1_* above), decided here so the sizing below
+  /** The M=1 GEMV path (moe_m1_* above), decided here so the sizing below
      and the first gate_up push know. `widest` restates M <= 4 for a caller
      that repeats a row inside an expert: the GEMV tiles hold 4 rows. */
-  const int use_m1 = (flags & HEXKL_MOE_FLAG_M1_GEMV) != 0u &&
+  int allow_tail = 1;
+  int all_2bit = 1;
+  for (uint32_t e = 0; e < n_experts; ++e) {
+    if (row_count[e] && (tbl->slots[h_gate_up[e]].bits != 2u ||
+                         tbl->slots[h_down[e]].bits != 2u))
+      all_2bit = 0;
+    if (row_count[e] && (tbl->slots[h_gate_up[e]].bits == 2u ||
+                         tbl->slots[h_down[e]].bits == 2u))
+      allow_tail = 0;
+  }
+  /* The prepared form has no FP32 source for the optional int4 tail path. */
+  if (prepared && !all_2bit)
+    return AEE_EUNSUPPORTED;
+  /* Compressed weights must never reach a DDR int4 GEMV reader. */
+  const int compact_feed_ok = hexkl_moe_flags_feed(flags) != 0u &&
+                              (uint64_t)K * inter * 2u <= arena &&
+                              (uint64_t)inter * N_out <= (uint64_t)K * inter;
+  const int use_m1 = (allow_tail || compact_feed_ok) &&
+                     (flags & HEXKL_MOE_FLAG_M1_GEMV) != 0u &&
                      M <= MOE_M1_MAX_ROWS && widest <= MOE_M1_MAX_ROWS &&
                      n_with_rows != 0u && n_with_rows <= MOE_M1_MAX_EXPERTS;
   hexkl_probe_us[HEXKL_PROBE_PATH] = use_m1 ? 1u : 0u;
+  const int acc_planes =
+    !use_m1 && moe_acc_planes_supported(vtcm_base + config_off,
+                                        vtcm_base + L.result_off, acc);
 
   const uint32_t k_tiles = K / HEXKL_HMX_INT8_BLOCK_N_INNER;
   const uint32_t gu_ntiles = (2u * inter) / HEXKL_HMX_INT8_BLOCK_N_COL;
-  /* gate_up's n-tiles are the gate's [0, inter_ntiles) then the up's; a
+  /** gate_up's n-tiles are the gate's [0, inter_ntiles) then the up's; a
      gate tile and the up tile opposite it are inter_ntiles apart. */
   const uint32_t inter_ntiles = gu_ntiles / 2u;
   const uint32_t inter_ktiles = inter / HEXKL_HMX_INT8_BLOCK_N_INNER;
   const uint32_t dn_ntiles = N_out / HEXKL_HMX_INT8_BLOCK_N_COL;
   const uint32_t BR = HEXKL_HMX_INT8_BLOCK_N_ROW;
-  /* The M=1 feed (#117): asked for, and the two gate_up slabs fit the
+  /** The M=1 feed (#117): asked for, and the two gate_up slabs fit the
      arena with two downs fitting one slab. A shape that fails runs the
      arena read and the call's M1_FEED count says so. 7 MiB of the ~8.3 MB
      arena at the LFM2 shape; no heap, no address-space growth. */
@@ -1130,9 +1566,26 @@ int hexkl_mm_u8i4_moe_layer_run(
   const int m1_feed = use_m1 && hexkl_moe_flags_feed(flags) != 0u &&
                       2u * (uint64_t)gu_bytes <= arena &&
                       2u * (uint64_t)dn_bytes <= gu_bytes;
+  uint32_t qs2_mode = (flags & HTP_QS2_GEMV_MASK) >> HTP_QS2_GEMV_SHIFT;
+  const size_t lut_bytes =
+    (size_t)(K > inter ? K : inter) * (qs2_mode >= 6u ? 16u : 32u);
+  if (!m1_feed || M != 1u || widest != 1u || !all_2bit || qs2_mode > 7u ||
+      (qs2_mode >= 2u && (inter % 128u || N_out % 128u ||
+                          2u * (uint64_t)gu_bytes + lut_bytes > arena)))
+    qs2_mode = 0u;
+  if (qs2_mode == 7u) {
+    for (uint32_t e = 0; e < n_experts; ++e)
+      if (row_count[e] && (!tbl->slots[h_gate_up[e]].lut_bytes ||
+                           !tbl->slots[h_down[e]].lut_bytes))
+        qs2_mode = 6u;
+  }
+  if (qs2_mode == 4u && 2u * (uint64_t)gu_bytes + 2u * lut_bytes > arena)
+    qs2_mode = 3u;
+  int16_t *qs2_tables =
+    qs2_mode >= 2u ? (int16_t *)(vtcm_base + 2u * gu_bytes) : NULL;
   /* Pairs per staged batch; the chunk size the gate_up pushes use too. */
   const uint32_t half = L.acc_tiles / 2u;
-  /* Bounded arrays below; a shape that needs more chunks than they hold is
+  /** Bounded arrays below; a shape that needs more chunks than they hold is
      refused up front rather than overrun. 4 and 2 for this model. */
 #define MOE_MAX_CHUNKS 16u
   if ((inter_ntiles + half - 1u) / half > MOE_MAX_CHUNKS ||
@@ -1140,25 +1593,22 @@ int hexkl_mm_u8i4_moe_layer_run(
     return AEE_EUNSUPPORTED;
   }
 
-  /* Scratch on the DSP heap, not VTCM: these are per-block staging areas
+  /** Scratch on the DSP heap, not VTCM: these are per-block staging areas
      read and written once each, so VTCM buys them nothing and the arena is
      the scarce resource. All of it is carved from one session-lifetime
      block (hexkl_moe_scratch): allocating and freeing the ~12.8 MB a
      prefill call needs cost 3.0 ms of the call, and the block only grows. */
-  /* The whole activation, quantized once. hvx_quant_pack_u8_ah writes it,
-     so a row's bytes are exactly what quantizing that row inside any expert
-     block would have produced -- row quantization is independent of how
-     rows are grouped -- and the per-block work becomes a uint8 move rather
-     than a scan and a pack of the same rows four times over at top-4. */
+  /** Source-row scales are shared by all routes. Routed prefill also keeps
+     one row-major U8 copy per token, so slot packing only moves bytes. */
   const uint32_t m_pad = ROUND_UP_U32(M, BR);
-  /* One 64-row slot per row every expert asked for, padded up per block:
+  /** One 64-row slot per row every expert asked for, padded up per block:
      the pack writes straight into this order so no gather is needed. A
      token picked by four experts occupies four slots. */
   uint32_t n_slots = 0u;
   for (uint32_t e = 0; e < n_experts; ++e) {
     n_slots += ROUND_UP_U32(row_count[e], HEXKL_HMX_INT8_BLOCK_N_ROW);
   }
-  /* act_f32 and out_f32 are the host's FastRPC buffers, which are rpcmem
+  /** act_f32 and out_f32 are the host's FastRPC buffers, which are rpcmem
      and therefore UNCACHED. The gather reads M*K*4 bytes of act four times
      over at top-4 routing, and the scatter is a read-modify-write of
      M*N_out*4 one float at a time -- both catastrophic against uncached
@@ -1168,11 +1618,11 @@ int hexkl_mm_u8i4_moe_layer_run(
      So each is touched exactly once, sequentially: act is copied in at the
      start (act_c) and out is copied out at the end (out_c), and everything
      in between works on cached heap. */
-  /* Sizes once, in carve order; the sum is what the scratch must hold.
+  /** Sizes once, in carve order; the sum is what the scratch must hold.
      order / base_of / slot_of are per-expert tables on the heap rather
      than stack arrays sized by HEXKL_MM_U8I4_MAX_WEIGHTS: that constant is
      2048 and has nothing to do with how many experts this layer has. */
-  /* Reserved for the most slots THIS many rows can ever need -- every
+  /** Reserved for the most slots THIS many rows can ever need -- every
      expert padded to a whole block -- not for this call's routing. The 22
      prefill calls of a token batch have the same n_rows but a different
      n_slots each, and reserving for the actual count grew the block on
@@ -1188,11 +1638,11 @@ int hexkl_mm_u8i4_moe_layer_run(
   const size_t sz_slot_u32 = sizeof(uint32_t) * n_slots_cap;
   const size_t sz_expert_u32 = sizeof(uint32_t) * n_experts;
   const size_t sz_mpad_u32 = sizeof(uint32_t) * m_pad;
-  const size_t sz_act_c = sizeof(float) * (size_t)M * K;
+  const size_t sz_act_c = prepared ? 0u : sizeof(float) * (size_t)M * K;
   const size_t sz_out_c = sizeof(float) * (size_t)M * N_out;
   /* One done byte per slot block for the background pack. */
   const size_t sz_pack_done = n_slots_cap / HEXKL_MOE_PACK_UNIT_ROWS + 1u;
-  /* The tail path (moe_tail_*): jobs, done bytes and contexts for as many
+  /** The tail path (moe_tail_*): jobs, done bytes and contexts for as many
      tails as there are experts -- a bound, like n_slots_cap, so the block
      never regrows -- one shared staging set, and each tail's own result. */
   const size_t sz_jobs = sizeof(hvx_bg_job) * (1u + 3u * (size_t)n_experts);
@@ -1207,7 +1657,7 @@ int hexkl_mm_u8i4_moe_layer_run(
   const size_t sz_tail_rq = sizeof(float) * HEXKL_HMX_INT8_BLOCK_N_ROW;
   const size_t sz_tail_res =
     sizeof(float) * MOE_TAIL_MAX_ROWS * (size_t)N_out * n_experts;
-  /* The M=1 path's per-expert staging, reserved for MOE_M1_MAX_EXPERTS
+  /** The M=1 path's per-expert staging, reserved for MOE_M1_MAX_EXPERTS
      whenever the path is taken (the bound, so no later routing regrows). */
   const size_t sz_m1_expert =
     ROUND_UP_SZ((size_t)inter_ntiles * 2u * MOE_M1_TILE_BYTES,
@@ -1218,7 +1668,13 @@ int hexkl_mm_u8i4_moe_layer_run(
     2u * ROUND_UP_SZ(sz_tail_rq, MOE_SCRATCH_ALIGN) +
     ROUND_UP_SZ(sizeof(float) * MOE_M1_MAX_ROWS * N_out, MOE_SCRATCH_ALIGN);
   const size_t sz_m1 = use_m1 ? MOE_M1_MAX_EXPERTS * sz_m1_expert : 0u;
-  const size_t need = ROUND_UP_SZ(sz_scale, MOE_SCRATCH_ALIGN) +
+  /** Dense FFN chunks taking every token already share their packed slots.
+     Keep direct packing there; routed prefill reuses contiguous U8 rows. */
+  const int reuse_q8 =
+    prepared || (!use_m1 && M > 1u && widest < M && (K % 128u) == 0u);
+  const size_t sz_src_q8 = reuse_q8 && !prepared ? (size_t)M * K : 0u;
+  const size_t need = ROUND_UP_SZ(sz_src_q8, MOE_SCRATCH_ALIGN) +
+                      ROUND_UP_SZ(sz_scale, MOE_SCRATCH_ALIGN) +
                       ROUND_UP_SZ(sz_zp, MOE_SCRATCH_ALIGN) +
                       ROUND_UP_SZ(sz_act_ah, MOE_SCRATCH_ALIGN) +
                       3u * ROUND_UP_SZ(sz_slot_u32, MOE_SCRATCH_ALIGN) +
@@ -1245,6 +1701,9 @@ int hexkl_mm_u8i4_moe_layer_run(
     return rc;
   }
   uint8_t *cur = scratch->base;
+  uint8_t *src_q8 = hexkl_moe_carve(&cur, sz_src_q8);
+  if (prepared)
+    src_q8 = (uint8_t *)prepared->rows;
   float *rq_scale = (float *)hexkl_moe_carve(&cur, sz_scale);
   int32_t *rq_zp = (int32_t *)hexkl_moe_carve(&cur, sz_zp);
   uint8_t *act_ah = (uint8_t *)hexkl_moe_carve(&cur, sz_act_ah);
@@ -1276,24 +1735,29 @@ int hexkl_mm_u8i4_moe_layer_run(
   moe_m1_ctx m1;
   hvx_bg_job *pack_job = &jobs[0];
   hvx_bg_job *last_job = NULL;
+  /* Initialized before any goto out; jobs and contexts survive cleanup. */
+  hvx_bg_job exp_job[MOE_EXP_SLOTS];
+  int exp_live[MOE_EXP_SLOTS] = {0};
+  moe_expand_ctx exp_ctx[MOE_EXP_SLOTS];
+  uint8_t exp_done[MOE_EXP_SLOTS][MOE_EXPAND_UNITS];
   uint32_t n_tails = 0u;
   hexkl_moe_pack_ctx pack;
   uint32_t n_active = 0u;
   uint64_t p0 = 0;
-  /* The pool's in-flight jobs. Each outlives its submit until the wait that
+  /** The pool's in-flight jobs. Each outlives its submit until the wait that
      retires it, so they live here, not in the loop body: one per staging
      buffer for each epilogue, one for the first block's requantization. */
   hvx_dq_swiglu_job gu_job[2];
   moe_dn_ctx dn_ctx[2], rq0;
-  /* HEXKL_MOE_MM_BEGIN/END's state. See the macros in hexkl_mm_u8i4_moe.h
+  /** HEXKL_MOE_MM_BEGIN/END's state. See the macros in hexkl_mm_u8i4_moe.h
      for why the HMX issue loop is timed by difference. */
   uint64_t mm_t0 = 0, mm_acc0 = 0, mm_dq0 = 0;
 
-  /* The experts that actually have rows, in order. The DMA pipeline below
+  /** The experts that actually have rows, in order. The DMA pipeline below
      hands each expert's gate_up transfer to its predecessor, so a skipped
      expert in the middle would break the chain; compacting first means the
      pipeline never has to think about empties. */
-  /* An expert whose rows are exactly the previous active expert's shares
+  /** An expert whose rows are exactly the previous active expert's shares
      its slots (packed once): the dense FFN's intermediate chunks all take
      every row, and packed apart they quantized the same rows three times
      (doc 57 section 9.34). Not on the M=1 path, which packs per expert. */
@@ -1320,8 +1784,9 @@ int hexkl_mm_u8i4_moe_layer_run(
   if (hexkl_probe_on) {
     hexkl_dma_trace_reset(hexkl_probe_now_ticks());
   }
-  moe_dma_copy(act_c, act_f32, sizeof(float) * (size_t)M * K, 0, 0,
-               HEXKL_DMA_SITE_COPY_IN);
+  if (!prepared)
+    moe_dma_copy(act_c, act_f32, sizeof(float) * (size_t)M * K, 0, 0,
+                 HEXKL_DMA_SITE_COPY_IN);
   memset(out_c, 0, sizeof(float) * (size_t)M * N_out);
   HEXKL_PROBE_ADD(HEXKL_PROBE_ACC_COPY, p0);
   if (n_active == 0u) {
@@ -1331,7 +1796,7 @@ int hexkl_mm_u8i4_moe_layer_run(
     goto out;
   }
 
-  /* The first expert's gate_up goes out before the quantization, not after
+  /** The first expert's gate_up goes out before the quantization, not after
      it: nothing in the scan or the pack needs VTCM's weight region, and a
      3.5 MB transfer that used to be the one wait with nothing to hide
      behind (DMA_FIRST) now has the whole scan in front of it. In paired
@@ -1346,22 +1811,29 @@ int hexkl_mm_u8i4_moe_layer_run(
       vtcm_base, L.w_gu_off, &tbl->slots[h_gate_up[order[0]]], k_tiles,
       gu_ntiles, inter_ntiles, half, 0u, gu_idx);
   } else if (m1_feed) {
-    /* One gate_up per slab, at the same point for the same reason: the
+    /** One gate_up per slab, at the same point for the same reason: the
        scan and the pack are in front of them. Whole matrices (f2). */
     for (uint32_t i = 0; i < n_active && i < 2u; ++i) {
-      m1_gu_idx[i] = moe_m1_push(vtcm_base, moe_m1_gu_off(i, gu_bytes),
-                                 &tbl->slots[h_gate_up[order[i]]], k_tiles,
-                                 gu_ntiles, HEXKL_DMA_KIND_GATE, i);
+      m1_gu_idx[i] = moe_m1_push(
+        vtcm_base, moe_m1_gu_off(i, gu_bytes), &tbl->slots[h_gate_up[order[i]]],
+        k_tiles, gu_ntiles, HEXKL_DMA_KIND_GATE, i, qs2_mode == 7u);
     }
   }
   (void)gu_nchunk;
 
-  /* The scan is per source row and independent of where a row ends up, so
+  /** The scan is per source row and independent of where a row ends up, so
      it still runs once over M rows. */
   HEXKL_PROBE_T0(p0);
-  hvx_quant_rows_u8_params(act_c, M, m_pad, K, scale_all, zp_all, pool);
+  if (prepared) {
+    memcpy(scale_all, prepared->scale, sizeof(float) * m_pad);
+    memcpy(zp_all, prepared->zp, sizeof(int32_t) * m_pad);
+  } else if (reuse_q8)
+    hvx_quant_rows_u8_params_rowmajor(act_c, M, m_pad, K, scale_all, zp_all,
+                                      src_q8, pool);
+  else
+    hvx_quant_rows_u8_params(act_c, M, m_pad, K, scale_all, zp_all, pool);
 
-  /* Slot order: every active expert's rows, each expert padded up to a
+  /** Slot order: every active expert's rows, each expert padded up to a
      whole 64-row block. Padding slots repeat row 0 -- their accumulator
      output is never dequantized (m_blk bounds that) so the content does not
      matter, only that the read is in range. */
@@ -1385,7 +1857,7 @@ int hexkl_mm_u8i4_moe_layer_run(
   }
 
   if (use_m1) {
-    /* Each expert's rows packed into its slot block inline -- at most
+    /** Each expert's rows packed into its slot block inline -- at most
        MOE_M1_MAX_ROWS x MOE_M1_MAX_EXPERTS rows, no background job; QUANT
        (opened before the scan) closes after it. The pack reads whole row
        groups, and the block's padding slots repeat row 0 (above), so the
@@ -1430,9 +1902,9 @@ int hexkl_mm_u8i4_moe_layer_run(
     m1.gu_ntiles = gu_ntiles;
     m1.dn_ntiles = dn_ntiles;
     m1.N_out = N_out;
-    /* The (loop, lead) pair, resolved once per call: the flags word when
+    /** The (loop, lead) pair, resolved once per call: the flags word when
        the caller set the tune bit, else the build's defaults (#113). */
-    /* Under the feed the lead is off by construction (the section
+    /** Under the feed the lead is off by construction (the section
        comment); the banner still prints the requested lead beside
        feed=vtcm so the log names the cell. */
     m1.lead_kb = m1_feed ? 0u : hexkl_moe_flags_lead_kb(flags);
@@ -1441,7 +1913,7 @@ int hexkl_mm_u8i4_moe_layer_run(
     m1.act = act;
     HEXKL_PROBE_COUNT(HEXKL_PROBE_M1_FEED, m1_feed ? 1u : 0u);
 
-    /* MM is the wall of the two GEMV stages on the caller; SWIGLU their
+    /** MM is the wall of the two GEMV stages on the caller; SWIGLU their
        summed worker-time (moe_worker_probe_add), so SWIGLU / lanes ~ MM says
        the lanes were balanced, and the bytes over MM is the arena read
        rate. REQUANT and SCATTER are their stages' wall; BLOCKS, ACC_READ,
@@ -1456,30 +1928,49 @@ int hexkl_mm_u8i4_moe_layer_run(
       hvx_worker_pool_run(pool, moe_m1_pair_worker, &m1,
                           n_active * inter_ntiles);
     } else {
-      for (uint32_t i = 0; i < n_active; ++i) {
-        uint64_t pw = 0;
-        HEXKL_PROBE_T0(pw);
-        moe_m1_wait(m1_gu_idx[i], HEXKL_DMA_SITE_GU);
-        if (i == 0u) {
-          HEXKL_PROBE_ADD(HEXKL_PROBE_DMA_FIRST, pw);
-          HEXKL_PROBE_COUNT(HEXKL_PROBE_DMA_FIRST_KB, gu_bytes >> 10);
+      const uint32_t batch = qs2_mode == 4u ? 2u : 1u;
+      for (uint32_t first = 0; first < n_active; first += batch) {
+        const uint32_t count =
+          n_active - first < batch ? n_active - first : batch;
+        for (uint32_t i = first; i < first + count; ++i) {
+          uint64_t pw = 0;
+          HEXKL_PROBE_T0(pw);
+          moe_m1_wait(m1_gu_idx[i], HEXKL_DMA_SITE_GU);
+          if (i == 0u) {
+            HEXKL_PROBE_ADD(HEXKL_PROBE_DMA_FIRST, pw);
+            HEXKL_PROBE_COUNT(HEXKL_PROBE_DMA_FIRST_KB,
+                              (gu_bytes / (m1.ex[i].g->bits == 2u ? 2u : 1u)) >>
+                                10);
+          }
         }
-        m1.u_lo = i * inter_ntiles;
-        m1.u_hi = (i + 1u) * inter_ntiles;
-        hvx_worker_pool_run(pool, moe_m1_pair_worker, &m1, inter_ntiles);
-        /* Slab i & 1 is free: the join above is the barrier. It takes the
-           gate_up two experts on, or -- once no gate_up is left for it --
-           its two downs (experts 2s and 2s + 1 of slab s). */
-        if (i + 2u < n_active) {
-          m1_gu_idx[i + 2u] = moe_m1_push(
-            vtcm_base, moe_m1_gu_off(i + 2u, gu_bytes), m1.ex[i + 2u].g,
-            k_tiles, gu_ntiles, HEXKL_DMA_KIND_GATE, i + 2u);
+        if (qs2_mode == 4u) {
+          moe_qs2_batch_run(&m1, first, count, 0u, qs2_tables, lut_bytes, pool);
+        } else if (qs2_mode) {
+          moe_qs2_run(&m1, first, 0u, qs2_mode, qs2_tables, pool);
         } else {
-          for (uint32_t j = 2u * (i & 1u); j < 2u * (i & 1u) + 2u; ++j) {
-            if (j < n_active) {
-              m1_dn_idx[j] = moe_m1_push(
-                vtcm_base, moe_m1_dn_off(j, gu_bytes, dn_bytes), m1.ex[j].d,
-                inter_ktiles, dn_ntiles, HEXKL_DMA_KIND_DOWN, j);
+          hexkl_moe_expand_chunk(vtcm_base, moe_m1_gu_off(first, gu_bytes),
+                                 m1.ex[first].g, k_tiles, gu_ntiles, 0,
+                                 gu_ntiles, pool);
+          m1.u_lo = first * inter_ntiles;
+          m1.u_hi = (first + 1u) * inter_ntiles;
+          hvx_worker_pool_run(pool, moe_m1_pair_worker, &m1, inter_ntiles);
+        }
+        for (uint32_t i = first; i < first + count; ++i) {
+          /** Slab i & 1 is free: the join above is the barrier. It takes the
+             gate_up two experts on, or -- once no gate_up is left for it --
+             its two downs (experts 2s and 2s + 1 of slab s). */
+          if (i + 2u < n_active) {
+            m1_gu_idx[i + 2u] = moe_m1_push(
+              vtcm_base, moe_m1_gu_off(i + 2u, gu_bytes), m1.ex[i + 2u].g,
+              k_tiles, gu_ntiles, HEXKL_DMA_KIND_GATE, i + 2u, qs2_mode == 7u);
+          } else {
+            for (uint32_t j = 2u * (i & 1u); j < 2u * (i & 1u) + 2u; ++j) {
+              if (j < n_active) {
+                m1_dn_idx[j] =
+                  moe_m1_push(vtcm_base, moe_m1_dn_off(j, gu_bytes, dn_bytes),
+                              m1.ex[j].d, inter_ktiles, dn_ntiles,
+                              HEXKL_DMA_KIND_DOWN, j, qs2_mode == 7u);
+              }
             }
           }
         }
@@ -1495,18 +1986,33 @@ int hexkl_mm_u8i4_moe_layer_run(
       m1.u_hi = n_active * dn_ntiles;
       hvx_worker_pool_run(pool, moe_m1_down_worker, &m1, n_active * dn_ntiles);
     } else {
-      for (uint32_t j = 0; j < n_active; ++j) {
-        moe_m1_wait(m1_dn_idx[j], HEXKL_DMA_SITE_DN);
-        m1.u_lo = j * dn_ntiles;
-        m1.u_hi = (j + 1u) * dn_ntiles;
-        hvx_worker_pool_run(pool, moe_m1_down_worker, &m1, dn_ntiles);
-        /* Down slot j & 3 is free after the join; a fifth or later expert
-           (M <= 4 routing to more than four) takes it. */
-        if (j + 4u < n_active) {
-          m1_dn_idx[j + 4u] =
-            moe_m1_push(vtcm_base, moe_m1_dn_off(j + 4u, gu_bytes, dn_bytes),
-                        m1.ex[j + 4u].d, inter_ktiles, dn_ntiles,
-                        HEXKL_DMA_KIND_DOWN, j + 4u);
+      const uint32_t batch = qs2_mode == 4u ? 2u : 1u;
+      for (uint32_t first = 0; first < n_active; first += batch) {
+        const uint32_t count =
+          n_active - first < batch ? n_active - first : batch;
+        for (uint32_t j = first; j < first + count; ++j)
+          moe_m1_wait(m1_dn_idx[j], HEXKL_DMA_SITE_DN);
+        if (qs2_mode == 4u) {
+          moe_qs2_batch_run(&m1, first, count, 1u, qs2_tables, lut_bytes, pool);
+        } else if (qs2_mode) {
+          moe_qs2_run(&m1, first, 1u, qs2_mode, qs2_tables, pool);
+        } else {
+          hexkl_moe_expand_chunk(
+            vtcm_base, moe_m1_dn_off(first, gu_bytes, dn_bytes), m1.ex[first].d,
+            inter_ktiles, dn_ntiles, 0, dn_ntiles, pool);
+          m1.u_lo = first * dn_ntiles;
+          m1.u_hi = (first + 1u) * dn_ntiles;
+          hvx_worker_pool_run(pool, moe_m1_down_worker, &m1, dn_ntiles);
+        }
+        for (uint32_t j = first; j < first + count; ++j) {
+          /** Down slot j & 3 is free after the join; a fifth or later expert
+             (M <= 4 routing to more than four) takes it. */
+          if (j + 4u < n_active) {
+            m1_dn_idx[j + 4u] =
+              moe_m1_push(vtcm_base, moe_m1_dn_off(j + 4u, gu_bytes, dn_bytes),
+                          m1.ex[j + 4u].d, inter_ktiles, dn_ntiles,
+                          HEXKL_DMA_KIND_DOWN, j + 4u, qs2_mode == 7u);
+          }
         }
       }
     }
@@ -1532,31 +2038,37 @@ int hexkl_mm_u8i4_moe_layer_run(
     goto out;
   }
 
-  /* Packed straight into slot order, so a block's 64 rows are already
+  /** With reuse_q8, the scan above also quantized each source row while it
+     was hot in cache. The background job transposes four contiguous U8
+     vectors into four AH tiles, instead of requantizing every routed and
+     padded slot. Otherwise it packs the original FP32 rows directly.
+     Packed into slot order, so a block's 64 rows are already
      contiguous and the gather pass that used to follow is gone. On the
      pool's background lane, one unit per block (hexkl_moe_pack_bg_worker): only
      the block about to be queued is waited for, so from here on the pack
      runs under the HMX. QUANT times the scan and those waits -- what stays
      exposed -- not the pack. */
+  moe_pack_q8_ctx pack_q8 = {src_q8, slot_row, K, act_ah};
+
   pack.act_c = act_c;
   pack.slot_row = slot_row;
   pack.slot_scale = slot_scale;
   pack.slot_zp = slot_zp;
   pack.act_ah = act_ah;
   pack.K = K;
-  pack_job->func = hexkl_moe_pack_bg_worker;
-  pack_job->ctx = &pack;
+  pack_job->func = reuse_q8 ? moe_pack_q8_worker : hexkl_moe_pack_bg_worker;
+  pack_job->ctx = reuse_q8 ? (void *)&pack_q8 : (void *)&pack;
   pack_job->n_units = n_slots / HEXKL_MOE_PACK_UNIT_ROWS;
   pack_job->done = pack_done;
   hvx_worker_pool_submit_bg(pool, pack_job);
   last_job = pack_job;
 
-  /* Every tail's three jobs, queued now in expert order behind the pack --
+  /** Every tail's three jobs, queued now in expert order behind the pack --
      see the moe_tail_* comment. Nothing they read is produced by the HMX
      loop, so the earlier they queue the more of the loop they hide under. */
   for (uint32_t i = 0; i < n_active; ++i) {
     const uint32_t e = order[i];
-    const uint32_t tr = moe_tail_rows(row_count[e]);
+    const uint32_t tr = moe_tail_rows(row_count[e], allow_tail);
     tail_of[i] = UINT32_MAX;
     if (tr == 0u) {
       continue;
@@ -1604,7 +2116,7 @@ int hexkl_mm_u8i4_moe_layer_run(
                           HEXKL_MOE_PACK_UNITS_THROUGH(slot_of[0]));
   HEXKL_PROBE_ADD(HEXKL_PROBE_QUANT, p0);
 
-  /* ---- The block sequence ---------------------------------------------
+  /** ---- The block sequence ---------------------------------------------
    *
    * Blocks are numbered n = 0, 1, ... in expert order. GU(n) is block n's
    * gate_up matmul with its fused epilogues, rq(n) the requantization of
@@ -1636,7 +2148,7 @@ int hexkl_mm_u8i4_moe_layer_run(
    * epilogue is submitted. gate_up[e+1] and the next activation block go
    * out as before, once GU(n) has freed their slots, and arrive under
    * DN(n-1). */
-  /* The multiplies inline (hexkl_hmx_mm.h): the library call wraps one
+  /** The multiplies inline (hexkl_hmx_mm.h): the library call wraps one
      packet in ~50 cycles for ~9 of array time, and this loop issues ~760 k
      of them a 1024-row prefill call. The layout puts every activation tile
      at a multiple of 2048 and every weight tile at a multiple of 512 from
@@ -1646,8 +2158,27 @@ int hexkl_mm_u8i4_moe_layer_run(
     hexkl_hmx_mm_aligned(vtcm_base + L.act_off, vtcm_base + L.w_gu_off) &&
     hexkl_hmx_mm_aligned(vtcm_base + L.mid_off, vtcm_base + L.w_dn_off);
   moe_blk blk, pblk;
-  moe_blk_set(&blk, 0u, 0u, order, row_count, slot_of);
-  /* The first expert's first activation block. Queued behind its gate_up
+  memset(&pblk, 0, sizeof pblk);
+  const uint32_t gu_chunks = (inter_ntiles + half - 1u) / half;
+  const uint32_t dn_chunks = (dn_ntiles + L.acc_tiles - 1u) / L.acc_tiles;
+  /** Falls back to expanding in front of the batch when a shape needs more
+     chunks than there are slots -- correctness never depends on the
+     hiding. LFM2-24B uses 3 and 2 at the default batch size. */
+  const int exp_bg = all_2bit && gu_chunks <= MOE_EXP_DN &&
+                     dn_chunks <= (MOE_EXP_SLOTS - MOE_EXP_DN);
+  /** Who queues which gate_up chunk. The down phase has dn_chunks batches
+     to queue one chunk each in, so it takes [0, gu_bg0) and the gate_up
+     phase takes the rest -- disjoint, or a chunk would be expanded twice
+     and the second pass would read its own output (the multi-chunk host
+     check catches exactly that). */
+  const uint32_t gu_bg0 = (dn_chunks < gu_chunks) ? dn_chunks : gu_chunks;
+  /** ...and which gate_up batch queues down chunk db: as late as the batch
+     count allows, since down is read after every gate_up batch. */
+  const uint32_t dn_bg0 =
+    (gu_chunks > dn_chunks) ? (gu_chunks - dn_chunks) : 0u;
+
+  moe_blk_set(&blk, 0u, 0u, order, row_count, slot_of, allow_tail);
+  /** The first expert's first activation block. Queued behind its gate_up
      here (the one place the order is reversed: that gate_up has the scan
      to hide behind and is long done). Every later block is queued when
      the block before it has freed A -- see moe_push_act_block for why the
@@ -1668,15 +2199,16 @@ int hexkl_mm_u8i4_moe_layer_run(
     int have_next = 0;
     if (have_cur) {
       const hexkl_weight_u8i4 *g = &tbl->slots[h_gate_up[blk.e]];
-      have_next = moe_blk_next(&nblk, n_active, order, row_count, slot_of);
-      /* The block's rows' quantization parameters: contiguous in slot
+      have_next =
+        moe_blk_next(&nblk, n_active, order, row_count, slot_of, allow_tail);
+      /** The block's rows' quantization parameters: contiguous in slot
          order, since every expert's slots are padded to whole blocks. */
       const float *act_scale = slot_scale + blk.slot;
       const int32_t *act_zp = slot_zp + blk.slot;
       /* Counted, not timed -- see HEXKL_PROBE_BLOCKS. */
       HEXKL_PROBE_COUNT(HEXKL_PROBE_BLOCKS, 1);
 
-      /* The pack already wrote this block in slot order, so its 64 rows are
+      /** The pack already wrote this block in slot order, so its 64 rows are
          one contiguous run -- a single DMA, not a copy. Doing it on the
          core moved 5.5 MB a layer at 3.1 GB/s, against the 33 the engine
          measures, because the destination is VTCM and the core is the wrong
@@ -1695,7 +2227,7 @@ int hexkl_mm_u8i4_moe_layer_run(
       HEXKL_PROBE_ADD(HEXKL_PROBE_GATHER, p0);
 
       /* --- gate_up ------------------------------------------------- */
-      /* Matmul a batch of gate/up PAIRS -- gate tiles g0.. into staged
+      /** Matmul a batch of gate/up PAIRS -- gate tiles g0.. into staged
          slots [0, np) of one staging buffer, the up tiles opposite them
          into [np, 2np) -- then hand the batch to the pool, which
          dequantizes and SwiGLUs it straight into gate_off (the same
@@ -1709,10 +2241,17 @@ int hexkl_mm_u8i4_moe_layer_run(
           (inter_ntiles - g0 < half) ? (inter_ntiles - g0) : half;
         const uint32_t stage_off =
           L.result_off + (sb & 1u) * L.acc_tiles * ACC_TILE_BYTES;
-        /* Only the first block of an expert waits: by the second the whole
+        /** Only the first block of an expert waits: by the second the whole
            weight is resident. n == 0 && gb == 0 is the one wait that cannot
            hide behind anything, which is what DMA_FIRST records. */
-        if (blk.first) {
+        if (blk.first && exp_bg && exp_live[gb]) {
+          /** Queued a phase ago (chunks 0..1, under the previous down) or a
+             batch ago (2..3); either way its DMA was waited for then. */
+          HEXKL_PROBE_T0(p0);
+          hvx_worker_pool_wait_bg(pool, &exp_job[gb], UINT32_MAX);
+          HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN, p0);
+          exp_live[gb] = 0;
+        } else if (blk.first) {
           HEXKL_PROBE_T0(p0);
           if (hexkl_probe_on) {
             hexkl_dma_trace_wait_begin(hexkl_probe_now_ticks(), gu_idx[gb],
@@ -1722,16 +2261,25 @@ int hexkl_mm_u8i4_moe_layer_run(
           if (hexkl_probe_on) {
             hexkl_dma_trace_wait_end(hexkl_probe_now_ticks());
           }
+          /** 2-bit only, and only for the chunk that has nothing before it
+             to hide under -- every later one goes on the background lane
+             below. */
+          hexkl_moe_expand_chunk(vtcm_base, L.w_gu_off, g, k_tiles, gu_ntiles,
+                                 g0, np, pool);
+          hexkl_moe_expand_chunk(vtcm_base, L.w_gu_off, g, k_tiles, gu_ntiles,
+                                 inter_ntiles + g0, np, pool);
           HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN, p0);
           if (n == 0u && gb == 0u) {
             hexkl_probe_us[HEXKL_PROBE_DMA_FIRST] =
               hexkl_probe_us[HEXKL_PROBE_DRAIN];
-            HEXKL_PROBE_COUNT(HEXKL_PROBE_DMA_FIRST_KB,
-                              (2u * np * k_tiles * WEIGHT_TILE_BYTES_U8I4) >>
-                                10);
+            HEXKL_PROBE_COUNT(
+              HEXKL_PROBE_DMA_FIRST_KB,
+              (2u * np * k_tiles * WEIGHT_TILE_BYTES_U8I4 /
+               (tbl->slots[h_gate_up[blk.e]].bits == 2u ? 2u : 1u)) >>
+                10);
           }
         }
-        /* This staging buffer was last read by the epilogue two issues
+        /** This staging buffer was last read by the epilogue two issues
            back, retired when the last one was submitted. */
         HEXKL_MOE_MM_BEGIN();
         for (uint32_t j = 0; j < 2u * np; ++j) {
@@ -1758,8 +2306,13 @@ int hexkl_mm_u8i4_moe_layer_run(
             }
           }
           HEXKL_PROBE_T0(p0);
-          rc = hexkl_micro_hmx_acc_read_int32(vtcm_base, config_off,
-                                              stage_off + j * ACC_TILE_BYTES);
+          if (acc_planes) {
+            moe_acc_read_planes(vtcm_base + config_off,
+                                vtcm_base + stage_off + j * ACC_TILE_BYTES);
+          } else {
+            rc = hexkl_micro_hmx_acc_read_int32(vtcm_base, config_off,
+                                                stage_off + j * ACC_TILE_BYTES);
+          }
           HEXKL_PROBE_ADD(HEXKL_PROBE_ACC_READ, p0);
           if (rc != AEE_SUCCESS) {
             goto out;
@@ -1767,7 +2320,49 @@ int hexkl_mm_u8i4_moe_layer_run(
         }
         HEXKL_MOE_MM_END();
 
-        /* Retire what the pool is running -- DN(n-1)'s last epilogue at
+        /* Queue later gate/up chunks while HMX consumes earlier chunks. */
+        if (exp_bg && blk.first && gb + gu_bg0 < gu_chunks) {
+          const uint32_t ng0 = g0 + gu_bg0 * half;
+          const uint32_t nnp =
+            (inter_ntiles - ng0 < half) ? (inter_ntiles - ng0) : half;
+          HEXKL_PROBE_T0(p0);
+          if (hexkl_probe_on)
+            hexkl_dma_trace_wait_begin(hexkl_probe_now_ticks(),
+                                       gu_idx[gb + gu_bg0], HEXKL_DMA_SITE_GU);
+          hexkl_dma_ring_wait(gu_idx[gb + gu_bg0]);
+          if (hexkl_probe_on)
+            hexkl_dma_trace_wait_end(hexkl_probe_now_ticks());
+          HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN, p0);
+          moe_expand_submit(pool, &exp_job[gb + gu_bg0], &exp_ctx[gb + gu_bg0],
+                            exp_done[gb + gu_bg0], vtcm_base, L.w_gu_off, g,
+                            k_tiles, gu_ntiles, ng0, inter_ntiles + ng0, nnp);
+          exp_live[gb + gu_bg0] = 1;
+        }
+
+        /* Expand the previous block's down weight under this gate/up phase. */
+        if (exp_bg && n > 0u && pblk.first && gb >= dn_bg0 &&
+            gb - dn_bg0 < dn_chunks) {
+          const hexkl_weight_u8i4 *pd = &tbl->slots[h_down[pblk.e]];
+          const uint32_t db = gb - dn_bg0;
+          const uint32_t dnt0 = db * L.acc_tiles;
+          const uint32_t dnb =
+            (dn_ntiles - dnt0 < L.acc_tiles) ? (dn_ntiles - dnt0) : L.acc_tiles;
+          HEXKL_PROBE_T0(p0);
+          if (hexkl_probe_on)
+            hexkl_dma_trace_wait_begin(hexkl_probe_now_ticks(), dn_idx[db],
+                                       HEXKL_DMA_SITE_DN);
+          hexkl_dma_ring_wait(dn_idx[db]);
+          if (hexkl_probe_on)
+            hexkl_dma_trace_wait_end(hexkl_probe_now_ticks());
+          HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN_DN, p0);
+          moe_expand_submit(pool, &exp_job[MOE_EXP_DN + db],
+                            &exp_ctx[MOE_EXP_DN + db],
+                            exp_done[MOE_EXP_DN + db], vtcm_base, L.w_dn_off,
+                            pd, inter_ktiles, dn_ntiles, dnt0, UINT32_MAX, dnb);
+          exp_live[MOE_EXP_DN + db] = 1;
+        }
+
+        /** Retire what the pool is running -- DN(n-1)'s last epilogue at
            gb == 0, epilogue gb-1 otherwise (its buffer is the one batch
            gb+1 will fill) -- then launch this batch's. Each is timed in
            its own column, so both read what is exposed after a batch's
@@ -1780,11 +2375,11 @@ int hexkl_mm_u8i4_moe_layer_run(
           hvx_dq_swiglu_job *jb = &gu_job[sb & 1u];
           jb->tiles_base =
             (const uint8_t *)((const int32_t *)(vtcm_base + stage_off) +
-                              acc->base);
+                              (acc_planes ? 0u : acc->base));
           jb->tile_stride = ACC_TILE_BYTES;
           jb->n_pairs = np;
           jb->g0 = g0;
-          jb->row_stride = acc->row_stride;
+          jb->row_stride = acc_planes ? 0u : acc->row_stride;
           jb->m_count = blk.m_blk;
           jb->act_scale = act_scale;
           jb->act_zp = act_zp;
@@ -1800,7 +2395,7 @@ int hexkl_mm_u8i4_moe_layer_run(
         ++sb;
       }
 
-      /* A and the gate_up slot are free once the last batch is issued: the
+      /** A and the gate_up slot are free once the last batch is issued: the
          next block's activation, and its expert's gate_up when it is a
          new expert, go out now and arrive under DN(n-1). Activation
          first: it is what GU(n+1) waits on before anything else, and
@@ -1828,7 +2423,7 @@ int hexkl_mm_u8i4_moe_layer_run(
     }
 
     if (n == 0u) {
-      /* rq(0) has no down to ride in: its own job, behind the one wait for
+      /** rq(0) has no down to ride in: its own job, behind the one wait for
          a last gate_up epilogue the call makes. GU(1)'s first batch covers
          it -- or DN(0)'s wait below retires it, when block 0 is the only
          block. */
@@ -1853,14 +2448,14 @@ int hexkl_mm_u8i4_moe_layer_run(
                                    ? &tails[tail_of[pblk.i]]
                                    : NULL;
       if (!have_cur) {
-        /* The last block: no gate_up has been issued since the job that
+        /** The last block: no gate_up has been issued since the job that
            carries rq(n-1), so retire it before its mid is read. */
         HEXKL_PROBE_T0(p0);
         hvx_worker_pool_wait(pool);
         HEXKL_PROBE_ADD(HEXKL_PROBE_REQUANT, p0);
       }
       if (tail) {
-        /* The tail's rows go out with this block's. Its down job is
+        /** The tail's rows go out with this block's. Its down job is
            usually long complete; what the wait reads is the exposure when
            it is not, filed under SCATTER. */
         HEXKL_PROBE_T0(p0);
@@ -1874,7 +2469,13 @@ int hexkl_mm_u8i4_moe_layer_run(
           (dn_ntiles - nt0 < L.acc_tiles) ? (dn_ntiles - nt0) : L.acc_tiles;
         const uint32_t stage_off =
           L.result_off + (sb & 1u) * L.acc_tiles * ACC_TILE_BYTES;
-        if (pblk.first) {
+        if (pblk.first && exp_bg && exp_live[MOE_EXP_DN + db]) {
+          /* Queued during the gate_up phase just above. */
+          HEXKL_PROBE_T0(p0);
+          hvx_worker_pool_wait_bg(pool, &exp_job[MOE_EXP_DN + db], UINT32_MAX);
+          HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN_DN, p0);
+          exp_live[MOE_EXP_DN + db] = 0;
+        } else if (pblk.first) {
           HEXKL_PROBE_T0(p0);
           if (hexkl_probe_on) {
             hexkl_dma_trace_wait_begin(hexkl_probe_now_ticks(), dn_idx[db],
@@ -1884,6 +2485,8 @@ int hexkl_mm_u8i4_moe_layer_run(
           if (hexkl_probe_on) {
             hexkl_dma_trace_wait_end(hexkl_probe_now_ticks());
           }
+          hexkl_moe_expand_chunk(vtcm_base, L.w_dn_off, d, inter_ktiles,
+                                 dn_ntiles, nt0, nb, pool);
           HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN_DN, p0);
         }
         HEXKL_MOE_MM_BEGIN();
@@ -1912,8 +2515,13 @@ int hexkl_mm_u8i4_moe_layer_run(
             }
           }
           HEXKL_PROBE_T0(p0);
-          rc = hexkl_micro_hmx_acc_read_int32(vtcm_base, config_off,
-                                              stage_off + j * ACC_TILE_BYTES);
+          if (acc_planes) {
+            moe_acc_read_planes(vtcm_base + config_off,
+                                vtcm_base + stage_off + j * ACC_TILE_BYTES);
+          } else {
+            rc = hexkl_micro_hmx_acc_read_int32(vtcm_base, config_off,
+                                                stage_off + j * ACC_TILE_BYTES);
+          }
           HEXKL_PROBE_ADD(HEXKL_PROBE_ACC_READ, p0);
           if (rc != AEE_SUCCESS) {
             goto out;
@@ -1921,7 +2529,27 @@ int hexkl_mm_u8i4_moe_layer_run(
         }
         HEXKL_MOE_MM_END();
 
-        /* db == 0 retires GU(n)'s last epilogue -- gate_off is complete,
+        /* Prepare the next expert's first gate/up chunks during down. */
+        if (exp_bg && have_next && nblk.first && db < gu_bg0) {
+          const hexkl_weight_u8i4 *ng = &tbl->slots[h_gate_up[nblk.e]];
+          const uint32_t ng0 = db * half;
+          const uint32_t nnp =
+            (inter_ntiles - ng0 < half) ? (inter_ntiles - ng0) : half;
+          HEXKL_PROBE_T0(p0);
+          if (hexkl_probe_on)
+            hexkl_dma_trace_wait_begin(hexkl_probe_now_ticks(), gu_idx[db],
+                                       HEXKL_DMA_SITE_GU);
+          hexkl_dma_ring_wait(gu_idx[db]);
+          if (hexkl_probe_on)
+            hexkl_dma_trace_wait_end(hexkl_probe_now_ticks());
+          HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN, p0);
+          moe_expand_submit(pool, &exp_job[db], &exp_ctx[db], exp_done[db],
+                            vtcm_base, L.w_gu_off, ng, k_tiles, gu_ntiles, ng0,
+                            inter_ntiles + ng0, nnp);
+          exp_live[db] = 1;
+        }
+
+        /** db == 0 retires GU(n)'s last epilogue -- gate_off is complete,
            which the requantization in this job needs -- and every later
            wait the epilogue before it, the one carrying rq(n) included. */
         HEXKL_PROBE_T0(p0);
@@ -1932,11 +2560,12 @@ int hexkl_mm_u8i4_moe_layer_run(
           moe_dn_ctx *c = &dn_ctx[sb & 1u];
           c->tiles_base =
             (const uint8_t *)((const int32_t *)(vtcm_base + stage_off) +
-                              acc->base);
+                              (acc_planes ? 0u : acc->base));
           c->tile_stride = ACC_TILE_BYTES;
           c->nt0 = nt0;
           c->nb = nb;
-          c->row_stride = acc->row_stride;
+          c->next_tile = 0u;
+          c->row_stride = acc_planes ? 0u : acc->row_stride;
           c->m_count = pblk.m_blk;
           c->act_scale = rq_scale + pp * BR;
           c->act_zp = rq_zp + pp * BR;
@@ -1980,7 +2609,7 @@ int hexkl_mm_u8i4_moe_layer_run(
     if (!have_cur) {
       break;
     }
-    /* This block's down, for DN(n) after GU(n+1): pushed now that DN(n-1)
+    /** This block's down, for DN(n) after GU(n+1): pushed now that DN(n-1)
        has issued its last read of buffer B, in chunks for the same reason
        gate_up is (waiting for all 1.75 MB before the first n-tile column
        cost 55 us an expert). Already there when the expert spans blocks. */
@@ -2013,14 +2642,18 @@ int hexkl_mm_u8i4_moe_layer_run(
   HEXKL_PROBE_ADD(HEXKL_PROBE_ACC_COPY, p0);
 
 out:
-  /* An error path may leave a job in flight over VTCM this call owns, and
+  /** An error path may leave a job in flight over VTCM this call owns, and
      the background pack over this call's scratch. */
   hvx_worker_pool_wait(pool);
   if (last_job) {
     hvx_worker_pool_wait_bg(pool, last_job, UINT32_MAX);
   }
+  for (uint32_t i = 0; i < MOE_EXP_SLOTS; ++i) {
+    if (exp_live[i])
+      hvx_worker_pool_wait_bg(pool, &exp_job[i], UINT32_MAX);
+  }
   if (hexkl_probe_on) {
-    /* #87: close the trace and fold its per-call numbers into the probe
+    /** #87: close the trace and fold its per-call numbers into the probe
        slots, ticks to microseconds through the same HAP conversion the
        stage timers use. Counts stay counts. */
     hexkl_dma_trace_summary ds;

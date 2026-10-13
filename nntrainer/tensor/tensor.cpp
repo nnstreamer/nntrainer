@@ -138,6 +138,8 @@ Tensor::Tensor(std::string name_, Tformat fm, Tdatatype d_type) {
     itensor_ = std::make_unique<QS4CX_Tensor>(name_, fm);
   } else if (d_type == Tdatatype::QS4CX_WH) {
     itensor_ = std::make_unique<QS4CX_WH_Tensor>(name_, fm);
+  } else if (d_type == Tdatatype::QS2CX_WH) {
+    itensor_ = std::make_unique<QS2CX_WH_Tensor>(name_, fm);
   } else if (d_type == Tdatatype::UINT4) {
     itensor_ = std::make_unique<Uint4QTensor>(name_, fm);
   } else if (d_type == Tdatatype::UINT8) {
@@ -190,6 +192,8 @@ Tensor::Tensor(const TensorDim &d, bool alloc_now, Initializer init,
     itensor_ = std::make_unique<QS4CX_Tensor>(d, alloc_now, init, name);
   } else if (d.getDataType() == Tdatatype::QS4CX_WH) {
     itensor_ = std::make_unique<QS4CX_WH_Tensor>(d, alloc_now, init, name);
+  } else if (d.getDataType() == Tdatatype::QS2CX_WH) {
+    itensor_ = std::make_unique<QS2CX_WH_Tensor>(d, alloc_now, init, name);
   } else if (d.getDataType() == Tdatatype::UINT4) {
     if (qscheme != QScheme::Q4_Kx8) {
       itensor_ =
@@ -246,6 +250,8 @@ Tensor::Tensor(const TensorDim &d, const void *buf, QScheme qscheme) {
     itensor_ = std::make_unique<QS4CX_Tensor>(d, buf);
   } else if (d.getDataType() == Tdatatype::QS4CX_WH) {
     itensor_ = std::make_unique<QS4CX_WH_Tensor>(d, buf);
+  } else if (d.getDataType() == Tdatatype::QS2CX_WH) {
+    itensor_ = std::make_unique<QS2CX_WH_Tensor>(d, buf);
   } else if (d.getDataType() == Tdatatype::UINT4) {
     if (qscheme != QScheme::Q4_Kx8)
       itensor_ = std::make_unique<Uint4QTensor>(d, buf, qscheme);
@@ -297,6 +303,8 @@ Tensor::Tensor(const Tensor &rhs) {
     itensor_ = std::make_unique<QS4CX_Tensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::QS4CX_WH) {
     itensor_ = std::make_unique<QS4CX_WH_Tensor>(*rhs.itensor_);
+  } else if (rhs.getDataType() == Tdatatype::QS2CX_WH) {
+    itensor_ = std::make_unique<QS2CX_WH_Tensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::UINT4) {
     itensor_ = std::make_unique<Uint4QTensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::UINT8) {

@@ -1,0 +1,20 @@
+{
+  "command": [
+    "cc",
+    "-std=c11",
+    "-O3",
+    "-ffp-contract=off",
+    "-fopenmp",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-Wno-unused-function",
+    "-Inntrainer/tensor",
+    "/tmp/lfm2-router-bounds-20261013/generate_outer_bounds.c",
+    "-lm",
+    "-o",
+    "/tmp/lfm2-router-bounds-20261013/generate_outer_bounds"
+  ],
+  "elapsed_seconds": 3.4846169450011075,
+  "returncode": 0
+}

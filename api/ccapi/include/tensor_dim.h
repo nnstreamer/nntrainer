@@ -53,25 +53,26 @@ public:
    * FP16 & FP32
    */
   enum class DataType {
-    QINT4,  /** quantized int 4*/
-    QINT8,  /** quantized int 8*/
-    QINT16, /** quantized int 16*/
-    BCQ,    /** binary-code-based quantized*/
-    Q4_K,   /** Q4_K quantized*/
-    Q6_K,   /** q6 k quantized */
-    Q4_0,   /** Q4_0 k quantized */
-    QS4CX,  /** QS4CX quantized */
+    QINT4,    /** quantized int 4*/
+    QINT8,    /** quantized int 8*/
+    QINT16,   /** quantized int 16*/
+    BCQ,      /** binary-code-based quantized*/
+    Q4_K,     /** Q4_K quantized*/
+    Q6_K,     /** q6 k quantized */
+    Q4_0,     /** Q4_0 k quantized */
+    QS4CX,    /** QS4CX quantized */
     QS4CX_WH, /** QS4CX whose nibbles are in the HMX WH tile layout, with a
                   per-output-channel column sum after the scales. Built
                   offline (htp_wh_layout.h); the HTP backend registers it
                   without converting, and no CPU kernel can read it. */
-    UINT4,  /** quantized unsigned int 4*/
-    UINT8,  /** unsigned int 8 bit */
-    UINT16, /** unsigned int 16 bit */
-    UINT32, /** unsigned int 32 bit */
-    FP16,   /** half precision */
-    FP32,   /** single precision */
-    NONE,   /** not specified */
+    UINT4,    /** quantized unsigned int 4*/
+    UINT8,    /** unsigned int 8 bit */
+    UINT16,   /** unsigned int 16 bit */
+    UINT32,   /** unsigned int 32 bit */
+    FP16,     /** half precision */
+    FP32,     /** single precision */
+    QS2CX_WH, /** Palette-coded 2-bit WH expert weights, expanded for HMX. */
+    NONE,     /** not specified */
   };
 
   /**

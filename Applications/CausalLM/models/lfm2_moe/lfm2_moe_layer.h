@@ -33,6 +33,7 @@
 #include <acti_func.h>
 #include <causallm_common_properties.h>
 #include <common_properties.h>
+#include <compute_ops.h>
 #include <layer_impl.h>
 
 namespace causallm {
@@ -108,12 +109,9 @@ public:
    * @copydoc Layer::save(std::ofstream &file, RunLayerContext &run_context,
    * bool opt_var, ml::train::ExecutionMode mode, bool trainable,
    * TensorDim::DataType dtype, ml::train::ISA target_isa)
-   * @note Overridden so the router gate and expert bias are never quantized:
-   *       the generic default only special-cases height==1 (bias-like)
-   *       tensors, but the router gate is [hidden, num_experts] with
-   *       num_experts possibly divisible by 32 (e.g. 32 for LFM2-8B-A1B),
-   *       which would otherwise be silently Q4_0-quantized on save and
-   *       corrupt the file layout for every tensor written after it.
+   * @note Preserve the router's explicitly configured storage dtype and the
+   *       FP32 expert bias. Applying the expert dtype to the router would
+   *       mismatch router_dtype and shift every following tensor on load.
    */
   void save(
     std::ofstream &file, nntrainer::RunLayerContext &run_context, bool opt_var,
@@ -144,6 +142,13 @@ public:
    */
   bool preloadExperts(nntrainer::RunLayerContext &context);
 
+  /** Snapshot this model's immutable virtual expert descriptors, without I/O.
+   */
+  bool appendVirtualExpertFiles(
+    nntrainer::RunLayerContext &context,
+    std::vector<nntrainer::ComputeOps::ExpertFileDesc> &descriptors) const;
+  unsigned int routerWeightIndex() const { return gate_idx; }
+
   static constexpr const char *type = "lfm2_moe"; /**< type of the layer */
 
 private:
@@ -153,7 +158,8 @@ private:
   std::tuple<props::NumExperts, props::NumExpertsPerToken,
              nntrainer::props::Unit, props::MoEActivation, props::RouterType,
              props::CacheExperts, props::InNorm, props::RouterNorm,
-             props::OutNorm, props::OutAdd, nntrainer::props::Epsilon>
+             props::OutNorm, props::OutAdd, nntrainer::props::Epsilon,
+             props::RouterDtype>
     moe_props;
   /** The block's norms folded into this layer (doc 57 section 5 step 4):
    *  in_norm norms the input for the experts, router_norm norms it again

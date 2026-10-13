@@ -1,0 +1,46 @@
+{
+  "reviewer": "/root/attention_audit",
+  "status": "SOURCE_AND_OWN_PUB_NORMAL_SANITIZER_GATES_PASS",
+  "base": "3103136e938e08e212e505ddedc81d0eb35359c6",
+  "files": {
+    "nntrainer/tensor/htp_backend/htp_expert_host_staging.h": "e877e18f0290837997f631ed843f432222692bb8e4786424eedb4a3132f8d5a9",
+    "test/htp/host/expert_host_staging_host_check.cpp": "582425364b016628135ad315f4f87f4892b385e2d9452b34972aa348e252807e"
+  },
+  "patches": {
+    "production.patch": "013e299dc035e2150c5e39274d5b800f74a5101e132fc887d6c143129b3a30a8",
+    "tests.patch": "32343f7264b09707630ed0a0f04f286e3daf19d0d0257b9309bc71013247e781"
+  },
+  "proof": [
+    "take marks a record taken once; copying the shared_ptr retains the single Lease object. Only final shared Lease destruction can move/free payload.",
+    "Existing backend readExpert ReleaseHost RAII resets st.host after both GU and DN copyPart operations finish or on failure. It does not publish the worker job done flag until readExpert and this destructor return.",
+    "The bank remains owned by Lease.bank through destruction. Payload move is under the bank mutex; physical delete[] happens outside the mutex.",
+    "leases_ remains nonzero through physical free. cancelAndWait cannot finish or clear source descriptors until free completes and leases_ decrements.",
+    "Descriptor/source ownership and stats semantics remain unchanged. Cancelled/unconsumed records are still freed by cancelAndWait. Failed and rollback-held records free exactly once.",
+    "No new reader, heap allocation, detached task, out-of-prefill work, model arithmetic, DSP source, registry, IDL, app or ComputeOps ABI change.",
+    "Releases move earlier into ordinary reader work; this shortens retention and may overlap cleanup with DSP work. It does not guarantee lower allocation peak or TPS gain."
+  ],
+  "tests": {
+    "own_pub_normal": {
+      "helper_assertions": 3916,
+      "actual_v16_backend_assertions": 758
+    },
+    "own_pub_asan_ubsan": {
+      "helper_assertions": 3916,
+      "actual_v16_backend_assertions": 758
+    },
+    "negative_baseline": "New fixture fails on old helper at assertion3809, as expected.",
+    "real_delete_probe": "Blocks real delete[] to verify stats can acquire bank lock and cancellation waits for physical cleanup.",
+    "android_private_syntax": "PASS; existing DMA signedness warning only."
+  },
+  "log_sha256": {
+    "staging-normal.log": "da48d55ef1462c67fc401409276a340fb62e0037d2b10ab0e7fd3aa7e854c741",
+    "staging-sanitize.log": "33824296bab58f9e14af21019043a1d4ea5f28b8175d2f4139eb1b4542b58325",
+    "baseline-negative.log": "889ec2f541fc90640a1deb63893486b74d476ada666eea6f7abda6c5bb0ba890",
+    "android-backend.log": "304e65ebd93fe32d72a39a5b7ea01a9b4b2242d8b0896444b387d2c98fdacd84"
+  },
+  "limitations": [
+    "Candidate device raw parity and clean performance gate remain parent-owned.",
+    "No claimed >=5ms gain for eager release before measurement."
+  ],
+  "mutations": "Only authorized two-file candidate in PUB plus private evidence/build artifacts; no root live edits, commits or device calls."
+}

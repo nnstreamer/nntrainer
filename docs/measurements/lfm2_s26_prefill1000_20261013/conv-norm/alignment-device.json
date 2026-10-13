@@ -1,0 +1,108 @@
+{
+  "serial": "R5KL30G6MCX",
+  "registry_capacity": 2048,
+  "runs": [
+    {
+      "variant": "control",
+      "label": "control-corpus",
+      "command": "cd /data/local/tmp/lfm2_prefill1000_20261013/conv-align-registry2048-v1/control && echo NNTR_BENCH_PID=$$ && exec env LD_LIBRARY_PATH=.:/data/local/tmp/lfm2_prefill1000_20261013/conv-align-registry2048-v1/common ADSP_LIBRARY_PATH=. ./conv_alignment_device_check dump corpus.bin",
+      "returncode": 0,
+      "wall_seconds": 0.6638827550013957,
+      "interferers": {},
+      "valid": true
+    },
+    {
+      "variant": "aligned",
+      "label": "aligned-corpus",
+      "command": "cd /data/local/tmp/lfm2_prefill1000_20261013/conv-align-registry2048-v1/aligned && echo NNTR_BENCH_PID=$$ && exec env LD_LIBRARY_PATH=.:/data/local/tmp/lfm2_prefill1000_20261013/conv-align-registry2048-v1/common ADSP_LIBRARY_PATH=. ./conv_alignment_device_check dump corpus.bin",
+      "returncode": 0,
+      "wall_seconds": 0.3179845410013513,
+      "interferers": {},
+      "valid": true
+    },
+    {
+      "variant": "control",
+      "label": "bench-0-control",
+      "command": "cd /data/local/tmp/lfm2_prefill1000_20261013/conv-align-registry2048-v1/control && echo NNTR_BENCH_PID=$$ && exec env LD_LIBRARY_PATH=.:/data/local/tmp/lfm2_prefill1000_20261013/conv-align-registry2048-v1/common ADSP_LIBRARY_PATH=. ./conv_alignment_device_check bench 7",
+      "returncode": 0,
+      "wall_seconds": 0.6581277310015139,
+      "interferers": {},
+      "valid": true
+    },
+    {
+      "variant": "aligned",
+      "label": "bench-1-aligned",
+      "command": "cd /data/local/tmp/lfm2_prefill1000_20261013/conv-align-registry2048-v1/aligned && echo NNTR_BENCH_PID=$$ && exec env LD_LIBRARY_PATH=.:/data/local/tmp/lfm2_prefill1000_20261013/conv-align-registry2048-v1/common ADSP_LIBRARY_PATH=. ./conv_alignment_device_check bench 7",
+      "returncode": 0,
+      "wall_seconds": 0.6717598800005362,
+      "interferers": {},
+      "valid": true
+    },
+    {
+      "variant": "aligned",
+      "label": "bench-2-aligned",
+      "command": "cd /data/local/tmp/lfm2_prefill1000_20261013/conv-align-registry2048-v1/aligned && echo NNTR_BENCH_PID=$$ && exec env LD_LIBRARY_PATH=.:/data/local/tmp/lfm2_prefill1000_20261013/conv-align-registry2048-v1/common ADSP_LIBRARY_PATH=. ./conv_alignment_device_check bench 7",
+      "returncode": 0,
+      "wall_seconds": 0.6435434559989517,
+      "interferers": {},
+      "valid": true
+    },
+    {
+      "variant": "control",
+      "label": "bench-3-control",
+      "command": "cd /data/local/tmp/lfm2_prefill1000_20261013/conv-align-registry2048-v1/control && echo NNTR_BENCH_PID=$$ && exec env LD_LIBRARY_PATH=.:/data/local/tmp/lfm2_prefill1000_20261013/conv-align-registry2048-v1/common ADSP_LIBRARY_PATH=. ./conv_alignment_device_check bench 7",
+      "returncode": 0,
+      "wall_seconds": 0.6733692289999453,
+      "interferers": {},
+      "valid": true
+    }
+  ],
+  "core_sha256": "91cab386744c0802c0134059f58977e446719999add378ad9d6ba335803e4d19",
+  "client_sha256": "00119d36761e51515013cfad7acf62ab687ecda3fc579dac2170212fd22e0ffd",
+  "skel_sha256": {
+    "control": "4ffbc23944930e62a965c84c4df354b80bad789ad68a50ee6baa606c6100946b",
+    "aligned": "59554c6d99b14f58b8aab0a4e1293d568173b5ed0afe9cdbe4ed29f37e7911f4"
+  },
+  "corpus_sha256": {
+    "control": "88914ea792ce4d55f40c8f41878fa1d92b0c54b5ff017b338224157384b8a8f9",
+    "aligned": "88914ea792ce4d55f40c8f41878fa1d92b0c54b5ff017b338224157384b8a8f9"
+  },
+  "corpus_equal": true,
+  "fused_medians_us": {
+    "control": [
+      4143.385,
+      4109.271
+    ],
+    "aligned": [
+      3957.239,
+      3911.667
+    ]
+  },
+  "median_of_medians_us": {
+    "control": 4126.3279999999995,
+    "aligned": 3934.453
+  },
+  "passed": true,
+  "before": {
+    "status": 0,
+    "temperatures": {
+      "AP": 27.1,
+      "BAT": 26.3,
+      "PA": 27.5,
+      "SKIN": 28.5,
+      "SUBBAT": 0.0,
+      "USB": 26.2
+    }
+  },
+  "after": {
+    "status": 0,
+    "temperatures": {
+      "AP": 28.5,
+      "BAT": 26.3,
+      "PA": 27.9,
+      "SKIN": 28.7,
+      "SUBBAT": 0.0,
+      "USB": 26.2
+    }
+  }
+}

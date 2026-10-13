@@ -1,0 +1,74 @@
+[
+  {
+    "check": "pr-unittest_hvx_softmax",
+    "exit_code": 1,
+    "tests": 41,
+    "failures": 4,
+    "disabled": 0,
+    "errors": 0
+  },
+  {
+    "check": "pr-unittest_hvx_attn_f16",
+    "exit_code": 0,
+    "tests": 29,
+    "failures": 0,
+    "disabled": 0,
+    "errors": 0
+  },
+  {
+    "check": "pr-unittest_hvx_attn_q",
+    "exit_code": 0,
+    "tests": 26,
+    "failures": 0,
+    "disabled": 0,
+    "errors": 0
+  },
+  {
+    "check": "pr-unittest_compute_ops_dispatch",
+    "exit_code": 0,
+    "tests": 23,
+    "failures": 0,
+    "disabled": 0,
+    "errors": 0
+  },
+  {
+    "check": "pr-unittest_hvx_mm_u8i4",
+    "exit_code": 0,
+    "tests": 38,
+    "failures": 0,
+    "disabled": 3,
+    "errors": 0
+  },
+  {
+    "check": "pr-weight-direct",
+    "exit_code": 0
+  },
+  {
+    "check": "pr-decode-prefetch",
+    "exit_code": 0
+  },
+  {
+    "check": "pr-expert-update-0",
+    "exit_code": 0
+  },
+  {
+    "check": "pr-expert-update-1",
+    "exit_code": 0
+  },
+  {
+    "check": "pr-expert-update-2",
+    "exit_code": 0
+  },
+  {
+    "check": "pr-expert-update-3",
+    "exit_code": 0
+  },
+  {
+    "check": "pr-dispatch-rpc",
+    "exit_code": 0,
+    "tests": 12,
+    "failures": 0,
+    "disabled": 0,
+    "errors": 0
+  }
+]

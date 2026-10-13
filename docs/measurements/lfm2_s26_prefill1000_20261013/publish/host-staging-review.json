@@ -1,0 +1,75 @@
+{
+  "status": "READY_SOURCE_AND_MATCHED_PRODUCTION_BUILD",
+  "publication_base": "654bc5c2a9775e2df53fdb7563b7a6cbacd12e80",
+  "files": {
+    "Applications/CausalLM/models/causal_lm.cpp": "b253531d74c0115b2015050ff1c83ff72198279996e6b5ba1cf12eeeacab991a",
+    "Applications/CausalLM/models/causal_lm.h": "112266e84e9c137b644710fb05b37e8060e3772968c07234593e5c6ff03c7f4b",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_moe_causallm.cpp": "8fb2667a925f1bbbb5b31b5a99d6c6fcc1930f88c5b7035909442de62cdcc028",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_moe_causallm.h": "11efad4b979bc60a63b0149ffdfcee15c106c44f51b7df3c9da8a91b9c39c42f",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp": "798413988e8f6e7cfa0c7cd16ccb9268d09dc3867a934cc8abf820cab4130688",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.h": "4512e126e00bdc1fe72c0bc0daef9d94f453e9b0f65899279931d14ded14bebb",
+    "nntrainer/tensor/cpu_backend/compute_ops.h": "216d5b1fed2907cfabfcb1f277cb51b03ed525f40d3b2ac35adcfe10916bf112",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "5119dacd9ecba716ebdffd0f631a55951d3256e1b14a28d49117faa2fe469043",
+    "nntrainer/tensor/htp_backend/htp_expert_host_staging.h": "7c1cfc0439f1495e8ab2ef716d4b706bfba1601e51afe2a96036cc25a31f91bf",
+    "test/htp/host/expert_host_staging_fixture.h": "4aedf57b580a4f24164a391ed30923bc41604ee2b081d0574aacb122c35cb0d2",
+    "test/htp/host/expert_host_staging_host_check.cpp": "f91764af1b933cac7901147622055e6d467eb02eec155336adbfc1f8775d2fe2",
+    "test/htp/host/expert_host_staging_backend_check.cpp": "d146166b4ed73c379b37b293260baa15c9a21ed1d049695a2838887f3536b640",
+    "test/htp/host/run_expert_host_staging_checks.py": "3a15e9a677faa942d65d79a087c9d6314a68eba23dcdc2452ec6841b3230f4eb"
+  },
+  "adaptations": [
+    {
+      "pending": 0,
+      "resolution": "Insert unchanged new virtual API after published descriptor; do not add tl2_packed field."
+    },
+    {
+      "pending": [
+        1,
+        2
+      ],
+      "resolution": "Append host lease to published StagedExpert and published 6-field initializer; no tl2_kind field."
+    },
+    {
+      "pending": 3,
+      "resolution": "Insert exact host copy branch before published readWeight call; retain published signature."
+    },
+    {
+      "pending": 4,
+      "resolution": "Omit initializer adjustment inside absent prepared-TL2 representation-switch method."
+    },
+    {
+      "new_method_guard": "Omit preparedTl2File(), ternaryMode() and tl2_packed predicates from clean backend because symbols/types do not exist in clean HEAD. Other eligibility guards unchanged."
+    },
+    {
+      "header": "Latest Conv-agent optional-member adapter supports published plain descriptor, rejects packed descriptors if member exists."
+    }
+  ],
+  "permanent_tests": {
+    "publication-normal.log": {
+      "sha256": "1b80ba11ca46f92942dc8be1acd1b89187e18e708f20728139435c94d95787db",
+      "summary": [
+        "PASS host staging: 3884 assertions, actual QS2 validator, readers=7, bounds=160",
+        "PASS extracted backend: 708 assertions, disabled/stale scope, actual worker copies and enqueue rollback",
+        "PASS: generic staging header without Linux/Android macros"
+      ]
+    },
+    "publication-sanitize.log": {
+      "sha256": "1b80ba11ca46f92942dc8be1acd1b89187e18e708f20728139435c94d95787db",
+      "summary": [
+        "PASS host staging: 3884 assertions, actual QS2 validator, readers=7, bounds=160",
+        "PASS extracted backend: 708 assertions, disabled/stale scope, actual worker copies and enqueue rollback",
+        "PASS: generic staging header without Linux/Android macros"
+      ]
+    }
+  },
+  "normal_assertions": 4592,
+  "sanitized_assertions": 4592,
+  "format": "clang-format14 official git wrapper changed-line check PASS for 8 modified files; whole-file byte check PASS for new header and test C/C++.",
+  "diff_check": "PASS",
+  "android": "Four changed translation units syntax PASS; clean core/app link+install PASS; exported PUB headers refreshed.",
+  "production_artifacts": "artifacts.json",
+  "diagnostic": "separate diagnostic-build.json, not TPS eligible",
+  "no_commit": true,
+  "no_device_calls": true,
+  "live_repo_mutated": false,
+  "limitations": "No device parity or throughput claim for clean publication runtime yet; parent owns device gate."
+}

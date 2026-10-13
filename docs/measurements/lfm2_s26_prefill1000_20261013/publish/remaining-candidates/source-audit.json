@@ -1,0 +1,143 @@
+{
+  "status": "READ-ONLY SOURCE AUDIT; actual routing histogram absent from these saved profiles",
+  "source_commit": "9b2ced98f66f65506385d9bd71759fb58a7f534e",
+  "source_sha256": {
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "91c426ef2ca6667ba8df6d21528723fe8f70561f06ded1502df6a6bf17585a71",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "f056bede5abfa6b18c463a3a2a89995889d065d7d2dccb1e25a1150f7479a954",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_cached_slim_moe_causallm.cpp": "c51c5a90f8afd5cff6586e9e349c1956796a2d91966f987b0cc11932e9e99d27",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.h": "4512e126e00bdc1fe72c0bc0daef9d94f453e9b0f65899279931d14ded14bebb",
+    "Applications/CausalLM/models/lfm2_moe/expert_lru.h": "4f87f48e64e1895a4863b09f48a25e093fa04e5528e02c70e7b0a9975685705c",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp": "798413988e8f6e7cfa0c7cd16ccb9268d09dc3867a934cc8abf820cab4130688",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer_cached.cpp": "c2df086414e2aaa8d6b970bef69e663b223deaf2a4de8c4da323d0fe3b82c65b",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer_cached.h": "3c59c313b0b11453e9a455bc579d76b1eb2871a18ebb3d37c3e6eb1733f43873"
+  },
+  "profiles": [
+    {
+      "label": "v15-pub-stage64-profile-an1",
+      "log_sha256": "ec9dc29c9994d79889022c3019da4df8e3ae560e01428f3a06fed7cc21772123",
+      "json_sha256": "0955367804f6fcf1dee6a702a4d719bd1f224dc535186729fe65025e4131fbc7",
+      "routing_trace_enabled": false,
+      "moe_dump_enabled": false,
+      "moe_calls": 38,
+      "row_shapes": {
+        "1024": 37,
+        "64": 1
+      },
+      "prefetch_descriptors": 1596,
+      "prefetch_complete_on_entry": 1509,
+      "prefetch_not_complete_on_entry": 87,
+      "qs2_weight_attempts": 4864,
+      "active_expert_count": null,
+      "count_zero_read_experts": null,
+      "counter_limit": "Read completion counts do not identify active experts or separate unstarted from in-flight reads. M0 miss=0 counts synchronous demand misses, not unused experts."
+    },
+    {
+      "label": "v17-pub-stage64-profile-av1",
+      "log_sha256": "aed75774ae2493ba779b0807c9e7c05b487d2229d4aed3dfa64260d1afcaa759",
+      "json_sha256": "759a9c3f798b5fdc941d184795766b563539c8c43dfa7941873c364e0ff3a24f",
+      "routing_trace_enabled": false,
+      "moe_dump_enabled": false,
+      "moe_calls": 38,
+      "row_shapes": {
+        "1024": 37,
+        "64": 1
+      },
+      "prefetch_descriptors": 1596,
+      "prefetch_complete_on_entry": 1410,
+      "prefetch_not_complete_on_entry": 186,
+      "qs2_weight_attempts": 4864,
+      "active_expert_count": null,
+      "count_zero_read_experts": null,
+      "counter_limit": "Read completion counts do not identify active experts or separate unstarted from in-flight reads. M0 miss=0 counts synchronous demand misses, not unused experts."
+    }
+  ],
+  "aggregate_read_attribution": {
+    "known_expert_layers": 38,
+    "experts_per_layer": 64,
+    "cache_setting_per_layer": 22,
+    "global_initial_preload_capacity": 836,
+    "initial_preload_order": "13 complete MoE layers (832 experts), then first4 experts of layer ordinal13",
+    "remaining_prefetch_descriptors": 1596,
+    "all_experts_in_catalog": 2432,
+    "gu_dn_weight_attempts": 4864,
+    "interpretation": "Counter total and unchanged schedule support one full catalog read across initialization plus prefill; they do not prove all experts were routed to. Initial836 reads precede timed prefill.",
+    "known_inactive_read_count": null
+  },
+  "current_behavior": [
+    {
+      "file": "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp",
+      "line": 1056,
+      "behavior": "preloadExperts fills the global pool in descriptor order, without router information."
+    },
+    {
+      "file": "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp",
+      "line": 1691,
+      "behavior": "The active vector excludes empty expert_assignments for virtual experts. stage(active) and demand registration already contain only active experts and preserve ascending expert order."
+    },
+    {
+      "file": "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp",
+      "line": 1832,
+      "behavior": "queue_future requests every nonresident descriptor in each future layer; its router has not run yet. Every future resident descriptor is pinned."
+    },
+    {
+      "file": "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp",
+      "line": 1889,
+      "behavior": "take_batch calls nonselective prefetch end before stage(active), after this layer routing is already available."
+    },
+    {
+      "file": "nntrainer/tensor/htp_backend/htp_compute_ops.cpp",
+      "line": 4308,
+      "behavior": "prefetch end waits for all descriptors and registers all; no row_count mask."
+    },
+    {
+      "file": "nntrainer/tensor/htp_backend/htp_compute_ops.cpp",
+      "line": 4376,
+      "behavior": "Existing selective collection rejects non-decode batches. It already demonstrates safe unstarted cancellation and delayed slot recycling, but is not directly available to prefill."
+    },
+    {
+      "file": "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c",
+      "line": 1471,
+      "behavior": "DSP validates handles only when row_count>0 and builds order from active experts; zero-row expert weights do not participate in numerical work."
+    }
+  ],
+  "feasibility_after_router": {
+    "extra_router_rpc_required": false,
+    "reason": "Existing fused prepared router publishes sel/weight to ARM; assignmentsFromRoute has already materialized exact per-expert vectors before take_batch. Prepared input cookie retains activation, not an obligation to use all64 handles.",
+    "possible_extension": "Pass exact active keys into a prefill-selective batch completion. Cancel only unstarted unused reads, skip unused registration, and keep running-reader ownership/reservations until completion. Leave active expert order, weights and prepared activation unchanged.",
+    "limits": [
+      "Most reads may already be complete by router return; after-router selection cannot recover their IO traffic.",
+      "For an1/av1 only87/186 descriptor reads in aggregate were incomplete at layer collection. This is an upper bound on incomplete reads, not an unused or cancellable count; in-flight work is included.",
+      "Skipping all future reads until routing would remove overlap and can increase exposed stalls; NNTR_MOE_PREFETCH=0 is not an established speedup.",
+      "Global LRU hold/unhold and pending retire counts must change together; never return an in-flight slot to the pool.",
+      "Existing selective keep_ready defaults to retaining already-read guesses; simply calling it with active keys does not automatically avoid all unused registration.",
+      "Malformed unused weights currently may fail during speculative loading. Choosing not to read them changes when such file errors are observed and needs explicit contract review."
+    ],
+    "numerical_change_needed": false,
+    "measured_speedup_or_saved_bytes": null
+  },
+  "existing_observers": {
+    "NNTR_MOE_TRACE": {
+      "source": "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp:588 and2291",
+      "format": "layer rows | ascending active IDs | per-token n_sel IDs",
+      "n_sel": 9,
+      "top_k_counted_for_histogram": 4,
+      "cost_prediction": "37*1024*9+64*9=341568 integer fprintf calls plus active IDs, roughly1MB buffered text. No extra RPC; virtual path already requests n_sel9. Diagnostic-only."
+    },
+    "NNTR_HTP_DUMP": {
+      "source": "nntrainer/tensor/htp_backend/htp_compute_ops.cpp:5487",
+      "coverage": "manifest r= lists compact per-call row_count; full activation/output blobs are also dumped and are unnecessary for this question."
+    },
+    "lighter_future_diagnostic_location": {
+      "source": "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp:2302",
+      "proposal": "Inside existing assignment-size loop, profile-gated capture counts[64], active_mask, active_count and layer/rows; write one aggregate line per layer after capture. Reuse computed assignments; no extra RPC, no sigmoid/router recomputation, no new per-token atomics.",
+      "overhead_prediction": "At most64 size reads and increments per layer,2432 entries per prefill; single short line each of38 layers. Wall overhead unmeasured."
+    }
+  },
+  "parser": {
+    "path": "/tmp/lfm2-prefill1000-20261013/attention-followup/unused-expert-audit/parse_moe_trace.py",
+    "sha256": "673673a6dfbb121fc0ce4952402b18d77a3415fa23d9dc9556526ca570d3b677",
+    "checks": "PASS top-k vs hint separation, bounds/duplicates, active-set consistency, full synthetic38-layer cache/prefetch/host-stage attribution. Synthetic output deleted; not actual router evidence."
+  },
+  "production_source_modified": false,
+  "device_calls": 0
+}

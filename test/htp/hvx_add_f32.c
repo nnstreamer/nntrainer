@@ -91,7 +91,7 @@ int nntr_hvx_session_info(remote_handle64 handle, uint32 *res, int resLen) {
   res[2] = (uint32)(avail >> 10);
   res[3] = (uint32)(max_page >> 10);
   {
-    /* [#132 Part B E5g] the PD's heap in use, KiB (HAP_mem_get_stats; 0
+    /** [#132 Part B E5g] the PD's heap in use, KiB (HAP_mem_get_stats; 0
        where the image lacks it) -- the E path's close line prints it */
     struct HAP_mem_stats st;
     res[4] = (HAP_mem_get_stats && HAP_mem_get_stats(&st) == 0)
@@ -143,7 +143,7 @@ int nntr_hvx_open(const char *uri, remote_handle64 *handle) {
     hexkl_micro_hw_init(&s->vtcm_base, &s->vtcm_size, &s->hmx_fp16_rate);
 #endif
   if (res != AEE_SUCCESS) {
-    /* [#178] a second session (its own PD) beside one that holds the HMX
+    /** [#178] a second session (its own PD) beside one that holds the HMX
        and most of VTCM: open without HMX instead of failing */
     FARF(HIGH, "nntr_hvx_open: hexkl_micro_hw_init 0x%08x: lite open", res);
     lite_vtcm(s);
@@ -227,7 +227,23 @@ int nntr_hvx_open(const char *uri, remote_handle64 *handle) {
     if (HAP_power_set((void *)s, &req) != AEE_SUCCESS) {
       FARF(HIGH, "nntr_hvx_open: DCVS vote rejected (continuing)");
     }
-    /* The bus, separately from the core. The DCVS vote above raises the
+#if defined(HAP_POWER_SET_HMX_V2_DEFINED) && !defined(NNTR_HVX_NO_HMX_VOTE)
+    /** HMX has a separate clock vote from the Q6 core. Keep this request
+       best effort, like the core and bus votes. NNTR_HVX_NO_HMX_VOTE
+       builds the previous policy for device comparisons. */
+    memset(&req, 0, sizeof(req));
+    req.type = HAP_power_set_HMX_v2;
+    req.hmx_v2.set_power = 0;
+    req.hmx_v2.set_clock = 1;
+    req.hmx_v2.target_corner = HAP_DCVS_EXP_VCORNER_MAX;
+    req.hmx_v2.min_corner = HAP_DCVS_EXP_VCORNER_DISABLE;
+    req.hmx_v2.max_corner = HAP_DCVS_EXP_VCORNER_MAX;
+    req.hmx_v2.perf_mode = HAP_CLK_PERF_HIGH;
+    if (HAP_power_set((void *)s, &req) != AEE_SUCCESS) {
+      FARF(HIGH, "nntr_hvx_open: HMX clock vote rejected (continuing)");
+    }
+#endif
+    /** The bus, separately from the core. The DCVS vote above raises the
        DSP clock, and mm at 17.5 ns a tile says it holds; it says nothing
        about DDR. The MoE layer's weight DMA measured 16-18 GB/s in situ
        (doc 46 section 50.7) against 38.8 for the same arena in isolation,
@@ -297,6 +313,7 @@ int nntr_hvx_close(remote_handle64 handle) {
   /* [#132 Part B E5i] a no-op when the ARM side ran it before its munmaps */
   (void)nntr_hvx_arenas_release(handle, &n);
   hexkl_moe_scratch_free(&s->moe_scratch);
+  hexkl_moe_scratch_free(&s->router_q4_scratch);
   /* [#81] The attention cache borrows the pool, so it goes first. */
   hvx_attn_m1_free(s->attn_m1);
   s->attn_m1 = NULL;

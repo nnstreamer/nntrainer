@@ -49,7 +49,7 @@ typedef struct {
   uint32_t v_wh[2];     /**< [ct][dt] V weight tiles */
   uint32_t acc;         /**< one int32 readout tile */
   uint32_t s_hf[2];     /**< [2*rt][ct] fp16 score tiles (softmax layout) */
-  uint32_t p_ah;        /**< [dt][rt][ct] uint8 P' tiles, one set per V group */
+  uint32_t p_ah;        /**< [rt][ct] uint8 P' tiles shared by all V groups */
   uint32_t o_f32;       /**< [g_br][hd] f32 partial output */
   uint32_t qx_f32;      /**< [n_qb_chunk*g_br][hd] f32 gathered Q rows */
   uint32_t total;       /**< first byte past the last region */
@@ -79,6 +79,24 @@ static inline int hexkl_attn_q_tiling_init(const hexkl_attn_f16_shape *s,
   return hexkl_attn_f16_tiling_init_aligned(s, t, HEXKL_ATTN_Q_ROWS);
 }
 
+/** @brief Q staging budget, shared by the planner and prefill runner. */
+#define HEXKL_ATTN_Q_CHUNK_BUDGET (1536u * 1024u)
+
+/** @brief Query blocks per staging chunk for a validated shape/tiling. */
+static inline uint32_t
+hexkl_attn_q_chunk_count(const hexkl_attn_f16_shape *s,
+                         const hexkl_attn_f16_tiling *t) {
+  const uint32_t n_qb = hexkl_attn_f16_n_q_blocks(s, t);
+  const uint32_t per_qb =
+    t->g_br * s->head_dim * 4u + (t->g_br / HEXKL_ATTN_Q_ROWS) *
+                                   (s->head_dim / HEXKL_ATTN_TILE) *
+                                   HEXKL_ATTN_TILE_BYTES;
+  uint32_t chunk = HEXKL_ATTN_Q_CHUNK_BUDGET / per_qb;
+  if (!chunk)
+    chunk = 1u;
+  return chunk < n_qb ? chunk : n_qb;
+}
+
 /**
  * @brief Lays the regions out and checks them against the arena.
  *
@@ -88,11 +106,12 @@ static inline int hexkl_attn_q_tiling_init(const hexkl_attn_f16_shape *s,
  * @param n_qb_chunk  q blocks per Q quantization pass (>= 1); the kernel
  *                    picks it from a byte budget and falls back to 1
  */
-static inline int hexkl_attn_q_plan(const hexkl_attn_f16_shape *s,
-                                    const hexkl_attn_f16_tiling *t,
-                                    uint32_t arena_top, uint32_t tile_bytes,
-                                    uint32_t n_qb_chunk,
-                                    hexkl_attn_q_layout *L) {
+static inline int hexkl_attn_q_plan_impl(const hexkl_attn_f16_shape *s,
+                                         const hexkl_attn_f16_tiling *t,
+                                         uint32_t arena_top,
+                                         uint32_t tile_bytes,
+                                         uint32_t n_qb_chunk, int gathered_q,
+                                         hexkl_attn_q_layout *L) {
   if (!s || !t || !L || t->g_br == 0 || (t->g_br % HEXKL_ATTN_Q_ROWS) != 0 ||
       (tile_bytes != 1024u && tile_bytes != 512u) || n_qb_chunk == 0) {
     return HEXKL_ATTN_EBADPARM;
@@ -130,12 +149,60 @@ static inline int hexkl_attn_q_plan(const hexkl_attn_f16_shape *s,
   L->o_f32 = off;
   off += hexkl_attn_round_up(t->g_br * s->head_dim * 4u, TB);
   L->qx_f32 = off;
-  off += hexkl_attn_round_up(n_qb_chunk * t->g_br * s->head_dim * 4u, TB);
+  if (gathered_q)
+    off += hexkl_attn_round_up(n_qb_chunk * t->g_br * s->head_dim * 4u, TB);
   L->total = off;
   if (off > arena_top) {
     return HEXKL_ATTN_ENOMEM;
   }
   return HEXKL_ATTN_OK;
+}
+
+/** @brief Original layout, including the gathered FP32-Q tail. */
+static inline int hexkl_attn_q_plan(const hexkl_attn_f16_shape *s,
+                                    const hexkl_attn_f16_tiling *t,
+                                    uint32_t arena_top, uint32_t tile_bytes,
+                                    uint32_t n_qb_chunk,
+                                    hexkl_attn_q_layout *L) {
+  return hexkl_attn_q_plan_impl(s, t, arena_top, tile_bytes, n_qb_chunk, 1, L);
+}
+
+/** @brief Full Q8 prefill for which two Br128 blocks can share one Br256.
+ * Both query widths divide Bc256, preserving every row's KV-block sequence
+ * and mask. Restrict the larger row cap to this bounded geometry.
+ */
+static inline int
+hexkl_attn_q_wire_br256_shape(const hexkl_attn_f16_shape *s,
+                              const hexkl_attn_f16_tiling *t) {
+  return s && t && s->n_q >= 256u && s->n_q <= 0xffffu && s->n_q % 256u == 0u &&
+         s->cache_from == 0u && s->cache_to == s->n_q && s->n_head_q == 32u &&
+         s->n_head_kv == 8u && s->head_dim == 64u && s->window == 0u &&
+         t->br == 256u && t->bc == 256u && t->g == 4u && t->g_br == 1024u;
+}
+
+/** @brief Omit the unused gathered-Q tail for bounded Br256 Q8 prefill.
+ * phase_qprep returns from its Q8 branch before any qx_f32 access. All
+ * preceding offsets are unchanged; the caller appends two QK banks at
+ * L->total. Require space for both banks here, while L->total continues
+ * to describe the base layout expected by the caller.
+ */
+static inline int hexkl_attn_q_plan_wire_br256(const hexkl_attn_f16_shape *s,
+                                               const hexkl_attn_f16_tiling *t,
+                                               uint32_t arena_top,
+                                               uint32_t tile_bytes,
+                                               uint32_t n_qb_chunk,
+                                               hexkl_attn_q_layout *L) {
+  if (!L || !hexkl_attn_q_wire_br256_shape(s, t) || tile_bytes != 1024u ||
+      n_qb_chunk == 0u || n_qb_chunk > hexkl_attn_q_chunk_count(s, t))
+    return HEXKL_ATTN_EBADPARM;
+  const int rc =
+    hexkl_attn_q_plan_impl(s, t, arena_top, tile_bytes, n_qb_chunk, 0, L);
+  if (rc != HEXKL_ATTN_OK)
+    return rc;
+  const uint64_t staged_total =
+    (uint64_t)L->total +
+    2u * (uint64_t)L->n_row_tiles * L->n_col_tiles * HEXKL_ATTN_Q_ACC_BYTES;
+  return staged_total <= arena_top ? HEXKL_ATTN_OK : HEXKL_ATTN_ENOMEM;
 }
 
 #ifdef __cplusplus

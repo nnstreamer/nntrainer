@@ -1,0 +1,2412 @@
+{
+  "v15-pub-stage64-profile-an1": {
+    "node_total_us": 1033463.232,
+    "node_groups_us": {
+      "input": 21.93,
+      "tie_word_embeddings": 3618.125,
+      "multiout": 1.094,
+      "rms_norm": 3911.3020000000006,
+      "conv_block": 153042.23800000004,
+      "dense_ffn": 49196.354999999996,
+      "qkv_layer": 44813.074,
+      "mha_core": 160733.80200000003,
+      "fully_connected": 12540.573,
+      "lfm2_moe": 605584.7390000001
+    },
+    "nodes": [
+      {
+        "name": "input0",
+        "type": "input",
+        "us": 3.282
+      },
+      {
+        "name": "embedding0",
+        "type": "tie_word_embeddings",
+        "us": 1847.396
+      },
+      {
+        "name": "embedding0/generated_out_0",
+        "type": "multiout",
+        "us": 1.094
+      },
+      {
+        "name": "layer0_conv_norm",
+        "type": "rms_norm",
+        "us": 11.927
+      },
+      {
+        "name": "layer0_conv_block",
+        "type": "conv_block",
+        "us": 3282.031
+      },
+      {
+        "name": "layer0_ffn_norm",
+        "type": "rms_norm",
+        "us": 1494.844
+      },
+      {
+        "name": "layer0_ffn",
+        "type": "dense_ffn",
+        "us": 24397.448
+      },
+      {
+        "name": "layer1_conv_norm",
+        "type": "rms_norm",
+        "us": 6.51
+      },
+      {
+        "name": "layer1_conv_block",
+        "type": "conv_block",
+        "us": 4090.729
+      },
+      {
+        "name": "layer1_ffn_norm",
+        "type": "rms_norm",
+        "us": 1565.834
+      },
+      {
+        "name": "layer1_ffn",
+        "type": "dense_ffn",
+        "us": 24798.907
+      },
+      {
+        "name": "layer2_attention_norm",
+        "type": "rms_norm",
+        "us": 7.031
+      },
+      {
+        "name": "layer2_qkv",
+        "type": "qkv_layer",
+        "us": 5292.136
+      },
+      {
+        "name": "cache_k_l2",
+        "type": "input",
+        "us": 1.302
+      },
+      {
+        "name": "cache_v_l2",
+        "type": "input",
+        "us": 0.469
+      },
+      {
+        "name": "layer2_attention",
+        "type": "mha_core",
+        "us": 17398.959
+      },
+      {
+        "name": "layer2_attention_out",
+        "type": "fully_connected",
+        "us": 1083.593
+      },
+      {
+        "name": "layer2_ffn_norm",
+        "type": "rms_norm",
+        "us": 4.219
+      },
+      {
+        "name": "layer2_ffn_down",
+        "type": "lfm2_moe",
+        "us": 21254.375
+      },
+      {
+        "name": "layer3_conv_norm",
+        "type": "rms_norm",
+        "us": 14.583
+      },
+      {
+        "name": "layer3_conv_block",
+        "type": "conv_block",
+        "us": 6633.698
+      },
+      {
+        "name": "layer3_ffn_norm",
+        "type": "rms_norm",
+        "us": 6.302
+      },
+      {
+        "name": "layer3_ffn_down",
+        "type": "lfm2_moe",
+        "us": 13194.375
+      },
+      {
+        "name": "layer4_conv_norm",
+        "type": "rms_norm",
+        "us": 9.74
+      },
+      {
+        "name": "layer4_conv_block",
+        "type": "conv_block",
+        "us": 4705.834
+      },
+      {
+        "name": "layer4_ffn_norm",
+        "type": "rms_norm",
+        "us": 3.594
+      },
+      {
+        "name": "layer4_ffn_down",
+        "type": "lfm2_moe",
+        "us": 13321.25
+      },
+      {
+        "name": "layer5_conv_norm",
+        "type": "rms_norm",
+        "us": 4.427
+      },
+      {
+        "name": "layer5_conv_block",
+        "type": "conv_block",
+        "us": 4745.26
+      },
+      {
+        "name": "layer5_ffn_norm",
+        "type": "rms_norm",
+        "us": 4.219
+      },
+      {
+        "name": "layer5_ffn_down",
+        "type": "lfm2_moe",
+        "us": 13560.26
+      },
+      {
+        "name": "layer6_attention_norm",
+        "type": "rms_norm",
+        "us": 7.136
+      },
+      {
+        "name": "layer6_qkv",
+        "type": "qkv_layer",
+        "us": 4233.281
+      },
+      {
+        "name": "cache_k_l6",
+        "type": "input",
+        "us": 1.875
+      },
+      {
+        "name": "cache_v_l6",
+        "type": "input",
+        "us": 0.625
+      },
+      {
+        "name": "layer6_attention",
+        "type": "mha_core",
+        "us": 15669.844
+      },
+      {
+        "name": "layer6_attention_out",
+        "type": "fully_connected",
+        "us": 1320.052
+      },
+      {
+        "name": "layer6_ffn_norm",
+        "type": "rms_norm",
+        "us": 7.136
+      },
+      {
+        "name": "layer6_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14851.667
+      },
+      {
+        "name": "layer7_conv_norm",
+        "type": "rms_norm",
+        "us": 7.344
+      },
+      {
+        "name": "layer7_conv_block",
+        "type": "conv_block",
+        "us": 5542.396
+      },
+      {
+        "name": "layer7_ffn_norm",
+        "type": "rms_norm",
+        "us": 5.677
+      },
+      {
+        "name": "layer7_ffn_down",
+        "type": "lfm2_moe",
+        "us": 15100.937
+      },
+      {
+        "name": "layer8_conv_norm",
+        "type": "rms_norm",
+        "us": 4.01
+      },
+      {
+        "name": "layer8_conv_block",
+        "type": "conv_block",
+        "us": 5531.458
+      },
+      {
+        "name": "layer8_ffn_norm",
+        "type": "rms_norm",
+        "us": 6.094
+      },
+      {
+        "name": "layer8_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14531.562
+      },
+      {
+        "name": "layer9_conv_norm",
+        "type": "rms_norm",
+        "us": 3.542
+      },
+      {
+        "name": "layer9_conv_block",
+        "type": "conv_block",
+        "us": 4769.323
+      },
+      {
+        "name": "layer9_ffn_norm",
+        "type": "rms_norm",
+        "us": 3.385
+      },
+      {
+        "name": "layer9_ffn_down",
+        "type": "lfm2_moe",
+        "us": 13666.667
+      },
+      {
+        "name": "layer10_attention_norm",
+        "type": "rms_norm",
+        "us": 3.021
+      },
+      {
+        "name": "layer10_qkv",
+        "type": "qkv_layer",
+        "us": 4297.24
+      },
+      {
+        "name": "cache_k_l10",
+        "type": "input",
+        "us": 0.625
+      },
+      {
+        "name": "cache_v_l10",
+        "type": "input",
+        "us": 0.521
+      },
+      {
+        "name": "layer10_attention",
+        "type": "mha_core",
+        "us": 15825.26
+      },
+      {
+        "name": "layer10_attention_out",
+        "type": "fully_connected",
+        "us": 1221.511
+      },
+      {
+        "name": "layer10_ffn_norm",
+        "type": "rms_norm",
+        "us": 3.906
+      },
+      {
+        "name": "layer10_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14617.5
+      },
+      {
+        "name": "layer11_conv_norm",
+        "type": "rms_norm",
+        "us": 7.552
+      },
+      {
+        "name": "layer11_conv_block",
+        "type": "conv_block",
+        "us": 5305.157
+      },
+      {
+        "name": "layer11_ffn_norm",
+        "type": "rms_norm",
+        "us": 4.584
+      },
+      {
+        "name": "layer11_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14822.448
+      },
+      {
+        "name": "layer12_conv_norm",
+        "type": "rms_norm",
+        "us": 3.854
+      },
+      {
+        "name": "layer12_conv_block",
+        "type": "conv_block",
+        "us": 5331.094
+      },
+      {
+        "name": "layer12_ffn_norm",
+        "type": "rms_norm",
+        "us": 3.489
+      },
+      {
+        "name": "layer12_ffn_down",
+        "type": "lfm2_moe",
+        "us": 15019.479
+      },
+      {
+        "name": "layer13_conv_norm",
+        "type": "rms_norm",
+        "us": 4.011
+      },
+      {
+        "name": "layer13_conv_block",
+        "type": "conv_block",
+        "us": 4759.115
+      },
+      {
+        "name": "layer13_ffn_norm",
+        "type": "rms_norm",
+        "us": 6.198
+      },
+      {
+        "name": "layer13_ffn_down",
+        "type": "lfm2_moe",
+        "us": 13590.0
+      },
+      {
+        "name": "layer14_attention_norm",
+        "type": "rms_norm",
+        "us": 5.364
+      },
+      {
+        "name": "layer14_qkv",
+        "type": "qkv_layer",
+        "us": 4324.635
+      },
+      {
+        "name": "cache_k_l14",
+        "type": "input",
+        "us": 0.833
+      },
+      {
+        "name": "cache_v_l14",
+        "type": "input",
+        "us": 0.52
+      },
+      {
+        "name": "layer14_attention",
+        "type": "mha_core",
+        "us": 15852.187
+      },
+      {
+        "name": "layer14_attention_out",
+        "type": "fully_connected",
+        "us": 1256.771
+      },
+      {
+        "name": "layer14_ffn_norm",
+        "type": "rms_norm",
+        "us": 3.386
+      },
+      {
+        "name": "layer14_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14844.063
+      },
+      {
+        "name": "layer15_conv_norm",
+        "type": "rms_norm",
+        "us": 4.219
+      },
+      {
+        "name": "layer15_conv_block",
+        "type": "conv_block",
+        "us": 5414.947
+      },
+      {
+        "name": "layer15_ffn_norm",
+        "type": "rms_norm",
+        "us": 4.844
+      },
+      {
+        "name": "layer15_ffn_down",
+        "type": "lfm2_moe",
+        "us": 15278.802
+      },
+      {
+        "name": "layer16_conv_norm",
+        "type": "rms_norm",
+        "us": 3.697
+      },
+      {
+        "name": "layer16_conv_block",
+        "type": "conv_block",
+        "us": 4839.062
+      },
+      {
+        "name": "layer16_ffn_norm",
+        "type": "rms_norm",
+        "us": 3.281
+      },
+      {
+        "name": "layer16_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14560.885
+      },
+      {
+        "name": "layer17_conv_norm",
+        "type": "rms_norm",
+        "us": 3.75
+      },
+      {
+        "name": "layer17_conv_block",
+        "type": "conv_block",
+        "us": 4644.844
+      },
+      {
+        "name": "layer17_ffn_norm",
+        "type": "rms_norm",
+        "us": 5.364
+      },
+      {
+        "name": "layer17_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14156.823
+      },
+      {
+        "name": "layer18_attention_norm",
+        "type": "rms_norm",
+        "us": 3.646
+      },
+      {
+        "name": "layer18_qkv",
+        "type": "qkv_layer",
+        "us": 4278.281
+      },
+      {
+        "name": "cache_k_l18",
+        "type": "input",
+        "us": 1.354
+      },
+      {
+        "name": "cache_v_l18",
+        "type": "input",
+        "us": 1.458
+      },
+      {
+        "name": "layer18_attention",
+        "type": "mha_core",
+        "us": 15823.698
+      },
+      {
+        "name": "layer18_attention_out",
+        "type": "fully_connected",
+        "us": 1277.291
+      },
+      {
+        "name": "layer18_ffn_norm",
+        "type": "rms_norm",
+        "us": 3.541
+      },
+      {
+        "name": "layer18_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14944.375
+      },
+      {
+        "name": "layer19_conv_norm",
+        "type": "rms_norm",
+        "us": 4.427
+      },
+      {
+        "name": "layer19_conv_block",
+        "type": "conv_block",
+        "us": 5483.75
+      },
+      {
+        "name": "layer19_ffn_norm",
+        "type": "rms_norm",
+        "us": 5.782
+      },
+      {
+        "name": "layer19_ffn_down",
+        "type": "lfm2_moe",
+        "us": 13826.718
+      },
+      {
+        "name": "layer20_conv_norm",
+        "type": "rms_norm",
+        "us": 4.792
+      },
+      {
+        "name": "layer20_conv_block",
+        "type": "conv_block",
+        "us": 4822.344
+      },
+      {
+        "name": "layer20_ffn_norm",
+        "type": "rms_norm",
+        "us": 3.125
+      },
+      {
+        "name": "layer20_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14228.958
+      },
+      {
+        "name": "layer21_conv_norm",
+        "type": "rms_norm",
+        "us": 3.073
+      },
+      {
+        "name": "layer21_conv_block",
+        "type": "conv_block",
+        "us": 4766.198
+      },
+      {
+        "name": "layer21_ffn_norm",
+        "type": "rms_norm",
+        "us": 5.938
+      },
+      {
+        "name": "layer21_ffn_down",
+        "type": "lfm2_moe",
+        "us": 13862.292
+      },
+      {
+        "name": "layer22_attention_norm",
+        "type": "rms_norm",
+        "us": 6.614
+      },
+      {
+        "name": "layer22_qkv",
+        "type": "qkv_layer",
+        "us": 4398.177
+      },
+      {
+        "name": "cache_k_l22",
+        "type": "input",
+        "us": 0.678
+      },
+      {
+        "name": "cache_v_l22",
+        "type": "input",
+        "us": 0.469
+      },
+      {
+        "name": "layer22_attention",
+        "type": "mha_core",
+        "us": 15719.948
+      },
+      {
+        "name": "layer22_attention_out",
+        "type": "fully_connected",
+        "us": 1271.459
+      },
+      {
+        "name": "layer22_ffn_norm",
+        "type": "rms_norm",
+        "us": 5.0
+      },
+      {
+        "name": "layer22_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14549.271
+      },
+      {
+        "name": "layer23_conv_norm",
+        "type": "rms_norm",
+        "us": 6.562
+      },
+      {
+        "name": "layer23_conv_block",
+        "type": "conv_block",
+        "us": 5409.219
+      },
+      {
+        "name": "layer23_ffn_norm",
+        "type": "rms_norm",
+        "us": 4.532
+      },
+      {
+        "name": "layer23_ffn_down",
+        "type": "lfm2_moe",
+        "us": 15674.167
+      },
+      {
+        "name": "layer24_conv_norm",
+        "type": "rms_norm",
+        "us": 7.292
+      },
+      {
+        "name": "layer24_conv_block",
+        "type": "conv_block",
+        "us": 5421.458
+      },
+      {
+        "name": "layer24_ffn_norm",
+        "type": "rms_norm",
+        "us": 3.854
+      },
+      {
+        "name": "layer24_ffn_down",
+        "type": "lfm2_moe",
+        "us": 15491.719
+      },
+      {
+        "name": "layer25_conv_norm",
+        "type": "rms_norm",
+        "us": 4.479
+      },
+      {
+        "name": "layer25_conv_block",
+        "type": "conv_block",
+        "us": 5514.062
+      },
+      {
+        "name": "layer25_ffn_norm",
+        "type": "rms_norm",
+        "us": 5.313
+      },
+      {
+        "name": "layer25_ffn_down",
+        "type": "lfm2_moe",
+        "us": 15420.0
+      },
+      {
+        "name": "layer26_attention_norm",
+        "type": "rms_norm",
+        "us": 4.375
+      },
+      {
+        "name": "layer26_qkv",
+        "type": "qkv_layer",
+        "us": 4695.521
+      },
+      {
+        "name": "cache_k_l26",
+        "type": "input",
+        "us": 0.99
+      },
+      {
+        "name": "cache_v_l26",
+        "type": "input",
+        "us": 1.042
+      },
+      {
+        "name": "layer26_attention",
+        "type": "mha_core",
+        "us": 15894.01
+      },
+      {
+        "name": "layer26_attention_out",
+        "type": "fully_connected",
+        "us": 1319.219
+      },
+      {
+        "name": "layer26_ffn_norm",
+        "type": "rms_norm",
+        "us": 4.74
+      },
+      {
+        "name": "layer26_ffn_down",
+        "type": "lfm2_moe",
+        "us": 15009.584
+      },
+      {
+        "name": "layer27_conv_norm",
+        "type": "rms_norm",
+        "us": 6.198
+      },
+      {
+        "name": "layer27_conv_block",
+        "type": "conv_block",
+        "us": 5593.697
+      },
+      {
+        "name": "layer27_ffn_norm",
+        "type": "rms_norm",
+        "us": 3.959
+      },
+      {
+        "name": "layer27_ffn_down",
+        "type": "lfm2_moe",
+        "us": 15404.948
+      },
+      {
+        "name": "layer28_conv_norm",
+        "type": "rms_norm",
+        "us": 3.958
+      },
+      {
+        "name": "layer28_conv_block",
+        "type": "conv_block",
+        "us": 5480.677
+      },
+      {
+        "name": "layer28_ffn_norm",
+        "type": "rms_norm",
+        "us": 5.364
+      },
+      {
+        "name": "layer28_ffn_down",
+        "type": "lfm2_moe",
+        "us": 15055.52
+      },
+      {
+        "name": "layer29_conv_norm",
+        "type": "rms_norm",
+        "us": 3.073
+      },
+      {
+        "name": "layer29_conv_block",
+        "type": "conv_block",
+        "us": 4846.771
+      },
+      {
+        "name": "layer29_ffn_norm",
+        "type": "rms_norm",
+        "us": 4.791
+      },
+      {
+        "name": "layer29_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14052.969
+      },
+      {
+        "name": "layer30_attention_norm",
+        "type": "rms_norm",
+        "us": 3.282
+      },
+      {
+        "name": "layer30_qkv",
+        "type": "qkv_layer",
+        "us": 4402.552
+      },
+      {
+        "name": "cache_k_l30",
+        "type": "input",
+        "us": 2.292
+      },
+      {
+        "name": "cache_v_l30",
+        "type": "input",
+        "us": 0.99
+      },
+      {
+        "name": "layer30_attention",
+        "type": "mha_core",
+        "us": 15943.593
+      },
+      {
+        "name": "layer30_attention_out",
+        "type": "fully_connected",
+        "us": 1196.771
+      },
+      {
+        "name": "layer30_ffn_norm",
+        "type": "rms_norm",
+        "us": 5.729
+      },
+      {
+        "name": "layer30_ffn_down",
+        "type": "lfm2_moe",
+        "us": 15706.667
+      },
+      {
+        "name": "layer31_conv_norm",
+        "type": "rms_norm",
+        "us": 4.27
+      },
+      {
+        "name": "layer31_conv_block",
+        "type": "conv_block",
+        "us": 5549.74
+      },
+      {
+        "name": "layer31_ffn_norm",
+        "type": "rms_norm",
+        "us": 4.584
+      },
+      {
+        "name": "layer31_ffn_down",
+        "type": "lfm2_moe",
+        "us": 15254.167
+      },
+      {
+        "name": "layer32_conv_norm",
+        "type": "rms_norm",
+        "us": 3.489
+      },
+      {
+        "name": "layer32_conv_block",
+        "type": "conv_block",
+        "us": 4779.062
+      },
+      {
+        "name": "layer32_ffn_norm",
+        "type": "rms_norm",
+        "us": 3.021
+      },
+      {
+        "name": "layer32_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14341.615
+      },
+      {
+        "name": "layer33_conv_norm",
+        "type": "rms_norm",
+        "us": 3.125
+      },
+      {
+        "name": "layer33_conv_block",
+        "type": "conv_block",
+        "us": 4682.708
+      },
+      {
+        "name": "layer33_ffn_norm",
+        "type": "rms_norm",
+        "us": 3.177
+      },
+      {
+        "name": "layer33_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14640.417
+      },
+      {
+        "name": "layer34_attention_norm",
+        "type": "rms_norm",
+        "us": 3.75
+      },
+      {
+        "name": "layer34_qkv",
+        "type": "qkv_layer",
+        "us": 4290.73
+      },
+      {
+        "name": "cache_k_l34",
+        "type": "input",
+        "us": 0.677
+      },
+      {
+        "name": "cache_v_l34",
+        "type": "input",
+        "us": 0.573
+      },
+      {
+        "name": "layer34_attention",
+        "type": "mha_core",
+        "us": 15895.209
+      },
+      {
+        "name": "layer34_attention_out",
+        "type": "fully_connected",
+        "us": 1206.979
+      },
+      {
+        "name": "layer34_ffn_norm",
+        "type": "rms_norm",
+        "us": 3.906
+      },
+      {
+        "name": "layer34_ffn_down",
+        "type": "lfm2_moe",
+        "us": 15351.979
+      },
+      {
+        "name": "layer35_conv_norm",
+        "type": "rms_norm",
+        "us": 4.479
+      },
+      {
+        "name": "layer35_conv_block",
+        "type": "conv_block",
+        "us": 5328.177
+      },
+      {
+        "name": "layer35_ffn_norm",
+        "type": "rms_norm",
+        "us": 5.625
+      },
+      {
+        "name": "layer35_ffn_down",
+        "type": "lfm2_moe",
+        "us": 15649.635
+      },
+      {
+        "name": "layer36_conv_norm",
+        "type": "rms_norm",
+        "us": 4.895
+      },
+      {
+        "name": "layer36_conv_block",
+        "type": "conv_block",
+        "us": 5431.719
+      },
+      {
+        "name": "layer36_ffn_norm",
+        "type": "rms_norm",
+        "us": 8.646
+      },
+      {
+        "name": "layer36_ffn_down",
+        "type": "lfm2_moe",
+        "us": 31446.197
+      },
+      {
+        "name": "layer37_conv_norm",
+        "type": "rms_norm",
+        "us": 4.427
+      },
+      {
+        "name": "layer37_conv_block",
+        "type": "conv_block",
+        "us": 5569.896
+      },
+      {
+        "name": "layer37_ffn_norm",
+        "type": "rms_norm",
+        "us": 5.625
+      },
+      {
+        "name": "layer37_ffn_down",
+        "type": "lfm2_moe",
+        "us": 32471.614
+      },
+      {
+        "name": "layer38_attention_norm",
+        "type": "rms_norm",
+        "us": 4.791
+      },
+      {
+        "name": "layer38_qkv",
+        "type": "qkv_layer",
+        "us": 4600.521
+      },
+      {
+        "name": "cache_k_l38",
+        "type": "input",
+        "us": 0.678
+      },
+      {
+        "name": "cache_v_l38",
+        "type": "input",
+        "us": 0.677
+      },
+      {
+        "name": "layer38_attention",
+        "type": "mha_core",
+        "us": 16711.094
+      },
+      {
+        "name": "layer38_attention_out",
+        "type": "fully_connected",
+        "us": 1386.927
+      },
+      {
+        "name": "layer38_ffn_norm",
+        "type": "rms_norm",
+        "us": 5.781
+      },
+      {
+        "name": "layer38_ffn_down",
+        "type": "lfm2_moe",
+        "us": 15233.386
+      },
+      {
+        "name": "layer39_conv_norm",
+        "type": "rms_norm",
+        "us": 4.375
+      },
+      {
+        "name": "layer39_conv_block",
+        "type": "conv_block",
+        "us": 4767.812
+      },
+      {
+        "name": "layer39_ffn_norm",
+        "type": "rms_norm",
+        "us": 3.333
+      },
+      {
+        "name": "layer39_ffn_down",
+        "type": "lfm2_moe",
+        "us": 21597.448
+      },
+      {
+        "name": "output_norm",
+        "type": "rms_norm",
+        "us": 458.49
+      },
+      {
+        "name": "output_of_causallm",
+        "type": "tie_word_embeddings",
+        "us": 1770.729
+      }
+    ],
+    "rpc_count": 189,
+    "register_calls": 25,
+    "register_gaps": [
+      {
+        "layer": 15,
+        "gap_ms": 0,
+        "line": 4261,
+        "since_first_rpc_ms": 396
+      },
+      {
+        "layer": 16,
+        "gap_ms": 1,
+        "line": 4269,
+        "since_first_rpc_ms": 416
+      },
+      {
+        "layer": 17,
+        "gap_ms": 0,
+        "line": 4277,
+        "since_first_rpc_ms": 435
+      },
+      {
+        "layer": 18,
+        "gap_ms": 0,
+        "line": 4294,
+        "since_first_rpc_ms": 470
+      },
+      {
+        "layer": 19,
+        "gap_ms": 0,
+        "line": 4302,
+        "since_first_rpc_ms": 491
+      },
+      {
+        "layer": 20,
+        "gap_ms": 0,
+        "line": 4310,
+        "since_first_rpc_ms": 509
+      },
+      {
+        "layer": 21,
+        "gap_ms": 1,
+        "line": 4318,
+        "since_first_rpc_ms": 529
+      },
+      {
+        "layer": 22,
+        "gap_ms": 0,
+        "line": 4335,
+        "since_first_rpc_ms": 564
+      },
+      {
+        "layer": 23,
+        "gap_ms": 0,
+        "line": 4343,
+        "since_first_rpc_ms": 584
+      },
+      {
+        "layer": 24,
+        "gap_ms": 0,
+        "line": 4351,
+        "since_first_rpc_ms": 605
+      },
+      {
+        "layer": 25,
+        "gap_ms": 0,
+        "line": 4359,
+        "since_first_rpc_ms": 626
+      },
+      {
+        "layer": 26,
+        "gap_ms": 0,
+        "line": 4376,
+        "since_first_rpc_ms": 663
+      },
+      {
+        "layer": 27,
+        "gap_ms": 0,
+        "line": 4384,
+        "since_first_rpc_ms": 684
+      },
+      {
+        "layer": 28,
+        "gap_ms": 0,
+        "line": 4392,
+        "since_first_rpc_ms": 705
+      },
+      {
+        "layer": 29,
+        "gap_ms": 0,
+        "line": 4400,
+        "since_first_rpc_ms": 725
+      },
+      {
+        "layer": 30,
+        "gap_ms": 0,
+        "line": 4417,
+        "since_first_rpc_ms": 760
+      },
+      {
+        "layer": 31,
+        "gap_ms": 0,
+        "line": 4425,
+        "since_first_rpc_ms": 782
+      },
+      {
+        "layer": 32,
+        "gap_ms": 0,
+        "line": 4433,
+        "since_first_rpc_ms": 802
+      },
+      {
+        "layer": 33,
+        "gap_ms": 0,
+        "line": 4441,
+        "since_first_rpc_ms": 821
+      },
+      {
+        "layer": 34,
+        "gap_ms": 0,
+        "line": 4458,
+        "since_first_rpc_ms": 857
+      },
+      {
+        "layer": 35,
+        "gap_ms": 0,
+        "line": 4466,
+        "since_first_rpc_ms": 877
+      },
+      {
+        "layer": 36,
+        "gap_ms": 15,
+        "line": 4474,
+        "since_first_rpc_ms": 914
+      },
+      {
+        "layer": 37,
+        "gap_ms": 16,
+        "line": 4482,
+        "since_first_rpc_ms": 952
+      },
+      {
+        "layer": 38,
+        "gap_ms": 0,
+        "line": 4499,
+        "since_first_rpc_ms": 991
+      },
+      {
+        "layer": 39,
+        "gap_ms": 18,
+        "line": 4507,
+        "since_first_rpc_ms": 1026
+      }
+    ],
+    "rpc_span_ms": 1031,
+    "first_registration_since_first_rpc_ms": 396,
+    "log_paths": [
+      "/home/jungone-lee/workspace/nntrainer/docs/measurements/lfm2_s26_prefill1000_20261013/v15-pub-stage64-profile-an1.log",
+      "/home/jungone-lee/workspace/nntrainer/docs/measurements/lfm2_s26_prefill1000_20261013/v15-pub-stage64-profile-an1-logcat.txt"
+    ]
+  },
+  "v17-pub-stage64-profile-av1": {
+    "node_total_us": 1087486.666,
+    "node_groups_us": {
+      "input": 25.942000000000004,
+      "tie_word_embeddings": 3825.26,
+      "multiout": 1.25,
+      "rms_norm": 4515.360000000001,
+      "conv_block": 149053.17899999997,
+      "dense_ffn": 51347.187,
+      "qkv_layer": 44639.22,
+      "mha_core": 161755.155,
+      "fully_connected": 12604.324,
+      "lfm2_moe": 659719.789
+    },
+    "nodes": [
+      {
+        "name": "input0",
+        "type": "input",
+        "us": 2.292
+      },
+      {
+        "name": "embedding0",
+        "type": "tie_word_embeddings",
+        "us": 2085.26
+      },
+      {
+        "name": "embedding0/generated_out_0",
+        "type": "multiout",
+        "us": 1.25
+      },
+      {
+        "name": "layer0_conv_norm",
+        "type": "rms_norm",
+        "us": 12.708
+      },
+      {
+        "name": "layer0_conv_block",
+        "type": "conv_block",
+        "us": 3699.063
+      },
+      {
+        "name": "layer0_ffn_norm",
+        "type": "rms_norm",
+        "us": 1727.083
+      },
+      {
+        "name": "layer0_ffn",
+        "type": "dense_ffn",
+        "us": 26080.208
+      },
+      {
+        "name": "layer1_conv_norm",
+        "type": "rms_norm",
+        "us": 6.354
+      },
+      {
+        "name": "layer1_conv_block",
+        "type": "conv_block",
+        "us": 4521.407
+      },
+      {
+        "name": "layer1_ffn_norm",
+        "type": "rms_norm",
+        "us": 1849.167
+      },
+      {
+        "name": "layer1_ffn",
+        "type": "dense_ffn",
+        "us": 25266.979
+      },
+      {
+        "name": "layer2_attention_norm",
+        "type": "rms_norm",
+        "us": 6.614
+      },
+      {
+        "name": "layer2_qkv",
+        "type": "qkv_layer",
+        "us": 5076.563
+      },
+      {
+        "name": "cache_k_l2",
+        "type": "input",
+        "us": 1.771
+      },
+      {
+        "name": "cache_v_l2",
+        "type": "input",
+        "us": 0.469
+      },
+      {
+        "name": "layer2_attention",
+        "type": "mha_core",
+        "us": 17841.771
+      },
+      {
+        "name": "layer2_attention_out",
+        "type": "fully_connected",
+        "us": 1085.105
+      },
+      {
+        "name": "layer2_ffn_norm",
+        "type": "rms_norm",
+        "us": 5.26
+      },
+      {
+        "name": "layer2_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14374.062
+      },
+      {
+        "name": "layer3_conv_norm",
+        "type": "rms_norm",
+        "us": 8.907
+      },
+      {
+        "name": "layer3_conv_block",
+        "type": "conv_block",
+        "us": 4658.907
+      },
+      {
+        "name": "layer3_ffn_norm",
+        "type": "rms_norm",
+        "us": 4.792
+      },
+      {
+        "name": "layer3_ffn_down",
+        "type": "lfm2_moe",
+        "us": 20018.906
+      },
+      {
+        "name": "layer4_conv_norm",
+        "type": "rms_norm",
+        "us": 9.479
+      },
+      {
+        "name": "layer4_conv_block",
+        "type": "conv_block",
+        "us": 5563.75
+      },
+      {
+        "name": "layer4_ffn_norm",
+        "type": "rms_norm",
+        "us": 4.219
+      },
+      {
+        "name": "layer4_ffn_down",
+        "type": "lfm2_moe",
+        "us": 13097.187
+      },
+      {
+        "name": "layer5_conv_norm",
+        "type": "rms_norm",
+        "us": 5.678
+      },
+      {
+        "name": "layer5_conv_block",
+        "type": "conv_block",
+        "us": 4117.24
+      },
+      {
+        "name": "layer5_ffn_norm",
+        "type": "rms_norm",
+        "us": 3.542
+      },
+      {
+        "name": "layer5_ffn_down",
+        "type": "lfm2_moe",
+        "us": 12376.563
+      },
+      {
+        "name": "layer6_attention_norm",
+        "type": "rms_norm",
+        "us": 5.052
+      },
+      {
+        "name": "layer6_qkv",
+        "type": "qkv_layer",
+        "us": 4045.261
+      },
+      {
+        "name": "cache_k_l6",
+        "type": "input",
+        "us": 1.198
+      },
+      {
+        "name": "cache_v_l6",
+        "type": "input",
+        "us": 0.417
+      },
+      {
+        "name": "layer6_attention",
+        "type": "mha_core",
+        "us": 15238.177
+      },
+      {
+        "name": "layer6_attention_out",
+        "type": "fully_connected",
+        "us": 1111.719
+      },
+      {
+        "name": "layer6_ffn_norm",
+        "type": "rms_norm",
+        "us": 5.052
+      },
+      {
+        "name": "layer6_ffn_down",
+        "type": "lfm2_moe",
+        "us": 12726.146
+      },
+      {
+        "name": "layer7_conv_norm",
+        "type": "rms_norm",
+        "us": 6.459
+      },
+      {
+        "name": "layer7_conv_block",
+        "type": "conv_block",
+        "us": 5146.302
+      },
+      {
+        "name": "layer7_ffn_norm",
+        "type": "rms_norm",
+        "us": 4.062
+      },
+      {
+        "name": "layer7_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14945.416
+      },
+      {
+        "name": "layer8_conv_norm",
+        "type": "rms_norm",
+        "us": 4.323
+      },
+      {
+        "name": "layer8_conv_block",
+        "type": "conv_block",
+        "us": 4731.094
+      },
+      {
+        "name": "layer8_ffn_norm",
+        "type": "rms_norm",
+        "us": 4.166
+      },
+      {
+        "name": "layer8_ffn_down",
+        "type": "lfm2_moe",
+        "us": 13844.375
+      },
+      {
+        "name": "layer9_conv_norm",
+        "type": "rms_norm",
+        "us": 6.302
+      },
+      {
+        "name": "layer9_conv_block",
+        "type": "conv_block",
+        "us": 4794.635
+      },
+      {
+        "name": "layer9_ffn_norm",
+        "type": "rms_norm",
+        "us": 4.375
+      },
+      {
+        "name": "layer9_ffn_down",
+        "type": "lfm2_moe",
+        "us": 13783.282
+      },
+      {
+        "name": "layer10_attention_norm",
+        "type": "rms_norm",
+        "us": 5.729
+      },
+      {
+        "name": "layer10_qkv",
+        "type": "qkv_layer",
+        "us": 4449.427
+      },
+      {
+        "name": "cache_k_l10",
+        "type": "input",
+        "us": 1.354
+      },
+      {
+        "name": "cache_v_l10",
+        "type": "input",
+        "us": 1.407
+      },
+      {
+        "name": "layer10_attention",
+        "type": "mha_core",
+        "us": 15981.354
+      },
+      {
+        "name": "layer10_attention_out",
+        "type": "fully_connected",
+        "us": 1285.782
+      },
+      {
+        "name": "layer10_ffn_norm",
+        "type": "rms_norm",
+        "us": 5.521
+      },
+      {
+        "name": "layer10_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14937.448
+      },
+      {
+        "name": "layer11_conv_norm",
+        "type": "rms_norm",
+        "us": 7.292
+      },
+      {
+        "name": "layer11_conv_block",
+        "type": "conv_block",
+        "us": 5513.49
+      },
+      {
+        "name": "layer11_ffn_norm",
+        "type": "rms_norm",
+        "us": 5.156
+      },
+      {
+        "name": "layer11_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14870.937
+      },
+      {
+        "name": "layer12_conv_norm",
+        "type": "rms_norm",
+        "us": 5.104
+      },
+      {
+        "name": "layer12_conv_block",
+        "type": "conv_block",
+        "us": 4760.0
+      },
+      {
+        "name": "layer12_ffn_norm",
+        "type": "rms_norm",
+        "us": 4.427
+      },
+      {
+        "name": "layer12_ffn_down",
+        "type": "lfm2_moe",
+        "us": 13637.395
+      },
+      {
+        "name": "layer13_conv_norm",
+        "type": "rms_norm",
+        "us": 5.209
+      },
+      {
+        "name": "layer13_conv_block",
+        "type": "conv_block",
+        "us": 4804.479
+      },
+      {
+        "name": "layer13_ffn_norm",
+        "type": "rms_norm",
+        "us": 4.271
+      },
+      {
+        "name": "layer13_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14020.677
+      },
+      {
+        "name": "layer14_attention_norm",
+        "type": "rms_norm",
+        "us": 6.563
+      },
+      {
+        "name": "layer14_qkv",
+        "type": "qkv_layer",
+        "us": 4328.281
+      },
+      {
+        "name": "cache_k_l14",
+        "type": "input",
+        "us": 1.25
+      },
+      {
+        "name": "cache_v_l14",
+        "type": "input",
+        "us": 0.521
+      },
+      {
+        "name": "layer14_attention",
+        "type": "mha_core",
+        "us": 15796.51
+      },
+      {
+        "name": "layer14_attention_out",
+        "type": "fully_connected",
+        "us": 1234.062
+      },
+      {
+        "name": "layer14_ffn_norm",
+        "type": "rms_norm",
+        "us": 5.573
+      },
+      {
+        "name": "layer14_ffn_down",
+        "type": "lfm2_moe",
+        "us": 15236.615
+      },
+      {
+        "name": "layer15_conv_norm",
+        "type": "rms_norm",
+        "us": 8.906
+      },
+      {
+        "name": "layer15_conv_block",
+        "type": "conv_block",
+        "us": 5426.198
+      },
+      {
+        "name": "layer15_ffn_norm",
+        "type": "rms_norm",
+        "us": 4.635
+      },
+      {
+        "name": "layer15_ffn_down",
+        "type": "lfm2_moe",
+        "us": 15224.375
+      },
+      {
+        "name": "layer16_conv_norm",
+        "type": "rms_norm",
+        "us": 6.823
+      },
+      {
+        "name": "layer16_conv_block",
+        "type": "conv_block",
+        "us": 4718.333
+      },
+      {
+        "name": "layer16_ffn_norm",
+        "type": "rms_norm",
+        "us": 3.542
+      },
+      {
+        "name": "layer16_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14617.656
+      },
+      {
+        "name": "layer17_conv_norm",
+        "type": "rms_norm",
+        "us": 6.041
+      },
+      {
+        "name": "layer17_conv_block",
+        "type": "conv_block",
+        "us": 4757.396
+      },
+      {
+        "name": "layer17_ffn_norm",
+        "type": "rms_norm",
+        "us": 4.531
+      },
+      {
+        "name": "layer17_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14270.417
+      },
+      {
+        "name": "layer18_attention_norm",
+        "type": "rms_norm",
+        "us": 5.885
+      },
+      {
+        "name": "layer18_qkv",
+        "type": "qkv_layer",
+        "us": 4454.375
+      },
+      {
+        "name": "cache_k_l18",
+        "type": "input",
+        "us": 1.511
+      },
+      {
+        "name": "cache_v_l18",
+        "type": "input",
+        "us": 0.521
+      },
+      {
+        "name": "layer18_attention",
+        "type": "mha_core",
+        "us": 15945.0
+      },
+      {
+        "name": "layer18_attention_out",
+        "type": "fully_connected",
+        "us": 1281.875
+      },
+      {
+        "name": "layer18_ffn_norm",
+        "type": "rms_norm",
+        "us": 6.51
+      },
+      {
+        "name": "layer18_ffn_down",
+        "type": "lfm2_moe",
+        "us": 15458.906
+      },
+      {
+        "name": "layer19_conv_norm",
+        "type": "rms_norm",
+        "us": 5.26
+      },
+      {
+        "name": "layer19_conv_block",
+        "type": "conv_block",
+        "us": 5431.98
+      },
+      {
+        "name": "layer19_ffn_norm",
+        "type": "rms_norm",
+        "us": 7.083
+      },
+      {
+        "name": "layer19_ffn_down",
+        "type": "lfm2_moe",
+        "us": 15413.437
+      },
+      {
+        "name": "layer20_conv_norm",
+        "type": "rms_norm",
+        "us": 5.781
+      },
+      {
+        "name": "layer20_conv_block",
+        "type": "conv_block",
+        "us": 4850.52
+      },
+      {
+        "name": "layer20_ffn_norm",
+        "type": "rms_norm",
+        "us": 7.604
+      },
+      {
+        "name": "layer20_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14602.291
+      },
+      {
+        "name": "layer21_conv_norm",
+        "type": "rms_norm",
+        "us": 5.053
+      },
+      {
+        "name": "layer21_conv_block",
+        "type": "conv_block",
+        "us": 4698.594
+      },
+      {
+        "name": "layer21_ffn_norm",
+        "type": "rms_norm",
+        "us": 4.271
+      },
+      {
+        "name": "layer21_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14106.511
+      },
+      {
+        "name": "layer22_attention_norm",
+        "type": "rms_norm",
+        "us": 6.198
+      },
+      {
+        "name": "layer22_qkv",
+        "type": "qkv_layer",
+        "us": 4404.219
+      },
+      {
+        "name": "cache_k_l22",
+        "type": "input",
+        "us": 2.917
+      },
+      {
+        "name": "cache_v_l22",
+        "type": "input",
+        "us": 0.677
+      },
+      {
+        "name": "layer22_attention",
+        "type": "mha_core",
+        "us": 15838.125
+      },
+      {
+        "name": "layer22_attention_out",
+        "type": "fully_connected",
+        "us": 1316.823
+      },
+      {
+        "name": "layer22_ffn_norm",
+        "type": "rms_norm",
+        "us": 5.0
+      },
+      {
+        "name": "layer22_ffn_down",
+        "type": "lfm2_moe",
+        "us": 15078.125
+      },
+      {
+        "name": "layer23_conv_norm",
+        "type": "rms_norm",
+        "us": 6.667
+      },
+      {
+        "name": "layer23_conv_block",
+        "type": "conv_block",
+        "us": 5534.427
+      },
+      {
+        "name": "layer23_ffn_norm",
+        "type": "rms_norm",
+        "us": 5.26
+      },
+      {
+        "name": "layer23_ffn_down",
+        "type": "lfm2_moe",
+        "us": 15318.021
+      },
+      {
+        "name": "layer24_conv_norm",
+        "type": "rms_norm",
+        "us": 5.781
+      },
+      {
+        "name": "layer24_conv_block",
+        "type": "conv_block",
+        "us": 4660.052
+      },
+      {
+        "name": "layer24_ffn_norm",
+        "type": "rms_norm",
+        "us": 5.573
+      },
+      {
+        "name": "layer24_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14110.729
+      },
+      {
+        "name": "layer25_conv_norm",
+        "type": "rms_norm",
+        "us": 5.781
+      },
+      {
+        "name": "layer25_conv_block",
+        "type": "conv_block",
+        "us": 4706.771
+      },
+      {
+        "name": "layer25_ffn_norm",
+        "type": "rms_norm",
+        "us": 4.271
+      },
+      {
+        "name": "layer25_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14478.49
+      },
+      {
+        "name": "layer26_attention_norm",
+        "type": "rms_norm",
+        "us": 8.282
+      },
+      {
+        "name": "layer26_qkv",
+        "type": "qkv_layer",
+        "us": 4360.261
+      },
+      {
+        "name": "cache_k_l26",
+        "type": "input",
+        "us": 2.448
+      },
+      {
+        "name": "cache_v_l26",
+        "type": "input",
+        "us": 1.042
+      },
+      {
+        "name": "layer26_attention",
+        "type": "mha_core",
+        "us": 16181.51
+      },
+      {
+        "name": "layer26_attention_out",
+        "type": "fully_connected",
+        "us": 1349.635
+      },
+      {
+        "name": "layer26_ffn_norm",
+        "type": "rms_norm",
+        "us": 6.146
+      },
+      {
+        "name": "layer26_ffn_down",
+        "type": "lfm2_moe",
+        "us": 15408.229
+      },
+      {
+        "name": "layer27_conv_norm",
+        "type": "rms_norm",
+        "us": 5.677
+      },
+      {
+        "name": "layer27_conv_block",
+        "type": "conv_block",
+        "us": 5353.958
+      },
+      {
+        "name": "layer27_ffn_norm",
+        "type": "rms_norm",
+        "us": 4.896
+      },
+      {
+        "name": "layer27_ffn_down",
+        "type": "lfm2_moe",
+        "us": 15331.198
+      },
+      {
+        "name": "layer28_conv_norm",
+        "type": "rms_norm",
+        "us": 6.354
+      },
+      {
+        "name": "layer28_conv_block",
+        "type": "conv_block",
+        "us": 4883.75
+      },
+      {
+        "name": "layer28_ffn_norm",
+        "type": "rms_norm",
+        "us": 4.479
+      },
+      {
+        "name": "layer28_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14187.396
+      },
+      {
+        "name": "layer29_conv_norm",
+        "type": "rms_norm",
+        "us": 5.781
+      },
+      {
+        "name": "layer29_conv_block",
+        "type": "conv_block",
+        "us": 4810.208
+      },
+      {
+        "name": "layer29_ffn_norm",
+        "type": "rms_norm",
+        "us": 3.281
+      },
+      {
+        "name": "layer29_ffn_down",
+        "type": "lfm2_moe",
+        "us": 13956.718
+      },
+      {
+        "name": "layer30_attention_norm",
+        "type": "rms_norm",
+        "us": 6.406
+      },
+      {
+        "name": "layer30_qkv",
+        "type": "qkv_layer",
+        "us": 4295.677
+      },
+      {
+        "name": "cache_k_l30",
+        "type": "input",
+        "us": 1.407
+      },
+      {
+        "name": "cache_v_l30",
+        "type": "input",
+        "us": 0.625
+      },
+      {
+        "name": "layer30_attention",
+        "type": "mha_core",
+        "us": 15579.531
+      },
+      {
+        "name": "layer30_attention_out",
+        "type": "fully_connected",
+        "us": 1215.573
+      },
+      {
+        "name": "layer30_ffn_norm",
+        "type": "rms_norm",
+        "us": 7.552
+      },
+      {
+        "name": "layer30_ffn_down",
+        "type": "lfm2_moe",
+        "us": 15704.791
+      },
+      {
+        "name": "layer31_conv_norm",
+        "type": "rms_norm",
+        "us": 5.521
+      },
+      {
+        "name": "layer31_conv_block",
+        "type": "conv_block",
+        "us": 5483.646
+      },
+      {
+        "name": "layer31_ffn_norm",
+        "type": "rms_norm",
+        "us": 8.542
+      },
+      {
+        "name": "layer31_ffn_down",
+        "type": "lfm2_moe",
+        "us": 18308.489
+      },
+      {
+        "name": "layer32_conv_norm",
+        "type": "rms_norm",
+        "us": 5.781
+      },
+      {
+        "name": "layer32_conv_block",
+        "type": "conv_block",
+        "us": 4761.823
+      },
+      {
+        "name": "layer32_ffn_norm",
+        "type": "rms_norm",
+        "us": 4.687
+      },
+      {
+        "name": "layer32_ffn_down",
+        "type": "lfm2_moe",
+        "us": 33645.156
+      },
+      {
+        "name": "layer33_conv_norm",
+        "type": "rms_norm",
+        "us": 7.187
+      },
+      {
+        "name": "layer33_conv_block",
+        "type": "conv_block",
+        "us": 5448.489
+      },
+      {
+        "name": "layer33_ffn_norm",
+        "type": "rms_norm",
+        "us": 7.291
+      },
+      {
+        "name": "layer33_ffn_down",
+        "type": "lfm2_moe",
+        "us": 31889.479
+      },
+      {
+        "name": "layer34_attention_norm",
+        "type": "rms_norm",
+        "us": 7.292
+      },
+      {
+        "name": "layer34_qkv",
+        "type": "qkv_layer",
+        "us": 4696.146
+      },
+      {
+        "name": "cache_k_l34",
+        "type": "input",
+        "us": 1.511
+      },
+      {
+        "name": "cache_v_l34",
+        "type": "input",
+        "us": 0.625
+      },
+      {
+        "name": "layer34_attention",
+        "type": "mha_core",
+        "us": 16530.937
+      },
+      {
+        "name": "layer34_attention_out",
+        "type": "fully_connected",
+        "us": 1299.166
+      },
+      {
+        "name": "layer34_ffn_norm",
+        "type": "rms_norm",
+        "us": 7.604
+      },
+      {
+        "name": "layer34_ffn_down",
+        "type": "lfm2_moe",
+        "us": 14627.187
+      },
+      {
+        "name": "layer35_conv_norm",
+        "type": "rms_norm",
+        "us": 8.125
+      },
+      {
+        "name": "layer35_conv_block",
+        "type": "conv_block",
+        "us": 5351.354
+      },
+      {
+        "name": "layer35_ffn_norm",
+        "type": "rms_norm",
+        "us": 6.25
+      },
+      {
+        "name": "layer35_ffn_down",
+        "type": "lfm2_moe",
+        "us": 32503.594
+      },
+      {
+        "name": "layer36_conv_norm",
+        "type": "rms_norm",
+        "us": 7.135
+      },
+      {
+        "name": "layer36_conv_block",
+        "type": "conv_block",
+        "us": 5203.854
+      },
+      {
+        "name": "layer36_ffn_norm",
+        "type": "rms_norm",
+        "us": 7.76
+      },
+      {
+        "name": "layer36_ffn_down",
+        "type": "lfm2_moe",
+        "us": 33999.584
+      },
+      {
+        "name": "layer37_conv_norm",
+        "type": "rms_norm",
+        "us": 9.947
+      },
+      {
+        "name": "layer37_conv_block",
+        "type": "conv_block",
+        "us": 5458.438
+      },
+      {
+        "name": "layer37_ffn_norm",
+        "type": "rms_norm",
+        "us": 6.198
+      },
+      {
+        "name": "layer37_ffn_down",
+        "type": "lfm2_moe",
+        "us": 32603.959
+      },
+      {
+        "name": "layer38_attention_norm",
+        "type": "rms_norm",
+        "us": 7.5
+      },
+      {
+        "name": "layer38_qkv",
+        "type": "qkv_layer",
+        "us": 4529.01
+      },
+      {
+        "name": "cache_k_l38",
+        "type": "input",
+        "us": 1.458
+      },
+      {
+        "name": "cache_v_l38",
+        "type": "input",
+        "us": 0.521
+      },
+      {
+        "name": "layer38_attention",
+        "type": "mha_core",
+        "us": 16822.24
+      },
+      {
+        "name": "layer38_attention_out",
+        "type": "fully_connected",
+        "us": 1424.584
+      },
+      {
+        "name": "layer38_ffn_norm",
+        "type": "rms_norm",
+        "us": 5.937
+      },
+      {
+        "name": "layer38_ffn_down",
+        "type": "lfm2_moe",
+        "us": 15382.604
+      },
+      {
+        "name": "layer39_conv_norm",
+        "type": "rms_norm",
+        "us": 6.927
+      },
+      {
+        "name": "layer39_conv_block",
+        "type": "conv_block",
+        "us": 5203.021
+      },
+      {
+        "name": "layer39_ffn_norm",
+        "type": "rms_norm",
+        "us": 6.094
+      },
+      {
+        "name": "layer39_ffn_down",
+        "type": "lfm2_moe",
+        "us": 21623.438
+      },
+      {
+        "name": "output_norm",
+        "type": "rms_norm",
+        "us": 465.833
+      },
+      {
+        "name": "output_of_causallm",
+        "type": "tie_word_embeddings",
+        "us": 1740.0
+      }
+    ],
+    "rpc_count": 189,
+    "register_calls": 25,
+    "register_gaps": [
+      {
+        "layer": 15,
+        "gap_ms": 0,
+        "line": 4261,
+        "since_first_rpc_ms": 392
+      },
+      {
+        "layer": 16,
+        "gap_ms": 0,
+        "line": 4269,
+        "since_first_rpc_ms": 412
+      },
+      {
+        "layer": 17,
+        "gap_ms": 0,
+        "line": 4277,
+        "since_first_rpc_ms": 431
+      },
+      {
+        "layer": 18,
+        "gap_ms": 0,
+        "line": 4294,
+        "since_first_rpc_ms": 467
+      },
+      {
+        "layer": 19,
+        "gap_ms": 0,
+        "line": 4302,
+        "since_first_rpc_ms": 488
+      },
+      {
+        "layer": 20,
+        "gap_ms": 0,
+        "line": 4310,
+        "since_first_rpc_ms": 508
+      },
+      {
+        "layer": 21,
+        "gap_ms": 0,
+        "line": 4318,
+        "since_first_rpc_ms": 528
+      },
+      {
+        "layer": 22,
+        "gap_ms": 0,
+        "line": 4335,
+        "since_first_rpc_ms": 563
+      },
+      {
+        "layer": 23,
+        "gap_ms": 0,
+        "line": 4343,
+        "since_first_rpc_ms": 584
+      },
+      {
+        "layer": 24,
+        "gap_ms": 0,
+        "line": 4351,
+        "since_first_rpc_ms": 604
+      },
+      {
+        "layer": 25,
+        "gap_ms": 0,
+        "line": 4359,
+        "since_first_rpc_ms": 623
+      },
+      {
+        "layer": 26,
+        "gap_ms": 1,
+        "line": 4376,
+        "since_first_rpc_ms": 660
+      },
+      {
+        "layer": 27,
+        "gap_ms": 0,
+        "line": 4384,
+        "since_first_rpc_ms": 680
+      },
+      {
+        "layer": 28,
+        "gap_ms": 0,
+        "line": 4392,
+        "since_first_rpc_ms": 700
+      },
+      {
+        "layer": 29,
+        "gap_ms": 0,
+        "line": 4400,
+        "since_first_rpc_ms": 719
+      },
+      {
+        "layer": 30,
+        "gap_ms": 0,
+        "line": 4417,
+        "since_first_rpc_ms": 754
+      },
+      {
+        "layer": 31,
+        "gap_ms": 3,
+        "line": 4425,
+        "since_first_rpc_ms": 779
+      },
+      {
+        "layer": 32,
+        "gap_ms": 19,
+        "line": 4433,
+        "since_first_rpc_ms": 817
+      },
+      {
+        "layer": 33,
+        "gap_ms": 16,
+        "line": 4441,
+        "since_first_rpc_ms": 854
+      },
+      {
+        "layer": 34,
+        "gap_ms": 0,
+        "line": 4458,
+        "since_first_rpc_ms": 892
+      },
+      {
+        "layer": 35,
+        "gap_ms": 17,
+        "line": 4466,
+        "since_first_rpc_ms": 929
+      },
+      {
+        "layer": 36,
+        "gap_ms": 18,
+        "line": 4474,
+        "since_first_rpc_ms": 968
+      },
+      {
+        "layer": 37,
+        "gap_ms": 18,
+        "line": 4482,
+        "since_first_rpc_ms": 1007
+      },
+      {
+        "layer": 38,
+        "gap_ms": 0,
+        "line": 4499,
+        "since_first_rpc_ms": 1045
+      },
+      {
+        "layer": 39,
+        "gap_ms": 18,
+        "line": 4507,
+        "since_first_rpc_ms": 1081
+      }
+    ],
+    "rpc_span_ms": 1086,
+    "first_registration_since_first_rpc_ms": 392,
+    "log_paths": [
+      "/home/jungone-lee/workspace/nntrainer/docs/measurements/lfm2_s26_prefill1000_20261013/v17-pub-stage64-profile-av1.log",
+      "/home/jungone-lee/workspace/nntrainer/docs/measurements/lfm2_s26_prefill1000_20261013/v17-pub-stage64-profile-av1-logcat.txt"
+    ]
+  },
+  "caveats": [
+    "Profile runs include observers and are not clean TPS samples. v15 versus v17 also includes accepted v16 reader changes, so this is attribution, not an isolated eager-release A/B.",
+    "Logcat timestamps are rounded to milliseconds. Gaps before expert registration match reader wait location, but also include ordinary host scheduling; per-layer wait counters were not enabled.",
+    "No host-reader claim/finish timestamps are logged, so initial host bank completion or reader idle intervals cannot be measured. Earlier host-bank completion causing later pipeline slack remains a hypothesis.",
+    "Reader CPU masks are observed placement unions, not throughput or concurrency measurements."
+  ]
+}

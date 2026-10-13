@@ -1,0 +1,23 @@
+[
+  "nntrainer/tensor/htp_backend/htp_qs2_reader.h",
+  "nntrainer/tensor/htp_backend/htp_compute_ops.cpp",
+  "test/htp/host/expert_host_staging_backend_check.cpp",
+  "test/htp/host/qs2_inplace_reader_check.cpp",
+  "test/htp/host/run_qs2_inplace_reader_checks.py",
+  "docs/measurements/lfm2_s26_prefill1000_20261013/publish/inplace-reader-artifacts.json",
+  "docs/measurements/lfm2_s26_prefill1000_20261013/publish/inplace-reader-diagnostic-artifacts.json",
+  "docs/measurements/lfm2_s26_prefill1000_20261013/publish/inplace-reader-review.json",
+  "docs/measurements/lfm2_s26_prefill1000_20261013/publish/v15-v12-profile-analysis.json",
+  "docs/measurements/lfm2_s26_prefill1000_20261013/publish/inplace-reader-evaluation.json",
+  "docs/measurements/lfm2_s26_prefill1000_20261013/v15-pub-stage64-clean-ap1.json",
+  "docs/measurements/lfm2_s26_prefill1000_20261013/v16-pub-stage64-clean-ap2.json",
+  "docs/measurements/lfm2_s26_prefill1000_20261013/v16-pub-stage64-clean-ap3.json",
+  "docs/measurements/lfm2_s26_prefill1000_20261013/v15-pub-stage64-clean-ap4.json",
+  "docs/measurements/lfm2_s26_prefill1000_20261013/v16-pub-stage64-profile-aq1.json",
+  "docs/measurements/lfm2_s26_prefill1000_20261013/v16-pub-stage64-parity-ao1.json",
+  "docs/measurements/lfm2_s26_prefill1000_20261013/parity/v16-pub-stage64-parity-ao1-raw-output-comparison.json",
+  "docs/measurements/lfm2_s26_prefill1000_20261013/moe/inplace-reader-device.json",
+  "docs/measurements/lfm2_s26_prefill1000_20261013/combined-v16-publish-artifacts.json",
+  "docs/measurements/lfm2_s26_prefill1000_20261013/combined-v16-publish-diag-artifacts.json",
+  "docs/measurements/lfm2_s26_prefill1000_20261013/v15-pub-stage64-profile-an1.json"
+]

@@ -1,0 +1,8 @@
+{
+  "baseline": "/home/jungone-lee/workspace/nntrainer/docs/measurements/lfm2_s26_prefill1000_20261013/parity/dumps-baseline-v1",
+  "candidate": "/home/jungone-lee/workspace/nntrainer/docs/measurements/lfm2_s26_prefill1000_20261013/parity/dumps-v13",
+  "files": 132,
+  "different": [],
+  "exact": true,
+  "scope": "Cumulative v13 runtime including prior accepted optimizations; verifies full-model output equality, not an isolated Br256 experiment."
+}

@@ -28,6 +28,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
@@ -108,7 +109,21 @@ protected:
     }
     const double snr = snr_db(want, got);
     EXPECT_GT(snr, min_snr_db) << "SNR " << snr << " dB";
-    if (report) {
+    const bool output_hash = std::getenv("NNTR_ATTN_OUTPUT_HASH") != nullptr;
+    if (output_hash) {
+      // Run this same deterministic test binary against two skels to
+      // check exact output equality when changing tile scheduling.
+      uint64_t hash = UINT64_C(14695981039346656037);
+      const auto *bytes = reinterpret_cast<const uint8_t *>(got.data());
+      for (size_t i = 0; i < got.size() * sizeof(float); ++i)
+        hash = (hash ^ bytes[i]) * UINT64_C(1099511628211);
+      std::cout << "ATTN_F16_OUTPUT shape=" << s.n_q << "x" << s.cache_to << "x"
+                << s.n_head_q << "/" << s.n_head_kv << "x" << s.head_dim
+                << " from=" << s.cache_from << " window=" << s.window
+                << " br=" << s.br << " bc=" << s.bc << " sink=" << s.use_sink
+                << " softcap=" << s.softcap << " hash=" << hash << "\n";
+    }
+    if (report || output_hash) {
       std::cout << "ATTN_F16_FIELD shape=" << s.n_q << "x" << s.cache_to << "x"
                 << s.n_head_q << "/" << s.n_head_kv << "x" << s.head_dim
                 << " field=snr_db value=" << snr << "\n";
@@ -337,6 +352,11 @@ TEST_F(HmxAttnF16, PrefillAppendedToExistingCacheMha) {
   RunShape({64, 200, 264, 8, 8, 64, 0, 32, 32}, 40.0);
 }
 
+TEST_F(HmxAttnF16, Lfm2DecodeContexts) {
+  for (unsigned cache : {256u, 1024u, 1025u, 1088u, 4096u})
+    RunShape({1, cache - 1, cache, 32, 8, 64, 0, 0, 0}, 40.0);
+}
+
 TEST_F(HmxAttnF16, DecodeSingleRowRaggedCache) {
   // One query row at position 511 over 512 cached rows with bc=128:
   // exercises pad rows (G*br=4 of 32) and the un-ragged 4 full blocks.
@@ -449,6 +469,17 @@ protected:
     }
     const double snr = snr_db(want, got);
     EXPECT_GT(snr, min_snr_db) << "SNR " << snr << " dB";
+    if (std::getenv("NNTR_ATTN_OUTPUT_HASH")) {
+      uint64_t hash = UINT64_C(14695981039346656037);
+      const auto *bytes = reinterpret_cast<const uint8_t *>(got.data());
+      for (size_t i = 0; i < got.size() * sizeof(float); ++i)
+        hash = (hash ^ bytes[i]) * UINT64_C(1099511628211);
+      std::cout << "ATTN_F16_OUTPUT path=decode shape=" << s.n_q << "x"
+                << s.cache_to << "x" << s.n_head_q << "/" << s.n_head_kv << "x"
+                << s.head_dim << " from=" << s.cache_from
+                << " window=" << s.window << " sink=" << s.use_sink
+                << " softcap=" << s.softcap << " hash=" << hash << "\n";
+    }
     if (report) {
       std::cout << "ATTN_F16_FIELD path=decode shape=" << s.n_q << "x"
                 << s.cache_to << "x" << s.n_head_q << "/" << s.n_head_kv << "x"
@@ -599,6 +630,16 @@ TEST_F(HvxAttnDecodeF16, TinyCachesShowWhereErrorStarts) {
   for (uint32_t kv : {2u, 3u, 8u, 63u, 64u, 65u, 200u}) {
     RunDecode({1, kv - 1, kv, 4, 4, 64, 0, 0, 0}, -1000.0, /*report=*/true);
   }
+}
+
+TEST_F(HvxAttnDecodeF16, Lfm2DecodeContexts) {
+  for (uint32_t len : {256u, 1024u, 1025u, 1088u, 4096u})
+    RunDecode({1, len - 1, len, 32, 8, 64, 0, 0, 0}, 40.0, true);
+}
+
+TEST_F(HvxAttnDecodeF16, WideHeads) {
+  for (uint32_t hd : {256u, 512u})
+    RunDecode({1, 256, 257, 8, 2, hd, 0, 0, 0}, 40.0, true);
 }
 
 TEST_F(HvxAttnDecodeF16, ReportDecodeTime) {

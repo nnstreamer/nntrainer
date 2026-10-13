@@ -98,6 +98,8 @@ if get_option('htp-inproc')
     'hmx/hexkl_kv_tiles_f16.c',
     'hmx/hexkl_kv_q.c',
     'hvx/hvx_worker_pool.c',
+    'hvx/hvx_expand_i2i4.c',
+    'hvx/hvx_gemv_u8i2_lut.c',
     'hvx/hvx_gather_ah_u8.c',
     'hvx/hvx_scale_add_f32.c',
     'hvx/hvx_conv_gate_f32.c',

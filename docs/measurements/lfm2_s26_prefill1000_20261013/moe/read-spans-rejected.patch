@@ -1,0 +1,609 @@
+--- a/nntrainer/utils/weight_direct_file.h
++++ b/nntrainer/utils/weight_direct_file.h
+@@ -94,11 +94,32 @@
+    * Each thread owns scratch only (no retained weight cache).
+    */
+   int read(void *dst, size_t bytes, uint64_t offset) const {
+-    if (offset > size_ || bytes > size_ - offset)
++    return readSpans(dst, bytes, nullptr, 0, offset);
++  }
++
++  /** Read one contiguous record into two disjoint output spans. This retains
++   * the ordinary forward O_DIRECT requests and one bounded bounce buffer.
++   * Either output may be null only when its size is zero. On a failed read,
++   * already copied bytes remain private to the caller and must not be
++   * published.
++   */
++  int readSpans(void *head, size_t head_bytes, void *tail, size_t tail_bytes,
++                uint64_t offset) const {
++    if (offset > size_ || head_bytes > size_ - offset ||
++        tail_bytes > size_ - offset - head_bytes ||
++        head_bytes > std::numeric_limits<size_t>::max() - tail_bytes)
+       return -1;
++    size_t bytes = head_bytes + tail_bytes;
+     if (!bytes)
+       return 0;
+-    if (!dst)
++    if ((head_bytes && !head) || (tail_bytes && !tail))
++      return EINVAL;
++    const uintptr_t a = reinterpret_cast<uintptr_t>(head);
++    const uintptr_t b = reinterpret_cast<uintptr_t>(tail);
++    if (head_bytes > std::numeric_limits<uintptr_t>::max() - a ||
++        tail_bytes > std::numeric_limits<uintptr_t>::max() - b)
++      return EINVAL;
++    if (head_bytes && tail_bytes && a < b + tail_bytes && b < a + head_bytes)
+       return EINVAL;
+     struct Scratch {
+       void *data = nullptr;
+@@ -110,7 +131,8 @@
+       if (rc)
+         return rc;
+     }
+-    auto *out = static_cast<uint8_t *>(dst);
++    auto *first = static_cast<uint8_t *>(head);
++    auto *second = static_cast<uint8_t *>(tail);
+     while (bytes) {
+       const size_t skip = offset % alignment;
+       const size_t take = std::min(bytes, capacity - skip);
+@@ -125,8 +147,17 @@
+         return errno;
+       if (static_cast<size_t>(got) < skip + take)
+         return -1;
+-      std::memcpy(out, static_cast<const uint8_t *>(scratch.data) + skip, take);
+-      out += take;
++      const auto *source = static_cast<const uint8_t *>(scratch.data) + skip;
++      const size_t prefix = std::min(take, head_bytes);
++      if (prefix) {
++        std::memcpy(first, source, prefix);
++        first += prefix;
++        head_bytes -= prefix;
++      }
++      if (take > prefix) {
++        std::memcpy(second, source + prefix, take - prefix);
++        second += take - prefix;
++      }
+       offset += take;
+       bytes -= take;
+     }
+@@ -144,6 +175,11 @@
+
+ public:
+   int read(int fd, void *dst, size_t bytes, uint64_t offset) {
++    return readSpans(fd, dst, bytes, nullptr, 0, offset);
++  }
++
++  int readSpans(int fd, void *head, size_t head_bytes, void *tail,
++                size_t tail_bytes, uint64_t offset) {
+     struct stat st {};
+     if (fstat(fd, &st))
+       return errno;
+@@ -160,7 +196,7 @@
+     } catch (const std::invalid_argument &) {
+       return EINVAL;
+     }
+-    return file->read(dst, bytes, offset);
++    return file->readSpans(head, head_bytes, tail, tail_bytes, offset);
+   }
+ };
+
+--- a/nntrainer/tensor/htp_backend/htp_qs2_reader.h
++++ b/nntrainer/tensor/htp_backend/htp_qs2_reader.h
+@@ -98,5 +98,33 @@
+     stats->metadata_us += us(t3, now());
+   return 0;
+ }
++/**
++ * @brief Read a complete QS2 record once into its private codes destination and
++ * a small cached metadata buffer. The existing validator and metadata layout
++ * are shared with the ordinary reader. It calls the metadata callback first;
++ * that callback fills both spans. Its subsequent codes read is already done.
++ * No slot may be published unless this function returns success.
++ */
++template <typename ReadSpans>
++int htpReadQs2CompactSpans(ReadSpans read_spans, uint64_t off, uint32_t K,
++                           uint32_t N, uint8_t *dst,
++                           std::vector<uint8_t> &scratch,
++                           HtpQs2ReadStats *stats = nullptr) {
++  const uint64_t codes64 = static_cast<uint64_t>(K) * N / 4u;
++  const size_t codes = static_cast<size_t>(codes64);
++  bool record_read = false;
++  auto read = [&](void *out, size_t bytes, uint64_t at) {
++    if (!record_read) {
++      if (at != off + codes64 || bytes != 4u + 8u * static_cast<uint64_t>(N))
++        return EINVAL;
++      const int rc = read_spans(dst, codes, out, bytes, off);
++      record_read = rc == 0;
++      return rc;
++    }
++    return out == dst && bytes == codes && at == off ? 0 : EINVAL;
++  };
++  // All shape/overflow checks happen in the existing reader before read().
++  return htpReadQs2Compact(read, off, K, N, dst, true, scratch, stats);
++}
+ } // namespace nntrainer
+ #endif
+--- a/nntrainer/tensor/htp_backend/htp_compute_ops.cpp
++++ b/nntrainer/tensor/htp_backend/htp_compute_ops.cpp
+@@ -7891,14 +7891,20 @@
+     uint32_t h_gu, h_dn;
+   };
+
++#if defined(__linux__) || defined(__ANDROID__)
++  /** Share file-identity tracking between ordinary and split record reads. */
++  static WeightDirectFiles &directWeightFiles() {
++    static WeightDirectFiles files;
++    return files;
++  }
++#endif
++
+   /** @brief pread that finishes: 0, or the errno, or -1 at end of file.
+    *  Does not throw, so a worker thread can call it. */
+   static int preadAll(int fd, void *dst, size_t len, uint64_t off) {
+ #if defined(__linux__) || defined(__ANDROID__)
+-    if (weightDirectIO()) {
+-      static WeightDirectFiles direct_files;
+-      return direct_files.read(fd, dst, len, off);
+-    }
++    if (weightDirectIO())
++      return directWeightFiles().read(fd, dst, len, off);
+ #endif
+     uint8_t *p = static_cast<uint8_t *>(dst);
+     while (len != 0) {
+@@ -8506,16 +8512,34 @@
+           return v && std::atoi(v) != 0;
+         }();
+         HtpQs2ReadStats stats;
+-        const int rc = htpReadQs2Compact(
+-          [this, fd, mapped](void *dst, size_t len, uint64_t at) {
++        int rc;
+ #if defined(__linux__) || defined(__ANDROID__)
+-            if (mapped)
+-              return qs2_mapped_files_.read(fd, dst, len, at);
++        static const bool span_read = [] {
++          const char *v = std::getenv("NNTR_HTP_QS2_SPAN_READ");
++          return v && std::atoi(v) != 0;
++        }();
++        if (span_read && weightDirectIO()) {
++          rc = htpReadQs2CompactSpans(
++            [fd](void *head, size_t head_bytes, void *tail, size_t tail_bytes,
++                 uint64_t at) {
++              return directWeightFiles().readSpans(fd, head, head_bytes, tail,
++                                                   tail_bytes, at);
++            },
++            off, K, N, arena_dst, packed, profile ? &stats : nullptr);
++        } else
+ #endif
+-            return preadAll(fd, dst, len, at);
+-          },
+-          off, K, N, arena_dst, direct || mapped, packed,
+-          profile ? &stats : nullptr);
++        {
++          rc = htpReadQs2Compact(
++            [this, fd, mapped](void *dst, size_t len, uint64_t at) {
++#if defined(__linux__) || defined(__ANDROID__)
++              if (mapped)
++                return qs2_mapped_files_.read(fd, dst, len, at);
++#endif
++              return preadAll(fd, dst, len, at);
++            },
++            off, K, N, arena_dst, direct || mapped, packed,
++            profile ? &stats : nullptr);
++        }
+         if (profile) {
+           qs2_reads_.fetch_add(1, std::memory_order_relaxed);
+           qs2_read_us_.fetch_add(stats.read_us, std::memory_order_relaxed);
+--- /dev/null
++++ b/test/htp/host/weight_direct_spans_host_check.cpp
+@@ -0,0 +1,372 @@
++// SPDX-License-Identifier: Apache-2.0
++/** Check actual contiguous O_DIRECT records split into two private spans. */
++#if defined(__linux__) || defined(__ANDROID__)
++#include <algorithm>
++#include <atomic>
++#include <cerrno>
++#include <chrono>
++#include <cstdint>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <iostream>
++#include <limits>
++#include <string>
++#include <thread>
++#include <unistd.h>
++#include <utility>
++#include <vector>
++
++struct ReadProbe {
++  bool enabled = false;
++  unsigned fail_at = 0, short_at = 0, interrupt_at = 0, calls = 0;
++  std::vector<std::pair<uint64_t, size_t>> requests;
++};
++static thread_local ReadProbe probe;
++static ssize_t observed_pread(int fd, void *dst, size_t bytes, off_t offset);
++#define pread observed_pread
++#include "weight_direct_file.h"
++#undef pread
++#include "htp_qs2_reader.h"
++
++static ssize_t observed_pread(int fd, void *dst, size_t bytes, off_t offset) {
++  if (!probe.enabled)
++    return ::pread(fd, dst, bytes, offset);
++  ++probe.calls;
++  probe.requests.emplace_back(static_cast<uint64_t>(offset), bytes);
++  if (probe.calls == probe.fail_at || probe.calls == probe.interrupt_at) {
++    errno = probe.calls == probe.interrupt_at ? EINTR : EIO;
++    return -1;
++  }
++  const ssize_t got = ::pread(fd, dst, bytes, offset);
++  return probe.calls == probe.short_at && got > 0 ? got - 1 : got;
++}
++
++using Clock = std::chrono::steady_clock;
++static constexpr size_t GU = 1597444, DN = 802820;
++static std::atomic<unsigned> cases{0};
++static void require(bool ok, const char *what) {
++  if (!ok) {
++    std::fprintf(stderr, "FAIL: %s\n", what);
++    std::exit(1);
++  }
++}
++static void resetProbe(unsigned fail = 0, unsigned short_read = 0,
++                       unsigned interrupt = 0) {
++  probe = ReadProbe{};
++  probe.enabled = true;
++  probe.fail_at = fail;
++  probe.short_at = short_read;
++  probe.interrupt_at = interrupt;
++}
++static std::vector<uint8_t> record(uint32_t K, uint32_t N) {
++  const size_t codes = size_t(K) * N / 4;
++  std::vector<uint8_t> bytes(codes + 4 + size_t(N) * 8);
++  for (size_t i = 0; i < codes; ++i)
++    bytes[i] = uint8_t(i * 17u + i / 251u);
++  const int8_t palette[4] = {-8, -3, 2, 7};
++  std::memcpy(bytes.data() + codes, palette, sizeof palette);
++  for (uint32_t i = 0; i < N; ++i) {
++    const float scale = (i + 1) * 0.03125f;
++    const float sum = float(int(i % (8u * K)) - int(4u * K));
++    std::memcpy(bytes.data() + codes + 4 + size_t(i) * 4, &scale, 4);
++    std::memcpy(bytes.data() + codes + 4 + size_t(N + i) * 4, &sum, 4);
++  }
++  return bytes;
++}
++static int writeFile(const std::string &dir, const std::vector<uint8_t> &data) {
++  std::string path = dir + "/nntr-spans-XXXXXX";
++  std::vector<char> name(path.begin(), path.end());
++  name.push_back(0);
++  const int fd = mkstemp(name.data());
++  require(fd >= 0, "mkstemp");
++  require(!unlink(name.data()), "unlink private fixture");
++  size_t done = 0;
++  while (done < data.size()) {
++    const ssize_t n = write(fd, data.data() + done, data.size() - done);
++    if (n < 0 && errno == EINTR)
++      continue;
++    require(n > 0, "fixture write");
++    done += size_t(n);
++  }
++  require(!fsync(fd), "fixture fsync");
++  return fd;
++}
++static void compareRead(nntrainer::WeightDirectFiles &original,
++                        nntrainer::WeightDirectFiles &candidate, int fd,
++                        const std::vector<uint8_t> &data, uint64_t at,
++                        size_t bytes, size_t split, size_t shift) {
++  std::vector<uint8_t> reference(bytes + 256, 0xa5);
++  std::vector<uint8_t> first(split + shift + 128, 0xa5);
++  std::vector<uint8_t> second(bytes - split + shift + 128, 0xa5);
++  resetProbe();
++  const int a = original.read(fd, reference.data() + 128, bytes, at);
++  const auto requests = probe.requests;
++  resetProbe();
++  const int b = candidate.readSpans(fd, first.data() + shift, split,
++                                    second.data() + shift, bytes - split, at);
++  const int expected = at <= data.size() && bytes <= data.size() - at ? 0 : -1;
++  require(a == expected && b == a, "split/ordinary status");
++  require(probe.requests == requests, "identical forward pread sequence");
++  require(std::all_of(first.begin(), first.begin() + shift,
++                      [](uint8_t x) { return x == 0xa5; }) &&
++            std::all_of(first.end() - 128, first.end(),
++                        [](uint8_t x) { return x == 0xa5; }) &&
++            std::all_of(second.begin(), second.begin() + shift,
++                        [](uint8_t x) { return x == 0xa5; }) &&
++            std::all_of(second.end() - 128, second.end(),
++                        [](uint8_t x) { return x == 0xa5; }),
++          "destination guards");
++  if (!a) {
++    require(!std::memcmp(first.data() + shift, reference.data() + 128, split),
++            "first span bytes");
++    require(!std::memcmp(second.data() + shift, reference.data() + 128 + split,
++                         bytes - split),
++            "second span bytes");
++    require(!bytes ||
++              !std::memcmp(reference.data() + 128, data.data() + at, bytes),
++            "independent source bytes");
++  } else {
++    require(std::all_of(first.begin(), first.end(),
++                        [](uint8_t x) { return x == 0xa5; }) &&
++              std::all_of(second.begin(), second.end(),
++                          [](uint8_t x) { return x == 0xa5; }),
++            "range error leaves both spans untouched");
++  }
++  ++cases;
++}
++static void checkMetadata(uint32_t K, uint32_t N) {
++  auto data = record(K, N);
++  const size_t codes = size_t(K) * N / 4;
++  std::vector<uint8_t> reference(data.size() + 256, 0xa5), actual(reference),
++    a_scratch, b_scratch;
++  unsigned ordinary_calls = 0, span_calls = 0;
++  auto ordinary = [&](void *out, size_t n, uint64_t at) {
++    ++ordinary_calls;
++    require(at == 0 && n == data.size(), "one original whole-record read");
++    std::memcpy(out, data.data(), n);
++    return 0;
++  };
++  auto spans = [&](void *head, size_t n, void *tail, size_t m, uint64_t at) {
++    ++span_calls;
++    require(at == 0 && n == codes && n + m == data.size(),
++            "one split whole-record read");
++    std::memcpy(head, data.data(), n);
++    std::memcpy(tail, data.data() + n, m);
++    return 0;
++  };
++  nntrainer::HtpQs2ReadStats stats;
++  require(!nntrainer::htpReadQs2Compact(
++            ordinary, 0, K, N, reference.data() + 128, false, a_scratch),
++          "original metadata parse");
++  require(!nntrainer::htpReadQs2CompactSpans(
++            spans, 0, K, N, actual.data() + 128, b_scratch, &stats),
++          "split metadata parse");
++  require(reference == actual && ordinary_calls == 1 && span_calls == 1,
++          "complete slot bytes and one callback exact");
++  require(b_scratch.size() == 4 + 8u * N && stats.copied_bytes == 0,
++          "bounded metadata scratch and no full packed copy");
++  ++cases;
++  const auto valid = data;
++  for (int8_t invalid : {int8_t(-9), int8_t(8)}) {
++    data = valid;
++    data[codes] = uint8_t(invalid);
++    std::fill(actual.begin(), actual.end(), 0xa5);
++    require(nntrainer::htpReadQs2CompactSpans(
++              spans, 0, K, N, actual.data() + 128, b_scratch) == EINVAL,
++            "palette rejected before success/publication");
++    require(std::all_of(actual.begin() + 128 + codes, actual.end(),
++                        [](uint8_t x) { return x == 0xa5; }),
++            "invalid palette cannot publish metadata");
++    ++cases;
++  }
++  for (float invalid :
++       {std::numeric_limits<float>::quiet_NaN(),
++        std::numeric_limits<float>::infinity(), float(8u * K + 1u)}) {
++    data = valid;
++    std::memcpy(data.data() + codes + 4 + size_t(N) * 4, &invalid, 4);
++    std::fill(actual.begin(), actual.end(), 0xa5);
++    require(nntrainer::htpReadQs2CompactSpans(
++              spans, 0, K, N, actual.data() + 128, b_scratch) == EINVAL,
++            "column sum rejected before success/publication");
++    require(std::all_of(actual.begin() + 128 + codes, actual.end(),
++                        [](uint8_t x) { return x == 0xa5; }),
++            "invalid column sum cannot publish metadata");
++    ++cases;
++  }
++  data = valid;
++  for (int error : {-1, EIO}) {
++    unsigned calls = 0;
++    auto fail = [&](void *, size_t, void *, size_t, uint64_t) {
++      ++calls;
++      return error;
++    };
++    require(nntrainer::htpReadQs2CompactSpans(
++              fail, 0, K, N, actual.data() + 128, b_scratch) == error &&
++              calls == 1,
++            "I/O error propagated without second read");
++    ++cases;
++  }
++  unsigned invalid_calls = 0;
++  auto unexpected = [&](void *, size_t, void *, size_t, uint64_t) {
++    ++invalid_calls;
++    return EIO;
++  };
++  for (auto shape :
++       {std::pair<uint32_t, uint32_t>{0, N}, {K, 0}, {31, N}, {K, 33}})
++    require(nntrainer::htpReadQs2CompactSpans(unexpected, 0, shape.first,
++                                              shape.second, actual.data() + 128,
++                                              b_scratch) == EINVAL,
++            "invalid shape rejected before read");
++  require(nntrainer::htpReadQs2CompactSpans(unexpected, UINT64_MAX, K, N,
++                                            actual.data() + 128,
++                                            b_scratch) == EINVAL &&
++            !invalid_calls,
++          "offset overflow rejected before read");
++  ++cases;
++}
++static void checkDiskMetadata(const std::string &dir, uint32_t K, uint32_t N,
++                              size_t offset) {
++  const auto compact = record(K, N);
++  std::vector<uint8_t> data(offset + compact.size(), 0x63);
++  std::memcpy(data.data() + offset, compact.data(), compact.size());
++  const int fd = writeFile(dir, data);
++  nntrainer::WeightDirectFiles original;
++  nntrainer::WeightDirectFiles candidate;
++  std::vector<uint8_t> reference(compact.size() + 256, 0xa5), actual(reference),
++    a_scratch, b_scratch;
++  resetProbe();
++  const int a = nntrainer::htpReadQs2Compact(
++    [&](void *out, size_t n, uint64_t at) {
++      return original.read(fd, out, n, at);
++    },
++    offset, K, N, reference.data() + 128, false, a_scratch);
++  const auto requests = probe.requests;
++  resetProbe();
++  const int b = nntrainer::htpReadQs2CompactSpans(
++    [&](void *head, size_t n, void *tail, size_t m, uint64_t at) {
++      return candidate.readSpans(fd, head, n, tail, m, at);
++    },
++    offset, K, N, actual.data() + 128, b_scratch);
++  require(!a && b == a && reference == actual && probe.requests == requests,
++          "actual disk compact loader byte/status/pread parity");
++  require(probe.calls == (compact.size() > 1044480 ? 2u : 1u),
++          "actual GU two preads, DN one pread");
++  close(fd);
++  ++cases;
++}
++static void selfTest(const std::string &dir) {
++  std::vector<uint8_t> data(6 * 1024 * 1024 + 137);
++  for (size_t i = 0; i < data.size(); ++i)
++    data[i] = uint8_t(i * 17 + i / 251);
++  int fd = writeFile(dir, data);
++  nntrainer::WeightDirectFiles original;
++  nntrainer::WeightDirectFiles candidate;
++  const size_t offsets[] = {0, 1, 4095, 1048573, 6291456};
++  const size_t sizes[] = {0,       1,       31, 4095, 4096,   1048575,
++                          1048576, 1048577, GU, DN,   2097153};
++  for (size_t at : offsets)
++    for (size_t bytes : sizes)
++      for (size_t split : {size_t(0), std::min(bytes, size_t(1)), bytes / 2,
++                           bytes ? bytes - 1 : 0, bytes})
++        for (size_t shift : {size_t(1), size_t(127)})
++          compareRead(original, candidate, fd, data, at, bytes, split, shift);
++  std::vector<std::thread> threads;
++  for (unsigned t = 0; t < 6; ++t)
++    threads.emplace_back([&, t] {
++      for (unsigned i = 0; i < 8; ++i) {
++        size_t bytes = i & 1 ? GU : DN;
++        size_t tail = i & 1 ? 4 + 8 * 3072 : 4 + 8 * 2048;
++        compareRead(original, candidate, fd, data, 37 + t * 257 + i * 4093,
++                    bytes, bytes - tail, 1);
++      }
++    });
++  for (auto &t : threads)
++    t.join();
++  std::vector<uint8_t> a(2 * 1024 * 1024, 0xa5), b(4096, 0xa5);
++  require(candidate.readSpans(fd, nullptr, 1, b.data(), 1, 0) == EINVAL,
++          "null nonempty first span");
++  require(candidate.readSpans(fd, a.data(), 1, nullptr, 1, 0) == EINVAL,
++          "null nonempty second span");
++  require(!candidate.readSpans(fd, nullptr, 0, nullptr, 0, data.size()),
++          "zero at EOF");
++  require(candidate.readSpans(fd, a.data(), SIZE_MAX, b.data(), 1, 0) == -1 &&
++            candidate.readSpans(fd, a.data(), 1, b.data(), 1, UINT64_MAX) == -1,
++          "size and offset overflow");
++  require(candidate.readSpans(fd, a.data(), 100, a.data() + 50, 100, 0) ==
++            EINVAL,
++          "overlapping output spans rejected");
++  require(candidate.readSpans(fd, reinterpret_cast<void *>(UINTPTR_MAX - 15),
++                              32, nullptr, 0, 0) == EINVAL &&
++            candidate.readSpans(fd, nullptr, 0,
++                                reinterpret_cast<void *>(UINTPTR_MAX - 15), 32,
++                                0) == EINVAL,
++          "destination address overflow rejected before read");
++  for (unsigned failure : {1u, 2u}) {
++    std::fill(a.begin(), a.end(), 0xa5);
++    std::fill(b.begin(), b.end(), 0xa5);
++    resetProbe(failure);
++    require(
++      candidate.readSpans(fd, a.data(), a.size(), b.data(), b.size(), 0) == EIO,
++      "early/late pread error");
++    require(probe.calls == failure, "error stops further reads");
++    const size_t completed = failure == 2 ? 1024 * 1024 : 0;
++    require(
++      !std::memcmp(a.data(), data.data(), completed) &&
++        std::all_of(a.begin() + completed, a.end(),
++                    [](uint8_t x) { return x == 0xa5; }) &&
++        std::all_of(b.begin(), b.end(), [](uint8_t x) { return x == 0xa5; }),
++      "failed read touches only completed private bytes");
++    ++cases;
++  }
++  resetProbe(0, 1);
++  require(candidate.readSpans(fd, a.data(), a.size(), b.data(), b.size(), 0) ==
++            -1,
++          "short O_DIRECT read rejected");
++  resetProbe(0, 0, 1);
++  require(!candidate.readSpans(fd, a.data(), a.size(), b.data(), b.size(), 0) &&
++            probe.calls == 4 && !std::memcmp(a.data(), data.data(), a.size()),
++          "EINTR retry preserves all bytes and forward reads");
++  resetProbe();
++  require(!candidate.readSpans(fd, a.data(), GU - 24580, b.data(), 0, 0),
++          "zero tail span");
++  probe.enabled = false;
++  const int old = fd;
++  close(fd);
++  std::reverse(data.begin(), data.end());
++  fd = writeFile(dir, data);
++  require(fd == old, "fd reuse fixture");
++  compareRead(original, candidate, fd, data, 37, GU, GU - 24580, 1);
++  close(fd);
++  require(candidate.readSpans(fd, a.data(), 1, b.data(), 1, 0) == EBADF,
++          "closed fd rejected");
++  checkMetadata(32, 32);
++  checkMetadata(2048, 3072);
++  checkMetadata(1536, 2048);
++  for (size_t offset : {size_t(1), size_t(37), size_t(4095)}) {
++    checkDiskMetadata(dir, 32, 32, offset);
++    checkDiskMetadata(dir, 2048, 3072, offset);
++    checkDiskMetadata(dir, 1536, 2048, offset);
++  }
++  std::cout
++    << "READ_SPANS_HOST_PASS cases=" << cases.load()
++    << " bytes=EXACT forward_preads=EXACT guards=PASS EOF=PASS overflow=PASS"
++       " errors=PASS EINTR=PASS concurrency=PASS fd_reuse=PASS metadata=PASS\n";
++}
++
++int main(int argc, char **argv) {
++  if (argc != 2) {
++    std::fprintf(stderr, "usage: %s PRIVATE_DIRECTORY\n", argv[0]);
++    return 2;
++  }
++  selfTest(argv[1]);
++  return 0;
++}
++
++#else
++#include <cstdio>
++int main() {
++  std::puts("SKIP: storage O_DIRECT requires Linux/Android");
++  return 0;
++}
++#endif
+--- /dev/null
++++ b/test/htp/host/run_weight_direct_spans_host_checks.py
+@@ -0,0 +1,37 @@
++#!/usr/bin/env python3
++# SPDX-License-Identifier: Apache-2.0
++"""Exercise actual direct-reader and QS2 validation headers on private files."""
++import argparse
++import os
++from pathlib import Path
++import subprocess
++import tempfile
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--repo-root', type=Path)
++    parser.add_argument('--sanitize', action='store_true')
++    parser.add_argument('--compiler', default=os.environ.get('CXX', 'g++'))
++    args = parser.parse_args()
++    here = Path(__file__).resolve().parent
++    repo = args.repo_root.resolve() if args.repo_root else here.parents[2]
++    includes = [repo / 'nntrainer/utils', repo / 'nntrainer/tensor/htp_backend']
++    with tempfile.TemporaryDirectory(prefix='nntr-spans-host-') as temporary:
++        work = Path(temporary)
++        binary = work / 'weight_direct_spans_host_check'
++        command = [args.compiler, '-std=c++17', '-O1', '-g1', '-Wall', '-Wextra',
++                   '-Werror', '-pthread', *(f'-I{path}' for path in includes)]
++        if args.sanitize:
++            command += ['-fsanitize=address,undefined', '-fno-omit-frame-pointer']
++        command += [str(here / 'weight_direct_spans_host_check.cpp'), '-o', str(binary)]
++        subprocess.run(command, check=True)
++        environment = os.environ.copy()
++        if args.sanitize:
++            environment['ASAN_OPTIONS'] = 'halt_on_error=1'
++            environment['UBSAN_OPTIONS'] = 'halt_on_error=1'
++        subprocess.run([str(binary), str(work)], check=True, env=environment)
++
++
++if __name__ == '__main__':
++    main()

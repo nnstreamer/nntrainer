@@ -12,13 +12,17 @@
 #include <lfm2_moe_causallm.h>
 #include <lfm2_moe_layer.h>
 
+#include "htp_strict.h"
 #include <app_context.h>
 #include <engine.h>
 #include <layer_context.h>
+#include <layer_node.h>
 #include <llm_util.hpp>
 #include <model.h>
 
+#include <cerrno>
 #include <map>
+#include <typeinfo>
 
 #ifdef ENABLE_HEXKL
 #include <compute_ops.h>
@@ -26,6 +30,58 @@
 #endif
 
 namespace causallm {
+
+std::unique_ptr<CausalLM::PrefillWorkScope>
+Lfm2MoeCausalLM::beginPrefillWork(unsigned int from, unsigned int rows) {
+#if defined(ENABLE_HEXKL) && (defined(__linux__) || defined(__ANDROID__))
+  const char *value = std::getenv("NNTR_MOE_HOST_STAGE_EXPERTS");
+  if (!value || !*value || from != 0 || rows <= 4 || BATCH_SIZE != 1 ||
+      !model || USE_EMBEDDING || MOE_ENGINE != "htp" ||
+      typeid(*this) != typeid(Lfm2MoeCausalLM))
+    return {};
+  char *end = nullptr;
+  errno = 0;
+  const unsigned long count = std::strtoul(value, &end, 10);
+  if (errno || end == value || *end || count > 160)
+    throw std::invalid_argument("NNTR_MOE_HOST_STAGE_EXPERTS must be 0..160");
+  if (!count)
+    return {};
+  std::vector<nntrainer::ComputeOps::ExpertFileDesc> descriptors;
+  nntrainer::ComputeOps *ops = nullptr;
+  bool valid = true;
+  model->forEachLayer(
+    [&](ml::train::Layer &layer, nntrainer::RunLayerContext &context, void *) {
+      if (layer.getType() != "lfm2_moe")
+        return;
+      auto *moe = dynamic_cast<Lfm2MoELayer *>(
+        static_cast<nntrainer::LayerNode &>(layer).getLayer());
+      auto *current = context.getComputeOps();
+      if (!moe || !current || (ops && ops != current) ||
+          !moe->appendVirtualExpertFiles(context, descriptors)) {
+        valid = false;
+        return;
+      }
+      ops = current;
+    },
+    nullptr);
+  if (!valid || !ops || descriptors.empty())
+    return {};
+  struct Scope final : PrefillWorkScope {
+    nntrainer::ComputeOps *ops;
+    uint64_t token = 0;
+    explicit Scope(nntrainer::ComputeOps *backend) : ops(backend) {}
+    ~Scope() override { ops->end_qs2_host_prefetch(token); }
+  };
+  // Allocate RAII ownership before an API that can queue any background work.
+  auto scope = std::make_unique<Scope>(ops);
+  scope->token = ops->begin_qs2_host_prefetch(descriptors, model.get(), count);
+  return scope;
+#else
+  (void)from;
+  (void)rows;
+  return {};
+#endif
+}
 
 void Lfm2MoeCausalLM::setupParameters(json &cfg, json &generation_cfg,
                                       json &nntr_cfg) {
@@ -52,6 +108,12 @@ void Lfm2MoeCausalLM::setupParameters(json &cfg, json &generation_cfg,
   // moe_layer_dtype when the two are meant to differ (see quantize.cpp's
   // buildLayerDtypeMap docstring).
   MOE_LAYER_DTYPE = nntr_cfg.value("moe_layer_dtype", FC_LAYER_DTYPE);
+  ROUTER_DTYPE = nntr_cfg.value("router_dtype", std::string("FP32"));
+  if (ROUTER_DTYPE != "FP32" && ROUTER_DTYPE != "QS4CX")
+    throw std::invalid_argument("Lfm2Moe router_dtype must be FP32 or QS4CX");
+  if (ROUTER_DTYPE == "QS4CX" &&
+      cfg.at("architectures").at(0) != "Lfm2MoeForCausalLM")
+    throw std::invalid_argument("QS4CX router requires Lfm2MoeForCausalLM");
 
   // MoE FFN engine. Defaults to "cpu" so an existing run is unaffected
   // unless nntr_config.json opts in; MOE_HTP_LAYERS (empty = every MoE
@@ -60,6 +122,14 @@ void Lfm2MoeCausalLM::setupParameters(json &cfg, json &generation_cfg,
   MOE_ENGINE = nntr_cfg.value("moe_engine", std::string("cpu"));
   MOE_HTP_LAYERS =
     parseLayerIdList(nntr_cfg.value("moe_htp_layers", std::string("")));
+  if (htpStrict()) {
+    MOE_ENGINE = "htp";
+    MOE_HTP_LAYERS.clear();
+    if (NUM_EXPERTS > 128 || NUM_EXPERTS % 32 ||
+        (MOE_LAYER_DTYPE != "QS2CX_WH" && MOE_LAYER_DTYPE != "QS4CX_WH"))
+      throw std::invalid_argument(
+        "NNTR_HTP_STRICT: unsupported MoE shape/dtype");
+  }
 
 #ifdef ENABLE_HEXKL
   // [#85] NNTR_HTP_FORWARD=1: describe this model's decode step to the HTP
@@ -74,6 +144,9 @@ void Lfm2MoeCausalLM::setupParameters(json &cfg, json &generation_cfg,
   const char *e2e_env = std::getenv("NNTR_HTP_E2E");
   const bool e2e = e2e_env != nullptr && std::atoi(e2e_env) != 0;
   if (((fwd != nullptr && std::atoi(fwd) != 0) || e2e) && MOE_ENGINE == "htp") {
+    if (ROUTER_DTYPE != "FP32")
+      throw std::invalid_argument(
+        "QS4CX router is not supported by the monolithic decode graph");
     htp_graph_lfm2_shape shape;
     shape.n_layers = static_cast<uint32_t>(NUM_LAYERS);
     shape.n_dense_layers = NUM_DENSE_LAYERS;
@@ -137,7 +210,8 @@ Tensor Lfm2MoeCausalLM::createMoeLayer(const int layer_id, Tensor input) {
      withKey("num_experts", NUM_EXPERTS),
      withKey("num_experts_per_token", NUM_EXPERTS_PER_TOK),
      withKey("moe_activation", "swish"),
-     withKey("weight_dtype", MOE_LAYER_DTYPE), withKey("engine", engine)}));
+     withKey("weight_dtype", MOE_LAYER_DTYPE),
+     withKey("router_dtype", ROUTER_DTYPE), withKey("engine", engine)}));
   return moe(input);
 }
 

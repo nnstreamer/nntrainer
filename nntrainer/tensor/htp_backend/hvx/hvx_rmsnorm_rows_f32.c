@@ -12,6 +12,7 @@
 #include "hvx_rmsnorm_rows_f32.h"
 
 #include <stddef.h>
+#include <stdlib.h>
 
 #include <math.h>
 
@@ -77,6 +78,13 @@ void hvx_rmsnorm_row_f32(const float *x, float *y, const float *gamma,
   norm_chunk(x, y, gamma, n, eps);
 }
 
+void hvx_rmsnorm_row_chunks_f32(const float *x, float *y, const float *gamma,
+                                uint32_t n, uint32_t chunk, float eps) {
+  for (uint32_t k = 0; k < n; k += chunk) {
+    norm_chunk(x + k, y + k, gamma, chunk, eps);
+  }
+}
+
 static void rows_worker(uint32_t n_threads, uint32_t i, void *v) {
   const rows_ctx *c = (const rows_ctx *)v;
   const uint32_t lo = (uint32_t)(((uint64_t)c->M * i) / n_threads);
@@ -108,6 +116,172 @@ int hvx_rmsnorm_rows_ld_f32(const float *x, float *y, uint32_t M, uint32_t n,
   rows_ctx c = {x, y, gamma, M, n, ld, chunk, eps};
   hvx_worker_pool_run(pool, rows_worker, &c, M);
   return 0;
+}
+
+typedef struct {
+  const float *x, *residual, *gamma;
+  float *sum, *norm;
+  uint32_t M, n, chunk;
+  float eps;
+} residual_norm_ctx;
+
+static void residual_norm_worker(uint32_t threads, uint32_t thread,
+                                 void *opaque) {
+  const residual_norm_ctx *c = (const residual_norm_ctx *)opaque;
+  const uint32_t lo = (uint32_t)((uint64_t)c->M * thread / threads);
+  const uint32_t hi = (uint32_t)((uint64_t)c->M * (thread + 1u) / threads);
+  /* The calling FastRPC thread participates too, and its stack can be
+   * smaller than a pool worker's. Allocate one bounded row per participant,
+   * reusing it across all assigned rows. Allocation failure and large
+   * chunks retain the output-backed path. */
+  const size_t local_count = (size_t)c->chunk * (c->gamma ? 2u : 1u);
+  void *storage =
+    c->chunk <= 4096u ? malloc(local_count * sizeof(float) + 127u) : NULL;
+  HVX_UVector *cached =
+    storage ? (HVX_UVector *)(((uintptr_t)storage + 127u) & ~(uintptr_t)127u)
+            : NULL;
+  const uint32_t nvec = c->chunk / LANES;
+  const float *gamma = c->gamma;
+  if (cached && gamma) {
+    HVX_UVector *local_gamma = cached + nvec;
+    const HVX_UVector *source_gamma = (const HVX_UVector *)gamma;
+    for (uint32_t j = 0; j < nvec; ++j)
+      local_gamma[j] = source_gamma[j];
+    gamma = (const float *)local_gamma;
+  }
+  for (uint32_t row = lo; row < hi; ++row) {
+    for (uint32_t col = 0; col < c->n; col += c->chunk) {
+      const size_t offset = (size_t)row * c->n + col;
+      const HVX_UVector *x = (const HVX_UVector *)(c->x + offset);
+      const HVX_UVector *res = (const HVX_UVector *)(c->residual + offset);
+      HVX_UVector *sum = (HVX_UVector *)(c->sum + offset);
+      HVX_UVector *local = cached ? cached : sum;
+      for (uint32_t j = 0; j < nvec; ++j) {
+        const HVX_Vector value = Q6_Vsf_vadd_VsfVsf(x[j], res[j]);
+        local[j] = value;
+        sum[j] = value;
+      }
+#if defined(__hexagon__)
+      /* The stored f32 addition is the input to the norm. Do not let the
+       * compiler keep a higher-precision qf32 add across that boundary. */
+      __asm__ volatile("" : : : "memory");
+#endif
+      norm_chunk((const float *)local, c->norm + offset, gamma, c->chunk,
+                 c->eps);
+    }
+  }
+  free(storage);
+}
+
+int hvx_add_rmsnorm_rows_f32(const float *x, const float *residual, float *sum,
+                             float *norm, uint32_t M, uint32_t n,
+                             uint32_t chunk, const float *gamma, float eps,
+                             hvx_worker_pool *pool) {
+  if (!x || !residual || !sum || !norm || sum == norm || !M || !n || !chunk ||
+      chunk % LANES || n % chunk)
+    return -1;
+  residual_norm_ctx c = {x, residual, gamma, sum, norm, M, n, chunk, eps};
+  hvx_worker_pool_run(pool, residual_norm_worker, &c, M);
+  return 0;
+}
+
+static void norm_chunk_aligned(const float *x, float *y, const float *gamma,
+                               uint32_t chunk, float eps) {
+  const uint32_t nvec = chunk / LANES;
+  const HVX_Vector *vx = (const HVX_Vector *)x;
+  HVX_Vector *vy = (HVX_Vector *)y;
+  /* Sum of squares: per-lane accumulation in qf32 (one rounding per
+     multiply-add), the lanes summed once at the end. */
+  HVX_Vector acc = Q6_V_vzero();
+  for (uint32_t i = 0; i < nvec; ++i) {
+    acc = Q6_Vqf32_vadd_Vqf32Vqf32(acc, Q6_Vqf32_vmpy_VsfVsf(vx[i], vx[i]));
+  }
+  const float ss = lanes_sum(Q6_Vsf_equals_Vqf32(acc));
+  const float rs = 1.0f / sqrtf(ss / (float)chunk + eps);
+  const HVX_Vector r = hvx_splat_sf(rs);
+  if (gamma) {
+    const HVX_Vector *vg = (const HVX_Vector *)gamma;
+    for (uint32_t i = 0; i < nvec; ++i) {
+      vy[i] = Q6_Vsf_vmpy_VsfVsf(Q6_Vsf_vmpy_VsfVsf(vx[i], r), vg[i]);
+    }
+  } else {
+    for (uint32_t i = 0; i < nvec; ++i) {
+      vy[i] = Q6_Vsf_vmpy_VsfVsf(vx[i], r);
+    }
+  }
+}
+
+static void norm_rows_cached_aligned(const float *x, const float *residual,
+                                     float *sum, float *norm, float *cached,
+                                     uint32_t M, uint32_t n, const float *gamma,
+                                     float eps) {
+  const uint32_t nvec = n / LANES;
+  for (uint32_t row = 0; row < M; ++row) {
+    const size_t offset = (size_t)row * n;
+    const HVX_Vector *vx = (const HVX_Vector *)(x + offset);
+    HVX_Vector *local = (HVX_Vector *)(cached + offset);
+    if (residual) {
+      const HVX_Vector *vr = (const HVX_Vector *)(residual + offset);
+      HVX_Vector *vs = (HVX_Vector *)(sum + offset);
+      for (uint32_t j = 0; j < nvec; ++j) {
+        const HVX_Vector value = Q6_Vsf_vadd_VsfVsf(vx[j], vr[j]);
+        local[j] = value;
+        vs[j] = value;
+      }
+    } else {
+      for (uint32_t j = 0; j < nvec; ++j)
+        local[j] = vx[j];
+    }
+#if defined(__hexagon__)
+    /* Keep the same stored f32 input as residual_norm_worker. In particular,
+     * an inlined norm must not retain the addition in qf32 registers. */
+    __asm__ volatile("" : : : "memory");
+#endif
+    norm_chunk_aligned((const float *)local, (float *)local, gamma, n, eps);
+    HVX_Vector *published = (HVX_Vector *)(norm + offset);
+    for (uint32_t j = 0; j < nvec; ++j)
+      published[j] = local[j];
+  }
+}
+
+void hvx_rmsnorm_rows_cached_f32(const float *x, const float *residual,
+                                 float *sum, float *norm, float *cached,
+                                 uint32_t M, uint32_t n, const float *gamma,
+                                 float eps) {
+  if ((((uintptr_t)x | (uintptr_t)residual | (uintptr_t)sum | (uintptr_t)norm |
+        (uintptr_t)cached | (uintptr_t)gamma) &
+       127u) == 0u &&
+      n % LANES == 0u) {
+    norm_rows_cached_aligned(x, residual, sum, norm, cached, M, n, gamma, eps);
+    return;
+  }
+  const uint32_t nvec = n / LANES;
+  for (uint32_t row = 0; row < M; ++row) {
+    const size_t offset = (size_t)row * n;
+    const HVX_UVector *vx = (const HVX_UVector *)(x + offset);
+    HVX_UVector *local = (HVX_UVector *)(cached + offset);
+    if (residual) {
+      const HVX_UVector *vr = (const HVX_UVector *)(residual + offset);
+      HVX_UVector *vs = (HVX_UVector *)(sum + offset);
+      for (uint32_t j = 0; j < nvec; ++j) {
+        const HVX_Vector value = Q6_Vsf_vadd_VsfVsf(vx[j], vr[j]);
+        local[j] = value;
+        vs[j] = value;
+      }
+    } else {
+      for (uint32_t j = 0; j < nvec; ++j)
+        local[j] = vx[j];
+    }
+#if defined(__hexagon__)
+    /* Keep the same stored f32 input as residual_norm_worker. In particular,
+     * an inlined norm must not retain the addition in qf32 registers. */
+    __asm__ volatile("" : : : "memory");
+#endif
+    norm_chunk((const float *)local, (float *)local, gamma, n, eps);
+    HVX_UVector *published = (HVX_UVector *)(norm + offset);
+    for (uint32_t j = 0; j < nvec; ++j)
+      published[j] = local[j];
+  }
 }
 
 typedef struct {

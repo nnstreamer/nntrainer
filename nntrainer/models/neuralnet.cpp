@@ -62,6 +62,7 @@
 #include <safetensors_util.h>
 #include <slice_realizer.h>
 #include <util_func.h>
+#include <weight_direct_file.h>
 
 #ifdef ENABLE_TFLITE_INTERPRETER
 #include <tflite_interpreter.h>
@@ -115,6 +116,8 @@ Tensor mapExternalTensor(float *buf, const TensorDim &dim) {
  *        per node and never touches a tensor. Unlike the --profile build it
  *        builds no string per call and starts no sampler thread, so it can
  *        ride the TPS binary.
+ *        NNTR_OP_TIME=prefill selects multi-token calls instead, keeping
+ *        model loading and weight preparation outside the measured rows.
  *
  * ponytail: indexed by execution order, one process-wide table. Two models
  * in one process would add into the same rows; the CausalLM app runs one.
@@ -127,12 +130,16 @@ struct OpTimeTable {
   };
   std::vector<Row> rows;
 
-  static bool on() {
-    static const bool v = [] {
+  static bool on(unsigned int tokens) {
+    static const int mode = [] {
       const char *e = std::getenv("NNTR_OP_TIME");
-      return e != nullptr && std::strcmp(e, "1") == 0;
+      if (e == nullptr)
+        return 0;
+      if (std::strcmp(e, "prefill") == 0)
+        return 2;
+      return std::strcmp(e, "1") == 0 ? 1 : 0;
     }();
-    return v;
+    return (mode == 1 && tokens == 1) || (mode == 2 && tokens > 1);
   }
 
   void add(size_t f, LayerNode &node, uint64_t ns) {
@@ -369,6 +376,13 @@ int NeuralNetwork::compile(ExecutionMode mode) {
   // reuse the pool (allocate once) instead of reallocating per call. CPU/GPU
   // keep the realloc-per-call behavior they need for correct tensor state.
   reuse_inference_tensor_pool_ = has_qnn_engine;
+#ifdef ENABLE_HEXKL
+  const char *shared_htp = std::getenv("NNTR_HTP_SHARED_ACTIVATIONS");
+  if (!has_qnn_engine && shared_htp && std::atoi(shared_htp)) {
+    model_graph.setComputeBackend("", "htp");
+    reuse_inference_tensor_pool_ = true;
+  }
+#endif
 
   model_graph.setMemoryOptimizations(
     std::get<props::MemoryOptimization>(model_flex_props));
@@ -618,6 +632,15 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
   unsigned int from, unsigned int to, bool training,
   std::function<bool(void *userdata)> stop_cb, void *userdata) {
 
+#ifdef ENABLE_HEXKL
+  // Strict CausalLM layers dispatch to HTP directly; the process-wide
+  // getComputeOps() can still be the CPU table in a mixed-backend graph.
+  struct DeferredNormGuard {
+    ComputeOps *ops;
+    ~DeferredNormGuard() { ops->discard_deferred_norm(); }
+  } deferred_norm_guard{get_htp_ops()};
+#endif
+
   unsigned int lookahead = std::get<props::FsuLookahead>(model_flex_props);
   bool fsu_mode = std::get<props::Fsu>(model_flex_props);
 
@@ -636,7 +659,7 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
     if (exec_mode == ExecutionMode::TRAIN or
         (exec_mode == ExecutionMode::INFERENCE and !fsu_mode)) {
       model_graph.flushCacheExcept(f);
-      if (to - from == 1 && OpTimeTable::on()) {
+      if (OpTimeTable::on(to - from)) {
         const auto t0 = std::chrono::steady_clock::now();
         node->incremental_forwarding(from, to, training);
         g_op_time.add(f, *node,
@@ -1087,7 +1110,8 @@ void NeuralNetwork::load(const std::string &file_path,
           tensor_data_type != TensorDim::DataType::Q6_K &&
           tensor_data_type != TensorDim::DataType::Q4_0 &&
           tensor_data_type != TensorDim::DataType::QS4CX &&
-          tensor_data_type != TensorDim::DataType::QS4CX_WH) {
+          tensor_data_type != TensorDim::DataType::QS4CX_WH &&
+          tensor_data_type != TensorDim::DataType::QS2CX_WH) {
         // for tensor with qparam
         size += sizeof(uint16_t);
       }
@@ -1125,6 +1149,12 @@ void NeuralNetwork::load(const std::string &file_path,
       NNTR_THROW_IF((model_file_fd == -1), std::invalid_argument)
         << "Cannot open file : " << f_path;
 
+      const bool direct_weights = weightDirectIO();
+      if (direct_weights)
+        std::fprintf(
+          stderr,
+          "[WeightIO] O_DIRECT: initial weights and HTP expert reads\n");
+
       // Load weights with bounded thread number not to exceed mmap limits
       constexpr size_t MAX_LOAD_THREADS = 8;
       std::vector<std::shared_ptr<LayerNode>> load_nodes(model_graph.cbegin(),
@@ -1134,78 +1164,98 @@ void NeuralNetwork::load(const std::string &file_path,
         std::min<size_t>(num_load_nodes, MAX_LOAD_THREADS);
 
       std::atomic<size_t> next_load_index{0};
+      std::mutex load_error_mutex;
+      std::exception_ptr load_error;
 
       auto load_worker = [&]() {
-        for (size_t idx =
-               next_load_index.fetch_add(1, std::memory_order_relaxed);
-             idx < num_load_nodes;
-             idx = next_load_index.fetch_add(1, std::memory_order_relaxed)) {
-          auto node = load_nodes[idx];
+        try {
+          for (size_t idx =
+                 next_load_index.fetch_add(1, std::memory_order_relaxed);
+               idx < num_load_nodes;
+               idx = next_load_index.fetch_add(1, std::memory_order_relaxed)) {
+            auto node = load_nodes[idx];
 
-          if (!MMAP_READ) {
-            auto local_model_file = checkedOpenStream<std::ifstream>(
-              (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
-            node->read(local_model_file, false, exec_mode, fsu_mode,
-                       std::numeric_limits<size_t>::max(), true, model_file_fd);
-          } else {
-#if defined(_WIN32)
-            // Map per-ask, then unmap immediately after: enables early release
-            // of pages
-            HANDLE hFile =
-              CreateFileA(f_path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
-                          OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-            NNTR_THROW_IF((hFile == INVALID_HANDLE_VALUE), std::runtime_error)
-              << "CreateFileA failed";
-
-            HANDLE hMap =
-              CreateFileMapping(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
-            NNTR_THROW_IF((hMap == NULL), std::runtime_error)
-              << "CreateFileMapping failed";
-
-            char *view =
-              static_cast<char *>(MapViewOfFile(hMap, FILE_MAP_READ, 0, 0, 0));
-            NNTR_THROW_IF((view == nullptr), std::runtime_error)
-              << "MapViewOfFile failed";
-
-            node->read(view, false, exec_mode, fsu_mode,
-                       std::numeric_limits<size_t>::max(), true, model_file_fd);
-
-            // Early unmap: let the OS reclaim the working set ASAP
-            UnmapViewOfFile(view);
-            CloseHandle(hMap);
-            CloseHandle(hFile);
-#else
-            // POSIX: map per-task, advise kernel, drop pages, unmap
-            int fd = ::open(f_path.c_str(), O_RDONLY);
-            NNTR_THROW_IF((fd == -1), std::invalid_argument)
-              << "Cannot open file : " << f_path;
-
-            struct stat st {};
-            NNTR_THROW_IF((::fstat(fd, &st) == -1), std::invalid_argument)
-              << "Cannot get file info (fstat): " << f_path;
-
-            size_t f_size = static_cast<size_t>(st.st_size);
-            void *mmap_ptr =
-              ::mmap(nullptr, f_size, PROT_READ, MAP_PRIVATE, fd, 0);
-            ::close(fd); // fd not needed after mmap
-            NNTR_THROW_IF((mmap_ptr == MAP_FAILED), std::runtime_error)
-              << "mmap failed";
-
-            // Hint: many model loads touch scattered regions -> RANDOM helps
-            // reduce readahead
-            (void)::posix_madvise(mmap_ptr, f_size, POSIX_MADV_RANDOM);
-
-            char *view = static_cast<char *>(mmap_ptr);
-            node->read(view, false, exec_mode, fsu_mode,
-                       std::numeric_limits<size_t>::max(), true, model_file_fd);
-
-            // Early drop: pages no longer needed; helps lower peak RSS during
-            // overlap
-            (void)::posix_madvise(mmap_ptr, f_size, POSIX_MADV_DONTNEED);
-
-            ::munmap(mmap_ptr, f_size);
+#if defined(__linux__) || defined(__ANDROID__)
+            if (direct_weights) {
+              WeightDirectStream direct_stream(model_file_fd);
+              node->read(direct_stream.stream(), false, exec_mode, fsu_mode,
+                         std::numeric_limits<size_t>::max(), true,
+                         model_file_fd);
+            } else
 #endif
+              if (!MMAP_READ) {
+              auto local_model_file = checkedOpenStream<std::ifstream>(
+                (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
+              node->read(local_model_file, false, exec_mode, fsu_mode,
+                         std::numeric_limits<size_t>::max(), true,
+                         model_file_fd);
+            } else {
+#if defined(_WIN32)
+              // Map per-ask, then unmap immediately after: enables early
+              // release of pages
+              HANDLE hFile =
+                CreateFileA(f_path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
+                            OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+              NNTR_THROW_IF((hFile == INVALID_HANDLE_VALUE), std::runtime_error)
+                << "CreateFileA failed";
+
+              HANDLE hMap =
+                CreateFileMapping(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
+              NNTR_THROW_IF((hMap == NULL), std::runtime_error)
+                << "CreateFileMapping failed";
+
+              char *view = static_cast<char *>(
+                MapViewOfFile(hMap, FILE_MAP_READ, 0, 0, 0));
+              NNTR_THROW_IF((view == nullptr), std::runtime_error)
+                << "MapViewOfFile failed";
+
+              node->read(view, false, exec_mode, fsu_mode,
+                         std::numeric_limits<size_t>::max(), true,
+                         model_file_fd);
+
+              // Early unmap: let the OS reclaim the working set ASAP
+              UnmapViewOfFile(view);
+              CloseHandle(hMap);
+              CloseHandle(hFile);
+#else
+              // POSIX: map per-task, advise kernel, drop pages, unmap
+              int fd = ::open(f_path.c_str(), O_RDONLY);
+              NNTR_THROW_IF((fd == -1), std::invalid_argument)
+                << "Cannot open file : " << f_path;
+
+              struct stat st {};
+              NNTR_THROW_IF((::fstat(fd, &st) == -1), std::invalid_argument)
+                << "Cannot get file info (fstat): " << f_path;
+
+              size_t f_size = static_cast<size_t>(st.st_size);
+              void *mmap_ptr =
+                ::mmap(nullptr, f_size, PROT_READ, MAP_PRIVATE, fd, 0);
+              ::close(fd); // fd not needed after mmap
+              NNTR_THROW_IF((mmap_ptr == MAP_FAILED), std::runtime_error)
+                << "mmap failed";
+
+              // Hint: many model loads touch scattered regions -> RANDOM helps
+              // reduce readahead
+              (void)::posix_madvise(mmap_ptr, f_size, POSIX_MADV_RANDOM);
+
+              char *view = static_cast<char *>(mmap_ptr);
+              node->read(view, false, exec_mode, fsu_mode,
+                         std::numeric_limits<size_t>::max(), true,
+                         model_file_fd);
+
+              // Early drop: pages no longer needed; helps lower peak RSS during
+              // overlap
+              (void)::posix_madvise(mmap_ptr, f_size, POSIX_MADV_DONTNEED);
+
+              ::munmap(mmap_ptr, f_size);
+#endif
+            }
           }
+        } catch (...) {
+          std::lock_guard<std::mutex> lock(load_error_mutex);
+          if (!load_error)
+            load_error = std::current_exception();
+          next_load_index.store(num_load_nodes, std::memory_order_relaxed);
         }
       };
 
@@ -1218,6 +1268,8 @@ void NeuralNetwork::load(const std::string &file_path,
         if (t.joinable())
           t.join();
       }
+      if (load_error)
+        std::rethrow_exception(load_error);
 
     } else {
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();

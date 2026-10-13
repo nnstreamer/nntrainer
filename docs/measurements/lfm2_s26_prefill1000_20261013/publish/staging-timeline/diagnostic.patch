@@ -1,0 +1,168 @@
+--- a/nntrainer/tensor/htp_backend/htp_expert_host_staging.h
++++ b/nntrainer/tensor/htp_backend/htp_expert_host_staging.h
+@@ -6,6 +6,7 @@
+ #define __NNTRAINER_HTP_EXPERT_HOST_STAGING_H__
+ 
+ #include <cerrno>
++#include <chrono>
+ #include <condition_variable>
+ #include <cstdint>
+ #include <cstring>
+@@ -120,6 +121,10 @@
+   struct Stats {
+     size_t count = 0, read = 0, taken = 0, cancelled = 0, failed = 0;
+     size_t bytes = 0;
++    // Diagnostic-only aggregate timestamps; zero disables every extra clock.
++    uint64_t begin_us = 0, first_read_us = 0, last_read_us = 0;
++    uint64_t read_service_us = 0, first_wait_begin_us = 0;
++    uint64_t first_wait_end_us = 0, cancel_begin_us = 0, cancel_end_us = 0;
+   };
+   struct Lease {
+     std::shared_ptr<HtpExpertHostStaging> bank;
+@@ -161,8 +166,10 @@
+   };
+ 
+   HtpExpertHostStaging(const std::vector<Descriptor> &descriptors,
+-                       uint64_t token, const void *owner) :
++                       uint64_t token, const void *owner,
++                       uint64_t diagnostic_begin_us = 0) :
+     token_(token), owner_(owner) {
++    stats_.begin_us = diagnostic_begin_us;
+     if (!token || !owner || descriptors.empty() || descriptors.size() > 160)
+       throw std::invalid_argument("invalid host expert bank");
+     std::map<int, std::shared_ptr<Source>> sources;
+@@ -203,6 +210,7 @@
+   /** A failed allocation/read stays failed and is reported by the eventual
+    * consumer; it never exposes partial bytes as a valid registered weight. */
+   template <typename Reader> bool readOne(Reader reader) {
++    const uint64_t started = stats_.begin_us ? diagnosticNowUs() : 0;
+     size_t at;
+     {
+       std::lock_guard<std::mutex> lock(mutex_);
+@@ -210,6 +218,8 @@
+         return false;
+       at = next_++;
+       ++active_;
++      if (started && (!stats_.first_read_us || started < stats_.first_read_us))
++        stats_.first_read_us = started;
+     }
+     Record &record = records_[at];
+     try {
+@@ -222,6 +232,11 @@
+     }
+     {
+       std::lock_guard<std::mutex> lock(mutex_);
++      if (started) {
++        const uint64_t ended = diagnosticNowUs();
++        stats_.last_read_us = ended;
++        stats_.read_service_us += ended - started;
++      }
+       --active_;
+       ++done_;
+       ++stats_.read;
+@@ -231,9 +246,18 @@
+     return true;
+   }
+ 
+-  void waitReads() {
++  void waitReads(uint64_t diagnostic_wait_begin_us = 0) {
++    const uint64_t started =
++      stats_.begin_us ? (diagnostic_wait_begin_us ? diagnostic_wait_begin_us
++                                                  : diagnosticNowUs())
++                      : 0;
+     std::unique_lock<std::mutex> lock(mutex_);
++    const bool first = started && !stats_.first_wait_begin_us;
++    if (first)
++      stats_.first_wait_begin_us = started;
+     cv_.wait(lock, [&] { return done_ == records_.size(); });
++    if (first)
++      stats_.first_wait_end_us = diagnosticNowUs();
+   }
+ 
+   std::shared_ptr<Lease> take(const Descriptor &d) {
+@@ -257,7 +281,11 @@
+   /** Stop unstarted reads and join running reads/copies. The owner must keep
+    * the ordinary reader pool alive while leases are outstanding. */
+   void cancelAndWait() noexcept {
++    const uint64_t started = stats_.begin_us ? diagnosticNowUs() : 0;
+     std::unique_lock<std::mutex> lock(mutex_);
++    const bool first = started && !stats_.cancel_begin_us;
++    if (first)
++      stats_.cancel_begin_us = started;
+     closing_ = true;
+     const size_t cancelled = records_.size() - next_;
+     stats_.cancelled += cancelled;
+@@ -271,6 +299,8 @@
+       record.payload.reset();
+       record.source.reset();
+     }
++    if (first)
++      stats_.cancel_end_us = diagnosticNowUs();
+   }
+   Stats stats() const {
+     std::lock_guard<std::mutex> lock(mutex_);
+@@ -278,6 +308,11 @@
+   }
+ 
+ private:
++  static uint64_t diagnosticNowUs() {
++    return std::chrono::duration_cast<std::chrono::microseconds>(
++             std::chrono::steady_clock::now().time_since_epoch())
++      .count();
++  }
+   static size_t bytes(uint32_t k, uint32_t n) {
+     return static_cast<size_t>(uint64_t(k) * n / 4u + 8u * n + 4u);
+   }
+--- a/nntrainer/tensor/htp_backend/htp_compute_ops.cpp
++++ b/nntrainer/tensor/htp_backend/htp_compute_ops.cpp
+@@ -4026,6 +4026,8 @@
+   uint64_t
+   begin_qs2_host_prefetch(const std::vector<ExpertFileDesc> &descriptors,
+                           const void *owner, unsigned int count) override {
++    const uint64_t diagnostic_begin =
++      hostExpertProfile() ? HtpProfile::nowUs() : 0;
+     if (!count || count > 160 || !owner || !compactExperts() ||
+         preparedQs2Dir() || !weightDirectIO())
+       return 0;
+@@ -4056,7 +4058,8 @@
+     uint64_t token = ++host_expert_epoch_;
+     if (!token)
+       token = ++host_expert_epoch_;
+-    auto bank = std::make_shared<HostExpertBank>(selected, token, owner);
++    auto bank = std::make_shared<HostExpertBank>(selected, token, owner,
++                                                 diagnostic_begin);
+     startPrefetchReaders();
+     {
+       std::lock_guard<std::mutex> lock(prefetch_mutex_);
+@@ -4102,6 +4105,22 @@
+         stats.failed, (unsigned long long)host_expert_wait_us_.load(),
+         (unsigned long long)host_expert_copy_us_.load(),
+         (unsigned long long)host_expert_copy_bytes_.load());
++      // Absolute steady-clock microseconds let the analysis align all stages;
++      // read_service_us includes payload allocation and first touch before IO.
++      std::fprintf(
++        stderr,
++        "[HTP-HOST-STAGING-TIMELINE] token=%llu begin_us=%llu "
++        "first_read_us=%llu "
++        "last_read_us=%llu read_service_us=%llu first_wait_begin_us=%llu "
++        "first_wait_end_us=%llu cancel_begin_us=%llu cancel_end_us=%llu\n",
++        (unsigned long long)token, (unsigned long long)stats.begin_us,
++        (unsigned long long)stats.first_read_us,
++        (unsigned long long)stats.last_read_us,
++        (unsigned long long)stats.read_service_us,
++        (unsigned long long)stats.first_wait_begin_us,
++        (unsigned long long)stats.first_wait_end_us,
++        (unsigned long long)stats.cancel_begin_us,
++        (unsigned long long)stats.cancel_end_us);
+     }
+   }
+ 
+@@ -8425,7 +8444,7 @@
+     if (!bank)
+       return;
+     const uint64_t begin = hostExpertProfile() ? HtpProfile::nowUs() : 0;
+-    bank->waitReads();
++    bank->waitReads(begin);
+     if (hostExpertProfile())
+       host_expert_wait_us_ += HtpProfile::nowUs() - begin;
+   }

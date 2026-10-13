@@ -1,0 +1,63 @@
+{
+  "before": {
+    "status": 0,
+    "temperatures": {
+      "AP": 26.3,
+      "BAT": 25.9,
+      "PA": 26.7,
+      "SKIN": 28.1,
+      "SUBBAT": 0.0,
+      "USB": 26.1
+    }
+  },
+  "after": {
+    "status": 0,
+    "temperatures": {
+      "AP": 26.3,
+      "BAT": 25.9,
+      "PA": 26.7,
+      "SKIN": 28.1,
+      "SUBBAT": 0.0,
+      "USB": 26.1
+    }
+  },
+  "runs": [
+    {
+      "variant": "control",
+      "passed": true,
+      "returncode": 0,
+      "medians_us": {
+        "0": 4495.677,
+        "1": 3166.458
+      }
+    },
+    {
+      "variant": "gamma",
+      "passed": true,
+      "returncode": 0,
+      "medians_us": {
+        "0": 4135.729,
+        "1": 3012.24
+      }
+    },
+    {
+      "variant": "gamma",
+      "passed": true,
+      "returncode": 0,
+      "medians_us": {
+        "0": 4488.177,
+        "1": 3131.198
+      }
+    },
+    {
+      "variant": "control",
+      "passed": true,
+      "returncode": 0,
+      "medians_us": {
+        "0": 4534.739,
+        "1": 3172.5
+      }
+    }
+  ],
+  "passed": true
+}

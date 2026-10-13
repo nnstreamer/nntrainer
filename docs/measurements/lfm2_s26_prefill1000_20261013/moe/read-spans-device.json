@@ -1,0 +1,98 @@
+{
+  "binary_sha256": "b47053df7825567111a85cff36d320f4b3031772027a5ad14a3a8321ab4c2888",
+  "before": {
+    "status": 0,
+    "temperatures": {
+      "AP": 25.9,
+      "BAT": 25.6,
+      "PA": 26.2,
+      "SKIN": 27.7,
+      "SUBBAT": 0.0,
+      "USB": 25.8
+    }
+  },
+  "scope": "Bounded storage byte benchmark in ordinary RAM. No NPU; performance does not establish full-model gain.",
+  "metadata_parsed_in_raw_benchmark": false,
+  "runs": [
+    {
+      "args": [
+        "--self-test",
+        "/data/local/tmp/lfm2_prefill1000_20261013/read-spans-byte-v1"
+      ],
+      "returncode": 0,
+      "stdout": "READ_SPANS_HOST_PASS cases=637 bytes=EXACT forward_preads=EXACT guards=PASS EOF=PASS overflow=PASS errors=PASS EINTR=PASS concurrency=PASS fd_reuse=PASS metadata=PASS\n",
+      "stderr": "",
+      "wall_seconds": 0.7204659620001621
+    },
+    {
+      "args": [
+        "--bench",
+        "/data/local/tmp/lfm2_s26_direct_io_20261012/model-1024/weights.bin",
+        "verify",
+        "64",
+        "7",
+        "1"
+      ],
+      "returncode": 0,
+      "stdout": "READ_SPANS_ACTUAL_PARITY_PASS records=64 bytes=153616896 preads_per_expert=3 metadata_parsed=0\n",
+      "stderr": "",
+      "wall_seconds": 0.1680059700011043
+    },
+    {
+      "args": [
+        "--bench",
+        "/data/local/tmp/lfm2_s26_direct_io_20261012/model-1024/weights.bin",
+        "packed",
+        "64",
+        "7",
+        "6"
+      ],
+      "returncode": 0,
+      "stdout": "READ_SPANS_BENCH mode=packed rep=0 threads=7 records=64 ns=38058333 bytes=153616896 checksum=8502943790794202109 metadata_parsed=0 destination=ordinary_RAM\nREAD_SPANS_BENCH mode=packed rep=1 threads=7 records=64 ns=37075521 bytes=153616896 checksum=8502943790794202109 metadata_parsed=0 destination=ordinary_RAM\nREAD_SPANS_BENCH mode=packed rep=2 threads=7 records=64 ns=36946979 bytes=153616896 checksum=8502943790794202109 metadata_parsed=0 destination=ordinary_RAM\nREAD_SPANS_BENCH mode=packed rep=3 threads=7 records=64 ns=36912761 bytes=153616896 checksum=8502943790794202109 metadata_parsed=0 destination=ordinary_RAM\nREAD_SPANS_BENCH mode=packed rep=4 threads=7 records=64 ns=36866770 bytes=153616896 checksum=8502943790794202109 metadata_parsed=0 destination=ordinary_RAM\nREAD_SPANS_BENCH mode=packed rep=5 threads=7 records=64 ns=36858594 bytes=153616896 checksum=8502943790794202109 metadata_parsed=0 destination=ordinary_RAM\n",
+      "stderr": "",
+      "wall_seconds": 0.25201116900097986
+    },
+    {
+      "args": [
+        "--bench",
+        "/data/local/tmp/lfm2_s26_direct_io_20261012/model-1024/weights.bin",
+        "spans",
+        "64",
+        "7",
+        "6"
+      ],
+      "returncode": 0,
+      "stdout": "READ_SPANS_BENCH mode=spans rep=0 threads=7 records=64 ns=37181979 bytes=153616896 checksum=8502943790794202109 metadata_parsed=0 destination=ordinary_RAM\nREAD_SPANS_BENCH mode=spans rep=1 threads=7 records=64 ns=38635000 bytes=153616896 checksum=8502943790794202109 metadata_parsed=0 destination=ordinary_RAM\nREAD_SPANS_BENCH mode=spans rep=2 threads=7 records=64 ns=36585834 bytes=153616896 checksum=8502943790794202109 metadata_parsed=0 destination=ordinary_RAM\nREAD_SPANS_BENCH mode=spans rep=3 threads=7 records=64 ns=36767917 bytes=153616896 checksum=8502943790794202109 metadata_parsed=0 destination=ordinary_RAM\nREAD_SPANS_BENCH mode=spans rep=4 threads=7 records=64 ns=36667656 bytes=153616896 checksum=8502943790794202109 metadata_parsed=0 destination=ordinary_RAM\nREAD_SPANS_BENCH mode=spans rep=5 threads=7 records=64 ns=36665104 bytes=153616896 checksum=8502943790794202109 metadata_parsed=0 destination=ordinary_RAM\n",
+      "stderr": "",
+      "wall_seconds": 0.24342741100008425
+    },
+    {
+      "args": [
+        "--bench",
+        "/data/local/tmp/lfm2_s26_direct_io_20261012/model-1024/weights.bin",
+        "spans",
+        "64",
+        "7",
+        "6"
+      ],
+      "returncode": 0,
+      "stdout": "READ_SPANS_BENCH mode=spans rep=0 threads=7 records=64 ns=37310208 bytes=153616896 checksum=8502943790794202109 metadata_parsed=0 destination=ordinary_RAM\nREAD_SPANS_BENCH mode=spans rep=1 threads=7 records=64 ns=36674323 bytes=153616896 checksum=8502943790794202109 metadata_parsed=0 destination=ordinary_RAM\nREAD_SPANS_BENCH mode=spans rep=2 threads=7 records=64 ns=36717084 bytes=153616896 checksum=8502943790794202109 metadata_parsed=0 destination=ordinary_RAM\nREAD_SPANS_BENCH mode=spans rep=3 threads=7 records=64 ns=37118646 bytes=153616896 checksum=8502943790794202109 metadata_parsed=0 destination=ordinary_RAM\nREAD_SPANS_BENCH mode=spans rep=4 threads=7 records=64 ns=36899218 bytes=153616896 checksum=8502943790794202109 metadata_parsed=0 destination=ordinary_RAM\nREAD_SPANS_BENCH mode=spans rep=5 threads=7 records=64 ns=36719584 bytes=153616896 checksum=8502943790794202109 metadata_parsed=0 destination=ordinary_RAM\n",
+      "stderr": "",
+      "wall_seconds": 0.24383544199918106
+    },
+    {
+      "args": [
+        "--bench",
+        "/data/local/tmp/lfm2_s26_direct_io_20261012/model-1024/weights.bin",
+        "packed",
+        "64",
+        "7",
+        "6"
+      ],
+      "returncode": 0,
+      "stdout": "READ_SPANS_BENCH mode=packed rep=0 threads=7 records=64 ns=38078855 bytes=153616896 checksum=8502943790794202109 metadata_parsed=0 destination=ordinary_RAM\nREAD_SPANS_BENCH mode=packed rep=1 threads=7 records=64 ns=37500261 bytes=153616896 checksum=8502943790794202109 metadata_parsed=0 destination=ordinary_RAM\nREAD_SPANS_BENCH mode=packed rep=2 threads=7 records=64 ns=37339584 bytes=153616896 checksum=8502943790794202109 metadata_parsed=0 destination=ordinary_RAM\nREAD_SPANS_BENCH mode=packed rep=3 threads=7 records=64 ns=37386458 bytes=153616896 checksum=8502943790794202109 metadata_parsed=0 destination=ordinary_RAM\nREAD_SPANS_BENCH mode=packed rep=4 threads=7 records=64 ns=37322552 bytes=153616896 checksum=8502943790794202109 metadata_parsed=0 destination=ordinary_RAM\nREAD_SPANS_BENCH mode=packed rep=5 threads=7 records=64 ns=38056041 bytes=153616896 checksum=8502943790794202109 metadata_parsed=0 destination=ordinary_RAM\n",
+      "stderr": "",
+      "wall_seconds": 0.2551894810003432
+    }
+  ]
+}

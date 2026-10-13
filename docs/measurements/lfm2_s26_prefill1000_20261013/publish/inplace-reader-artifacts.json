@@ -1,0 +1,111 @@
+{
+  "publication_base": "b26eab2017157749e841d22d9818937798cbe205",
+  "candidate_sources": {
+    "nntrainer/tensor/htp_backend/htp_qs2_reader.h": "7b9855ada75372779993dd05c78ab6993aac476bc4827dbf38d2e795fdd2bf6e",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "91c426ef2ca6667ba8df6d21528723fe8f70561f06ded1502df6a6bf17585a71",
+    "test/htp/host/expert_host_staging_backend_check.cpp": "e26b0605a1139bd0369377d51591b6ebabe2c8fe6dd5705463374711833c0a32",
+    "test/htp/host/qs2_inplace_reader_check.cpp": "ae002036b646170402604d72dcd9edb56c5ee3195901b5613b8ca03a5d8495a1",
+    "test/htp/host/run_qs2_inplace_reader_checks.py": "8282a2c6024b241059fb9bdc84db99533781f103601bf0d2b46151412a8204ed"
+  },
+  "applied_patches": {
+    "production.patch": "d8166a1fcc5153fcd6b8285d9eaaaa1f3b59f1752dca87604b01fb861e55d530",
+    "tests.patch": "eaadd0f6a28d877fc44ccb4332fc4c264a3f471bcbc753133733da42b39536b7"
+  },
+  "production_only": true,
+  "artifacts": {
+    "libnntrainer.so": {
+      "source": "/tmp/lfm2-prefill1000-20261013/publish-build/core-libs/arm64-v8a/libnntrainer.so",
+      "frozen": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/artifacts/libnntrainer.so",
+      "bytes": 5288320,
+      "sha256": "8c2f66c178e77a0174339b595baf1447c9614ae8b985c0943fdab4392daa7168"
+    },
+    "libccapi-nntrainer.so": {
+      "source": "/tmp/lfm2-prefill1000-20261013/publish-build/core-libs/arm64-v8a/libccapi-nntrainer.so",
+      "frozen": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/artifacts/libccapi-nntrainer.so",
+      "bytes": 229512,
+      "sha256": "1fd18484dc116f2b75fdfcc1b7908bc00383258d534695a24802314ca9c83b74"
+    },
+    "libc++_shared.so": {
+      "source": "/tmp/lfm2-prefill1000-20261013/publish-build/core-libs/arm64-v8a/libc++_shared.so",
+      "frozen": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/artifacts/libc++_shared.so",
+      "bytes": 9485032,
+      "sha256": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df"
+    },
+    "libsdkl.so": {
+      "source": "/tmp/lfm2-prefill1000-20261013/publish-build/core-libs/arm64-v8a/libsdkl.so",
+      "frozen": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/artifacts/libsdkl.so",
+      "bytes": 152240,
+      "sha256": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe"
+    },
+    "libcausallm_core.so": {
+      "source": "/tmp/lfm2-prefill1000-20261013/publish-build/app-libs/arm64-v8a/libcausallm_core.so",
+      "frozen": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/artifacts/libcausallm_core.so",
+      "bytes": 9505152,
+      "sha256": "3a49594fd8400571bd78f7412ec9fce09c6eee18025513782413f851d17d1c71"
+    },
+    "nntrainer_causallm": {
+      "source": "/tmp/lfm2-prefill1000-20261013/publish-build/app-libs/arm64-v8a/nntrainer_causallm",
+      "frozen": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/artifacts/nntrainer_causallm",
+      "bytes": 318544,
+      "sha256": "b6b3810484a0573ece103af9701946be4da7dbfa83c413d0b76de913218c718d"
+    },
+    "libnntr_hvx_skel.so": {
+      "source": "/tmp/lfm2-prefill1000-20261013/conv-norm/host-staging/publication-compat/artifacts/libnntr_hvx_skel.so",
+      "frozen": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/artifacts/libnntr_hvx_skel.so",
+      "bytes": 709712,
+      "sha256": "a403c2595e86494178e03f63a1b895fdacdf55e8ca4a3076777ee44cd8232ef1"
+    }
+  },
+  "matching_app_core": "Default Android core/app build and install PASS; installed app/core/CCAPI/C++ runtime copies SHA-identical. libsdkl supplied by fresh core install. Production app and executable unchanged from v15.",
+  "dsp": {
+    "source_commit": "c40d68d59cca5bd0987ff33c66db2d8031572c71",
+    "sha256": "a403c2595e86494178e03f63a1b895fdacdf55e8ca4a3076777ee44cd8232ef1",
+    "reused_unchanged": true,
+    "registry_limit": 2048,
+    "association_manifest": "/tmp/lfm2-prefill1000-20261013/conv-norm/host-staging/publication-compat/artifacts.json",
+    "all_prior_broad_source_hashes_verified_except": [
+      "nntrainer/tensor/htp_backend/htp_qs2_reader.h"
+    ],
+    "exception_reason": "ARM-only compact file reader header; no DSP or IDL source modified."
+  },
+  "interface_source_hashes_unchanged": {
+    "Applications/CausalLM/models/causal_lm.cpp": "b253531d74c0115b2015050ff1c83ff72198279996e6b5ba1cf12eeeacab991a",
+    "Applications/CausalLM/models/causal_lm.h": "112266e84e9c137b644710fb05b37e8060e3772968c07234593e5c6ff03c7f4b",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_moe_causallm.cpp": "8fb2667a925f1bbbb5b31b5a99d6c6fcc1930f88c5b7035909442de62cdcc028",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_moe_causallm.h": "11efad4b979bc60a63b0149ffdfcee15c106c44f51b7df3c9da8a91b9c39c42f",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp": "798413988e8f6e7cfa0c7cd16ccb9268d09dc3867a934cc8abf820cab4130688",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.h": "4512e126e00bdc1fe72c0bc0daef9d94f453e9b0f65899279931d14ded14bebb",
+    "nntrainer/tensor/cpu_backend/compute_ops.h": "216d5b1fed2907cfabfcb1f277cb51b03ed525f40d3b2ac35adcfe10916bf112",
+    "nntrainer/tensor/htp_backend/htp_expert_host_staging.h": "7c1cfc0439f1495e8ab2ef716d4b706bfba1601e51afe2a96036cc25a31f91bf"
+  },
+  "host_tests": {
+    "reader": 305846,
+    "staging_helper": 3884,
+    "extracted_backend": 758,
+    "normal": "PASS",
+    "asan_ubsan": "PASS"
+  },
+  "parent_android_checker": {
+    "assertions": 305711,
+    "sha256": "484264848b776ea729a74d5d3a6738cd345ab716a8a60674817f7d876e758e8b",
+    "count_delta_explanation": "135 optional host frozen-baseline assertions omitted on Android.",
+    "evidence": "/home/jungone-lee/workspace/nntrainer/docs/measurements/lfm2_s26_prefill1000_20261013/moe/inplace-reader-device.json"
+  },
+  "build_results": [
+    {
+      "kind": "core",
+      "returncode": 0,
+      "seconds": 12.757860984998842,
+      "log": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/core-matched-install.log"
+    },
+    {
+      "kind": "app",
+      "returncode": 0,
+      "seconds": 0.9578190149986767,
+      "log": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/app-matched-install.log"
+    }
+  ],
+  "device_deployed_by_agent": false,
+  "commit_by_agent": false,
+  "live_sources_changed_by_agent": false
+}

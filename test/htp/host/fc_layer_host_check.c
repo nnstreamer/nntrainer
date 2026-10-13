@@ -1,14 +1,21 @@
-/* Host harness for hexkl_mm_u8i4_layer_run (the FC / projection call) on
+/** Host harness for hexkl_mm_u8i4_layer_run (the FC / projection call) on
    the scalar stand-ins: several handles of different widths against one
    activation, as the attention q/k/v call makes it, checked row by row
    against the reference. What it checks is the batching added for the
    pooled epilogue -- that staged slot j carries n-tile nt0+j of the right
    handle and lands at its columns of the right output block, across row
    blocks, across handles, and through a partial last row block -- not the
-   HMX's arithmetic, which the stubs define self-consistently. */
+   HMX's arithmetic, which the stubs define self-consistently.
+ * @file fc_layer_host_check.c
+ * @brief Regression checks for fc layer host check.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
+ */
 #include "hexkl_mm_opts.h"
 #include "hexkl_mm_u8i4_dma.h"
 #include "hexkl_probe.h"
+#include "hvx_rmsnorm_rows_f32.h"
+#include "hvx_rope_rows_f32.h"
 #include "hvx_scalar_stubs.h"
 #include <AEEStdErr.h>
 #include <math.h>
@@ -53,11 +60,11 @@ static int compare(const char *what, const float *got, const float *want,
 }
 
 int main(void) {
-  /* Three row blocks with a short last one; the widest handle is 33
+  /** Three row blocks with a short last one; the widest handle is 34
      n-tiles, one more than a staging batch, so the first handle takes two
      batches per row block and the parity crosses handles unevenly. */
   const uint32_t M = 150, K = 64;
-  const uint32_t N[3] = {1056, 512, 512};
+  const uint32_t N[3] = {1088, 512, 512};
   static uint8_t vtcm[8u << 20];
   W w[3];
   const W *ws[3];
@@ -90,6 +97,157 @@ int main(void) {
   reference(ws, 3, x, 1, K, want, 0.f);
   fail |= (rc != 0) | compare("M=1", got, want, N[0] + N[1] + N[2]);
 
+  // Mix an arena image, a flushed heap image and a dirty heap image.
+  // Only the first two may bypass L2; DMA must preserve every output bit.
+  g_tbl.slots[0].borrowed = 1;
+  g_tbl.slots[1].clean = 1;
+  for (uint32_t m = 1; m <= M; m += M - 1u) {
+    const size_t count = (size_t)m * (N[0] + N[1] + N[2]);
+    hexkl_mm_opts opts = {0};
+    rc = hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, m, K,
+                                 handles, 3, x, want, &opts);
+    fail |= rc != 0;
+    opts.weight_src_bypass = 1;
+    g_weight_bypass_bytes = g_invalid_bypass_bytes = 0;
+    rc = hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, m, K,
+                                 handles, 3, x, got, &opts);
+    const uint64_t expected = (uint64_t)K * (N[0] + N[1]) / 2u;
+    const int same = memcmp(got, want, count * sizeof(float)) == 0;
+    printf("FC M=%u bypass: identical=%d bytes=%llu expected=%llu bad=%llu\n",
+           m, same, (unsigned long long)g_weight_bypass_bytes,
+           (unsigned long long)expected,
+           (unsigned long long)g_invalid_bypass_bytes);
+    fail |= rc != 0 || !same || g_weight_bypass_bytes != expected ||
+            g_invalid_bypass_bytes != 0;
+
+    // Preserve accumulation and non-contiguous column-slice outputs.
+    const uint32_t offsets[3] = {N[2], N[2] + N[0], 0};
+    const uint32_t strides[3] = {N[0] + N[1] + N[2], N[0] + N[1] + N[2],
+                                 N[0] + N[1] + N[2]};
+    opts.out_off = offsets;
+    opts.out_ld = strides;
+    opts.accumulate = 1;
+    for (size_t j = 0; j < count; ++j)
+      got[j] = want[j] = 0.25f;
+    rc = hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, m, K,
+                                 handles, 3, x, got, &opts);
+    fail |= rc != 0;
+    rc = hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, m, K,
+                                 handles, 3, x, want, &opts);
+    fail |= rc != 0 || memcmp(got, want, count * sizeof(float)) != 0;
+  }
+
+  /** M=1 compact slabs: tail columns, handle changes, accumulation, and
+     caller-supplied output offsets must match the HMX path exactly. */
+  {
+    uint8_t ah[64u * 64u] __attribute__((aligned(128)));
+    const size_t count = N[0] + N[1] + N[2];
+    const uint32_t offsets[] = {N[2], N[2] + N[0], 0};
+    const uint32_t strides[] = {count, count, count};
+    for (uint32_t chunk = 4; chunk <= 32; chunk *= 2) {
+      for (int accumulate = 0; accumulate < 2; ++accumulate) {
+        hexkl_mm_opts o = {.out_off = offsets,
+                           .out_ld = strides,
+                           .accumulate = accumulate,
+                           .weight_src_bypass = 1};
+        for (size_t i = 0; i < count; ++i)
+          got[i] = want[i] = 0.25f;
+        rc = hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, 1,
+                                     K, handles, 3, x, want, &o);
+        fail |= rc != 0;
+        o.m1_scratch = ah;
+        o.m1_chunk_tiles = chunk;
+        g_weight_bypass_bytes = g_invalid_bypass_bytes = 0;
+        rc = hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, 1,
+                                     K, handles, 3, x, got, &o);
+        fail |= rc != 0 || memcmp(got, want, count * sizeof(float)) != 0;
+        fail |= g_invalid_bypass_bytes != 0 ||
+                g_weight_bypass_bytes != (uint64_t)K * (N[0] + N[1]) / 2u;
+        printf("HVX chunk=%u accumulate=%d rc=%d exact=%d\n", chunk, accumulate,
+               rc, memcmp(got, want, count * sizeof(float)) == 0);
+      }
+    }
+    hexkl_mm_opts o = {.m1_scratch = ah, .m1_chunk_tiles = 8};
+    rc = hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, 32u * K - 1u, sizeof vtcm, 1, K,
+                                 handles, 3, x, got, &o);
+    fail |= rc != AEE_ENOMEMORY || memcmp(got, want, count * sizeof(float));
+    /* A one-tile grant forces slab shrinking; no exported result is lost. */
+    rc = hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, 32u * K, sizeof vtcm, 1, K,
+                                 handles, 3, x, got, &o);
+    reference(ws, 3, x, 1, K, want, 0.f);
+    fail |= rc != 0 || compare("HVX tiny arena", got, want, count);
+  }
+
+  /* The per-head passes in the epilogue (hexkl_mm_opts.post_done): the
+     norm of handles 0 and 2 and the rotation of handle 0 must give the
+     bytes of the plain run with those passes made over it afterwards, and
+     the kernel must say it did them. Then a table row off by one, which
+     must not. */
+  {
+    const uint32_t HD = 64u, chunk[3] = {64u, 0u, 64u};
+    float gm[128], *cs = (float *)malloc(sizeof(float) * (M + 1u) * 2u * HD);
+    float *got2 = (float *)malloc(sizeof(float) * out_n);
+    for (uint32_t j = 0; j < 128u; ++j)
+      gm[j] = 0.5f + 0.01f * (float)j;
+    for (uint32_t j = 0; j < (M + 1u) * 2u * HD; ++j)
+      cs[j] = rndf();
+    rc = hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, M, K,
+                                 handles, 3, x, got, NULL);
+    size_t off = 0;
+    for (uint32_t i = 0; i < 3; ++i) {
+      for (uint32_t m = 0; m < M; ++m) {
+        float *row = got + off + (size_t)m * N[i];
+        if (chunk[i])
+          hvx_rmsnorm_row_chunks_f32(row, row, gm + (i ? 64 : 0), N[i],
+                                     chunk[i], 1e-6f);
+        if (i == 0)
+          hvx_rope_row_f32(row, N[i], HD, cs + (size_t)m * 2u * HD);
+      }
+      off += (size_t)M * N[i];
+    }
+    int done = 0;
+    hexkl_mm_opts o = {0};
+    o.post_done = &done;
+    o.post_chunk = chunk;
+    o.post_gamma = gm;
+    o.post_eps = 1e-6f;
+    o.rope_hd = HD;
+    o.rope_handles = 1u;
+    o.rope_cs = cs;
+    rc |= hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, M, K,
+                                  handles, 3, x, got2, &o);
+    const int same = !memcmp(got, got2, sizeof(float) * out_n);
+    o.rope_cs = cs + 2u * HD;
+    rc |= hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, M, K,
+                                  handles, 3, x, got2, &o);
+    const int blind = !memcmp(got, got2, sizeof(float) * out_n);
+    printf("post in epilogue  : rc=%d done=%d %s%s\n", rc, done,
+           same ? "bit-identical to the passes after" : "DIFFERS",
+           blind ? " (compare is blind)" : "");
+    fail |= (rc != 0) | !done | !same | blind;
+    /* One staging tile cannot contain a 64-column head. The kernel
+       must leave the post passes to the caller and return raw FC output. */
+    const uint32_t small_arena = 192u * K + K * N[0] + 2u * 8192u;
+    done = 0;
+    o.rope_cs = cs;
+    rc = hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, small_arena, small_arena, M, K,
+                                 handles, 3, x, got2, &o);
+    reference(ws, 3, x, M, K, want, 0.f);
+    fail |= rc != 0 || done != 0 || compare("post fallback", got2, want, out_n);
+
+    uint8_t ah[64u * 64u] __attribute__((aligned(128)));
+    o.m1_scratch = ah;
+    o.m1_chunk_tiles = 8;
+    done = 0;
+    rc = hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, 1, K,
+                                 handles, 3, x, got2, &o);
+    reference(ws, 3, x, 1, K, want, 0.f);
+    fail |= rc != 0 || done != 0 ||
+            compare("post M1 fallback", got2, want, N[0] + N[1] + N[2]);
+    free(cs);
+    free(got2);
+  }
+
   /* accumulate: the synchronous path, adding into what is there. */
   {
     hexkl_mm_opts o = {0};
@@ -102,7 +260,7 @@ int main(void) {
     fail |= (rc != 0) | compare("accumulate", got, want, out_n);
   }
 
-  /* An arena with room for exactly two staging tiles still runs (one
+  /** An arena with room for exactly two staging tiles still runs (one
      tile per batch); one tile short of that is refused. */
   {
     const uint32_t k_tiles = K / 32u, m_pad = 192u;

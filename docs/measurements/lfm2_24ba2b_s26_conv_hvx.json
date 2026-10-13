@@ -1,0 +1,446 @@
+{
+  "date": "2026-10-09",
+  "model": "LFM2-24B-A2B",
+  "device": "SM-S948N / R5KL30G6MCX / Hexagon v81",
+  "head": "bdc40c2ab21d2850d4658787dd199677ec41efcf",
+  "source_state": "Dirty working tree; pre-existing and concurrent norm-consumer changes preserved. Main A/B explicitly disables norm-consumer fusion.",
+  "implementation": {
+    "dispatch": "M=1; K,C,N positive multiples of 32 and <=8192; int4 WH weights",
+    "default": "NNTR_HTP_CONV_M1_HVX=1, NNTR_HTP_CONV_CHUNK_TILES=8",
+    "weight_feed": "Two compact column slabs, A/C/B together, reused for O",
+    "activation": "Cached AH scratch, 2048-byte k-tile pitch",
+    "vtcm_bytes_at_2048_chunk8": 1695744,
+    "cached_ah_bytes_at_2048": 262144,
+    "state": "Existing two-row carry and FP32 operation ordering retained",
+    "prefill": "Original HMX path"
+  },
+  "clean_generation": {
+    "serial": "R5KL30G6MCX",
+    "runtime": "/data/local/tmp/nntr_conv_hvx_20261009/bin",
+    "model": "/data/local/tmp/nntr_qs2_pr4415_20261009/model",
+    "binary_hashes": "fb577c21f57920a3906557d143d65e307873e64ce72be47c232adf2f8bd39910  nntrainer_causallm\naf93c771015d66cebe2a2e6466efeb9b55059dc2c667dc28405c34e499bd4777  libnntrainer.so\nef3b8bb4d2fc569355cda2d6e7962ad9f68435aa6a6f628ffbc41d215e72f321  libcausallm_core.so\n7ce6609c19dd785f8e6bea202e859c151f557e8b81d97ec8c9e54db0a9b2dbc6  libnntr_hvx_skel.so",
+    "model_config_hashes": "a27f6d9c9c8d1bbcf6ac8dd096fe095e9aef57723f618bf85c54f062f9510b98  config.json\n3ff8a3873a9fc96ae9e331ce7e20877d49cb75e4c53fce8a2e780255380f6b51  nntr_config.json",
+    "environment": {
+      "LD_LIBRARY_PATH": ".",
+      "ADSP_LIBRARY_PATH": ".",
+      "NNTR_HTP_STRICT": "1",
+      "NNTR_HTP_LMHEAD_CPU": "1",
+      "NNTR_HTP_SHARED_ACTIVATIONS": "1",
+      "NNTR_HTP_QS2_VTCM": "1",
+      "NNTR_HTP_ATTN_DECODE_HMX": "1",
+      "NNTR_HTP_DSPQ": "1",
+      "NNTR_HTP_DSPQ_MATH": "1",
+      "NNTR_HTP_DSPQ_ROUTER": "1",
+      "NNTR_HTP_DSPQ_SPIN_US": "20",
+      "NNTR_HTP_ADD_NORM_FUSION": "1",
+      "NNTR_HTP_BLOCK_NORM_FUSION": "1",
+      "NNTR_HTP_NORM_CONSUMER_FUSION": "0",
+      "NNTR_HTP_CONV_CHUNK_TILES": "8",
+      "NNTR_MOE_CACHE_EXPERTS": "8",
+      "NNTR_MOE_PREFETCH_EARLY": "1",
+      "NNTR_MOE_PREFETCH_READERS": "6",
+      "NNTR_NUM_THREADS": "8"
+    },
+    "runs": [
+      {
+        "pair": 1,
+        "mode": "hmx",
+        "log": "1-hmx.log",
+        "start_battery_temperature": "temperature: 258",
+        "tokens": 64,
+        "decode_ms": 4771,
+        "tps": 13.4144,
+        "prefill_ms": 2294,
+        "nll_sum": null
+      },
+      {
+        "pair": 1,
+        "mode": "hvx",
+        "log": "1-hvx.log",
+        "start_battery_temperature": "temperature: 260",
+        "tokens": 64,
+        "decode_ms": 4025,
+        "tps": 15.9006,
+        "prefill_ms": 2320,
+        "nll_sum": null
+      },
+      {
+        "pair": 2,
+        "mode": "hvx",
+        "log": "2-hvx.log",
+        "start_battery_temperature": "temperature: 267",
+        "tokens": 64,
+        "decode_ms": 4044,
+        "tps": 15.8259,
+        "prefill_ms": 2140,
+        "nll_sum": null
+      },
+      {
+        "pair": 2,
+        "mode": "hmx",
+        "log": "2-hmx.log",
+        "start_battery_temperature": "temperature: 272",
+        "tokens": 64,
+        "decode_ms": 4794,
+        "tps": 13.35,
+        "prefill_ms": 2319,
+        "nll_sum": null
+      },
+      {
+        "pair": 3,
+        "mode": "hmx",
+        "log": "3-hmx.log",
+        "start_battery_temperature": "temperature: 277",
+        "tokens": 64,
+        "decode_ms": 4854,
+        "tps": 13.185,
+        "prefill_ms": 2298,
+        "nll_sum": null
+      },
+      {
+        "pair": 3,
+        "mode": "hvx",
+        "log": "3-hvx.log",
+        "start_battery_temperature": "temperature: 283",
+        "tokens": 64,
+        "decode_ms": 4081,
+        "tps": 15.6824,
+        "prefill_ms": 2301,
+        "nll_sum": null
+      },
+      {
+        "pair": 4,
+        "mode": "hvx",
+        "log": "4-hvx.log",
+        "start_battery_temperature": "temperature: 286",
+        "tokens": 64,
+        "decode_ms": 4021,
+        "tps": 15.9164,
+        "prefill_ms": 2197,
+        "nll_sum": null
+      },
+      {
+        "pair": 4,
+        "mode": "hmx",
+        "log": "4-hmx.log",
+        "start_battery_temperature": "temperature: 289",
+        "tokens": 64,
+        "decode_ms": 4820,
+        "tps": 13.278,
+        "prefill_ms": 2174,
+        "nll_sum": null
+      },
+      {
+        "pair": 5,
+        "mode": "hmx",
+        "log": "5-hmx.log",
+        "start_battery_temperature": "temperature: 291",
+        "tokens": 64,
+        "decode_ms": 4797,
+        "tps": 13.3417,
+        "prefill_ms": 2199,
+        "nll_sum": null
+      },
+      {
+        "pair": 5,
+        "mode": "hvx",
+        "log": "5-hvx.log",
+        "start_battery_temperature": "temperature: 294",
+        "tokens": 64,
+        "decode_ms": 4067,
+        "tps": 15.7364,
+        "prefill_ms": 2152,
+        "nll_sum": null
+      }
+    ],
+    "kind": "clean generation",
+    "note": "Same-sitting comparison; fixed tokens alone do not fix routing.",
+    "median_tps": {
+      "hmx": 13.3417,
+      "hvx": 15.8259
+    },
+    "gain_percent": 18.61981606541896,
+    "runtime_unchanged": true
+  },
+  "kernel_matrix": [
+    {
+      "flags": 262144,
+      "path": "HMX",
+      "chunk_tiles": 4,
+      "rows1": true,
+      "dsp_median_us": 521,
+      "dsp_min_us": 507,
+      "samples": 18
+    },
+    {
+      "flags": 1310720,
+      "path": "HVX",
+      "chunk_tiles": 4,
+      "rows1": true,
+      "dsp_median_us": 172,
+      "dsp_min_us": 170,
+      "samples": 18
+    },
+    {
+      "flags": 9699328,
+      "path": "HVX",
+      "chunk_tiles": 4,
+      "rows1": false,
+      "dsp_median_us": 303,
+      "dsp_min_us": 295,
+      "samples": 18
+    },
+    {
+      "flags": 3407872,
+      "path": "HVX",
+      "chunk_tiles": 8,
+      "rows1": true,
+      "dsp_median_us": 154,
+      "dsp_min_us": 153,
+      "samples": 18
+    },
+    {
+      "flags": 11796480,
+      "path": "HVX",
+      "chunk_tiles": 8,
+      "rows1": false,
+      "dsp_median_us": 173,
+      "dsp_min_us": 172,
+      "samples": 18
+    },
+    {
+      "flags": 5505024,
+      "path": "HVX",
+      "chunk_tiles": 16,
+      "rows1": true,
+      "dsp_median_us": 154,
+      "dsp_min_us": 151,
+      "samples": 18
+    },
+    {
+      "flags": 13893632,
+      "path": "HVX",
+      "chunk_tiles": 16,
+      "rows1": false,
+      "dsp_median_us": 180,
+      "dsp_min_us": 176,
+      "samples": 18
+    },
+    {
+      "flags": 7602176,
+      "path": "HVX",
+      "chunk_tiles": 32,
+      "rows1": true,
+      "dsp_median_us": 163,
+      "dsp_min_us": 159,
+      "samples": 18
+    },
+    {
+      "flags": 15990784,
+      "path": "HVX",
+      "chunk_tiles": 32,
+      "rows1": false,
+      "dsp_median_us": 204,
+      "dsp_min_us": 201,
+      "samples": 18
+    }
+  ],
+  "fixed_continuation_profile": {
+    "hmx": {
+      "raw_line": "[HTP-PROFILE]   K=2048  N=2048  M==1 conv  calls=1920    rows=1920     host=   1404.7 ms (  731.6 us/call)  dsp=  557.3 us/call (76.2%) transport=  174.3 us/call  [quant 24.1 gather 71.1 requant 13.5 swiglu(hidden) 13.4 dequant 4.4 acc 92.0 drain 0.2+19.5 push 0.9 scatter 0.0 alloc 0.3 stage 23.4 mm 294.4 | rest<=13.5 (1.8% of host) blocks=1920 m1_gemv=0/1920 feed=0/1920]",
+      "host_us": 731.6,
+      "dsp_us": 557.3,
+      "nll_sum": "258.9664096598496"
+    },
+    "hvx": {
+      "raw_line": "[HTP-PROFILE]   K=2048  N=2048  M==1 conv  calls=1920    rows=1920     host=    663.5 ms (  345.6 us/call)  dsp=  181.5 us/call (52.5%) transport=  164.1 us/call  [quant 3.2 gather 0.0 requant 5.1 swiglu(hidden) 0.0 dequant 0.0 acc 0.0 drain 72.1+0.0 push 0.0 scatter 1.7 alloc 0.0 stage 17.2 mm 75.5 | rest<=6.8 (2.0% of host) blocks=0 m1_gemv=1920/1920 feed=1920/1920]",
+      "host_us": 345.6,
+      "dsp_us": 181.5,
+      "nll_sum": "258.9664096598496"
+    }
+  },
+  "norm_consumer_integration": {
+    "serial": "R5KL30G6MCX",
+    "runtime": "/data/local/tmp/nntr_conv_hvx_20261009/bin",
+    "model": "/data/local/tmp/nntr_qs2_pr4415_20261009/model",
+    "binary_hashes": "fb577c21f57920a3906557d143d65e307873e64ce72be47c232adf2f8bd39910  nntrainer_causallm\naf93c771015d66cebe2a2e6466efeb9b55059dc2c667dc28405c34e499bd4777  libnntrainer.so\nef3b8bb4d2fc569355cda2d6e7962ad9f68435aa6a6f628ffbc41d215e72f321  libcausallm_core.so\n7ce6609c19dd785f8e6bea202e859c151f557e8b81d97ec8c9e54db0a9b2dbc6  libnntr_hvx_skel.so",
+    "model_config_hashes": "a27f6d9c9c8d1bbcf6ac8dd096fe095e9aef57723f618bf85c54f062f9510b98  config.json\n3ff8a3873a9fc96ae9e331ce7e20877d49cb75e4c53fce8a2e780255380f6b51  nntr_config.json",
+    "environment": {
+      "LD_LIBRARY_PATH": ".",
+      "ADSP_LIBRARY_PATH": ".",
+      "NNTR_HTP_STRICT": "1",
+      "NNTR_HTP_LMHEAD_CPU": "1",
+      "NNTR_HTP_SHARED_ACTIVATIONS": "1",
+      "NNTR_HTP_QS2_VTCM": "1",
+      "NNTR_HTP_ATTN_DECODE_HMX": "1",
+      "NNTR_HTP_DSPQ": "1",
+      "NNTR_HTP_DSPQ_MATH": "1",
+      "NNTR_HTP_DSPQ_ROUTER": "1",
+      "NNTR_HTP_DSPQ_SPIN_US": "20",
+      "NNTR_HTP_ADD_NORM_FUSION": "1",
+      "NNTR_HTP_BLOCK_NORM_FUSION": "1",
+      "NNTR_HTP_NORM_CONSUMER_FUSION": "1",
+      "NNTR_HTP_CONV_CHUNK_TILES": "8",
+      "NNTR_MOE_CACHE_EXPERTS": "8",
+      "NNTR_MOE_PREFETCH_EARLY": "1",
+      "NNTR_MOE_PREFETCH_READERS": "6",
+      "NNTR_NUM_THREADS": "8",
+      "NNTR_PPL_DECODE": "/data/local/tmp/nntr_decode_compare.ids",
+      "NNTR_OP_TIME": "1",
+      "NNTR_HTP_PROFILE": "2"
+    },
+    "runs": [
+      {
+        "pair": 1,
+        "mode": "hmx",
+        "log": "1-hmx.log",
+        "start_battery_temperature": "temperature: 287",
+        "tokens": 64,
+        "decode_ms": 4836,
+        "tps": 13.2341,
+        "prefill_ms": 2170,
+        "nll_sum": "258.9664096598496"
+      },
+      {
+        "pair": 1,
+        "mode": "hvx",
+        "log": "1-hvx.log",
+        "start_battery_temperature": "temperature: 284",
+        "tokens": 64,
+        "decode_ms": 4081,
+        "tps": 15.6824,
+        "prefill_ms": 2238,
+        "nll_sum": "258.9664096598496"
+      }
+    ],
+    "kind": "profile",
+    "note": "Same-sitting comparison; fixed tokens alone do not fix routing.",
+    "continuation_hash": "a2ca805424e56eb559ebf57f37247ff31940b032124c8571c571820bd37e945d  /data/local/tmp/nntr_decode_compare.ids",
+    "median_tps": {
+      "hmx": 13.2341,
+      "hvx": 15.6824
+    },
+    "gain_percent": 18.49993577198299,
+    "runtime_unchanged": true
+  },
+  "final_dsp_sha256": "b3fa8798d092628e4ff0959da0a8fa328cd490a42ed251c45d85d52d81db04ed",
+  "validation": {
+    "host_conv": "passed; awkward/tail dimensions, four chunk sizes, repeated state, insufficient arena leaves exports unchanged",
+    "device": "6 selected tests passed including exact HMX/HVX outputs+carry for 3 shapes and 8 variants; native WH prefill-to-decode, MoE compact/GEMV and FC/registry regression",
+    "dsp_build": "v81 -Wall -Werror and undefined-symbol guard passed",
+    "format": "clang-format 14.0.6 on changed lines",
+    "broader_host_suite": "Passed through graph/attention; stopped at missing inference_math stub in swap harness from concurrent norm-consumer additions. Added fail-fast stub; swap rerun passed and remaining abs_max check passed. No new failures in preceding checks.",
+    "address_sanitizer": "Convolution host harness passed AddressSanitizer (detect_leaks=0 for existing harness allocations)."
+  },
+  "limitations": [
+    "Single device and fixture; not a thermal steady-state or power measurement.",
+    "Fixed continuation NLL equality is not general model-quality validation.",
+    "Clean 5-pair sweep used the same runtime throughout. Final skel rebuilt after formatting; separate final confirmation records its hash.",
+    "A concurrent model run caused one registration failure; discarded before retry on an idle device."
+  ],
+  "evidence_directory": "docs/reports/npu-decode-20261009/dist/evidence/conv-hvx",
+  "final_confirmation": {
+    "serial": "R5KL30G6MCX",
+    "runtime": "/data/local/tmp/nntr_conv_hvx_20261009/bin",
+    "model": "/data/local/tmp/nntr_qs2_pr4415_20261009/model",
+    "binary_hashes": "fb577c21f57920a3906557d143d65e307873e64ce72be47c232adf2f8bd39910  nntrainer_causallm\naf93c771015d66cebe2a2e6466efeb9b55059dc2c667dc28405c34e499bd4777  libnntrainer.so\nef3b8bb4d2fc569355cda2d6e7962ad9f68435aa6a6f628ffbc41d215e72f321  libcausallm_core.so\nb3fa8798d092628e4ff0959da0a8fa328cd490a42ed251c45d85d52d81db04ed  libnntr_hvx_skel.so",
+    "model_config_hashes": "a27f6d9c9c8d1bbcf6ac8dd096fe095e9aef57723f618bf85c54f062f9510b98  config.json\n3ff8a3873a9fc96ae9e331ce7e20877d49cb75e4c53fce8a2e780255380f6b51  nntr_config.json",
+    "environment": {
+      "LD_LIBRARY_PATH": ".",
+      "ADSP_LIBRARY_PATH": ".",
+      "NNTR_HTP_STRICT": "1",
+      "NNTR_HTP_LMHEAD_CPU": "1",
+      "NNTR_HTP_SHARED_ACTIVATIONS": "1",
+      "NNTR_HTP_QS2_VTCM": "1",
+      "NNTR_HTP_ATTN_DECODE_HMX": "1",
+      "NNTR_HTP_DSPQ": "1",
+      "NNTR_HTP_DSPQ_MATH": "1",
+      "NNTR_HTP_DSPQ_ROUTER": "1",
+      "NNTR_HTP_DSPQ_SPIN_US": "20",
+      "NNTR_HTP_ADD_NORM_FUSION": "1",
+      "NNTR_HTP_BLOCK_NORM_FUSION": "1",
+      "NNTR_HTP_NORM_CONSUMER_FUSION": "0",
+      "NNTR_HTP_CONV_CHUNK_TILES": "8",
+      "NNTR_MOE_CACHE_EXPERTS": "8",
+      "NNTR_MOE_PREFETCH_EARLY": "1",
+      "NNTR_MOE_PREFETCH_READERS": "6",
+      "NNTR_NUM_THREADS": "8"
+    },
+    "runs": [
+      {
+        "pair": 1,
+        "mode": "hmx",
+        "log": "1-hmx.log",
+        "start_battery_temperature": "temperature: 268",
+        "tokens": 64,
+        "decode_ms": 4803,
+        "tps": 13.325,
+        "prefill_ms": 2213,
+        "nll_sum": null
+      },
+      {
+        "pair": 1,
+        "mode": "hvx",
+        "log": "1-hvx.log",
+        "start_battery_temperature": "temperature: 267",
+        "tokens": 64,
+        "decode_ms": 3988,
+        "tps": 16.0481,
+        "prefill_ms": 2183,
+        "nll_sum": null
+      }
+    ],
+    "kind": "clean generation",
+    "note": "Same-sitting comparison; fixed tokens alone do not fix routing.",
+    "median_tps": {
+      "hmx": 13.325,
+      "hvx": 16.0481
+    },
+    "gain_percent": 20.436022514071304,
+    "runtime_unchanged": true
+  },
+  "evidence_sha256": {
+    "device-first.log": "212cac78af20fcecce6371849ab1d2b53ae0aca2e88ad6e1581c31c401094628",
+    "profile-hvx.log": "70ebf979289bb09b1aadd1953c4cda3ea1e7aedbb153848b47a0fee7cee8fe2f",
+    "host-swap-final.log": "667faea10896523089654ba9c34a867491c0c4bfa5ea56389405d20ef5f5d4a9",
+    "build-test-final.log": "09eccec9d5a636c903bfc55ddad7e59230f5b4d558b7bc96e5f4982d1b02b752",
+    "host-all.log": "3f95f47cdfa0856e3da95835229ee71f055ce7782330388ba679fd2dbf7d1a8a",
+    "profile-hmx.log": "f7e0c9913211ef407d3c75c37a35a55c6fe8304e18967fee4bafc589f021f009",
+    "device-final.log": "dfa5882cee97ca78e75c0315e71b65907b76046366b07e1c2846cb27919311cb",
+    "dsp-source-manifest.json": "3f4fc96a5351122dd17fe295b32d5eb9eff064ab60b7a9d77aefc9ca0c6ad591",
+    "host-abs-max.log": "c6afe7f525192e09e6edb1d8919d7cc3cd76c43145597742360c2f88a83eb092",
+    "build-dsp-final.log": "117bff7c01eb604b0158f5743fcaa5c521f6b18aad32d600ef68781c97951d73",
+    "device-cached-act-idle.log": "8214d25158a114b5a5f678c004fcf74ea4d6a01369dbfa03ce22e2b3d114b7ad",
+    "profile-env.json": "202e7593ba36c7dfabbc1578690cff904067d816af5257b310dabc043d0c4c30",
+    "host-cached-act.log": "f845bdafe49991e1c70a09415d76ebd1dcde7569ab3fdaac07a3de81db473543",
+    "norm-integration/1-hmx.log": "6abaf5fedd51ab89fdb158ed955bfb44620d407613a977d852e8e92de8e7c117",
+    "norm-integration/1-hvx.log": "ed9ade25dce350d80b9e720bba89f696ce15cfbf1446e9bcc611b341703f4dcd",
+    "clean/4-hvx.log": "dbf5543967d031bab71355643a1b4bbe68cb194cd7d91547dc2624519ec7b536",
+    "clean/3-hvx.log": "b5c2470b493065058c561618a4e31d6cbd77608b04e3dfbd40c9a10a62c39595",
+    "clean/5-hmx.log": "f53940f196b0d3d46104467b2a12717f158d340b60a6e286ce14977502260359",
+    "clean/4-hmx.log": "b82ac7b1edc6eac4f3ba292341a351c290560cd3cb9372feb3cc01f3a3d8f6b1",
+    "clean/2-hvx.log": "0c30033d872b67680ab48812f54c9d05cee86a88dc9a5811e73f3a9579ea99a6",
+    "clean/5-hvx.log": "79570bd9e4bd5850a4eca34d81f523957696f6ba27659a6bb86d4cafd70917fc",
+    "clean/1-hmx.log": "0a623a3a932513d9a67af8c41265de2c46dcc9d64f4ea3858798e3a3eb8bd2ef",
+    "clean/2-hmx.log": "87f70af470210a227297b67708a4a054bc58c9ef894196794a0050cb4766af73",
+    "clean/3-hmx.log": "e844be023a52dd7a9f15108e63979454d70d3bfbe2ee78dfd535cfa8aa02f6ca",
+    "clean/1-hvx.log": "9ffb715bfffb60363f6c1662edc86cc94f960b8c39f04550813af2d223a320b9",
+    "final-confirmation/1-hmx.log": "02355cd02131360e2577aa593e040ce8d742d47834fb1c785a58e6887dea7c41",
+    "final-confirmation/1-hvx.log": "9581f478f19fa5475bb53bab86b67670da6d620126641debb94b0fec0ab9313a",
+    "host-conv-asan.log": "f845bdafe49991e1c70a09415d76ebd1dcde7569ab3fdaac07a3de81db473543"
+  },
+  "current_source_sha256": {
+    "nntrainer/tensor/htp_backend/htp_conv_opts.h": "630047f2cbfaa725044ed116f02aa9789333b51d9c6d06d6de1ab8ef504b0445",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_conv_block.c": "ce7939f579908a1254aeb5bc2c26da2301084439fe2030e4e1e3bd14e5bf0757",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_conv_block.h": "4cf87512edd2126b548d46b04ff0dc8509c996b5c49c85064d26385f58c822e8",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.h": "b4981dd97b079375a0e480593777b3012e76d538bca28eff95abd7fc35bd3e16",
+    "nntrainer/tensor/htp_backend/htp_moe_opts.h": "a3f0b9c9c45d894c318a471cf7763094ce3baf8419594c3aaedc7dd03703ef99",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "5646c91cd10d6143141d9cfea27feae8e37d8db57b8c380dffc75ccdcf2a32f7",
+    "test/htp/nntr_hvx_mm_u8i4.c": "385991f404ce8efb522ea4c30909ccde5b8ba570cf2cb6751a65a962b82d0d8d",
+    "test/htp/host/conv_block_host_check.c": "d858785fb55e522f19e826442605384e2734f12d2d763365f28c4c4a19f9734a",
+    "test/htp/host/moe_opts_host_check.c": "b61ccd8e061b0ac9896a317426ecc7cd7f9bba31956da6a5b5736c1b04070ea5",
+    "test/htp/host/swap_host_check.c": "d75335b0eb8a4738463bf7a63e52630166ab9c609e6d65a622df3bdab3adaf95",
+    "test/unittest/unittest_hvx_mm_u8i4.cpp": "99d0e25327ff65d1620d710cf06f65a20ec83a30b2a5b2c81856ae87563f044f",
+    "tools/htp/bench_conv_hvx.py": "c4fdf1a9bc0231e81faefcb6f30f69a1c8aeb4d5c10b3149782b4f0c3bab8b20"
+  }
+}

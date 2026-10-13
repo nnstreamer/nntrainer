@@ -1,0 +1,40 @@
+{
+  "tests": {
+    "moe_expand_host_check.c": "d50dc22a76814dac9549d7a2d351301e5e95e21afdb31d748bfc700aae8d5b99",
+    "moe_schedule_host_check.c": "a14bfa317d56a1f39aacb9acd13c3724a4f36a955611287074906554fa185455",
+    "moe_epilogue_host_check.c": "15edeba7f6059a25b0108d8899beb7239b983e15c8ca220dda2cc4690e0ce29d",
+    "moe_kernel_emu.h": "95f93e6a9de8bd41d10c1ef5bafa8bab1554a603a4ebb39bd8932c9eeddce092",
+    "run_moe_kernel_host_checks.py": "84a7fa7b43bf6565bd64ede6d8f611694e3348309ef7e603a19690d9442b5ddc"
+  },
+  "validated": {
+    "live": "normal and ASan/UBSan PASS",
+    "publish": "normal and ASan/UBSan PASS"
+  },
+  "counts": {
+    "expand": 68608,
+    "partition": 576,
+    "threaded_DN": 280,
+    "DN_dequant": 1960,
+    "scatter": 480,
+    "dual_SiLU_planes": 50,
+    "scatter_integration": 90
+  },
+  "nan_contract": "Independent scalar reference checks NaN classification only in written output lanes. Finite/Inf/signed-zero/untouched storage exact. Actual aligned vs unaligned HVX fallback checks are bit exact, including NaNs. Host lane model is not proof of target QF encoding or timing; device parity is a separate gate.",
+  "published_source_sha256": {
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "ff120d3d72656f7b16b865249a5088a4cc4f307f93d937205d32d65c3da3f8ec",
+    "nntrainer/tensor/htp_backend/hvx/hvx_expand_i2i4.c": "4ff9c16b7cbd814f2b9e3cf904aa6e7708f4e576a8ca480b51305d3f8f830268",
+    "nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.c": "9935e439c0b1f32b520d2ca8a75b89d7cf45b211575d7fcec70a0d9e69f24165",
+    "nntrainer/tensor/htp_backend/hvx/hvx_scale_add_f32.c": "9c132beba9637956c000dcb21cbc0cb147d63a139b8d2dfd352c5ea397a5dcd8",
+    "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c": "e5638556e25e7d3e0f66ceb21b714ab3873a796d2f5f61ffdaeb36e5060a563c",
+    "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8i2_lut.c": "4a6ceb5e7f66fec6e53063cced778b40fc96ea6c47cdd0911e4c8eeee9ddab05",
+    "test/htp/host/dequant_planes_host_check.c": "2d145b48121fb531d772d2fde23055c4d56fd62b925953cabfd4dbbfebae5a51",
+    "test/htp/host/hvx_emu/hexagon_types.h": "fa591d7b29ef7e7b196f29683bdce406b1fdc5fe1f4ab96dbc28c4781e69fbc9",
+    "test/htp/host/hvx_emu/hvx_hexagon_protos.h": "88b96f6e389164fbbc6f8bccbd3eb2e8091bc74c1d9e106e9265419cbb8864fa"
+  },
+  "commands": [
+    "python3 test/htp/host/run_moe_kernel_host_checks.py",
+    "python3 test/htp/host/run_moe_kernel_host_checks.py --sanitize",
+    "python3 test/htp/host/run_moe_kernel_host_checks.py --repo-root /tmp/lfm2-prefill1000-20261013/publish",
+    "python3 test/htp/host/run_moe_kernel_host_checks.py --repo-root /tmp/lfm2-prefill1000-20261013/publish --sanitize"
+  ]
+}

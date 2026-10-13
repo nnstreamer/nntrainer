@@ -1,0 +1,38 @@
+{
+  "binary": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/publication-compat/owned_envelope_check-android",
+  "sha256": "e14545e8258328b8a13552b7091897ab5dff9f33769238fc47dfb373771f37b1",
+  "bytes": 1426824,
+  "command": [
+    "/home/jungone-lee/workspace/nntrainer/android-ndk-r30/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang++",
+    "-std=c++17",
+    "-O2",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-pthread",
+    "-I/tmp/lfm2-prefill1000-moe/aligned-owned-staging/publication-compat/android-checker-source",
+    "-I/tmp/lfm2-prefill1000-20261013/publish/nntrainer/utils",
+    "-I/tmp/lfm2-prefill1000-20261013/publish/nntrainer/tensor/htp_backend",
+    "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/publication-compat/android-checker-source/owned_envelope_check.cpp",
+    "-Wl,--wrap=pread",
+    "-Wl,--wrap=free",
+    "-Wl,--wrap=posix_memalign",
+    "-static-libstdc++",
+    "-o",
+    "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/publication-compat/owned_envelope_check-android"
+  ],
+  "source_sha256": {
+    "expert_host_staging_fixture.h": "1ad58f32f7d8e96609c5a2cda5173495ac37d54df670a319dbe4ef0e1e50da3a",
+    "owned_envelope_check.cpp": "3c424c866bf76e55dbf248b33c961287613497bea728c3c90ad5a0b30629350e"
+  },
+  "production_header_sha256": {
+    "/tmp/lfm2-prefill1000-20261013/publish/nntrainer/utils/weight_direct_file.h": "5e4bf76e523750f9d674aadfcdc002607ef73afd355c16fc7f24fb49e0b141b9",
+    "/tmp/lfm2-prefill1000-20261013/publish/nntrainer/tensor/htp_backend/htp_expert_host_staging.h": "8ec9bb6577faf0901fa3bc1867864796b8a0249ee702e8c0e66e27a46b963875",
+    "/tmp/lfm2-prefill1000-20261013/publish/nntrainer/tensor/htp_backend/htp_qs2_reader.h": "7b9855ada75372779993dd05c78ab6993aac476bc4827dbf38d2e795fdd2bf6e"
+  },
+  "tempdir_only_patch": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/publication-compat/android-checker-tempdir-only.patch",
+  "host_adapted_run": "PASS",
+  "parent_device_command": "NNTR_TEST_TMPDIR=<writable device directory> ./owned_envelope_check-android",
+  "expected": "PASS owned envelopes:33662 assertions",
+  "device_run_by_agent": false
+}

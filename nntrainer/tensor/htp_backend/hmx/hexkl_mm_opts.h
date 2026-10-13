@@ -75,6 +75,48 @@ typedef struct {
       handles' rectangles inside out_cat and apart. */
   const uint32_t *out_off;
   const uint32_t *out_ld;
+
+  /** Bypass L2 for weight DMA only, when the registered image is visible
+      in DDR. Activations and output transfers keep their cache policy. */
+  int weight_src_bypass;
+
+  /** M=1 HVX opt-in. Cached, 128-byte aligned scratch of at least 64*K
+      bytes, owned by the session and disjoint from inputs/output. NULL
+      retains HMX. The AH pitch remains 2048 bytes per k-tile. */
+  uint8_t *m1_scratch;
+  /** Compact weight slab width in 32-column tiles: 4, 8, 16 or 32. */
+  uint32_t m1_chunk_tiles;
+
+  /** post_done non-NULL asks for the per-head passes that follow the
+      matmul inside its dequant epilogue: handle i's rows RMS-normed
+      post_chunk[i] columns at a time (0: no norm; its gamma is the next
+      post_chunk[i] floats of post_gamma, post_eps) and, for the first
+      rope_handles handles, rotated (rope_hd, rope_cs[M][2 * rope_hd]) --
+      hvx_rmsnorm_row_chunks_f32 then hvx_rope_row_f32 on each row's
+      staged run of columns while it is in the cache, the floats of the
+      whole-tensor passes. *post_done is set to 1 when the kernel did all
+      of them and left at 0 when it did none (a staging batch that would
+      cut a head, or the unpipelined path): the caller then runs them. */
+  int *post_done;
+  const uint32_t *post_chunk;
+  const float *post_gamma;
+  float post_eps;
+  uint32_t rope_hd, rope_handles;
+  const float *rope_cs;
+
+  /** Optional prefill publication alongside pre_scratch. pre_norm is the
+      graph's M x K RMSNorm output; pre_sum is required with pre_residual.
+      All rows are normalized and packed before projection outputs start.
+      Exact aliases of norm/sum with the raw inputs are supported, but the
+      caller must reject partial overlap and preserve both graph outputs. */
+  const float *pre_residual;
+  float *pre_sum;
+  float *pre_norm;
+
+  /** Optional n_handles separate, contiguous M x N_i output bases. This
+      prefill-only mode is mutually exclusive with out_off/out_ld; the
+      caller validates their sizes and keeps the outputs disjoint. */
+  float *const *out_base;
 } hexkl_mm_opts;
 
 #endif /* __NNTRAINER_HEXKL_MM_OPTS_H__ */

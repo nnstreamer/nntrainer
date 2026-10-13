@@ -1,0 +1,15 @@
+{
+  "artifact": {
+    "serial": "R5KL30G6MCX",
+    "runtime": "/data/local/tmp/lfm2_prefill1000_20261013/conv-lifetime-v1",
+    "source": "combined-v1-artifacts",
+    "sha256": "04c4cdd665214b6d42b3d079b850697377c19cd880ada12939be85680ffd592b  libnntrainer.so\nb401217f35c03e40e610259887bec6b50623a765fbf316f30c49de7c3a582385  libcausallm_core.so\nc940b2afd8d8cbc90a0d272e31890e2d0aba02f43f06832be3c392f2e41395ec  libccapi-nntrainer.so\n2bb966c8a87d103d725b5e40b4f22b389248c4f717b49b44d6e57596a5a3d728  libnntr_hvx_skel.so\nb5d97c38a728afe28d341cda3369f512d35eaf9c680c1b0563cd6a63e395230f  libc++_shared.so\nc698d5d32aa89af4c94139f1e88542ea01960ea0cb5febc4de921461bcf8f6c7  libsdkl.so\n646e4c6527b0e300e2fd320e91f26abf551ffdbf2e799fdaefed7a76d22ca558  conv_norm_device_check"
+  },
+  "mode": "default",
+  "command": "cd /data/local/tmp/lfm2_prefill1000_20261013/conv-lifetime-v1 && echo NNTR_BENCH_PID=$$ && exec env LD_LIBRARY_PATH=. ADSP_LIBRARY_PATH=. NNTR_HTP_PREFILL_SHARED_IO=7 NNTR_HTP_NORM_CONSUMER_FUSION=1 ./conv_norm_device_check",
+  "returncode": 0,
+  "concurrent_pids": [],
+  "wall_seconds": 0.5462146299996675,
+  "passed": true,
+  "valid": true
+}

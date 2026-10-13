@@ -26,6 +26,9 @@
 #ifndef __NNTRAINER_HEXKL_MM_U8I4_MOE_H__
 #define __NNTRAINER_HEXKL_MM_U8I4_MOE_H__
 
+#include "../htp_conv_opts.h"
+#include "../htp_fc_opts.h"
+#include "../htp_qs2_gemv_opts.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -45,16 +48,16 @@
  * 6 of a real run; this is that check, moved to before the work starts.
  */
 typedef struct {
-  uint32_t act_off;     /**< one 64-row activation block, AH tiles */
-  uint32_t w_gu_off;    /**< buffer A: gate_up's WH bytes */
-  uint32_t w_dn_off;    /**< buffer B: down's WH bytes */
-  uint32_t gate_off;    /**< [64 x inter] f32: silu(gate)*up, written by
-                             the fused gate_up epilogue */
-  uint32_t mid_off;     /**< requantized SwiGLU output, AH tiles */
-  uint32_t result_off;  /**< TWO staging buffers of acc_tiles accumulator
-                             tiles each, back to back: the HMX issues a
-                             batch into one while the pool dequantizes the
-                             other */
+  uint32_t act_off;    /**< one 64-row activation block, AH tiles */
+  uint32_t w_gu_off;   /**< buffer A: gate_up's WH bytes */
+  uint32_t w_dn_off;   /**< buffer B: down's WH bytes */
+  uint32_t gate_off;   /**< [64 x inter] f32: silu(gate)*up, written by
+                            the fused gate_up epilogue */
+  uint32_t mid_off;    /**< requantized SwiGLU output, AH tiles */
+  uint32_t result_off; /**< TWO staging buffers of acc_tiles accumulator
+                            tiles each, back to back: the HMX issues a
+                            batch into one while the pool dequantizes the
+                            other */
   /** Accumulator tiles per staging buffer, given the arena. Even, at least
       2 (one gate/up pair); gate_up's n-tile count is the useful ceiling. */
   uint32_t acc_tiles;
@@ -97,7 +100,7 @@ typedef struct {
 /** @brief Releases the block. Safe on an empty scratch. */
 void hexkl_moe_scratch_free(hexkl_moe_scratch *s);
 
-/* ---- Shared with hexkl_conv_block.c ------------------------------------
+/** ---- Shared with hexkl_conv_block.c ------------------------------------
  *
  * The conv block kernel (doc 51 section 2) is this kernel's loop with a
  * different block body: same scratch, same DMA ring pushes, same
@@ -193,7 +196,7 @@ void hexkl_moe_pack_bg_worker(uint32_t n_units, uint32_t u, void *vctx);
         (hexkl_probe_now() - mm_t0) -                                          \
         (hexkl_probe_us[HEXKL_PROBE_ACC_READ] - mm_acc0) -                     \
         (hexkl_probe_us[HEXKL_PROBE_DEQUANT] - mm_dq0);                        \
-      /* One #87 completion sample per HMX batch: the bracket on every         \
+      /** One #87 completion sample per HMX batch: the bracket on every        \
          descriptor is only as tight as the points that read its bit. */       \
       hexkl_dma_trace_sample(hexkl_probe_now_ticks());                         \
     }                                                                          \
@@ -219,6 +222,17 @@ void hexkl_moe_pack_bg_worker(uint32_t n_units, uint32_t u, void *vctx);
  * @param[in] flags       HEXKL_MOE_FLAG_* bits; 0 is the HMX block loop
  * @return AEE_SUCCESS, or the first failing stage's code
  */
+/** Exact quantized source rows retained by one router-to-MoE pair.
+ * The caller owns every buffer until the synchronous kernel completes.
+ * Only compact QS2 prefill with M > 4 and K divisible by 128 is supported.
+ */
+typedef struct {
+  const uint8_t *rows;
+  const float *scale;
+  const int32_t *zp;
+  uint32_t M, K;
+} hexkl_moe_prepared_input;
+
 int hexkl_mm_u8i4_moe_layer_run(
   hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base, uint32_t vtcm_size,
   uint32_t config_off, uint32_t M, uint32_t K, uint32_t inter, uint32_t N_out,
@@ -226,6 +240,15 @@ int hexkl_mm_u8i4_moe_layer_run(
   const uint32_t *row_index, const uint32_t *row_count, const float *row_weight,
   const float *act_f32, float *out_f32, hvx_worker_pool *pool,
   hexkl_moe_scratch *scratch, uint32_t flags);
+
+int hexkl_mm_u8i4_moe_layer_run_prepared(
+  hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base, uint32_t vtcm_size,
+  uint32_t config_off, uint32_t M, uint32_t K, uint32_t inter, uint32_t N_out,
+  uint32_t n_experts, const uint32_t *h_gate_up, const uint32_t *h_down,
+  const uint32_t *row_index, const uint32_t *row_count, const float *row_weight,
+  const float *act_f32, float *out_f32, hvx_worker_pool *pool,
+  hexkl_moe_scratch *scratch, uint32_t flags,
+  const hexkl_moe_prepared_input *prepared);
 
 /**
  * @brief Take a call of at most 4 rows (M <= 4, at most 16 active experts)
@@ -337,13 +360,15 @@ int hexkl_mm_u8i4_moe_layer_run(
  *        MiB, tag-validated). Off unless the flags word sets it; no build
  *        default. No byte changes: the same bytes land in the same place.
  *
- * Why no cache maintenance: src_bypass only skips the DSP L2, and a
+ * src_bypass only skips the DSP L2, and a
  * bypassing read is stale only if that L2 holds a dirty line of the source.
- * The bit is set only for arena-backed (borrowed) slots: the CPU fills the
+ * Arena-backed (borrowed) slots are eligible: the CPU fills the
  * arena before it is attached and nothing on the DSP ever writes it (the
  * GEMV's arena read and l2fetch leave clean lines, which a bypassing read
- * may ignore). A heap slot was memcpy'd by the DSP, so it keeps
- * src_bypass = 0 under the knob too. The ARM side of
+ * may ignore). Immutable heap images are eligible after a successful
+ * cache flush at registration; a failed flush keeps src_bypass = 0. The
+ * FC and convolution calls use the same session bit and eligibility rule.
+ * The ARM side of
  * the same bytes is the CPU's business either way: an ARM cached mapping
  * (#157's plan) needs its clean per fill with or without this bit, since
  * the DSP L2 is not the ARM's cache. Activation blocks and the staging
@@ -367,7 +392,8 @@ int hexkl_mm_u8i4_moe_layer_run(
    HEXKL_MOE_FLAG_GEMV_ROWS1_SET | HEXKL_MOE_FLAG_GEMV_FEED_SET |              \
    ((uint32_t)HEXKL_MOE_GEMV_LEAD_BITS << HEXKL_MOE_GEMV_LEAD_SHIFT) |         \
    HEXKL_MOE_FLAG_GEMV_ROWS1 | HEXKL_MOE_FLAG_GEMV_FEED |                      \
-   HEXKL_MOE_FLAG_DMA_BYPASS | HEXKL_MOE_FLAG_GELU_TANH)
+   HEXKL_MOE_FLAG_DMA_BYPASS | HEXKL_MOE_FLAG_GELU_TANH |                      \
+   HTP_CONV_FLAGS_KNOWN | HTP_FC_FLAGS_KNOWN | HTP_QS2_GEMV_MASK)
 
 /** @brief The call's l2fetch lead in KB: the flags word when the lead bit
  *         is set, else the build's default. */

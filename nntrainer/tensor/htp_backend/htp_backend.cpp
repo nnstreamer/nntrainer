@@ -249,13 +249,32 @@ void *HtpBackend::alloc_shared(size_t bytes) {
             "and FastRPC copies it per call",
             bytes);
   }
+  if (block) {
+    std::lock_guard<std::mutex> lock(shared_mutex_);
+    shared_blocks_.emplace(reinterpret_cast<uintptr_t>(block), bytes);
+  }
   return block;
 }
 
 void HtpBackend::free_shared(void *block) {
   if (block) {
+    std::lock_guard<std::mutex> lock(shared_mutex_);
+    shared_blocks_.erase(reinterpret_cast<uintptr_t>(block));
     HtpRpcMemApi::get().free_(block);
   }
+}
+
+bool HtpBackend::isSharedRange(const void *ptr, size_t bytes) {
+  if (!ptr || !bytes)
+    return false;
+  const uintptr_t address = reinterpret_cast<uintptr_t>(ptr);
+  std::lock_guard<std::mutex> lock(shared_mutex_);
+  auto it = shared_blocks_.upper_bound(address);
+  if (it == shared_blocks_.begin())
+    return false;
+  --it;
+  const size_t offset = address - it->first;
+  return offset <= it->second && bytes <= it->second - offset;
 }
 
 HtpBackend::~HtpBackend() {

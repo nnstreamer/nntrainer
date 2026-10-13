@@ -24,6 +24,25 @@ OUT="$(mktemp -d)"
 trap 'rm -rf "$OUT"' EXIT
 
 cc=${CC:-gcc}
+g++ -std=c++17 -O2 -Wall -Wextra \
+  -I "$HERE/../../../Applications/CausalLM/layers" \
+  "$HERE/moe_decode_predictor_check.cpp" -o "$OUT/moe_decode_predictor_check"
+"$OUT/moe_decode_predictor_check"
+
+g++ -std=c++17 -O2 -Wall -Wextra -pthread -I "$BACKEND" \
+  "$HERE/qs2_reader_check.cpp" -o "$OUT/qs2_reader_check"
+"$OUT/qs2_reader_check"
+
+# Palette-coded compact expert weights must expand without requantization.
+g++ -std=c++17 -O2 -I "$BACKEND/.." \
+  "$HERE/qs2cx_wh_check.cpp" -o "$OUT/qs2cx_wh_check"
+"$OUT/qs2cx_wh_check"
+
+"$cc" -std=gnu11 -O2 -Wall -Wextra -I "$BACKEND/hvx" \
+  "$HERE/qs2_lut_check.c" "$BACKEND/hvx/hvx_gemv_u8i2_lut.c" \
+  -o "$OUT/qs2_lut_check"
+"$OUT/qs2_lut_check"
+
 # -O2: the M=1 cases run the HMX stand-in at the real shape (64 rows a
 # tile, scalar); about half a minute at -O2 and several at -O1, since the
 # HMX reference is computed once per (shape, M) and reused. One build since
@@ -40,7 +59,8 @@ cc=${CC:-gcc}
   -I "$BACKEND/hmx" -I "$BACKEND/hvx" \
   -o "$OUT/moe_layer_host_check" \
   "$HERE/moe_layer_host_check.c" "$HERE/standin/hvx_scalar.c" \
-  "$BACKEND/hmx/hexkl_mm_u8i4_moe.c" "$BACKEND/hmx/hexkl_dma_trace.c" -lm
+  "$BACKEND/hmx/hexkl_mm_u8i4_moe.c" "$BACKEND/hvx/hvx_expand_i2i4.c" \
+  "$BACKEND/hvx/hvx_gemv_u8i2_lut.c" "$BACKEND/hmx/hexkl_dma_trace.c" -lm
 
 "$OUT/moe_layer_host_check"
 
@@ -49,13 +69,17 @@ cc=${CC:-gcc}
 # -ffp-contract=off: the conv gate's reference is a separate multiply and
 # add per tap, as the HVX computes it, and the host compiler must not fuse
 # them into an FMA the device does not have.
+# Deferred foreground jobs execute only at wait: buffer reuse must remain
+# safe even when an epilogue reads after the next HMX batch has finished.
 "$cc" -std=c99 -O1 -Wall -Wextra -Wno-unused-parameter -ffp-contract=off \
+  -DHVX_SCALAR_DEFER_WORKERS \
   -I "$HERE/stub" -I "$HERE/standin" -I "$BACKEND/.." -I "$BACKEND/hmx" \
   -I "$BACKEND/hvx" \
   -o "$OUT/conv_block_host_check" \
   "$HERE/conv_block_host_check.c" "$HERE/hvx_scalar_stubs.c" \
   "$HERE/standin/hvx_scalar.c" \
-  "$BACKEND/hmx/hexkl_conv_block.c" "$BACKEND/hmx/hexkl_mm_u8i4_moe.c" \
+  "$BACKEND/hmx/hexkl_conv_block.c" "$BACKEND/hmx/hexkl_mm_u8i4_moe.c" "$BACKEND/hvx/hvx_expand_i2i4.c" \
+  "$BACKEND/hvx/hvx_gemv_u8i2_lut.c" \
   "$BACKEND/hmx/hexkl_dma_trace.c" -lm
 
 "$OUT/conv_block_host_check"
@@ -82,6 +106,23 @@ cc=${CC:-gcc}
   "$HERE/worker_pool_host_check.c" "$BACKEND/hvx/hvx_worker_pool.c"
 
 "$OUT/worker_pool_host_check"
+
+# The INT8 wire append uses the actual worker and pool on pthread stand-ins;
+# compare full masters, metadata and untouched rows with serial import.
+"$cc" -std=c11 -O1 -Wall -Wextra -Wno-unused-parameter -pthread \
+  -I "$HERE/stub" -I "$BACKEND/hmx" -I "$BACKEND/hvx" \
+  -o "$OUT/kv_i8_pool_host_check" \
+  "$HERE/kv_i8_pool_host_check.c" "$BACKEND/hvx/hvx_worker_pool.c" -lm
+
+"$OUT/kv_i8_pool_host_check"
+
+# Full INT8 WH tiles must match scalar scatter for the probed permutation;
+# partial overwrites and alternate layouts retain the original writer.
+"$cc" -std=gnu11 -O2 -Wall -Wextra -Wno-unused-parameter -pthread \
+  -I "$HERE/stub" -I "$BACKEND/hmx" -I "$BACKEND/hvx" \
+  -o "$OUT/kv_i8_tile_host_check" \
+  "$HERE/kv_i8_tile_host_check.c" "$BACKEND/hvx/hvx_worker_pool.c" -lm
+"$OUT/kv_i8_tile_host_check"
 
 # The DMA probe's descriptor plan (test/htp/nntr_dma_probe_plan.h): the
 # skel runs the same header-only function, so the geometry checked here --
@@ -291,6 +332,26 @@ done
 
 "$OUT/rmsnorm_rows_host_check"
 
+# Planar HMX drain: run the actual HVX reconstruction and epilogues against
+# row-major int32 tiles, including partial groups and untouched output rows.
+"$cc" -std=c99 -O2 -Wall -Wextra -Wno-unused-parameter -ffp-contract=off \
+  -I "$HERE/hvx_emu" -I "$BACKEND/.." -I "$BACKEND/hvx" -I "$BACKEND/hmx" \
+  -o "$OUT/dequant_planes_host_check" \
+  "$HERE/dequant_planes_host_check.c" "$BACKEND/hvx/hvx_dequant_i32.c" \
+  "$BACKEND/hvx/hvx_scale_add_f32.c" -lm
+
+"$OUT/dequant_planes_host_check"
+
+python3 "$HERE/run_prefill_host_checks.py"
+
+# Compare per-row FC epilogues with the original separate HVX passes.
+"$cc" -std=c99 -O2 -Wall -Wextra -Wno-unused-parameter -ffp-contract=off \
+  -I "$HERE/hvx_emu" -I "$BACKEND/.." -I "$BACKEND/hvx" -I "$BACKEND/hmx" \
+  -o "$OUT/fc_epilogue_host_check" \
+  "$HERE/fc_epilogue_host_check.c" "$BACKEND/hvx/hvx_dequant_i32.c" \
+  "$BACKEND/hvx/hvx_rmsnorm_rows_f32.c" "$BACKEND/hvx/hvx_rope_rows_f32.c" -lm
+"$OUT/fc_epilogue_host_check"
+
 # The prefill-shape router logits (doc 57 section 5 step 5): the real HVX
 # source on the lane emulation against a double reference, at the softmax
 # router's width, the sigmoid one's, and a K that is not a chunk multiple
@@ -382,6 +443,7 @@ done
 # definitions are checked against the IDL too -- a mismatch fails here.
 python3 "$HERE/gen_nntr_hvx_h.py" "$HERE/../nntr_hvx.idl" "$OUT/nntr_hvx.h"
 "$cc" -std=c99 -O1 -Wall -Wextra -Wno-unused-parameter \
+  -include malloc.h \
   -I "$OUT" -I "$HERE/stub" -I "$HERE/standin" -I "$HERE/.." -I "$BACKEND/.." \
   -I "$BACKEND/hmx" -I "$BACKEND/hvx" \
   -o "$OUT/swap_host_check" \
@@ -404,3 +466,12 @@ if command -v aarch64-linux-gnu-g++ >/dev/null && command -v qemu-aarch64 >/dev/
 else
   echo "abs_max: aarch64 g++ or qemu-aarch64 missing, NEON path not run"
 fi
+
+# Real U8 quantization plus routed AH transpose, including row padding and
+# constant rows; compare bytes to direct packing and scalar AH indexing.
+"$cc" -std=c99 -O2 -ffp-contract=off -ffunction-sections -fdata-sections \
+  -Wno-unknown-pragmas -I "$HERE/hvx_emu" -I "$HERE/stub" \
+  -I "$BACKEND/.." -I "$BACKEND/hvx" \
+  "$HERE/quant_reuse_host_check.c" "$BACKEND/hvx/hvx_quant_u8.c" \
+  -Wl,--gc-sections -lm -o "$OUT/quant_reuse_host_check"
+"$OUT/quant_reuse_host_check"

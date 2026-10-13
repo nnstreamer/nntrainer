@@ -1,0 +1,129 @@
+{
+  "status": "PASS: composite call-count/publication-status gate; diagnostic execution only, no latency comparison",
+  "inputs": {
+    "/home/jungone-lee/workspace/nntrainer/docs/measurements/lfm2_s26_prefill1000_20261013/v19-pub-stage64-routing-profile-bf1.log": "4ed4fdf4ddd95d1d2a2bcdf74011ac0f03f5354922546fe44cb2eceba366db9e",
+    "/home/jungone-lee/workspace/nntrainer/docs/measurements/lfm2_s26_prefill1000_20261013/v19-pub-stage64-routing-profile-bf1-logcat.txt": "e53de609e930d478ce7d3907dc0cf2f5b8bce6521e7e770786d991958bf1ac62",
+    "/home/jungone-lee/workspace/nntrainer/docs/measurements/lfm2_s26_prefill1000_20261013/v19-pub-stage64-routing-profile-bf1.json": "d1b4e693721bc120bd7a7af524a036af5ba706a2f7a3d42cefddb2bcc8fac87f",
+    "/home/jungone-lee/workspace/nntrainer/docs/measurements/lfm2_s26_prefill1000_20261013/moe/v19-pub-stage64-routing-profile-bf1.trace": "4bdbb81f7d2b2857629ad5abc304b0af146602f1f12a1a2ef727964ce763671d"
+  },
+  "composite_calls": [
+    {
+      "logcat_line": 4146,
+      "rows": 1024,
+      "phase": 2,
+      "prepare_rc": 0,
+      "attention_rc": 0
+    },
+    {
+      "logcat_line": 4178,
+      "rows": 1024,
+      "phase": 2,
+      "prepare_rc": 0,
+      "attention_rc": 0
+    },
+    {
+      "logcat_line": 4209,
+      "rows": 1024,
+      "phase": 2,
+      "prepare_rc": 0,
+      "attention_rc": 0
+    },
+    {
+      "logcat_line": 4240,
+      "rows": 1024,
+      "phase": 2,
+      "prepare_rc": 0,
+      "attention_rc": 0
+    },
+    {
+      "logcat_line": 4277,
+      "rows": 1024,
+      "phase": 2,
+      "prepare_rc": 0,
+      "attention_rc": 0
+    },
+    {
+      "logcat_line": 4316,
+      "rows": 1024,
+      "phase": 2,
+      "prepare_rc": 0,
+      "attention_rc": 0
+    },
+    {
+      "logcat_line": 4355,
+      "rows": 1024,
+      "phase": 2,
+      "prepare_rc": 0,
+      "attention_rc": 0
+    },
+    {
+      "logcat_line": 4394,
+      "rows": 1024,
+      "phase": 2,
+      "prepare_rc": 0,
+      "attention_rc": 0
+    },
+    {
+      "logcat_line": 4433,
+      "rows": 1024,
+      "phase": 2,
+      "prepare_rc": 0,
+      "attention_rc": 0
+    },
+    {
+      "logcat_line": 4472,
+      "rows": 1024,
+      "phase": 2,
+      "prepare_rc": 0,
+      "attention_rc": 0
+    }
+  ],
+  "composite_summary_calls": 10,
+  "phase2_successes": 10,
+  "other_phases": 0,
+  "old_separate_prepare_math_summary_lines": 0,
+  "old_standalone_q8_trace_lines": 0,
+  "fallback_interpretation": "All10 initial attention layers completed composite phase2; no phase1/phase3 result or separate preparation/Q8 trace. This proves the observed execution used the composite successfully, not a general failure-path claim.",
+  "runtime_rpc_window": {
+    "first_conv_norm_start_line": 4103,
+    "lm_head_end_line": 4496,
+    "start_count": 179,
+    "end_count": 179,
+    "ordered_scalar_pairs_match": true,
+    "scalar_counts": {
+      "0x1f070500": 30,
+      "0x1f040300": 3,
+      "0x1f090100": 12,
+      "0x1f040200": 2,
+      "0x1f080500": 10,
+      "0x1f050500": 48,
+      "0xa030100": 10,
+      "0x1f060200": 38,
+      "0x1f060300": 25,
+      "0x1f040100": 1
+    },
+    "scope": "Runtime window from first ConvNorm through LMhead. Excludes model-load registrations/probes and teardown. FastRPC scalar values are not globally unique method identifiers."
+  },
+  "comparison_scope": "Accepted earlier an1/av1 runtime windows had189 calls. This run directly records179; count reduction is10. No latency, wait, throughput or speedup comparison is made because tracing changes host work and terminal row count.",
+  "router_fusion_review": {
+    "observed_prefill_norm_router_calls": 38,
+    "rows_per_call": 1024,
+    "legacy_fused_router_summary": 0,
+    "meaning": "invokePrefillRouterNorm increments consumer_norm_calls_ and emits HTP-ROUTER-NORM. fused_router_calls_ belongs to other router entry paths; zero does not indicate this prefill fusion was disabled. Both older an1 and av1 also printed router=0.",
+    "profile_FC_calls": 76,
+    "profile_FC_rows": 41792,
+    "prior_profile_FC_calls": 76,
+    "prior_profile_FC_rows": 40832,
+    "delta_explanation": "Rows differ by960, exactly1024-64 from terminal tail suppression; calls do not increase."
+  },
+  "trace_applicability": {
+    "observed_shapes": "All38 layers execute1024 rows. Normal mode has37 full1024 layers plus final64-row tail.",
+    "source_reason": "GenerationPrefillTailScope::diagnostics lists NNTR_MOE_TRACE, so its scope state stays empty. generationPrefillTailOffset returns0 for the terminal FFN norm/MoE and output_norm.",
+    "selection_math": "For virtual experts, want_extra alreadytrue; n_sel9 remains unchanged. Trace only formats already-built assignments/rankings. It does not select another router numerical entry. Source search plus38 HTP-ROUTER-NORM logs confirms fusion remains active.",
+    "first37_layers": "Their graph row shapes and router kernels are unchanged by trace; reported counts are valid observed routing diagnostics for those inputs. No new trace-off raw-routing equality test was performed.",
+    "last_layer": "Its full1024-row50-active observation must not be reported as the production64-tail active count.",
+    "timing": "All TPS/latency/wait comparisons excluded;1596/1596 ready here reflects observer-perturbed scheduling."
+  },
+  "production_changes_by_reviewer": false,
+  "device_calls_by_reviewer": 0
+}

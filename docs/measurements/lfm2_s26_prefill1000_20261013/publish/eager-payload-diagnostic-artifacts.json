@@ -1,0 +1,47 @@
+{
+  "diagnostic_only": true,
+  "tps_eligible": false,
+  "artifacts": {
+    "libnntrainer.so": {
+      "source": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/artifacts/libnntrainer.so",
+      "frozen": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/diagnostic-artifacts/libnntrainer.so",
+      "sha256": "dd062b1b6612e8d672eb886aab45d800f6e9239172b0a6db3f05483e59b7c749"
+    },
+    "libccapi-nntrainer.so": {
+      "source": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/artifacts/libccapi-nntrainer.so",
+      "frozen": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/diagnostic-artifacts/libccapi-nntrainer.so",
+      "sha256": "1fd18484dc116f2b75fdfcc1b7908bc00383258d534695a24802314ca9c83b74"
+    },
+    "libc++_shared.so": {
+      "source": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/artifacts/libc++_shared.so",
+      "frozen": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/diagnostic-artifacts/libc++_shared.so",
+      "sha256": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df"
+    },
+    "libsdkl.so": {
+      "source": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/artifacts/libsdkl.so",
+      "frozen": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/diagnostic-artifacts/libsdkl.so",
+      "sha256": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe"
+    },
+    "libcausallm_core.so": {
+      "source": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/diagnostic-artifacts/libcausallm_core.so",
+      "frozen": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/diagnostic-artifacts/libcausallm_core.so",
+      "sha256": "13eb53056b3825bbc12f7f44956bb483332832121ecfadcc9ac04f1eda197667"
+    },
+    "nntrainer_causallm": {
+      "source": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/artifacts/nntrainer_causallm",
+      "frozen": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/diagnostic-artifacts/nntrainer_causallm",
+      "sha256": "b6b3810484a0573ece103af9701946be4da7dbfa83c413d0b76de913218c718d"
+    },
+    "libnntr_hvx_skel.so": {
+      "source": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/artifacts/libnntr_hvx_skel.so",
+      "frozen": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/diagnostic-artifacts/libnntr_hvx_skel.so",
+      "sha256": "a403c2595e86494178e03f63a1b895fdacdf55e8ca4a3076777ee44cd8232ef1"
+    }
+  },
+  "production_manifest": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/artifacts.json",
+  "diagnostic_reuse_manifest": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/diagnostic-artifacts.json",
+  "matched_proof": "All57 app object hashes and all app/ComputeOps interface sources unchanged. Header-only private staging cleanup changes only backend implementation. Reused exact logits library is paired with newly installed v17 core.",
+  "prefill_scope_hook_preserved": true,
+  "unchanged_app_object_count": 57,
+  "no_diagnostic_in_production_bundle": true
+}

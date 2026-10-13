@@ -312,6 +312,46 @@ public:
   std::string getStringDataType() const override { return "QS4CX_WH"; }
 };
 
+/**
+ * @brief Palette-coded WH expert tensor: K*N/4 indices, four signed int4
+ *        palette entries, N float scales, then N float column sums.
+ *        Expert streaming expands indices losslessly into the HMX i4 cache.
+ */
+class QS2CX_WH_Tensor : public QS4CX_WH_Tensor {
+public:
+  /** @brief Construct an empty tensor. */
+  QS2CX_WH_Tensor(std::string name = "", Tformat fm = Tformat::NCHW) :
+    QS4CX_WH_Tensor(name, fm) {}
+  /** @brief Allocate only after the compact size override is active. */
+  QS2CX_WH_Tensor(const TensorDim &d, bool alloc_now,
+                  Initializer init = Initializer::NONE, std::string name = "") :
+    QS4CX_WH_Tensor(d, false, init, name) {
+    if (alloc_now)
+      allocate();
+  }
+  /** @brief Copy a compact buffer. */
+  QS2CX_WH_Tensor(const TensorDim &d, const void *buf = nullptr) :
+    QS2CX_WH_Tensor(d, true) {
+    if (d.getDataLen() && buf)
+      copy_qs4cx(buf);
+  }
+  /** @brief Copy a tensor view. */
+  QS2CX_WH_Tensor(TensorBase &rhs) : QS4CX_WH_Tensor(rhs) {}
+  /** @copydoc Tensor::size() */
+  size_t size() const override {
+    return (static_cast<size_t>(height()) * width() + 3) / 4 + 4 +
+           2 * width() * sizeof(float);
+  }
+  /** @copydoc Tensor::getScale() */
+  void *getScale() const override {
+    auto *bytes = static_cast<uint8_t *>(getData());
+    return bytes ? bytes + (static_cast<size_t>(height()) * width() + 3) / 4 + 4
+                 : nullptr;
+  }
+  /** @copydoc Tensor::getStringDataType() */
+  std::string getStringDataType() const override { return "QS2CX_WH"; }
+};
+
 } // namespace nntrainer
 
 #endif /* __cplusplus */

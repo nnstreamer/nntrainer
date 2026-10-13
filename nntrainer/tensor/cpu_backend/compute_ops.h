@@ -33,6 +33,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 #ifdef ENABLE_FP16
@@ -48,6 +49,109 @@ namespace nntrainer {
 class ComputeOps {
 public:
   virtual ~ComputeOps() = default;
+
+  /** Small inference operations with no implicit CPU implementation.
+   * RMSNorm uses param[chunk]; RoPE uses param[rows][2*chunk] (cos, sin).
+   * Add and SwiGLU use aux[rows*width]. Only Cast/RopeFp16 write uint16_t.
+   * False means unsupported and leaves the output untouched. */
+  enum class InferenceMath : unsigned {
+    RmsNorm,
+    Add,
+    SwiGLU,
+    GeGLU,
+    Rope,
+    RopeFp16,
+    CastFp16,
+    AddRmsNorm // RPC result: sum followed by normalized sum
+  };
+  virtual bool inference_math_fp32(InferenceMath, unsigned, unsigned, unsigned,
+                                   float, float, const float *, const float *,
+                                   const float *, void *) {
+    return false;
+  }
+
+  /** Rotate one FP32 query/key row and convert K/V to FP16 in one call.
+   * False leaves outputs untouched. cs holds head_dim cos then sin values. */
+  virtual bool rope_qkv_decode(unsigned q_width, unsigned kv_width,
+                               unsigned head_dim, const float *cs,
+                               const float *q, const float *k, const float *v,
+                               float *q_out, uint16_t *k_out, uint16_t *v_out) {
+    return false;
+  }
+
+  /** Schedule a decode norm for an explicitly designated next consumer.
+   * Inputs are copied before return. Outputs are published by that consumer;
+   * the graph must not read them earlier. False leaves all outputs untouched
+   * and asks the layer to use its synchronous path. Only Conv/Router/QKV
+   * nodes wired by the model builder may use this interface. */
+  virtual bool defer_decode_norm(const std::string &consumer, unsigned N,
+                                 float eps, const float *x,
+                                 const float *residual, const float *gamma,
+                                 float *sum, float *norm) {
+    return false;
+  }
+
+  /** Borrow shared prefill operands until the designated Conv immediately
+   * follows this norm. The consumer publishes both graph outputs before it
+   * returns. False leaves outputs untouched and requests synchronous norm. */
+  virtual bool defer_prefill_conv_norm(unsigned rows, unsigned width, float eps,
+                                       const float *x, const float *residual,
+                                       const float *gamma, float *sum,
+                                       float *norm) {
+    return false;
+  }
+
+  /** Borrow shared operands for the designated prefill router. Gamma is
+   * snapshotted; the router publishes sum/norm before returning. */
+  virtual bool defer_prefill_router_norm(unsigned rows, unsigned width,
+                                         float eps, const float *x,
+                                         const float *residual,
+                                         const float *gamma, float *sum,
+                                         float *norm) {
+    return false;
+  }
+
+  /** Borrow shared operands for the next QKV projection. Gamma is owned by
+   * the descriptor; its consumer publishes sum/norm before returning. */
+  virtual bool defer_prefill_qkv_norm(unsigned rows, unsigned width, float eps,
+                                      const float *x, const float *residual,
+                                      const float *gamma, float *sum,
+                                      float *norm) {
+    return false;
+  }
+
+  /** Materialize a deferred QKV norm before a projection uses a fallback. */
+  virtual void materialize_prefill_qkv_norm(const float *x, unsigned rows,
+                                            unsigned width) {}
+
+  /** Drop borrowed norm operands when a graph traversal ends, including
+   * cancellation or an exception before its designated consumer runs. */
+  virtual void discard_deferred_norm() noexcept {}
+
+  /** Two outputs: sum = x + residual; norm = RMSNorm(sum) * gamma. */
+  virtual bool add_rmsnorm_fp32(unsigned rows, unsigned width, float eps,
+                                const float *x, const float *residual,
+                                const float *gamma, float *sum, float *norm) {
+    return false;
+  }
+
+  /** LFM2 biased sigmoid selection; ties select the lower expert index. */
+  virtual bool sigmoid_topk_fp32(unsigned, unsigned, unsigned, unsigned,
+                                 const float *, const float *, unsigned *,
+                                 float *) {
+    return false;
+  }
+
+  /** Optional QS4CX router (including a single decode row).
+   * False leaves outputs untouched. Logits
+   * are internal; only biased sigmoid selection and normalized weights return.
+   * Input staging may be retained within begin/end_moe_input_reuse's scope. */
+  virtual bool router_qs4cx_prefill(void *, float *, const float *, float *,
+                                    unsigned, unsigned, unsigned, unsigned,
+                                    unsigned, const float *, unsigned *,
+                                    float *) {
+    return false;
+  }
 
   // ===========================================================================
   // FP32 BLAS
@@ -224,7 +328,8 @@ public:
   // RoPE per head of rope_hd on the outputs of the first rope_weights
   // weights (q and k), rope_cs being M rows of 2*rope_hd floats -- the
   // CPU table's cos row then sin row for each row's position; rope_hd 0
-  // for none.
+  // for none. weights_wh: matAdata uses the offline WH layout; scales
+  // include the following N column sums, as in gemm_qs4cx_accel_fp32.
   virtual bool supports_gemm_q4_0_batch_norm_fp32() const { return false; }
   virtual void gemm_q4_0_batch_norm_fp32(
     std::vector<void *> matAdata, std::vector<float *> matAscale,
@@ -232,7 +337,7 @@ public:
     std::vector<unsigned int> N, unsigned int K, const float *pre_gamma,
     const std::vector<unsigned int> &post_chunk, const float *post_gamma,
     float eps, const float *rope_cs = nullptr, unsigned int rope_hd = 0,
-    unsigned int rope_weights = 0);
+    unsigned int rope_weights = 0, bool weights_wh = false);
 
   // The decoder block's epilogue as one accelerator call (doc 57 section
   // 5 step 4): out = scale * (resid + rmsnorm(x [+ x2]) * gamma) over M
@@ -252,13 +357,16 @@ public:
   // then holds the softmax probabilities, sel the n_sel largest per row
   // (descending, an exact tie to the lower index, the layer's own rule)
   // and weight the first top_k's p * (1 / their sum) * scale[e].
+  // sigmoid selects using sigmoid(logits) + scale (the correction bias),
+  // returns raw logits, and normalizes selected sigmoid values by sum+1e-6.
   virtual bool supports_router_logits_fp32() const { return false; }
   virtual void
   router_logits_fp32(unsigned int M, unsigned int K, unsigned int E,
                      const float *x, const float *gamma, float eps,
                      const float *w, float *logits, unsigned int top_k = 0,
                      unsigned int n_sel = 0, const float *scale = nullptr,
-                     unsigned int *sel = nullptr, float *weight = nullptr);
+                     unsigned int *sel = nullptr, float *weight = nullptr,
+                     bool sigmoid = false);
 
   // The lm_head of one row (doc 57 section 9.7): y (N floats) = the Q4_0
   // weight w (N rows of K, canonical block_q4_0 -- a tied embedding's own
@@ -310,6 +418,14 @@ public:
   // htp_qs4cx_from_packed). matAdata / matAscale are QS4CX_Tensor's
   // getData()/getScale() regions.
   virtual bool supports_gemm_qs4cx_accel_fp32() const { return false; }
+  /** @brief FC weights already packed in the accelerator's WH layout. */
+  virtual bool supports_gemm_qs4cx_wh_accel_fp32() const { return false; }
+  virtual void gemm_qs4cx_wh_accel_fp32(void *weights, float *scales,
+                                        float *input, float *output,
+                                        unsigned int M, unsigned int N,
+                                        unsigned int K) {
+    throw std::invalid_argument("QS4CX_WH FC is not supported by this backend");
+  }
   virtual void gemm_qs4cx_accel_fp32(void *matAdata, float *matAscale,
                                      float *matBdata, float *matCdata,
                                      unsigned int M, unsigned int N,
@@ -523,6 +639,21 @@ public:
     return false;
   }
 
+  // Load pre-sliced WH weights from a validated offline sidecar. Call
+  // before ordinary FC/conv registration; false means unsupported, never
+  // permission to silently convert when a prepared cache was requested.
+  virtual bool register_prepared_qs4cx_wh_weight(
+    void *data, const float *scales, unsigned int K, unsigned int N,
+    uint64_t source_offset, const std::string &cache_directory) {
+    (void)data;
+    (void)scales;
+    (void)K;
+    (void)N;
+    (void)source_offset;
+    (void)cache_directory;
+    return false;
+  }
+
   // The Q4_0 twin, for a fully_connected layer under engine=htp: its
   // weight is otherwise converted and registered by the first dot() that
   // reaches gemm_q4_0_accel_fp32, which is inside the first prefill (doc
@@ -548,7 +679,24 @@ public:
     int fd;
     size_t off_gu, off_dn;
     unsigned int K, inter, N_out;
+    unsigned int weight_bits =
+      4; /**< 2 or 4 in file; backend chooses cache layout. */
   };
+
+  /** Read future compact experts into bounded ordinary host memory. The caller
+   * starts and ends this scope inside measured prefill, with the model alive.
+   * No DSP slot or registration is added. Zero means unavailable/disabled. */
+  virtual uint64_t
+  begin_qs2_host_prefetch(const std::vector<ExpertFileDesc> &descriptors,
+                          const void *owner, unsigned int count) {
+    (void)descriptors;
+    (void)owner;
+    (void)count;
+    return 0;
+  }
+  /** Cancel unstarted host reads and join all active reads/copies. An obsolete
+   * token cannot close another model/run's bank. Never throws from RAII. */
+  virtual void end_qs2_host_prefetch(uint64_t token) noexcept { (void)token; }
 
   // How many expert slots the caller will ever hold at once (the LRU's
   // capacity), so the backend can size its memory to that instead of to a
@@ -595,6 +743,28 @@ public:
   virtual std::vector<const void *> prefetch_qs4cx_wh_experts_end() {
     return {};
   }
+
+  /** Decode-only read-ahead can use demand's compact read path. */
+  virtual bool
+  prefetch_qs4cx_wh_experts_decode(const std::vector<ExpertFileDesc> &ds) {
+    return prefetch_qs4cx_wh_experts_begin(ds);
+  }
+  struct ExpertPrefetchCompletion {
+    std::vector<const void *> keys; /**< Registered experts. */
+    size_t pending = 0;   /**< Discarded reads still owning reserved slots. */
+    size_t cancelled = 0; /**< Unneeded jobs cancelled before reading. */
+  };
+  /** Wait only for needed experts in the oldest decode batch. Completed
+   * guesses may also be retained; other guesses are discarded. Keep pending
+   * reservations until reap returns them.
+   * Call between accelerator calls, as for the ordinary _end above. */
+  virtual ExpertPrefetchCompletion
+  prefetch_qs4cx_wh_experts_select(const std::vector<const void *> &needed) {
+    (void)needed;
+    return {prefetch_qs4cx_wh_experts_end(), 0, 0};
+  }
+  /** Return completed discarded slots, without waiting or DSP calls. */
+  virtual size_t prefetch_qs4cx_wh_experts_reap() { return 0; }
 
   // Undoes the above for one expert: both handles released, the slot back
   // in the pool for the next register_qs4cx_wh_expert_file. False when the
@@ -666,9 +836,9 @@ public:
   // f32 (w0 for row t, w1 for t-1, w2 for t-2); act [M x K] f32 ->
   // out [M x N] f32 = ((b * conv1d(a * c)) . out_proj) with a | b | c the
   // column thirds of act . in_proj, and state [2 x C] f32 <- the conv
-  // input's rows M-2 and M-1 (zero where M is shorter), the state the
-  // CPU decode path continues from. register_q4_0_conv_block is the
-  // load-time twin.
+  // input's rows M-2 and M-1. state is in/out: initialize it to zero for a
+  // new sequence and retain it across prefill chunks and decode calls.
+  // register_q4_0_conv_block is the load-time twin.
   virtual bool supports_gemm_q4_0_conv_block_fp32() const { return false; }
   virtual void gemm_q4_0_conv_block_fp32(void *in_proj, const float *conv_w,
                                          void *out_proj, const float *act,
@@ -696,6 +866,51 @@ public:
     (void)K;
     (void)C;
     (void)N;
+    return false;
+  }
+
+  // The same complete conv block with offline QS4CX quantization. WH
+  // weights carry precomputed column sums after their scales. Advertise
+  // support separately so a backend never interprets WH as packed QS4CX.
+  virtual bool supports_gemm_qs4cx_conv_block_fp32(bool weights_wh) const {
+    (void)weights_wh;
+    return false;
+  }
+  virtual void
+  gemm_qs4cx_conv_block_fp32(void *in_proj, const float *conv_w, void *out_proj,
+                             const float *act, float *out, float *state,
+                             unsigned int M, unsigned int K, unsigned int C,
+                             unsigned int N, const float *in_scale,
+                             const float *out_scale, bool weights_wh) {
+    (void)in_proj;
+    (void)conv_w;
+    (void)out_proj;
+    (void)act;
+    (void)out;
+    (void)state;
+    (void)M;
+    (void)K;
+    (void)C;
+    (void)N;
+    (void)in_scale;
+    (void)out_scale;
+    (void)weights_wh;
+    throw std::runtime_error(
+      "ComputeOps::gemm_qs4cx_conv_block_fp32 not implemented by this backend");
+  }
+  virtual bool register_qs4cx_conv_block(void *in_proj, void *out_proj,
+                                         unsigned int K, unsigned int C,
+                                         unsigned int N, const float *in_scale,
+                                         const float *out_scale,
+                                         bool weights_wh) {
+    (void)in_proj;
+    (void)out_proj;
+    (void)K;
+    (void)C;
+    (void)N;
+    (void)in_scale;
+    (void)out_scale;
+    (void)weights_wh;
     return false;
   }
 
@@ -770,7 +985,8 @@ public:
    * default backend has none: register returns -1 and the layer stays on
    * its fp16 path.
    *
-   * @param kind      0 = int8 (A8W8), 1 = int4 (A8W4)
+   * @param kind      0 = int8 (A8W8), 1 = int4 (A8W4), 16 = exact FP16
+   *                  tiles (optional; no quantization at append time)
    * @param max_rows  cache capacity in rows
    * @return a handle >= 0, or -1 when this backend has no quantized cache
    *         or the registration failed
@@ -1062,6 +1278,19 @@ public:
                                               _FP16 *out, float *cos_,
                                               float *sin_);
 #endif // ENABLE_FP16
+
+  /**
+   * @brief Promise that these activation rows remain alive and immutable until
+   * end_moe_input_reuse(). A backend may reuse router staging for one MoE call
+   * with the identical input and shape. Unrelated calls or nested scopes may
+   * invalidate the optimization. Token zero means no scope was established.
+   * The caller must end the scope on the same thread, including on exceptions.
+   */
+  virtual uint64_t begin_moe_input_reuse(const float *, unsigned int,
+                                         unsigned int) {
+    return 0;
+  }
+  virtual void end_moe_input_reuse(uint64_t) {}
 
 protected:
   /**

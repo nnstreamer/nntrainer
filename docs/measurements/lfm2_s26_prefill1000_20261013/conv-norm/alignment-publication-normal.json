@@ -1,0 +1,43 @@
+{
+  "repo_root": "/tmp/lfm2-prefill1000-20261013/publish",
+  "sanitize": false,
+  "kernel_sha256": {
+    "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c": "561b95fc5431c7ecd7519b6b28e821cbef297321787acf323894367236bdd1dd",
+    "nntrainer/tensor/htp_backend/hvx/hvx_rmsnorm_rows_f32.c": "b83c672843a788bc4e35422fa7a68198ee1ddb0716ec0a3e20ed47352fc82d1e",
+    "nntrainer/tensor/htp_backend/hvx/hvx_conv_gate_f32.c": "92966715d488432264fbb4f838f3fe453446aa854890f17fbb45f12e53faf93f"
+  },
+  "fixture_sha256": {
+    "aligned_norm_host_check.c": "d4779b46e01f6516702bd703852da21df37bfedf7ecddfb27b099dbed34d5871",
+    "aligned_gate_host_check.c": "d41b8bb423f0c89c15c0c3dd195798f1cf1becee3f3afeac1ae323e3ebe5b270",
+    "hvx_alignment_host_alloc.h": "c69013ce2b6cb6fcc619e729166d5b0f000f0a8312cee076e17c50c884f26135"
+  },
+  "checks": [
+    {
+      "kind": "norm",
+      "mode": 0,
+      "output": "ALIGNED NORM PACK PASS: 486 cases, mode=0, exact sum/norm/scale/zero/AH"
+    },
+    {
+      "kind": "norm",
+      "mode": 1,
+      "output": "ALIGNED NORM PACK PASS: 486 cases, mode=1, exact sum/norm/scale/zero/AH"
+    },
+    {
+      "kind": "gate",
+      "mode": 0,
+      "output": "ALIGNED CONV GATE PASS: 528 exact cases, mode=0, full stride span"
+    },
+    {
+      "kind": "gate",
+      "mode": 1,
+      "output": "ALIGNED CONV GATE PASS: 528 exact cases, mode=1, full stride span"
+    },
+    {
+      "kind": "gate",
+      "mode": 2,
+      "output": "ALIGNED CONV GATE PASS: 528 exact cases, mode=2, full stride span"
+    }
+  ],
+  "scope": "Actual selected-checkout HVX sources, host lane emulation; no claim of silicon arithmetic equivalence.",
+  "result": "PASS"
+}

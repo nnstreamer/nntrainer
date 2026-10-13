@@ -1,0 +1,14 @@
+[
+  {
+    "kind": "core",
+    "returncode": 0,
+    "seconds": 6.608423091001896,
+    "log": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/publication-compat/core-matched-install.log"
+  },
+  {
+    "kind": "app",
+    "returncode": 0,
+    "seconds": 0.4328159609976865,
+    "log": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/publication-compat/app-matched-install.log"
+  }
+]

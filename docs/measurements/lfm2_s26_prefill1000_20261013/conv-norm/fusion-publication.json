@@ -1,0 +1,33 @@
+{
+  "topic": "Exact deferred prefill RMSNorm consumers",
+  "build": {
+    "DSP_v81": "PASS",
+    "Android_arm64_core": "PASS",
+    "Android_arm64_CausalLM": "PASS"
+  },
+  "runtime_contract": "Rebuild the core, CausalLM library/application and RPC artifacts together; ComputeOps virtual additions are ABI changes. Existing RPC ordinals remain stable.",
+  "effects_1024": {
+    "folded_RMSNorm_calls": 78,
+    "conv": 30,
+    "router": 38,
+    "qkv": 10,
+    "qkv_CPU_copy_bytes_removed": 125829120
+  },
+  "raw_parity": {
+    "runtime": "combined-v9-qkvguard",
+    "files": 132,
+    "different": 0
+  },
+  "limitations": [
+    "Build matrix and remote CI have not been run.",
+    "Silicon measurements used the task runtime; clean publication sources are separately built and host-tested.",
+    "The >=1000 TPS goal is not yet achieved."
+  ],
+  "logs_sha256": {
+    "fusions-dsp-build.log": "b2584e2d90d2c544f366732ba8f4ad0c97abf6f139463064635616729839e6d1",
+    "fusions-core-build.log": "edb8c0e832e0fcb57e355abfb19e9433ed0e2a0112b10acc25bdeb4dd5054ee1",
+    "fusions-app-build-retry.log": "10bd45e40d47deb33702b8993f39d2d619c662c22559fbe3e631d30f41bdac5f",
+    "fusions-router-normal.log": "7099a0daeaf930302686edddf634724a0c94d178ef8849c0227a04ed0be0b37a",
+    "fusions-router-sanitized.log": "7099a0daeaf930302686edddf634724a0c94d178ef8849c0227a04ed0be0b37a"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "root_before_sha256": {
+    "Applications/CausalLM/layers/mha_core.cpp": "2fa8a238c328c1d53d0eb22343edf421972b81c14c7f8b76821a42795882c3ff",
+    "Applications/CausalLM/layers/mha_core.h": "ef9e1a5c7afc620042d82d25727ed1eabe13884a5c223698da0cce010a734cfb",
+    "nntrainer/tensor/htp_backend/htp_rope_prefill.h": "6bb86b4b46061710dd29bd41f237c402f4d1bda929e3d7e97bea0183cef54a53",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "97f5212767fc955bb08197b60a7fca27dd7fddbea189bb68ccd679582e773465",
+    "test/htp/nntr_hvx_attn_q.c": "08c57ff28707d111be36c6864586b5430ba6e5f3ef44ffdad039074e160894ff",
+    "test/htp/nntr_hvx.idl": "5faf5e0e5c52800b5466294685ad7e82de8257ee9e19b98320e6074caad67d58"
+  },
+  "private_after_sha256": {
+    "Applications/CausalLM/layers/mha_core.cpp": "dd380c3dec27e4f59d1a4d6adfa12ea16814bd053ae272921ddff20541ca6ee4",
+    "Applications/CausalLM/layers/mha_core.h": "06bf5391f259e940b43659cba11e1dc45d12bb5adf8acc114840c4cdee0dfa7f",
+    "nntrainer/tensor/htp_backend/htp_rope_prefill.h": "d51028a12078b2b49eab034f97bb75d1c5a7bfebc8cff58242b73f623ffcde7f",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "de697a3ad85e6bbd8ef17b6efaa2a2b7c460f3ab1e3d271418109a8a872c2c4f",
+    "test/htp/nntr_hvx_attn_q.c": "631da5406d70db9064e210178433edc0f99b939489124b866b339e5a270a7bd8",
+    "test/htp/nntr_hvx.idl": "037329752fc6ee1b6c80996c7cf7b8727753f8951d3363d7769ed0cc35499324",
+    "test/htp/host/attention_composite_host_check.cpp": "30d4e6d37c39bb33e101e4af73551a59b76862e575a300f05c8915429cd4d5ae",
+    "test/htp/host/run_attention_composite_host_checks.py": "56f2692bda617365a394766915b7fdf39cd8ab20169b23fe8eb67dcad42eabc9",
+    "test/htp/attention_composite_device_check.cpp": "33ce273d2656985aac4816becbb70a4ac998fcdf7dd811102ddbb4c9a79face9"
+  },
+  "old_idl_method_count": 140,
+  "new_idl_method_count": 141,
+  "existing_idl_prefix_byte_identical": true,
+  "foreign_idl_methods_retained": [
+    "tl2_gemv_probe",
+    "weight_swap_tl2_arena",
+    "weight_swap_batch_tl2_arena",
+    "weight_swap_tl2_compact_arena",
+    "weight_swap_batch_tl2_compact_arena"
+  ],
+  "root_mutations": false,
+  "patch_sha256": "fd91bc4569444b1055aef4bc0ceaaeef5d392121d5ecc165d51af6093eb17383"
+}

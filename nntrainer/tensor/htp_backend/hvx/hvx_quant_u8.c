@@ -77,7 +77,11 @@ static void quant_row_params_one(const float *x, uint32_t m, uint32_t k,
   const float rmin = min0 < 0.0f ? min0 : 0.0f;
   const float rmax = max0 > 0.0f ? max0 : 0.0f;
   if (rmin == rmax) {
-    return; /* leaves scale 1, zp 0 */
+    // The fused params/pack path only initializes padding rows. Always
+    // define valid zero rows too, including when malloc reuses old data.
+    scale[m] = 1.0f;
+    zp[m] = 0;
+    return;
   }
   const float s = (rmax - rmin) / 255.0f;
   /** nearbyintf, not roundf: the vectorized path rounds to nearest even
@@ -222,7 +226,7 @@ static void quant_pack_worker(uint32_t n_threads, uint32_t i, void *ctx_) {
     for (uint32_t m = 0; m < ctx->m_vec_end; m += 4u) {
       const uint32_t rb = m / TILE_ROW;
       const uint32_t r0 = m % TILE_ROW; // multiple of 4; group never wraps rb
-      /* The four rows of a group are four independent source pointers, so
+      /** The four rows of a group are four independent source pointers, so
          a row map costs one indirection each and nothing else -- the
          packing below still sees four rows and still lands them as one
          128-byte store. */
@@ -270,7 +274,7 @@ void hvx_quant_pack_u8_ah_rows(const float *x, const uint32_t *row_map,
                                uint32_t m0, uint32_t m1, uint32_t k,
                                const float *scale, const int32_t *zp,
                                uint8_t *out_ah) {
-  /* Row-group outer, k-tile inner: the rows are this call's alone, so the
+  /** Row-group outer, k-tile inner: the rows are this call's alone, so the
      k-tile split the pooled pack needs for disjoint stores is not needed,
      and the four rows' parameters are splatted once per group instead of
      once per (group, k-tile). Same group body, same bytes. */
@@ -298,7 +302,7 @@ int hvx_quant_pack_u8_ah_mapped(const float *x, const uint32_t *row_map,
                                 uint8_t *out_ah, hvx_worker_pool *pool) {
   const uint32_t n_ktiles = k / TILE_INNER;
 
-  /* Every row below m_valid is written below, so only the padding rows
+  /** Every row below m_valid is written below, so only the padding rows
      need zeroing, and in the AH layout those share their 64-row block with
      the last valid rows: clearing that one block (at most 64 * k bytes)
      before the pack keeps every caller's bytes identical to clearing all
@@ -374,6 +378,9 @@ typedef struct {
   const float *gamma;
   float eps;
   float *scratch;
+  const float *residual;
+  float *sum;
+  float *norm;
 } quant_params_pack_ctx;
 
 /** Row groups [lo, hi) of four: each group's parameters, then its pack,
@@ -395,9 +402,17 @@ static void quant_params_pack_worker(uint32_t n_threads, uint32_t i,
                                 c->out_ah);
       continue;
     }
+    if (c->norm) {
+      const size_t off = (size_t)m * c->k;
+      hvx_rmsnorm_rows_cached_f32(c->x + off,
+                                  c->residual ? c->residual + off : NULL,
+                                  c->sum ? c->sum + off : NULL, c->norm + off,
+                                  sc, 4u, c->k, c->gamma, c->eps);
+    }
     for (uint32_t r = 0; r < 4u; ++r) {
-      hvx_rmsnorm_row_f32(c->x + (size_t)(m + r) * c->k, sc + (size_t)r * c->k,
-                          c->gamma, c->k, c->eps);
+      if (!c->norm)
+        hvx_rmsnorm_row_f32(c->x + (size_t)(m + r) * c->k,
+                            sc + (size_t)r * c->k, c->gamma, c->k, c->eps);
       quant_row_params_one(sc, r, c->k, c->scale + m, c->zp + m);
     }
     const float *const row[4] = {sc, sc + c->k, sc + 2u * c->k, sc + 3u * c->k};
@@ -405,11 +420,13 @@ static void quant_params_pack_worker(uint32_t n_threads, uint32_t i,
   }
 }
 
-int hvx_quant_params_pack_u8_ah(const float *x, uint32_t m_valid,
-                                uint32_t m_pad, uint32_t k,
-                                const float *pre_gamma, float pre_eps,
-                                float *pre_scratch, float *scale, int32_t *zp,
-                                uint8_t *out_ah, hvx_worker_pool *pool) {
+static int quant_params_pack_u8_ah(const float *x, const float *residual,
+                                   float *sum, float *norm, uint32_t m_valid,
+                                   uint32_t m_pad, uint32_t k,
+                                   const float *pre_gamma, float pre_eps,
+                                   float *pre_scratch, float *scale,
+                                   int32_t *zp, uint8_t *out_ah,
+                                   hvx_worker_pool *pool) {
   const uint32_t n_ktiles = k / TILE_INNER;
   for (uint32_t m = m_valid; m < m_pad; ++m) {
     scale[m] = 1.0f;
@@ -422,13 +439,21 @@ int hvx_quant_params_pack_u8_ah(const float *x, uint32_t m_valid,
   const uint32_t m_vec_end = (m_valid / 4u) * 4u;
   if (m_vec_end > 0) {
     quant_params_pack_ctx ctx = {
-      x, m_vec_end / 4u, k, scale, zp, out_ah, pre_gamma, pre_eps, pre_scratch};
+      x,         m_vec_end / 4u, k,           scale,    zp,  out_ah,
+      pre_gamma, pre_eps,        pre_scratch, residual, sum, norm};
     hvx_worker_pool_run(pool, quant_params_pack_worker, &ctx, m_vec_end / 4u);
   }
   for (uint32_t m = m_vec_end; m < m_valid; ++m) {
     const float *row = x + (size_t)m * k;
     if (pre_scratch) {
-      hvx_rmsnorm_row_f32(row, pre_scratch, pre_gamma, k, pre_eps);
+      if (norm) {
+        const size_t off = (size_t)m * k;
+        hvx_rmsnorm_rows_cached_f32(row, residual ? residual + off : NULL,
+                                    sum ? sum + off : NULL, norm + off,
+                                    pre_scratch, 1u, k, pre_gamma, pre_eps);
+      } else {
+        hvx_rmsnorm_row_f32(row, pre_scratch, pre_gamma, k, pre_eps);
+      }
       row = pre_scratch;
     }
     quant_row_params_one(row, 0, k, scale + m, zp + m);
@@ -440,4 +465,102 @@ int hvx_quant_params_pack_u8_ah(const float *x, uint32_t m_valid,
       ACT_TILE_BYTES);
   }
   return AEE_SUCCESS;
+}
+
+int hvx_quant_params_pack_u8_ah(const float *x, uint32_t m_valid,
+                                uint32_t m_pad, uint32_t k,
+                                const float *pre_gamma, float pre_eps,
+                                float *pre_scratch, float *scale, int32_t *zp,
+                                uint8_t *out_ah, hvx_worker_pool *pool) {
+  return quant_params_pack_u8_ah(x, NULL, NULL, NULL, m_valid, m_pad, k,
+                                 pre_gamma, pre_eps, pre_scratch, scale, zp,
+                                 out_ah, pool);
+}
+
+int hvx_quant_norm_params_pack_u8_ah(const float *x, const float *residual,
+                                     float *sum, float *norm, uint32_t m_valid,
+                                     uint32_t m_pad, uint32_t k,
+                                     const float *gamma, float eps,
+                                     float *scratch, float *scale, int32_t *zp,
+                                     uint8_t *out_ah, hvx_worker_pool *pool) {
+  if (!norm || !scratch || (residual && !sum))
+    return AEE_EBADPARM;
+  return quant_params_pack_u8_ah(x, residual, sum, norm, m_valid, m_pad, k,
+                                 gamma, eps, scratch, scale, zp, out_ah, pool);
+}
+
+/** Compute params and quantize contiguous rows once for expert reuse.
+ * Four adjacent 32-column slices share a row's scale and zero point; the
+ * existing AH pack primitive supplies exactly the same rounding/narrowing.
+ */
+typedef struct {
+  const float *x;
+  float *scale;
+  int32_t *zp;
+  uint8_t *dst;
+  uint32_t m, k;
+} quant_rowmajor_ctx;
+
+static void quant_rowmajor_worker(uint32_t n_threads, uint32_t i, void *vctx) {
+  const quant_rowmajor_ctx *c = vctx;
+  const uint32_t lo = (uint32_t)((uint64_t)c->m * i / n_threads);
+  const uint32_t hi = (uint32_t)((uint64_t)c->m * (i + 1u) / n_threads);
+  for (uint32_t r = lo; r < hi; ++r) {
+    quant_row_params_one(c->x, r, c->k, c->scale, c->zp);
+    const HVX_Vector inv = hvx_splat_sf(1.0f / c->scale[r]);
+    const HVX_Vector zero = Q6_V_vsplat_R(c->zp[r]);
+    const HVX_Vector vinv[4] = {inv, inv, inv, inv};
+    const HVX_Vector vz[4] = {zero, zero, zero, zero};
+    const float *row = c->x + (size_t)r * c->k;
+    for (uint32_t col = 0; col < c->k; col += 128u) {
+      const float *part[4] = {row + col, row + col + 32u, row + col + 64u,
+                              row + col + 96u};
+      quant_pack_group4(part, vinv, vz, c->dst + (size_t)r * c->k + col);
+    }
+  }
+}
+
+void hvx_quant_rows_u8_params_rowmajor(const float *x, uint32_t m,
+                                       uint32_t m_pad, uint32_t k, float *scale,
+                                       int32_t *zp, uint8_t *dst,
+                                       hvx_worker_pool *pool) {
+  for (uint32_t r = m; r < m_pad; ++r) {
+    scale[r] = 1.0f;
+    zp[r] = 0;
+  }
+  quant_rowmajor_ctx c = {x, scale, zp, dst, m, k};
+  hvx_worker_pool_run(pool, quant_rowmajor_worker, &c, m);
+}
+
+/** Transpose four rows by four 32-byte inner tiles entirely in registers.
+ * The row-major source makes each load contiguous; every destination is
+ * one full HVX vector in the existing AH layout. No re-quantization.
+ */
+void hvx_gather_rowmajor_u8_ah_rows(const uint8_t *src, const uint32_t *rows,
+                                    uint32_t m0, uint32_t m1, uint32_t k,
+                                    uint8_t *dst) {
+  const uint32_t kt_n = k / 32u;
+  for (uint32_t m = m0; m < m1; m += 4u) {
+    const HVX_UVector *a = (const HVX_UVector *)(src + (size_t)rows[m] * k);
+    const HVX_UVector *b =
+      (const HVX_UVector *)(src + (size_t)rows[m + 1u] * k);
+    const HVX_UVector *c =
+      (const HVX_UVector *)(src + (size_t)rows[m + 2u] * k);
+    const HVX_UVector *d =
+      (const HVX_UVector *)(src + (size_t)rows[m + 3u] * k);
+    uint8_t *base = dst + (size_t)(m / 64u) * k * 64u + (m % 64u) * 32u;
+    for (uint32_t kt = 0; kt < kt_n; kt += 4u) {
+      const uint32_t v = kt / 4u;
+      const HVX_VectorPair ab = Q6_W_vshuff_VVR(b[v], a[v], -32);
+      const HVX_VectorPair cd = Q6_W_vshuff_VVR(d[v], c[v], -32);
+      const HVX_VectorPair low =
+        Q6_W_vshuff_VVR(Q6_V_lo_W(cd), Q6_V_lo_W(ab), -64);
+      const HVX_VectorPair high =
+        Q6_W_vshuff_VVR(Q6_V_hi_W(cd), Q6_V_hi_W(ab), -64);
+      ((HVX_UVector *)(base + (size_t)(kt + 0u) * 2048u))[0] = Q6_V_lo_W(low);
+      ((HVX_UVector *)(base + (size_t)(kt + 1u) * 2048u))[0] = Q6_V_hi_W(low);
+      ((HVX_UVector *)(base + (size_t)(kt + 2u) * 2048u))[0] = Q6_V_lo_W(high);
+      ((HVX_UVector *)(base + (size_t)(kt + 3u) * 2048u))[0] = Q6_V_hi_W(high);
+    }
+  }
 }

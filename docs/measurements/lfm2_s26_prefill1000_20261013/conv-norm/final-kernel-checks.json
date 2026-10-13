@@ -1,0 +1,18 @@
+[
+  {
+    "target": "/tmp/lfm2-prefill1000-20261013/conv-norm/hexkl_conv_block.o",
+    "returncode": 0
+  },
+  {
+    "target": "/tmp/lfm2-prefill1000-20261013/conv-norm/hvx_rmsnorm_rows_f32.o",
+    "returncode": 0
+  },
+  {
+    "target": "sanitizer-build",
+    "returncode": 0
+  },
+  {
+    "target": "conv-sanitized",
+    "returncode": 0
+  }
+]

@@ -1,0 +1,22 @@
+[
+  {
+    "check": "doxygen-tag",
+    "exit_code": 0
+  },
+  {
+    "check": "newline",
+    "exit_code": 0
+  },
+  {
+    "check": "executable",
+    "exit_code": 0
+  },
+  {
+    "check": "hardcoded-path",
+    "exit_code": 0
+  },
+  {
+    "check": "prohibited-words",
+    "exit_code": 0
+  }
+]

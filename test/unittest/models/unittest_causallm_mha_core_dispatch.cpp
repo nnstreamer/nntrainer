@@ -28,12 +28,15 @@
 #include <cstring>
 #include <memory>
 #include <string>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 #include <context_data.h>
 #include <cpu_ops_table.h>
 #include <layer_context.h>
 #include <mha_core.h>
+#include <qkv_layer.h>
 #include <var_grad.h>
 #include <weight.h>
 
@@ -281,6 +284,7 @@ struct Params {
   unsigned window = 0; /**< 0: none */
   float softcap = 0.0f;
   bool sink = false;
+  bool rope = false, prefill_rope_fused = false;
   std::string quant; /**< "", "q8" */
 };
 
@@ -304,7 +308,11 @@ struct Rig {
     std::vector<std::string> props = {
       "num_heads=" + std::to_string(p.n_head_q),
       "num_heads_KV=" + std::to_string(p.n_head_kv),
-      "max_timestep=" + std::to_string(p.max_rows), "use_rope=false",
+      "max_timestep=" + std::to_string(p.max_rows),
+      std::string("use_rope=") + (p.rope ? "true" : "false"),
+      std::string("prefill_rope_fused=") +
+        (p.prefill_rope_fused ? "true" : "false"),
+      "rope_theta=10000",
       "is_causal=true"};
     if (p.window) {
       props.push_back("sliding_window=" + std::to_string(p.window));
@@ -383,14 +391,16 @@ struct Rig {
    * @brief Fills Q/K/V rows for positions [from, to) from @a seed and runs
    *        the step; returns the output rows.
    */
-  std::vector<float> step(unsigned from, unsigned to, uint32_t seed) {
+  std::vector<float>
+  step(unsigned from, unsigned to, uint32_t seed,
+       const std::vector<std::vector<float>> *qkv = nullptr) {
     const unsigned n = to - from;
     for (unsigned i = 0; i < 3; ++i) {
       nntrainer::Tensor &t = ins[i].getVariableRef();
       float *d = t.getData<float>();
       uint32_t s = seed * 7919u + i * 104729u + from;
       for (size_t k = 0; k < static_cast<size_t>(n) * t.width(); ++k) {
-        d[k] = uni(s, 1.0f);
+        d[k] = qkv ? (*qkv)[i][k] : uni(s, 1.0f);
       }
     }
     layer.incremental_forwarding(*rc, from, to, false);
@@ -567,4 +577,90 @@ TEST(MhaCoreDispatch, DeclinedQuantizedCallReleasesAndStaysOnCpu) {
   // One attempt, then the handle is released and the layer never asks again.
   EXPECT_EQ(ops.q_calls.size(), 1u);
   EXPECT_EQ(ops.releases, 1u);
+}
+
+/** Exercise both sides of the prefill-only contract through real layers:
+ * split prefill, one-row decode, and a rewound single-token prompt. */
+TEST(MhaCoreDispatch, QkvPrefillRopeMatchesCoreAcrossChunksAndDecode) {
+  Params p;
+  p.rope = true;
+  p.head_dim = 64;
+  p.n_head_q = 2;
+  p.n_head_kv = 1;
+  Rig reference(p, nullptr);
+  p.prefill_rope_fused = true;
+  Rig fused(p, nullptr);
+
+  auto project = [&](bool rotate, unsigned from, unsigned to) {
+    causallm::QKVLayer layer;
+    layer.setProperty(
+      {"q_unit=128", "k_unit=64", "v_unit=64", "feature_size=64",
+       "epsilon=0.00001", "max_timestep=64", "rope_theta=10000",
+       std::string("prefill_rope_fused=") + (rotate ? "true" : "false")});
+    const nntrainer::TensorDim::TensorType f32(
+      ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::FP32);
+    InitLayerContext ic({nntrainer::TensorDim({1, 1, kMaxStep, 64}, f32)},
+                        {true, true, true}, false, "qkv", "", 0.0f,
+                        {"NCHW", "FP32", "FP32"}, 1.0f,
+                        ml::train::ExecutionMode::INFERENCE);
+    layer.finalize(ic);
+    std::vector<Weight> weights;
+    std::vector<Var_Grad> ins, outs, tensors;
+    uint32_t state = 123;
+    for (auto spec : ic.getWeightsSpec()) {
+      // Model loading supplies these weights; this harness fills them below.
+      std::get<2>(spec) = nntrainer::Initializer::ZEROS;
+      weights.emplace_back(spec, true);
+      auto &w = weights.back().getVariableRef();
+      for (size_t j = 0; j < w.size(); ++j)
+        w.getData<float>()[j] = uni(state, .2f);
+    }
+    for (auto &dim : ic.getInputDimensions())
+      ins.emplace_back(dim, nntrainer::Initializer::NONE, false, true, "in");
+    for (auto &spec : ic.getOutSpecs())
+      outs.emplace_back(spec.variable_spec.dim, nntrainer::Initializer::NONE,
+                        false, true, "out");
+    for (auto &spec : ic.getTensorsSpec())
+      tensors.emplace_back(spec, true);
+    state = 917 + from;
+    auto &input = ins[0].getVariableRef();
+    for (size_t j = 0; j < input.size(); ++j)
+      input.getData<float>()[j] = uni(state, 1.0f);
+    auto view = [](auto &v) {
+      std::vector<std::remove_reference_t<decltype(v[0])> *> result;
+      for (auto &x : v)
+        result.push_back(&x);
+      return result;
+    };
+    RunLayerContext rc("qkv", false, 0.0f, false, 1.0f, nullptr, false,
+                       view(weights), view(ins), view(outs), view(tensors));
+    layer.incremental_forwarding(rc, from, to, false);
+    std::vector<std::vector<float>> result;
+    for (unsigned i = 0; i < 3; ++i) {
+      const auto &t = rc.getOutput(i);
+      result.emplace_back(t.getData<float>(),
+                          t.getData<float>() + (to - from) * t.width());
+    }
+    return result;
+  };
+  for (auto bounds : {std::pair<unsigned, unsigned>{0, 7},
+                      {7, 12},
+                      {12, 13},
+                      {13, 14},
+                      {0, 1},
+                      {1, 5},
+                      {5, 6}}) {
+    const auto [from, to] = bounds;
+    SCOPED_TRACE(std::to_string(from) + ".." + std::to_string(to));
+    auto qkv_ref = project(false, from, to);
+    auto qkv_fused = project(true, from, to);
+    expect_close(reference.step(from, to, 0, &qkv_ref),
+                 fused.step(from, to, 0, &qkv_fused), "QKV prefill RoPE");
+    for (unsigned c = 0; c < 2; ++c) {
+      const auto &a = reference.cache(c);
+      const auto &b = fused.cache(c);
+      EXPECT_EQ(0, std::memcmp(a.getData<uint16_t>(), b.getData<uint16_t>(),
+                               to * a.width() * sizeof(uint16_t)));
+    }
+  }
 }

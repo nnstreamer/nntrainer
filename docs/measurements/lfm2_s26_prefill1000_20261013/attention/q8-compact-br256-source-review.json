@@ -1,0 +1,106 @@
+{
+  "status": "Published candidate has81-case isolated parity, paired kernel speedup, and132-file cumulative v13 raw parity; full-model TPS effect is not attributed solely to Br256.",
+  "files": {
+    "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q_plan.h": {
+      "before": "16cb991206f42e20621e416114b854fd67c42274205b49aaf0bfd57d2983e8c5",
+      "candidate": "68e06c9443c11318b2cb7f9ea363bf1d33794c8883284455a2bb54ea4c267105",
+      "live_unchanged_when_private_candidate_was_built": true
+    },
+    "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c": {
+      "before": "af61718107d92c8b52cb792d40f95855076dffe1d80f93ad6c373c1b0479b5ef",
+      "candidate": "15a189bee6bab56b1382ba7afb21aa3fbfa88c805ffad43fb73785767274acdf",
+      "live_unchanged_when_private_candidate_was_built": true
+    },
+    "test/htp/nntr_hvx_attn_q.c": {
+      "before": "99971851839be6a5df909897c911ca67fa2e5bdc43d181496788cb49eb06d38d",
+      "candidate": "08c57ff28707d111be36c6864586b5430ba6e5f3ef44ffdad039074e160894ff",
+      "live_unchanged_when_private_candidate_was_built": true
+    }
+  },
+  "scope": {
+    "input": "Q8 wire only",
+    "n_head_q": 32,
+    "n_head_kv": 8,
+    "head_dim": 64,
+    "br": 256,
+    "bc": 256,
+    "g_br": 1024,
+    "n_q": "multiple of256, 256..65280 in planner; wrapper only chooses from768 because Bc must already be256",
+    "cache_from": 0,
+    "cache_to": "n_q",
+    "window": 0,
+    "decode_flags": 0,
+    "explicit_bc_override": "disables wider selection",
+    "softcap_sinks": "unchanged math and supported"
+  },
+  "unused_tail_proof": [
+    "qx_f32 is the final base-layout region; no preceding offset changes.",
+    "qx_row is referenced only in phase_qprep after both Q8 branches return. Q8 pack reads wire values, scales and zero points directly; it does not call either FP32 Q quantizer.",
+    "Only the new bounded Br256 Q8 geometry omits the tail; generic FP32, all decode, other Q8 geometries and Br128 keep original layout byte for byte.",
+    "The immutable q8 pointer is copied into the context once and never reset; no later path can enter the FP32 Q gather.",
+    "Two complete staged QK banks begin at the reclaimed tail; both banks end at or before config_off. The original PV accumulator, scores, P, O, Q and KV operands remain disjoint.",
+    "Rows are processed by disjoint four-row work units. Q8 pack chunk has <=4096 metadata rows; active softmax state has1024 rows, dynamically allocated with128-byte alignment allowance.",
+    "The old512 row cap is bypassed only when the exact new shape predicate succeeds; no other shape has a larger row limit."
+  ],
+  "arithmetic_order_proof": [
+    "Br128 and Br256 divide Bc256. For every row, the first and last visited KV block, visit order and masked/unmasked flag match.",
+    "Global query/head mapping is identical across merging each adjacent pair of Br128 query blocks. Q quantization values/scales and QK dot-product tile dimensions do not change.",
+    "Softmax column width, reductions, Qf32/FP32/fp16 conversions, P quantization, PV dot products, output rescaling and final division are unchanged.",
+    "Compiled phase_qprep, phase_qk, softmax_row_pair, softmax_pquant_worker and phase_pv match instruction for instruction after branch/loop address normalization; Q8 pack differs only by a verified identical128-byte constant relocation.",
+    "Device81-case output parity passed and paired timing improved; cumulative v13 full-model raw outputs also matched132/132 files."
+  ],
+  "bounds": {
+    "max_chunk": 4,
+    "max_q_chunk_rows": 4096,
+    "max_base_layout_bytes": 1908736,
+    "qk_bank_bytes": 1048576,
+    "max_with_two_banks_bytes": 4005888,
+    "meta_heap_bytes_at_max_chunk": 176256,
+    "reclaimed_bytes_at1024": 1048576,
+    "required_at768": 3940352,
+    "required_at1024": 4005888,
+    "required_at2048": 4005888,
+    "arithmetic": "new shape bounds every product under2^32; aggregate staged fit uses uint64_t; exact need-1/need/need+1 tested"
+  },
+  "expected_work_change_1024": {
+    "kv_heads": 8,
+    "query_blocks": {
+      "before": 64,
+      "candidate": 32
+    },
+    "kv_block_visits": {
+      "before": 160,
+      "candidate": 80
+    },
+    "qk_readout_tiles": {
+      "before": 10240,
+      "candidate": 10240
+    },
+    "kv_dma_bytes": {
+      "before": 5242880,
+      "candidate": 2621440
+    },
+    "qprep_chunks": {
+      "before": 8,
+      "candidate": 8
+    },
+    "note": "Expected from geometry, not a measured latency result. Doubled row tile may alter HMX/worker overlap."
+  },
+  "checks": {
+    "original_layout_comparisons": 264600,
+    "nonoverlapping_region_checks": 12168,
+    "query_head_mappings": 33423360,
+    "block_mask_checks": 5592320,
+    "selection_checks": 199155,
+    "invalid_rejections": 29,
+    "valid_wide_nq_shapes": 255,
+    "meta_alignments_per_shape_chunk": 128
+  },
+  "normal_host_log": "q8-compact-br256-host.log",
+  "sanitizer_log": "q8-compact-br256-host-sanitize.log",
+  "assembly_review": "q8-compact-br256-assembly-review.json",
+  "runtime_compatibility": "Source matches the existing combined-v6-capdual ARM ABI, IDL469a452f045013fa7f1cfdf39e753ee968ea8a9a192ef31df8a12abc047c2fec, MAX_WEIGHTS2048. No changed IDL, registry capacity, Pmax fusion or rejected experiment.",
+  "device_command": "python3 docs/measurements/lfm2_s26_prefill1000_20261013/attention/mcx_q8_compact_br256_validate.py",
+  "ownership": "Parent applied the3 production files. Subagent added only2 new standalone host-test files.",
+  "device_summary": "q8-compact-br256-benchmark-summary.json"
+}

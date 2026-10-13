@@ -1,0 +1,116 @@
+{
+  "topic": "Read staged QS2 records directly into owned ordinary heap; validate and transform only the metadata tail in place.",
+  "input_tokens": 1024,
+  "output_tokens": 64,
+  "staging_experts": 64,
+  "readers": 7,
+  "npu_cache_experts_per_layer": 22,
+  "registry_limit": 2048,
+  "decision": "Accept exact logical bulk-copy reduction; end-to-end TPS improvement is not established by this noisy two-pair comparison.",
+  "samples": [
+    {
+      "file": "v15-pub-stage64-clean-ap1.json",
+      "variant": "combined-v15-publish",
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1076,
+        "tps": 951.673
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 1882,
+        "tps": 34.0064
+      },
+      "raw_log_sha256": "9a99300e15d6911101edcd3058424c5eaa81f2cafd28f0a947792ad1c30b922f"
+    },
+    {
+      "file": "v16-pub-stage64-clean-ap2.json",
+      "variant": "combined-v16-publish",
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1044,
+        "tps": 980.843
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 1912,
+        "tps": 33.4728
+      },
+      "raw_log_sha256": "4f7089951dd2e5274999ab145d40f03e6f6849d289c2b796e02557b8d2bc0cd9"
+    },
+    {
+      "file": "v16-pub-stage64-clean-ap3.json",
+      "variant": "combined-v16-publish",
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1050,
+        "tps": 975.238
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 1902,
+        "tps": 33.6488
+      },
+      "raw_log_sha256": "62b6d198d3eb4b1e4a373b28c46feabc760b22f0c4c72eb923b4af595b1f8e57"
+    },
+    {
+      "file": "v15-pub-stage64-clean-ap4.json",
+      "variant": "combined-v15-publish",
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1046,
+        "tps": 978.967
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 1883,
+        "tps": 33.9883
+      },
+      "raw_log_sha256": "38d70dc2bbaf22adf938aab840837e2eac2cc14c9cbd564d7c5550839bafb476"
+    }
+  ],
+  "baseline_ms": [
+    1076,
+    1046
+  ],
+  "candidate_ms": [
+    1044,
+    1050
+  ],
+  "baseline_mean_ms": 1061,
+  "candidate_mean_ms": 1047,
+  "candidate_effective_tps": 978.0324737344795,
+  "target_met": false,
+  "copy_evidence": {
+    "baseline_profile": "v15-pub-stage64-profile-an1.json",
+    "candidate_profile": "v16-pub-stage64-profile-aq1.json",
+    "baseline_cumulative_copied_bytes": 5737807872,
+    "candidate_cumulative_copied_bytes": 5586812928,
+    "removed_scratch_to_heap_codes_bytes": 150994944,
+    "removed_mib": 144,
+    "remaining_heap_to_arena_promotion_bytes": 153616896,
+    "remaining_heap_to_arena_aggregate_copy_us": 46799,
+    "candidate_transition_wait_us": 3531,
+    "limitations": [
+      "Counters include model-load QS2 reads and timed prefill; the only codes-copy path removed is the64 staged experts.",
+      "O_DIRECT bounce-to-heap copy remains within read_us.",
+      "Reader timings run concurrently and are not additive prefill wall time.",
+      "Candidate profile has IO profiling enabled but OP-TIME/HTP full profiling disabled; it is excluded from clean TPS results.",
+      "Baseline clean1076ms exceeds recent1041-1054ms results; do not attribute all14ms mean difference to this patch."
+    ]
+  },
+  "correctness": {
+    "raw_parity": "parity/v16-pub-stage64-parity-ao1-raw-output-comparison.json",
+    "raw_files": 132,
+    "exact": true,
+    "android_reader_assertions": 305711,
+    "host_reader_assertions": 305846,
+    "host_staging_assertions": 3884,
+    "host_backend_assertions": 758,
+    "normal": "PASS",
+    "asan_ubsan": "PASS",
+    "android_core_and_app_build": "PASS",
+    "source_and_artifact_manifest": "publish/inplace-reader-artifacts.json"
+  },
+  "diagnostic_raw_log_sha256": "2046ad3a8afe0d0da8be89862271fc5687cda957d6353a950ac6b26de5496625"
+}

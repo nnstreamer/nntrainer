@@ -1,6 +1,11 @@
-/* Scalar stand-ins shared by the block kernels' host checks. Pulled out of
+/** Scalar stand-ins shared by the block kernels' host checks. Pulled out of
    moe_layer_host_check.c unchanged when the conv block check arrived; the
-   comments are that file's. */
+   comments are that file's.
+ * @file hvx_scalar_stubs.c
+ * @brief Regression checks for hvx scalar stubs.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
+ */
 #include "hvx_scalar_stubs.h"
 
 #include "hvx_scalar.h"
@@ -27,11 +32,11 @@ const hexkl_acc_layout *hexkl_acc_layout_get(uint8_t *b, uint32_t off) {
   (void)off;
   return &g_layout;
 }
-/* ---- DMA ring: completes immediately, so a push issued while the
+/** ---- DMA ring: completes immediately, so a push issued while the
    destination is still live shows up as a wrong result. ---- */
 void hexkl_dma_ring_reset(void) {}
 void hexkl_dma_ring_drain(void) {}
-/* Indices are handed out and waited on for real shape, but every transfer
+/** Indices are handed out and waited on for real shape, but every transfer
    has already completed by the time push2d returns, so a wait is a no-op.
    That is the point: a chunk consumed before its push would read stale
    bytes on device and read correct ones here, so what this harness checks
@@ -47,56 +52,107 @@ void hexkl_dcache_inva(const void *p, uint32_t bytes) {
   (void)p;
   (void)bytes;
 }
+uint64_t g_weight_bypass_bytes, g_invalid_bypass_bytes;
 void hexkl_dma_ring_push2d(void *dst, const void *src, uint32_t ds, uint32_t ss,
                            uint32_t rs, uint32_t nrows, int sv, int dv) {
-  (void)sv;
+  if (sv) {
+    int weight = 0;
+    const uintptr_t begin = (uintptr_t)src;
+    const uintptr_t end = begin + (size_t)(nrows - 1u) * ss + rs;
+    for (uint32_t i = 0; i < HEXKL_MM_U8I4_MAX_WEIGHTS; ++i) {
+      const hexkl_weight_u8i4 *w = &g_tbl.slots[i];
+      const uintptr_t wb = (uintptr_t)w->wh_bytes;
+      if (w->in_use && (w->borrowed || w->clean) && begin >= wb &&
+          end <= wb + (size_t)w->K * w->N / 2u) {
+        weight = 1;
+        break;
+      }
+    }
+    if (weight)
+      g_weight_bypass_bytes += (uint64_t)rs * nrows;
+    else
+      g_invalid_bypass_bytes += (uint64_t)rs * nrows;
+  }
   (void)dv;
   for (uint32_t r = 0; r < nrows; ++r)
     memcpy((uint8_t *)dst + (size_t)r * ds,
            (const uint8_t *)src + (size_t)r * ss, rs);
 }
 
-/* The pool runs everything on the caller, which is what its own NULL path
+/** The pool runs everything on the caller, which is what its own NULL path
    does for n_units <= 1. Doing it here rather than passing NULL keeps the
    kernel's call sites exercised: the range arithmetic they hand the worker
    is part of what this check is for. */
 void hvx_worker_pool_run(hvx_worker_pool *pool, hvx_worker_pool_func func,
                          void *ctx, uint32_t n_units) {
   (void)pool;
-  /* One slice covering everything. Writing this the way the real function's
+  /** One slice covering everything. Writing this the way the real function's
      degenerate branch used to be written -- func(n_units, 0, ctx) -- is what
      this check caught first time out: that form means "worker 0 of n_units"
      and does 1/n_units of the work. */
   func(1u, 0, ctx);
 }
-/* submit runs the job to completion on the spot and wait is a no-op: the
-   harness cannot exercise the overlap, only that every job is submitted
-   with the right buffer and retired before that buffer is reused -- which
-   a job that ran late would show as a wrong result on device and cannot
-   show here. The device tests are where the ordering is checked. */
+/** Conv's deferred mode leaves the foreground reader pending until wait,
+   so overwriting a live accumulator or job context corrupts the reference
+   result deterministically. Other harnesses retain immediate execution. */
+#ifdef HVX_SCALAR_DEFER_WORKERS
+static hvx_worker_pool_func pending_func;
+static void *pending_ctx;
+#endif
 void hvx_worker_pool_submit(hvx_worker_pool *pool, hvx_worker_pool_func func,
                             void *ctx, uint32_t n_units) {
   (void)pool;
+#ifdef HVX_SCALAR_DEFER_WORKERS
+  if (pending_func)
+    abort(); /* A second submit must not discard an unretired reader. */
+  if (n_units != 0u) {
+    pending_func = func;
+    pending_ctx = ctx;
+  }
+#else
   if (n_units != 0u)
     func(1u, 0, ctx);
+#endif
 }
-void hvx_worker_pool_wait(hvx_worker_pool *pool) { (void)pool; }
-/* The background lane, likewise: every unit runs at submit, in order, and
-   the waits find them done. What this checks is that the kernel waits for
-   the right block before it queues it -- a wait for too few units cannot
-   show here, and a wait for too many only as a hang on device. */
+void hvx_worker_pool_wait(hvx_worker_pool *pool) {
+  (void)pool;
+#ifdef HVX_SCALAR_DEFER_WORKERS
+  if (pending_func) {
+    pending_func(1u, 0, pending_ctx);
+    pending_func = NULL;
+  }
+#endif
+}
+/** Optional deferred background units execute only through the requested
+   ready prefix. This exposes consumers that read activation tiles or row
+   parameters before their corresponding wait. Other harnesses retain
+   immediate execution, matching the real pool's NULL fallback. */
 void hvx_worker_pool_submit_bg(hvx_worker_pool *pool, hvx_bg_job *job) {
   (void)pool;
   for (uint32_t u = 0; u < job->n_units; ++u) {
+#ifdef HVX_SCALAR_DEFER_BG_WORKERS
+    job->done[u] = 0;
+#else
     job->func(job->n_units, u, job->ctx);
     job->done[u] = 1;
+#endif
   }
 }
 void hvx_worker_pool_wait_bg(hvx_worker_pool *pool, hvx_bg_job *job,
                              uint32_t n) {
   (void)pool;
+#ifdef HVX_SCALAR_DEFER_BG_WORKERS
+  const uint32_t through = n < job->n_units ? n : job->n_units;
+  for (uint32_t u = 0; u < through; ++u) {
+    if (!job->done[u]) {
+      job->func(job->n_units, u, job->ctx);
+      job->done[u] = 1;
+    }
+  }
+#else
   (void)job;
   (void)n;
+#endif
 }
 
 void hvx_copy_ah_block(uint8_t *dst, const uint8_t *src, uint32_t k,
@@ -105,7 +161,7 @@ void hvx_copy_ah_block(uint8_t *dst, const uint8_t *src, uint32_t k,
   memcpy(dst, src, (size_t)(k / 32u) * 2048u);
 }
 
-/* The row RMSNorm the *_norm layer entries fold in: plain f32, one row
+/** The row RMSNorm the *_norm layer entries fold in: plain f32, one row
    at a time, the kernel's own operation order (sum of squares, sqrtf,
    scale, gamma). What the checks that link the skel verify is the entry's
    plumbing -- which rows, which gamma, in place -- not HVX arithmetic,
@@ -133,9 +189,48 @@ int hvx_rmsnorm_rows_f32(const float *x, float *y, uint32_t M, uint32_t n,
   return 0;
 }
 
+void hvx_rmsnorm_rows_cached_f32(const float *x, const float *residual,
+                                 float *sum, float *norm, float *cached,
+                                 uint32_t M, uint32_t n, const float *gamma,
+                                 float eps) {
+  for (size_t i = 0; i < (size_t)M * n; ++i) {
+    cached[i] = residual ? x[i] + residual[i] : x[i];
+    if (residual)
+      sum[i] = cached[i];
+  }
+  (void)hvx_rmsnorm_rows_f32(cached, cached, M, n, n, gamma, eps, NULL);
+  memcpy(norm, cached, (size_t)M * n * sizeof(float));
+}
+
+/* Scalar counterpart of the MoE call's post-FFN epilogue. */
+int hvx_rmsnorm_add_res_f32(float *out, const float *res, const float *x,
+                            const float *x2, uint32_t M, uint32_t n,
+                            const float *gamma, float eps, float scale,
+                            hvx_worker_pool *pool) {
+  (void)pool;
+  if (!out || !x || M == 0u || n == 0u || n % 32u != 0u)
+    return -1;
+  for (uint32_t r = 0; r < M; ++r) {
+    const size_t offset = (size_t)r * n;
+    float ss = 0.0f;
+    for (uint32_t j = 0; j < n; ++j) {
+      const float v = x[offset + j] + (x2 ? x2[offset + j] : 0.0f);
+      ss += v * v;
+    }
+    const float rs = 1.0f / sqrtf(ss / (float)n + eps);
+    for (uint32_t j = 0; j < n; ++j) {
+      const size_t i = offset + j;
+      const float v = x[i] + (x2 ? x2[i] : 0.0f);
+      out[i] =
+        scale * ((res ? res[i] : out[i]) + v * rs * (gamma ? gamma[j] : 1.0f));
+    }
+  }
+  return 0;
+}
+
 void hvx_scale_add_rows_f32(float *dst, const float *src, float scale,
                             uint32_t n) {
-  /* Two operations, never one: HVX has no f32 fused multiply-add and the
+  /** Two operations, never one: HVX has no f32 fused multiply-add and the
      ARM path this has to agree with applies the routing weight with
      multiply_i and then accumulates with add_i. The volatile is what stops
      the host compiler contracting them and making this stub disagree with
@@ -146,12 +241,12 @@ void hvx_scale_add_rows_f32(float *dst, const float *src, float scale,
   }
 }
 uint64_t hexkl_probe_us[HEXKL_PROBE_N];
-/* On, so the counting probes (blocks, DMA bytes) run here too -- this
+/** On, so the counting probes (blocks, DMA bytes) run here too -- this
    harness is where a miscounted block or a push that never happens shows up
    without a device. The timers read the stub clock and are not checked. */
 int hexkl_probe_on = 1;
 
-/* Scalar stand-in for the conv gate: (w0*g[t] + w1*g[t-1]) + w2*g[t-2],
+/** Scalar stand-in for the conv gate: (w0*g[t] + w1*g[t-1]) + w2*g[t-2],
    each product and sum its own statement so the host compiler cannot
    contract them into the FMA the HVX does not have. */
 void hvx_conv_gate_f32(float *z, uint32_t z_stride, const float *g,
@@ -256,7 +351,7 @@ void make_weight(uint32_t slot, uint32_t K, uint32_t N, W *w) {
   s->bias = w->bias;
 }
 
-/* Link-only stand-ins for the paths of hexkl_mm_u8i4_dma.c no host check
+/** Link-only stand-ins for the paths of hexkl_mm_u8i4_dma.c no host check
    takes: the registration bake (make_weight fills the table directly) and
    the DDR fallback's accumulator copy (the stub layout is always usable).
    Reaching one is a harness bug, not a kernel result. */
@@ -273,7 +368,7 @@ int hexkl_micro_hmx_copy_32b_to_submatrix(uint8_t *b, uint32_t off,
   abort();
 }
 
-/* The router logits the router_logits_f32 entry runs: plain f32 dots,
+/** The router logits the router_logits_f32 entry runs: plain f32 dots,
    row by row. The entry's plumbing (the norm, which rows, where the
    logits land) is what a skel-linking check verifies; the HVX arithmetic
    is router_rows_host_check's on the lane emulation. */
@@ -296,7 +391,7 @@ int hvx_router_rows_f32(const float *x, const float *w, float *logits,
   return 0;
 }
 
-/* The router's selection (hvx_router_topk_rows_f32): plain f32 softmax
+/** The router's selection (hvx_router_topk_rows_f32): plain f32 softmax
    and the same first-maximum scan; the HVX softmax is
    router_rows_host_check's. */
 int hvx_router_topk_rows_f32(float *p, const float *scale, uint32_t *sel,
@@ -338,7 +433,7 @@ int hvx_router_topk_rows_f32(float *p, const float *scale, uint32_t *sel,
   return 0;
 }
 
-/* The RoPE the *_norm layer entry folds in: the CPU kernel's pair order,
+/** The RoPE the *_norm layer entry folds in: the CPU kernel's pair order,
    row by row; the HVX arithmetic is rope_rows_host_check's. */
 int hvx_rope_rows_f32(float *x, uint32_t M, uint32_t n, uint32_t hd,
                       const float *cs, hvx_worker_pool *pool) {
