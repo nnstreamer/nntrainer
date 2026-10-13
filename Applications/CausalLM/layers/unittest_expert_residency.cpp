@@ -22,8 +22,10 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <random>
 #include <set>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 using causallm::ExpertResidency;
@@ -36,6 +38,38 @@ void expectDistinctSlots(const ExpertResidency::Acquired &a, unsigned int cap) {
   EXPECT_EQ(s.size(), a.slot.size());
   for (unsigned int x : a.slot)
     EXPECT_LT(x, cap);
+}
+
+/**
+ * The misses of @a need (ascending ids) placed the way a device does it from
+ * victimOrder(): each miss takes the first slot of the order it has not
+ * taken whose expert the call does not need.
+ */
+std::vector<std::pair<unsigned int, unsigned int>>
+placeFromOrder(const ExpertResidency &r, unsigned int layer,
+               const std::vector<unsigned int> &need,
+               const std::vector<unsigned int> &order) {
+  const std::vector<unsigned int> map = r.slotMap(layer);
+  std::vector<unsigned int> in(r.capacity(layer), ExpertResidency::kNone);
+  for (unsigned int e = 0; e < map.size(); ++e)
+    if (map[e] != ExpertResidency::kNone)
+      in[map[e]] = e;
+  std::vector<bool> taken(order.size(), false);
+  std::vector<std::pair<unsigned int, unsigned int>> placed;
+  for (unsigned int e : need) {
+    if (map[e] != ExpertResidency::kNone)
+      continue;
+    for (size_t i = 0; i < order.size(); ++i) {
+      const unsigned int occ = in[order[i]];
+      if (taken[i] || (occ != ExpertResidency::kNone &&
+                       std::find(need.begin(), need.end(), occ) != need.end()))
+        continue;
+      taken[i] = true;
+      placed.emplace_back(e, order[i]);
+      break;
+    }
+  }
+  return placed;
 }
 
 } // namespace
@@ -476,4 +510,119 @@ TEST(ExpertResidency, ReservationsLeaveRoomForACallAndAvoidThePrediction) {
   EXPECT_EQ(r.reservedSlot(0, 10), ExpertResidency::kNone);
   r.release(0, 10, true); // no-op after clear
   EXPECT_EQ(r.slotOf(0, 10), ExpertResidency::kNone);
+}
+
+TEST(ExpertResidency, VictimOrderListsFreeSlotsThenThePolicysVictims) {
+  ExpertResidency r;
+  r.addLayer(0, 5, 32);
+  r.acquire(0, {4, 5, 6}); // slots 0 1 2, LRU order 4 5 6
+  r.acquire(0, {4});       // order 5 6 4
+  EXPECT_EQ(r.victimOrder(0), (std::vector<unsigned int>{3, 4, 1, 2, 0}));
+  EXPECT_EQ(r.victimOrder(0, {4, 1}), (std::vector<unsigned int>{3, 2, 0}));
+  r.hold(0, 2);
+  EXPECT_EQ(r.victimOrder(0), (std::vector<unsigned int>{3, 4, 1, 0}));
+  r.unhold(0, 2);
+  EXPECT_EQ(r.reserve(0, 9, {}, 0), 3u); // a free slot, now reserved
+  EXPECT_EQ(r.victimOrder(0), (std::vector<unsigned int>{4, 1, 2, 0}));
+}
+
+TEST(ExpertResidency, PlaceFromVictimOrderReplaysAcquire) {
+  // A device that places its own misses from victimOrder() and a host that
+  // replays them with place() end where acquire() ends, step by step: the
+  // same slots, the same recency, the same history (LRU, LFU, LRFU with an
+  // exact decay and with a rounding one), from cold and from a primed state.
+  struct Arm {
+    ExpertResidency::Policy p;
+    double lambda;
+    bool prime;
+  };
+  const Arm arms[] = {{ExpertResidency::Policy::lru, 0.1, false},
+                      {ExpertResidency::Policy::lfu, 0.1, false},
+                      {ExpertResidency::Policy::lrfu, 1.0, false},
+                      {ExpertResidency::Policy::lrfu, 0.1, true}};
+  for (const Arm &arm : arms) {
+    ExpertResidency a, b;
+    for (ExpertResidency *r : {&a, &b}) {
+      r->addLayer(0, 8, 40);
+      r->setPolicy(arm.p, arm.lambda);
+      if (arm.prime) {
+        std::vector<double> w(40, 0.0);
+        for (unsigned int e = 0; e < 40; e += 3)
+          w[e] = 0.25 * (e % 7);
+        r->prime(0, w);
+      }
+    }
+    std::mt19937 rng(1234);
+    std::uniform_int_distribution<unsigned int> pick(0, 39);
+    unsigned int misses = 0;
+    for (int step = 0; step < 400; ++step) {
+      std::set<unsigned int> s;
+      // a skewed draw: low ids often, so hits and evictions both occur
+      while (s.size() < 4)
+        s.insert(std::min(pick(rng), pick(rng)));
+      const std::vector<unsigned int> need(s.begin(), s.end());
+      const auto placed = placeFromOrder(b, 0, need, b.victimOrder(0));
+      const auto ra = a.acquire(0, need);
+      const auto rb = b.place(0, need, placed);
+      misses += (unsigned int)ra.misses.size();
+      ASSERT_EQ(ra.slot, rb.slot) << "step " << step;
+      ASSERT_EQ(ra.hits, rb.hits) << "step " << step;
+      ASSERT_EQ(a.slotMap(0), b.slotMap(0)) << "step " << step;
+      ASSERT_EQ(a.order(0), b.order(0)) << "step " << step;
+    }
+    EXPECT_GT(misses, 100u);
+    EXPECT_EQ(a.hits(), b.hits());
+    EXPECT_EQ(a.misses(), b.misses());
+  }
+}
+
+TEST(ExpertResidency, AdmitIsAnUnaccessedLeastRecentResident) {
+  ExpertResidency r;
+  r.addLayer(0, 3, 16);
+  r.acquire(0, {1, 2, 3});         // order 1 2 3
+  EXPECT_EQ(r.admit(0, 9, 1), 2u); // evicts 2 from slot 1
+  EXPECT_EQ(r.slotOf(0, 9), 1u);
+  EXPECT_EQ(r.slotOf(0, 2), ExpertResidency::kNone);
+  EXPECT_EQ(r.order(0), (std::vector<unsigned int>{9, 1, 3}));
+  EXPECT_EQ(r.victimOrder(0).front(), 1u); // 9 is the first victim
+  // a later call that needs it is a hit
+  auto a = r.acquire(0, {9});
+  EXPECT_EQ(a.hits, 1u);
+  EXPECT_EQ(r.order(0), (std::vector<unsigned int>{1, 3, 9}));
+  // into a free slot: no victim
+  r.forget(0, 3);
+  EXPECT_EQ(r.admit(0, 7, 2), ExpertResidency::kNone);
+  EXPECT_THROW(r.admit(0, 7, 0), std::logic_error); // resident already
+  r.hold(0, 0);
+  EXPECT_THROW(r.admit(0, 8, 0), std::logic_error); // held
+  r.unhold(0, 0);
+  EXPECT_THROW(r.admit(0, 8, 3), std::out_of_range);
+}
+
+TEST(ExpertResidency, PlaceRejectsAReplayThatContradictsTheState) {
+  ExpertResidency r;
+  r.addLayer(0, 4, 16);
+  r.acquire(0, {1, 2, 3, 4});
+  const auto map = r.slotMap(0);
+  const auto ord = r.order(0);
+  using P = std::vector<std::pair<unsigned int, unsigned int>>;
+  // a resident expert placed again
+  EXPECT_THROW(r.place(0, {1, 5}, P{{1, 0}, {5, 1}}), std::logic_error);
+  // into the slot of an expert the call needs
+  EXPECT_THROW(r.place(0, {1, 5}, P{{5, map[1]}}), std::logic_error);
+  // a needed expert neither resident nor placed
+  EXPECT_THROW(r.place(0, {5, 6}, P{{5, 0}}), std::logic_error);
+  // one slot twice
+  EXPECT_THROW(r.place(0, {5, 6}, P{{5, 0}, {6, 0}}), std::logic_error);
+  // a placed expert the call does not need
+  EXPECT_THROW(r.place(0, {5}, P{{5, 0}, {6, 1}}), std::logic_error);
+  EXPECT_EQ(r.slotMap(0), map);
+  EXPECT_EQ(r.order(0), ord);
+  // a consistent one
+  auto a = r.place(0, {2, 5}, P{{5, map[1]}});
+  EXPECT_EQ(a.hits, 1u);
+  ASSERT_EQ(a.misses.size(), 1u);
+  EXPECT_EQ(a.misses[0].victim, 1u);
+  EXPECT_EQ(r.slotOf(0, 5), map[1]);
+  EXPECT_EQ(r.order(0), (std::vector<unsigned int>{3, 4, 2, 5}));
 }

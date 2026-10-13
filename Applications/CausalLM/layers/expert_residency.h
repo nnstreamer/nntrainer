@@ -62,6 +62,14 @@
  *    access counted -- the least recent one, its frequency history as it
  *    was. At most capacity - @a keep slots are reserved at once, so a call
  *    of @a keep experts always finds room.
+ *  - victimOrder(layer, exclude) / place(layer, need, placed) /
+ *    admit(layer, expert, slot): for a caller that places misses itself (a
+ *    device routing its own decode step from a victim queue published ahead
+ *    of the step, NNTR_G4MOE_FSU_FLAGS). victimOrder lists the slots in the
+ *    order successive acquires would take them; place() replays a call
+ *    whose misses went to the given slots (acquire's history and recency);
+ *    admit() replays a read ahead that put an expert into a slot (no access,
+ *    least recent, as release() with admit).
  *
  * Deterministic: the same call sequence gives the same slots. Thread-safe
  * (one mutex). Modelled on the ExpertLru of the HTP MoE layers, partitioned
@@ -304,6 +312,183 @@ public:
     hits_ += out.hits;
     misses_ += out.misses.size();
     return out;
+  }
+
+  /**
+   * @brief The slots of @a layer in the order successive acquire() calls
+   *        would take them for misses: the free slots (neither held nor
+   *        reserved), lowest first, then the resident experts' slots, the
+   *        policy's victim first (LRU: least recent; LFU / LRFU: smallest
+   *        score, ties to the least recently accessed, then the least
+   *        recent), skipping held and reserved slots and @a exclude.
+   * @details A caller that places a call's misses itself takes, for each
+   * miss, the first slot of this list it has not taken yet whose expert the
+   * call does not need: acquire() would have picked the same slots (the
+   * scores of the experts it may evict all decay by the same factor between
+   * this list and the call; only exact score ties may order differently
+   * after that rounding, which moves an eviction, never a result).
+   */
+  std::vector<unsigned int>
+  victimOrder(unsigned int layer,
+              const std::vector<unsigned int> &exclude = {}) const {
+    std::lock_guard<std::mutex> lk(mu_);
+    const Layer &l = get(layer);
+    std::vector<bool> skip(l.capacity, false);
+    for (unsigned int s : exclude)
+      if (s < l.capacity)
+        skip[s] = true;
+    std::vector<unsigned int> out;
+    out.reserve(l.capacity);
+    for (unsigned int s = 0; s < l.capacity; ++s)
+      if (!skip[s] && freeSlot(l, s))
+        out.push_back(s);
+    struct Cand {
+      unsigned int slot;
+      double score;
+      uint64_t last;
+    };
+    std::vector<Cand> cand;
+    for (unsigned int e : l.order) {
+      const unsigned int s = l.slot_of[e];
+      if (skip[s] || l.held[s] != 0 || l.reserved_for[s] != kNone)
+        continue;
+      cand.push_back({s, policy_ == Policy::lru ? 0.0 : scoreNow(l, e),
+                      policy_ == Policy::lru ? 0 : l.last[e]});
+    }
+    // stable: equal keys keep the order list's order (pickVictim's ties)
+    std::stable_sort(
+      cand.begin(), cand.end(), [](const Cand &a, const Cand &b) {
+        return a.score < b.score || (a.score == b.score && a.last < b.last);
+      });
+    for (const Cand &c : cand)
+      out.push_back(c.slot);
+    return out;
+  }
+
+  /**
+   * @brief Replay a call of @a need whose misses a caller placed itself
+   *        (victimOrder): every expert of @a placed ((expert, slot), in the
+   *        order of @a need) goes to its slot, evicting the slot's expert;
+   *        the access history and recency are acquire()'s.
+   * @throw std::logic_error when the replay contradicts the state: a placed
+   *        expert that is resident or not needed, a needed expert neither
+   *        resident nor placed, a slot held, reserved, placed twice or
+   *        holding a needed expert (nothing is changed then)
+   * @throw std::out_of_range for an expert or slot outside the layer
+   */
+  Acquired
+  place(unsigned int layer, const std::vector<unsigned int> &need,
+        const std::vector<std::pair<unsigned int, unsigned int>> &placed) {
+    std::lock_guard<std::mutex> lk(mu_);
+    Layer &l = get(layer);
+    std::unordered_set<unsigned int> pinned;
+    for (unsigned int e : need) {
+      if (e >= l.slot_of.size())
+        throw std::out_of_range("ExpertResidency: expert " + std::to_string(e) +
+                                " of layer " + std::to_string(layer));
+      pinned.insert(e);
+    }
+    std::unordered_map<unsigned int, unsigned int> to; // expert -> slot
+    std::unordered_set<unsigned int> slots;
+    for (const auto &p : placed) {
+      if (p.first >= l.slot_of.size())
+        throw std::out_of_range("ExpertResidency: expert " +
+                                std::to_string(p.first) + " of layer " +
+                                std::to_string(layer));
+      checkSlot(l, layer, p.second);
+      const unsigned int occ = l.expert_in[p.second];
+      if (pinned.count(p.first) == 0 || l.slot_of[p.first] != kNone ||
+          !to.emplace(p.first, p.second).second ||
+          !slots.insert(p.second).second || l.held[p.second] != 0 ||
+          l.reserved_for[p.second] != kNone ||
+          (occ != kNone && pinned.count(occ) != 0))
+        throw std::logic_error("ExpertResidency: layer " +
+                               std::to_string(layer) + " cannot place expert " +
+                               std::to_string(p.first) + " in slot " +
+                               std::to_string(p.second));
+    }
+    for (unsigned int e : pinned)
+      if (l.slot_of[e] == kNone && to.count(e) == 0)
+        throw std::logic_error("ExpertResidency: layer " +
+                               std::to_string(layer) + " needs expert " +
+                               std::to_string(e) +
+                               ", neither resident nor "
+                               "placed");
+    Acquired out;
+    out.slot.resize(need.size(), kNone);
+    ++l.clock;
+    for (unsigned int e : pinned) {
+      if (policy_ != Policy::lru) {
+        l.score[e] = scoreNow(l, e) + 1.0;
+        l.stamp[e] = l.clock;
+      }
+      l.last[e] = l.clock;
+    }
+    std::unordered_set<unsigned int> seen;
+    for (size_t i = 0; i < need.size(); ++i) {
+      const unsigned int e = need[i];
+      const bool first = seen.insert(e).second;
+      if (l.slot_of[e] != kNone) {
+        if (first)
+          ++out.hits;
+        touch(l, e);
+        out.slot[i] = l.slot_of[e];
+        continue;
+      }
+      const unsigned int slot = to.at(e);
+      const unsigned int victim = l.expert_in[slot];
+      if (victim != kNone) {
+        l.order.erase(l.where[victim]);
+        l.where[victim] = l.order.end();
+        l.slot_of[victim] = kNone;
+      }
+      l.expert_in[slot] = e;
+      l.slot_of[e] = slot;
+      l.order.push_back(e);
+      l.where[e] = std::prev(l.order.end());
+      out.slot[i] = slot;
+      out.misses.push_back({e, slot, victim, false});
+    }
+    hits_ += out.hits;
+    misses_ += out.misses.size();
+    return out;
+  }
+
+  /**
+   * @brief Replay a read ahead that put @a expert into @a slot of @a layer:
+   *        the slot's expert (if any) is evicted and @a expert becomes
+   *        resident there with no access counted, as the least recent
+   *        expert (release() with admit).
+   * @return the evicted expert, or kNone
+   * @throw std::logic_error when @a expert is resident already or the slot
+   *        is held or reserved (nothing is changed then)
+   */
+  unsigned int admit(unsigned int layer, unsigned int expert,
+                     unsigned int slot) {
+    std::lock_guard<std::mutex> lk(mu_);
+    Layer &l = get(layer);
+    if (expert >= l.slot_of.size())
+      throw std::out_of_range("ExpertResidency: expert " +
+                              std::to_string(expert) + " of layer " +
+                              std::to_string(layer));
+    checkSlot(l, layer, slot);
+    if (l.slot_of[expert] != kNone || l.reserved_slot[expert] != kNone ||
+        l.held[slot] != 0 || l.reserved_for[slot] != kNone)
+      throw std::logic_error("ExpertResidency: layer " + std::to_string(layer) +
+                             " cannot admit expert " + std::to_string(expert) +
+                             " into slot " + std::to_string(slot));
+    const unsigned int victim = l.expert_in[slot];
+    if (victim != kNone) {
+      l.order.erase(l.where[victim]);
+      l.where[victim] = l.order.end();
+      l.slot_of[victim] = kNone;
+    }
+    l.expert_in[slot] = expert;
+    l.slot_of[expert] = slot;
+    l.order.push_front(expert);
+    l.where[expert] = l.order.begin();
+    ++admitted_;
+    return victim;
   }
 
   /** @brief pin @a slot of @a layer against eviction (nests) */
