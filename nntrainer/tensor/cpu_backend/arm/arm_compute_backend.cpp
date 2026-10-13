@@ -581,6 +581,15 @@ void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
 #endif
 }
 
+void compute_rotary_emb_value_snap(unsigned int width, unsigned int dim,
+                                   unsigned int half_, const float *input,
+                                   uint16_t *output, const float *cos_,
+                                   const float *sin_,
+                                   const float *head_scales) {
+  __fallback_compute_rotary_emb_value_snap(width, dim, half_, input, output,
+                                           cos_, sin_, head_scales);
+}
+
 void compute_rotary_emb_value(unsigned int width, unsigned int dim,
                               unsigned int half_, float *inout, void *output,
                               const float *cos_, const float *sin_,
