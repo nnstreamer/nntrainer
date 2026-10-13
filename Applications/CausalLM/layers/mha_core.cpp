@@ -2258,6 +2258,10 @@ void MHACoreLayer::one_batch_incremental_forwarding(
   // consumer is a same-queue GPU kernel -- but the SVM/host fallbacks further
   // down are not on that queue, so they drain once when this is set.
   bool kv_write_undrained = false;
+  // Set when the flash-arm decode commit below wrote Q, K and V with one
+  // undrained launch. Its consumer is flash_decode on the same in-order queue;
+  // every other reader drains once first (see the attention dispatch).
+  bool flash_commit_undrained = false;
 #endif
 
   const double _mha_t_prelude = _kvst_on() ? _kvst_now() : 0;
@@ -2386,8 +2390,88 @@ void MHACoreLayer::one_batch_incremental_forwarding(
       const auto md = t.getMemoryData();
       return t.isClMem() || (md && md->isSVM());
     };
-    if (!_gpu_rope_off && _mha_gpu_on && use_gemm_attention && !kv_int8 &&
-        !kv_ohwi_now && _rope_len_ok &&
+    // [flash-commit] Decode step on the buffer/flash arm (Intel / any
+    // non-image lane): commit Q, K and V with the one-launch
+    // qkv_rope_commit_f16 the image arm already uses, instead of rope-Q into
+    // the FC's cl_mem + rope-K into the cache slice (drained) + V copy into
+    // the cache slice (drained) + the blocking lower_q read that lands the
+    // rotated Q in the SVM plane flash_decode binds. The commit kernel is
+    // byte-identical to those three launches (same rotation, same snap, same
+    // destinations); it reads Q from the FC's cl_mem and writes the rotated Q
+    // straight into the SVM plane, so lower_q has nothing left to do. All
+    // three writes stay undrained: their one consumer, flash_decode, is on
+    // the same in-order queue, and every other reader drains first
+    // (flash_commit_undrained). On Xe3 this removes 2 clFinish + 1 blocking
+    // read per layer per token. NNTR_FLASH_QKV_COMMIT=0 restores the
+    // separate drained launches.
+    static const bool _flash_commit_on = []() {
+      const char *e = std::getenv("NNTR_FLASH_QKV_COMMIT");
+      return e == nullptr || e[0] != '0';
+    }();
+    if (_flash_commit_on && !_gpu_rope_off && _mha_gpu_on &&
+        use_gemm_attention && !kv_int8 && !kv_ohwi_now && !_img_arm &&
+        use_image_attn != 1 && !kv_stage_on && (to - from) == 1 &&
+        _gpu_rope_decode &&
+        query_step.getDataType() == ml::train::TensorDim::DataType::FP16 &&
+        key_step.getDataType() == ml::train::TensorDim::DataType::FP16 &&
+        value_step.getDataType() == ml::train::TensorDim::DataType::FP16 &&
+        cache_key.getDataType() == ml::train::TensorDim::DataType::FP16 &&
+        cache_value.getDataType() == ml::train::TensorDim::DataType::FP16) {
+      const unsigned int mp = rope_lut_positions();
+      auto is_svm = [](const nntrainer::Tensor &t) {
+        const auto md = t.getMemoryData();
+        return md && md->isSVM();
+      };
+      const bool q_svm = is_svm(query_step);
+      const bool k_svm = is_svm(key_step);
+      const bool v_svm = is_svm(value_step);
+      void *k_snap = k_snap_device();
+      void *v_snap = v_snap_device();
+      if (mp >= cache_index + 1 && is_svm(b_cache_key_step) &&
+          is_svm(b_cache_value_step) && (q_cl != nullptr || q_svm) &&
+          (k_cl != nullptr || k_svm) && (v_cl != nullptr || v_svm) &&
+          (k_snap == nullptr) == (v_snap == nullptr)) {
+        ensure_rope_flat_lut();
+        uint16_t *q_p =
+          reinterpret_cast<uint16_t *>(query_step.getData<_FP16>());
+        const uint16_t *k_p =
+          reinterpret_cast<const uint16_t *>(key_step.getData<_FP16>());
+        uint16_t *kc_p =
+          reinterpret_cast<uint16_t *>(b_cache_key_step.getData<_FP16>());
+        const uint16_t *v_in =
+          reinterpret_cast<const uint16_t *>(value_step.getData<_FP16>());
+        uint16_t *v_out =
+          reinterpret_cast<uint16_t *>(b_cache_value_step.getData<_FP16>());
+        // Same destinations as the separate launches: the step's cache
+        // slices, write offset 0.
+        if (nntrainer::qkv_rope_commit_f16_cl(
+              q_p, q_cl, k_p, k_cl, kc_p, 0u, v_in, v_cl, v_out, 0u,
+              rope_cos_flat_cur, rope_sin_flat_cur, num_heads_Q, num_heads_KV,
+              head_dim, cache_index, mp, /*flush=*/true, k_snap, v_snap)) {
+          // flash_decode binds the cache tensors' bases, below the step
+          // slices the commit declared: declare the whole planes at the
+          // consumer's scope (opt-in hazard check), and the Q plane.
+          nntrainer::opencl::Kernel::noteUndrainedSvmPlane(
+            cache_key.getData<_FP16>(), cache_key.bytes(),
+            /*declared_by_consumer_site=*/true);
+          nntrainer::opencl::Kernel::noteUndrainedSvmPlane(
+            cache_value.getData<_FP16>(), cache_value.bytes(),
+            /*declared_by_consumer_site=*/true);
+          nntrainer::opencl::Kernel::noteUndrainedSvmPlane(
+            q_p, (size_t)num_heads_Q * head_dim * sizeof(uint16_t),
+            /*declared_by_consumer_site=*/true);
+          // The rotated Q is in the SVM plane; the FC's cl_mem still holds
+          // the un-rotated Q and must never be lowered over it.
+          q_cl = nullptr;
+          k_cl = nullptr;
+          v_cl = nullptr;
+          flash_commit_undrained = true;
+          gpu_rope_done = true;
+        }
+      }
+    }
+    if (!gpu_rope_done && !_gpu_rope_off && _mha_gpu_on && use_gemm_attention &&
+        !kv_int8 && !kv_ohwi_now && _rope_len_ok &&
         query_step.getDataType() == ml::train::TensorDim::DataType::FP16 &&
         device_addressable(query_step) && device_addressable(key_step)) {
       // Flat [max_pos, half_d] cos/sin LUT (fp16 bits) from the cached trig
@@ -4304,7 +4388,54 @@ void MHACoreLayer::one_batch_incremental_forwarding(
             {
               MhaAttnTimerScope _img_attn_timer(step_size, m_to,
                                                 local_window_size != UINT_MAX);
-              if (sub >= step_size) {
+              // [afd] NNTR_ADRENO_FLASH_DECODE=1: the decode step reads the
+              // fp16 SVM K/V cache in one fused split-K pass instead of the
+              // qk -> softmax -> sv chain over the mirrors. The slab is
+              // complete here (the unstaged RoPE/copy wrote this step's rows,
+              // which is also what the mirror scatter above read), and the
+              // in-order queue orders those writes before this launch. The
+              // staged chain (NNTR_KV_STAGE) leaves the slab stale, so it
+              // keeps the image kernels. The mirror is still maintained.
+              if (step_size == 1 && !kv_stage_on &&
+                  nntrainer::flash_decode_gqa_enabled()) {
+                const unsigned int win_abs =
+                  (local_window_size >= (size_t)cache_to)
+                    ? 0u
+                    : (unsigned int)local_window_size;
+                ok = nntrainer::flash_decode_gqa_f16_cl(
+                  Q_p, K_p, V_p, O_p, o_cl, cache_to, num_heads_Q, num_heads_KV,
+                  head_dim, attn_logit_softcapping, win_abs, kv_ring_cap);
+                if (ok && o_cl != nullptr)
+                  o_written_clmem = true;
+              }
+              // [afp] NNTR_ADRENO_FLASH_PREFILL=1: the prefill reads the fp16
+              // SVM K/V cache in one fused pass (one sub-group per kv head
+              // and query tile, all gqa heads at once) instead of the
+              // qk -> softmax -> sv chain over the mirrors. Unstaged chain
+              // only: there the RoPE/copy wrote this step's rows into the
+              // slab (the scatter above read them from there) and earlier
+              // rows are already in it; the in-order queue orders those
+              // writes before this launch. Q must be the rotated SVM plane
+              // (no staged Q handle). The mirrors are still maintained
+              // (decode reads them).
+              if (step_size > 1 && q_clmem_use == nullptr && !kv_stage_on &&
+                  k_stage == nullptr && v_stage_svm == nullptr &&
+                  v_stage_clmem == nullptr &&
+                  nntrainer::flash_prefill_gqa_enabled()) {
+                const unsigned int win_abs =
+                  (local_window_size >= (size_t)cache_to)
+                    ? 0u
+                    : (unsigned int)local_window_size;
+                ok = nntrainer::flash_prefill_gqa_f16_cl(
+                  Q_p, K_p, V_p, O_p, o_cl, step_size, cache_to, num_heads_Q,
+                  num_heads_KV, head_dim, is_causal, attn_logit_softcapping,
+                  win_abs, kv_ring_cap);
+                if (ok && o_cl != nullptr)
+                  o_written_clmem = true;
+              }
+              if (ok) {
+                // served by the fused decode / prefill above
+              } else if (sub >= step_size) {
                 ok =
                   nntrainer::two_conv_attention_prefill_f16_ohwi_kvimg_view_cl(
                     Q_p, reinterpret_cast<cl_mem>(k_image_ohwi),
@@ -4382,6 +4513,11 @@ void MHACoreLayer::one_batch_incremental_forwarding(
           nntrainer::cl_queue_finish();
           q_cl = nullptr;
         }
+        if (!ok && flash_commit_undrained && !(svm_ok && step_size == 1)) {
+          // The flash-arm commit's consumer (flash_decode) will not run.
+          nntrainer::cl_queue_finish();
+          flash_commit_undrained = false;
+        }
         if (!ok && (kv_stage_on || k_stage != nullptr ||
                     v_stage_svm != nullptr || kv_write_undrained)) {
           // The staged K/V cache side-fills (and, in staged mode, the
@@ -4412,11 +4548,55 @@ void MHACoreLayer::one_batch_incremental_forwarding(
           // clips"), so a sliding layer's cost is one series across contexts.
           MhaAttnTimerScope _attn_timer(step_size, cache_to,
                                         local_window_size != UINT_MAX);
-          if (step_size == 1)
+          // [afd] NNTR_ADRENO_FLASH_DECODE=1 also takes the decode step on
+          // this arm (any lane: it is how Xe3 checks the kernel in-model).
+          if (step_size == 1 && nntrainer::flash_decode_gqa_enabled()) {
+            ok = nntrainer::flash_decode_gqa_f16_cl(
+              Q_p, K_p, V_p, O_p, o_cl, cache_to, num_heads_Q, num_heads_KV,
+              head_dim, attn_logit_softcapping, /*local_window=*/win,
+              /*ring_cap=*/kv_ring_cap);
+            if (ok && o_cl != nullptr)
+              o_written_clmem = true;
+          }
+          if (step_size == 1 && !ok)
             ok = nntrainer::flash_decode_f16_cl(
               Q_p, K_p, V_p, O_p, cache_to, num_heads_Q, num_heads_KV, head_dim,
               /*max_seq_len=*/0u, /*svm_inputs=*/true, attn_logit_softcapping,
               /*local_window=*/win, /*ring_cap=*/kv_ring_cap);
+          if (!ok && flash_commit_undrained) {
+            // flash_decode declined: settle the commit before the fallbacks.
+            nntrainer::cl_queue_finish();
+            flash_commit_undrained = false;
+          }
+          // [apa] NNTR_ADRENO_PREFILL_ATTN=1: on the reproducible arm
+          // (NNTR_DETERMINISTIC=1) a mirror-free layer's prefill runs the
+          // image arm's qk -> softmax -> sv chain over the fp16 concat K/V
+          // slab (buffer reads, no mirror). Without it the next two calls
+          // decline d = 256 / 512 on Adreno and the prefill attention runs on
+          // the host. The slab and Q are complete here: the staged / undrained
+          // writers were settled above (drain, sync_kv_slab, lower_q) and the
+          // in-order queue orders the rest before these launches. Any lane:
+          // it is how Xe3 checks the chain in-model.
+          if (!ok && step_size > 1 && !img_arm_want &&
+              causallm::detArm() == causallm::DetArm::kPerLayer &&
+              nntrainer::prefill_attn_apa_enabled()) {
+            ok = nntrainer::prefill_attn_apa_f16_cl(
+              Q_p, K_p, V_p, O_p, o_cl, step_size, cache_to, num_heads_Q,
+              num_heads_KV, head_dim, is_causal, attn_logit_softcapping,
+              /*local_window=*/win, /*ring_cap=*/kv_ring_cap);
+            if (ok && o_cl != nullptr)
+              o_written_clmem = true;
+          }
+          // [afp] NNTR_ADRENO_FLASH_PREFILL=1 also takes the prefill on this
+          // arm (any lane: it is how Xe3 checks the kernel in-model).
+          if (!ok && step_size > 1 && nntrainer::flash_prefill_gqa_enabled()) {
+            ok = nntrainer::flash_prefill_gqa_f16_cl(
+              Q_p, K_p, V_p, O_p, o_cl, step_size, cache_to, num_heads_Q,
+              num_heads_KV, head_dim, is_causal, attn_logit_softcapping,
+              /*local_window=*/win, /*ring_cap=*/kv_ring_cap);
+            if (ok && o_cl != nullptr)
+              o_written_clmem = true;
+          }
           if (!ok)
             ok = nntrainer::flash_attention_prefill_f16_cl(
               Q_p, K_p, V_p, O_p, step_size, cache_to, num_heads_Q,
@@ -4513,7 +4693,7 @@ void MHACoreLayer::one_batch_incremental_forwarding(
     // A K/V cache write above may have been enqueued with a submission flush
     // and no drain (the image-attention GPU chain). This reader is on the
     // host, not on that queue: settle the queue once first.
-    if (kv_write_undrained)
+    if (kv_write_undrained || flash_commit_undrained)
       nntrainer::cl_queue_finish();
     settle_act_stage_for_host();
 #endif
@@ -4536,6 +4716,8 @@ void MHACoreLayer::one_batch_incremental_forwarding(
   mha_assert_host_readable(query_step, b_cached_key, b_cached_value,
                            attention_output_step, "host per-row attention");
 #if defined(ENABLE_OPENCL)
+  if (flash_commit_undrained)
+    nntrainer::cl_queue_finish();
   settle_act_stage_for_host();
 #endif
   lower_q();
