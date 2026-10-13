@@ -1,0 +1,22 @@
+{
+  "new_files": {
+    "test/htp/host/attn_q_wire_br256_host_check.c": "90f83f4d19f25b529aa662918ca96ab96b3a4a7c0e7f86c5ab89b3bbe27fd2ad",
+    "test/htp/host/run_attn_q_wire_br256_check.sh": "0791f0d0eb8b506097e72cd9522e49ab8c93ec4d6dfdc539c7bb2b71f0a1275c"
+  },
+  "commands": [
+    "bash test/htp/host/run_attn_q_wire_br256_check.sh",
+    "bash test/htp/host/run_attn_q_wire_br256_check.sh --sanitize"
+  ],
+  "results": {
+    "regions": 12168,
+    "query_head_mappings": 33423360,
+    "block_mask_checks": 5592320,
+    "shape_checks": 196605,
+    "invalid_rejections": 29,
+    "normal": "PASS",
+    "address_undefined_sanitizers": "PASS"
+  },
+  "external_requirements": "C11 host compiler only; no historical source checkout, Hexagon SDK or device.",
+  "runner_integration": "Standalone new runner; existing run_host_checks.sh untouched.",
+  "clang_format": "14.0.6; full new C file verified"
+}

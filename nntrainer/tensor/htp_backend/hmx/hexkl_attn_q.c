@@ -1157,7 +1157,10 @@ static int prefill_impl(uint8_t *vtcm_base, uint32_t config_off,
       kv->max_rows < s->cache_to) {
     return AEE_EBADPARM;
   }
-  if (s->cache_to > 0xFFFFu || t->g_br > MAX_G_BR || s->softcap < 0.0f) {
+  const int compact_q8 = q8 && !io->decode_flags && kv->kind == HEXKL_KV_Q8 &&
+                         hexkl_attn_q_wire_br256_shape(s, t);
+  if (s->cache_to > 0xFFFFu || (t->g_br > MAX_G_BR && !compact_q8) ||
+      s->softcap < 0.0f) {
     return AEE_EBADPARM;
   }
 
@@ -1184,11 +1187,17 @@ static int prefill_impl(uint8_t *vtcm_base, uint32_t config_off,
   const uint32_t n_qb = hexkl_attn_f16_n_q_blocks(s, t);
   uint32_t chunk = hexkl_attn_q_chunk_count(s, t);
   int rc = map_plan_rc(
-    hexkl_attn_q_plan(s, t, config_off, kv->tile_bytes, chunk, &c.L));
+    compact_q8
+      ? hexkl_attn_q_plan_wire_br256(s, t, config_off, kv->tile_bytes, chunk,
+                                     &c.L)
+      : hexkl_attn_q_plan(s, t, config_off, kv->tile_bytes, chunk, &c.L));
   if (rc == AEE_ENOMEMORY && chunk > 1) {
     chunk = 1;
     rc = map_plan_rc(
-      hexkl_attn_q_plan(s, t, config_off, kv->tile_bytes, chunk, &c.L));
+      compact_q8
+        ? hexkl_attn_q_plan_wire_br256(s, t, config_off, kv->tile_bytes, chunk,
+                                       &c.L)
+        : hexkl_attn_q_plan(s, t, config_off, kv->tile_bytes, chunk, &c.L));
   }
   if (rc != AEE_SUCCESS) {
     return rc;

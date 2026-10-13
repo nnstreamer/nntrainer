@@ -964,6 +964,19 @@ static int attn_q8_step_impl(
               s->config_off)
           tiling.br = wide.br;
       }
+      // Q8 input never uses the gathered FP32-Q tail. Reclaim it only for
+      // the bounded Br256 geometry, keeping Bc256 and both QK banks.
+      if (!bc && n_q >= 256u && n_q % 256u == 0u && tiling.bc == 256u) {
+        hexkl_attn_f16_tiling wide = tiling;
+        hexkl_attn_q_layout layout;
+        wide.br = 256u;
+        if (hexkl_attn_q_tiling_init(&shape, &wide) == HEXKL_ATTN_OK &&
+            hexkl_attn_q_plan_wire_br256(
+              &shape, &wide, s->config_off, kv->tile_bytes,
+              hexkl_attn_q_chunk_count(&shape, &wide),
+              &layout) == HEXKL_ATTN_OK)
+          tiling.br = wide.br;
+      }
     }
     if (bc)
       tiling.bc = bc;

@@ -106,11 +106,12 @@ hexkl_attn_q_chunk_count(const hexkl_attn_f16_shape *s,
  * @param n_qb_chunk  q blocks per Q quantization pass (>= 1); the kernel
  *                    picks it from a byte budget and falls back to 1
  */
-static inline int hexkl_attn_q_plan(const hexkl_attn_f16_shape *s,
-                                    const hexkl_attn_f16_tiling *t,
-                                    uint32_t arena_top, uint32_t tile_bytes,
-                                    uint32_t n_qb_chunk,
-                                    hexkl_attn_q_layout *L) {
+static inline int hexkl_attn_q_plan_impl(const hexkl_attn_f16_shape *s,
+                                         const hexkl_attn_f16_tiling *t,
+                                         uint32_t arena_top,
+                                         uint32_t tile_bytes,
+                                         uint32_t n_qb_chunk, int gathered_q,
+                                         hexkl_attn_q_layout *L) {
   if (!s || !t || !L || t->g_br == 0 || (t->g_br % HEXKL_ATTN_Q_ROWS) != 0 ||
       (tile_bytes != 1024u && tile_bytes != 512u) || n_qb_chunk == 0) {
     return HEXKL_ATTN_EBADPARM;
@@ -148,12 +149,60 @@ static inline int hexkl_attn_q_plan(const hexkl_attn_f16_shape *s,
   L->o_f32 = off;
   off += hexkl_attn_round_up(t->g_br * s->head_dim * 4u, TB);
   L->qx_f32 = off;
-  off += hexkl_attn_round_up(n_qb_chunk * t->g_br * s->head_dim * 4u, TB);
+  if (gathered_q)
+    off += hexkl_attn_round_up(n_qb_chunk * t->g_br * s->head_dim * 4u, TB);
   L->total = off;
   if (off > arena_top) {
     return HEXKL_ATTN_ENOMEM;
   }
   return HEXKL_ATTN_OK;
+}
+
+/** @brief Original layout, including the gathered FP32-Q tail. */
+static inline int hexkl_attn_q_plan(const hexkl_attn_f16_shape *s,
+                                    const hexkl_attn_f16_tiling *t,
+                                    uint32_t arena_top, uint32_t tile_bytes,
+                                    uint32_t n_qb_chunk,
+                                    hexkl_attn_q_layout *L) {
+  return hexkl_attn_q_plan_impl(s, t, arena_top, tile_bytes, n_qb_chunk, 1, L);
+}
+
+/** @brief Full Q8 prefill for which two Br128 blocks can share one Br256.
+ * Both query widths divide Bc256, preserving every row's KV-block sequence
+ * and mask. Restrict the larger row cap to this bounded geometry.
+ */
+static inline int
+hexkl_attn_q_wire_br256_shape(const hexkl_attn_f16_shape *s,
+                              const hexkl_attn_f16_tiling *t) {
+  return s && t && s->n_q >= 256u && s->n_q <= 0xffffu && s->n_q % 256u == 0u &&
+         s->cache_from == 0u && s->cache_to == s->n_q && s->n_head_q == 32u &&
+         s->n_head_kv == 8u && s->head_dim == 64u && s->window == 0u &&
+         t->br == 256u && t->bc == 256u && t->g == 4u && t->g_br == 1024u;
+}
+
+/** @brief Omit the unused gathered-Q tail for bounded Br256 Q8 prefill.
+ * phase_qprep returns from its Q8 branch before any qx_f32 access. All
+ * preceding offsets are unchanged; the caller appends two QK banks at
+ * L->total. Require space for both banks here, while L->total continues
+ * to describe the base layout expected by the caller.
+ */
+static inline int hexkl_attn_q_plan_wire_br256(const hexkl_attn_f16_shape *s,
+                                               const hexkl_attn_f16_tiling *t,
+                                               uint32_t arena_top,
+                                               uint32_t tile_bytes,
+                                               uint32_t n_qb_chunk,
+                                               hexkl_attn_q_layout *L) {
+  if (!L || !hexkl_attn_q_wire_br256_shape(s, t) || tile_bytes != 1024u ||
+      n_qb_chunk == 0u || n_qb_chunk > hexkl_attn_q_chunk_count(s, t))
+    return HEXKL_ATTN_EBADPARM;
+  const int rc =
+    hexkl_attn_q_plan_impl(s, t, arena_top, tile_bytes, n_qb_chunk, 0, L);
+  if (rc != HEXKL_ATTN_OK)
+    return rc;
+  const uint64_t staged_total =
+    (uint64_t)L->total +
+    2u * (uint64_t)L->n_row_tiles * L->n_col_tiles * HEXKL_ATTN_Q_ACC_BYTES;
+  return staged_total <= arena_top ? HEXKL_ATTN_OK : HEXKL_ATTN_ENOMEM;
 }
 
 #ifdef __cplusplus

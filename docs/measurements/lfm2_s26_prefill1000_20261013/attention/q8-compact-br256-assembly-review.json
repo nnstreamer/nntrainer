@@ -1,0 +1,64 @@
+{
+  "normalization": "Instruction bytes/addresses removed; branch destinations use symbol+offset and hardware-loop targets use offset from current function start. Arithmetic constants unchanged.",
+  "functions": {
+    "phase_qprep": {
+      "control_instruction_lines": 565,
+      "candidate_instruction_lines": 565,
+      "candidate_equal_to_control": true,
+      "control_equal_to_prior_accepted": null,
+      "prior_comparison_note": "Prior saved assembly contains only the two softmax functions; no comparison claimed."
+    },
+    "q8_pack_worker": {
+      "control_instruction_lines": 796,
+      "candidate_instruction_lines": 796,
+      "candidate_equal_to_control": false,
+      "control_equal_to_prior_accepted": null,
+      "prior_comparison_note": "Prior saved assembly contains only the two softmax functions; no comparison claimed.",
+      "difference": "Only PC-relative address and paired immext for a128-byte constant; resolved contents identical."
+    },
+    "phase_qk": {
+      "control_instruction_lines": 351,
+      "candidate_instruction_lines": 351,
+      "candidate_equal_to_control": true,
+      "control_equal_to_prior_accepted": null,
+      "prior_comparison_note": "Prior saved assembly contains only the two softmax functions; no comparison claimed."
+    },
+    "softmax_row_pair": {
+      "control_instruction_lines": 727,
+      "candidate_instruction_lines": 727,
+      "candidate_equal_to_control": true,
+      "control_equal_to_prior_accepted": true
+    },
+    "softmax_pquant_worker": {
+      "control_instruction_lines": 671,
+      "candidate_instruction_lines": 671,
+      "candidate_equal_to_control": true,
+      "control_equal_to_prior_accepted": true
+    },
+    "phase_pv": {
+      "control_instruction_lines": 561,
+      "candidate_instruction_lines": 561,
+      "candidate_equal_to_control": true,
+      "control_equal_to_prior_accepted": null,
+      "prior_comparison_note": "Prior saved assembly contains only the two softmax functions; no comparison claimed."
+    }
+  },
+  "source_change_scope": "entry/layout and RPC tiling only; arithmetic routines unchanged in source",
+  "q8_pack_constant_relocation": [
+    {
+      "variant": "control",
+      "packet_address": "0x7c44c",
+      "target_address": "0x9cf80",
+      "bytes": 128,
+      "sha256": "2d8c2af62f53c3ea0c7b1e3031c6ce32d62e5bc75a9112947eac370fe44ac034"
+    },
+    {
+      "variant": "candidate",
+      "packet_address": "0x7c80c",
+      "target_address": "0x9d380",
+      "bytes": 128,
+      "sha256": "2d8c2af62f53c3ea0c7b1e3031c6ce32d62e5bc75a9112947eac370fe44ac034"
+    }
+  ],
+  "status": "Five arithmetic functions identical after branch/loop normalization; Q8 pack differs only by verified constant relocation."
+}
