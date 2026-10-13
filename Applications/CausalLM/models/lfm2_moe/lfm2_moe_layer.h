@@ -33,6 +33,7 @@
 #include <acti_func.h>
 #include <causallm_common_properties.h>
 #include <common_properties.h>
+#include <compute_ops.h>
 #include <layer_impl.h>
 
 namespace causallm {
@@ -140,6 +141,12 @@ public:
    *         call needs of the layer it runs on.
    */
   bool preloadExperts(nntrainer::RunLayerContext &context);
+
+  /** Snapshot this model's immutable virtual expert descriptors, without I/O.
+   */
+  bool appendVirtualExpertFiles(
+    nntrainer::RunLayerContext &context,
+    std::vector<nntrainer::ComputeOps::ExpertFileDesc> &descriptors) const;
   unsigned int routerWeightIndex() const { return gate_idx; }
 
   static constexpr const char *type = "lfm2_moe"; /**< type of the layer */

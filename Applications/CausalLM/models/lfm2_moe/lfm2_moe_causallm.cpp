@@ -16,10 +16,13 @@
 #include <app_context.h>
 #include <engine.h>
 #include <layer_context.h>
+#include <layer_node.h>
 #include <llm_util.hpp>
 #include <model.h>
 
+#include <cerrno>
 #include <map>
+#include <typeinfo>
 
 #ifdef ENABLE_HEXKL
 #include <compute_ops.h>
@@ -27,6 +30,58 @@
 #endif
 
 namespace causallm {
+
+std::unique_ptr<CausalLM::PrefillWorkScope>
+Lfm2MoeCausalLM::beginPrefillWork(unsigned int from, unsigned int rows) {
+#if defined(ENABLE_HEXKL) && (defined(__linux__) || defined(__ANDROID__))
+  const char *value = std::getenv("NNTR_MOE_HOST_STAGE_EXPERTS");
+  if (!value || !*value || from != 0 || rows <= 4 || BATCH_SIZE != 1 ||
+      !model || USE_EMBEDDING || MOE_ENGINE != "htp" ||
+      typeid(*this) != typeid(Lfm2MoeCausalLM))
+    return {};
+  char *end = nullptr;
+  errno = 0;
+  const unsigned long count = std::strtoul(value, &end, 10);
+  if (errno || end == value || *end || count > 160)
+    throw std::invalid_argument("NNTR_MOE_HOST_STAGE_EXPERTS must be 0..160");
+  if (!count)
+    return {};
+  std::vector<nntrainer::ComputeOps::ExpertFileDesc> descriptors;
+  nntrainer::ComputeOps *ops = nullptr;
+  bool valid = true;
+  model->forEachLayer(
+    [&](ml::train::Layer &layer, nntrainer::RunLayerContext &context, void *) {
+      if (layer.getType() != "lfm2_moe")
+        return;
+      auto *moe = dynamic_cast<Lfm2MoELayer *>(
+        static_cast<nntrainer::LayerNode &>(layer).getLayer());
+      auto *current = context.getComputeOps();
+      if (!moe || !current || (ops && ops != current) ||
+          !moe->appendVirtualExpertFiles(context, descriptors)) {
+        valid = false;
+        return;
+      }
+      ops = current;
+    },
+    nullptr);
+  if (!valid || !ops || descriptors.empty())
+    return {};
+  struct Scope final : PrefillWorkScope {
+    nntrainer::ComputeOps *ops;
+    uint64_t token = 0;
+    explicit Scope(nntrainer::ComputeOps *backend) : ops(backend) {}
+    ~Scope() override { ops->end_qs2_host_prefetch(token); }
+  };
+  // Allocate RAII ownership before an API that can queue any background work.
+  auto scope = std::make_unique<Scope>(ops);
+  scope->token = ops->begin_qs2_host_prefetch(descriptors, model.get(), count);
+  return scope;
+#else
+  (void)from;
+  (void)rows;
+  return {};
+#endif
+}
 
 void Lfm2MoeCausalLM::setupParameters(json &cfg, json &generation_cfg,
                                       json &nntr_cfg) {

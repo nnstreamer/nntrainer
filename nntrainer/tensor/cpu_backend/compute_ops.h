@@ -683,6 +683,21 @@ public:
       4; /**< 2 or 4 in file; backend chooses cache layout. */
   };
 
+  /** Read future compact experts into bounded ordinary host memory. The caller
+   * starts and ends this scope inside measured prefill, with the model alive.
+   * No DSP slot or registration is added. Zero means unavailable/disabled. */
+  virtual uint64_t
+  begin_qs2_host_prefetch(const std::vector<ExpertFileDesc> &descriptors,
+                          const void *owner, unsigned int count) {
+    (void)descriptors;
+    (void)owner;
+    (void)count;
+    return 0;
+  }
+  /** Cancel unstarted host reads and join all active reads/copies. An obsolete
+   * token cannot close another model/run's bank. Never throws from RAII. */
+  virtual void end_qs2_host_prefetch(uint64_t token) noexcept { (void)token; }
+
   // How many expert slots the caller will ever hold at once (the LRU's
   // capacity), so the backend can size its memory to that instead of to a
   // fixed chunk. Advisory; call before the first register. Doc 52 section

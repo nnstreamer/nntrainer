@@ -67,6 +67,9 @@ public:
   void repack_weight() override;
 
 protected:
+  std::unique_ptr<PrefillWorkScope>
+  beginPrefillWork(unsigned int from, unsigned int rows) override;
+
   unsigned int NUM_EXPERTS = 0;
   unsigned int NUM_EXPERTS_PER_TOK = 0;
   unsigned int MOE_INTERMEDIATE_SIZE = 0;

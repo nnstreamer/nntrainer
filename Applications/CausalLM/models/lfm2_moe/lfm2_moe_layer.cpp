@@ -975,6 +975,18 @@ static void loadVirtualExpert(nntrainer::ComputeOps *ops,
   }
 }
 
+bool Lfm2MoELayer::appendVirtualExpertFiles(
+  nntrainer::RunLayerContext &context,
+  std::vector<nntrainer::ComputeOps::ExpertFileDesc> &descriptors) const {
+  if (!experts_virtual)
+    return false;
+  for (unsigned int e = 0; e < num_experts; ++e)
+    descriptors.push_back(
+      expertDesc(context.getWeight(expert_gate_up_proj_indices[e]),
+                 context.getWeight(expert_down_proj_indices[e])));
+  return true;
+}
+
 bool Lfm2MoELayer::preloadExperts(nntrainer::RunLayerContext &context) {
   if (!experts_virtual)
     return true;

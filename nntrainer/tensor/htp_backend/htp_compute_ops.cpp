@@ -50,6 +50,7 @@
 #include <htp_attn_q8_quant.h>
 #include <htp_backend.h>
 #include <htp_dspq_wire.h>
+#include <htp_expert_host_staging.h>
 #include <htp_graph_desc.h>
 #include <htp_kv_cache.h>
 #include <htp_moe_opts.h>
@@ -1169,6 +1170,8 @@ constexpr unsigned int kDecodeMaxHeadDim = 512;
 #endif /* NNTR_HTP_INPROC */
 
 class HtpComputeOps : public CpuComputeOps {
+  using HostExpertBank = HtpExpertHostStaging<ExpertFileDesc>;
+
 public:
   /** [#130] The per-token entry's call count at close, the one line the
    *  host E2E harness reads (plan 130 section 3.5): tokens are the calls
@@ -1176,6 +1179,8 @@ public:
    *  session may already be closed. The expert prefetch readers (doc 52)
    *  are stopped first. */
   ~HtpComputeOps() override {
+    if (auto bank = hostExpertBank())
+      end_qs2_host_prefetch(bank->token());
     for (unsigned i = 0; i < 3; ++i)
       if (shared_io_calls_[i])
         std::fprintf(stderr,
@@ -4018,6 +4023,81 @@ public:
     return true;
   }
 
+  uint64_t
+  begin_qs2_host_prefetch(const std::vector<ExpertFileDesc> &descriptors,
+                          const void *owner, unsigned int count) override {
+    if (!count || count > 160 || !owner || !compactExperts() ||
+        preparedQs2Dir() || !weightDirectIO())
+      return 0;
+    std::lock_guard<std::mutex> scope_lock(host_scope_mutex_);
+    {
+      std::lock_guard<std::mutex> lock(prefetch_mutex_);
+      if (host_expert_bank_ || !prefetch_jobs_.empty() ||
+          !prefetch_batches_.empty() || !prefetch_retired_.empty())
+        return 0;
+    }
+    std::vector<ExpertFileDesc> selected;
+    {
+      std::lock_guard<std::mutex> lock(handle_mutex_);
+      if (!expert_slots_wanted_ || expert_slots_placed_ != expert_slots_wanted_)
+        return 0;
+      // A complete model catalog is supplied in traversal order. The current
+      // residency, not a hardcoded layer index, selects the first future
+      // misses.
+      for (const auto &d : descriptors) {
+        if (d.weight_bits != 2)
+          return 0;
+        if (!experts_.count(d.key_gu) && selected.size() < count)
+          selected.push_back(d);
+      }
+    }
+    if (selected.empty())
+      return 0;
+    uint64_t token = ++host_expert_epoch_;
+    if (!token)
+      token = ++host_expert_epoch_;
+    auto bank = std::make_shared<HostExpertBank>(selected, token, owner);
+    startPrefetchReaders();
+    {
+      std::lock_guard<std::mutex> lock(prefetch_mutex_);
+      host_expert_wait_us_ = 0;
+      host_expert_bank_ = bank;
+    }
+    prefetch_cv_.notify_all();
+    const auto stats = bank->stats();
+    std::fprintf(
+      stderr,
+      "[HTP-HOST-STAGING-ACTIVE] token=%llu count=%zu payload_bytes=%zu\n",
+      (unsigned long long)token, stats.count, stats.bytes);
+    return token;
+  }
+
+  void end_qs2_host_prefetch(uint64_t token) noexcept override {
+    std::lock_guard<std::mutex> scope_lock(host_scope_mutex_);
+    std::shared_ptr<HostExpertBank> bank;
+    {
+      std::lock_guard<std::mutex> lock(prefetch_mutex_);
+      if (!host_expert_bank_ || host_expert_bank_->token() != token)
+        return;
+      bank = std::move(host_expert_bank_);
+    }
+    // No queue or handle lock is held while running readers/copies finish.
+    bank->cancelAndWait();
+    const auto stats = bank->stats();
+    std::fprintf(
+      stderr,
+      "[HTP-HOST-STAGING-DONE] token=%llu count=%zu read=%zu consumed=%zu\n",
+      (unsigned long long)token, stats.count, stats.read, stats.taken);
+    if (hostExpertProfile()) {
+      std::fprintf(
+        stderr,
+        "[HTP-HOST-STAGING] count=%zu payload_bytes=%zu read=%zu "
+        "consumed=%zu cancelled=%zu failed=%zu transition_wait_us=%llu\n",
+        stats.count, stats.bytes, stats.read, stats.taken, stats.cancelled,
+        stats.failed, (unsigned long long)host_expert_wait_us_.load());
+    }
+  }
+
   /**
    * @brief [doc 52] One expert's two WH weights, read from the model file
    *        straight into an arena slot and registered from there.
@@ -4037,6 +4117,8 @@ public:
    */
   bool register_qs4cx_wh_expert_file(const ExpertFileDesc &d,
                                      bool at_load) override {
+    if (!at_load)
+      waitHostExpertReads();
     const remote_handle64 session =
       static_cast<remote_handle64>(HtpBackend::global().handle());
     std::lock_guard<std::mutex> lock(handle_mutex_);
@@ -4063,6 +4145,7 @@ public:
    *  reads may run in parallel; registration remains one serial round trip. */
   bool register_qs4cx_wh_expert_files(
     const std::vector<ExpertFileDesc> &ds) override {
+    waitHostExpertReads();
     const remote_handle64 session =
       static_cast<remote_handle64>(HtpBackend::global().handle());
     std::lock_guard<std::mutex> lock(handle_mutex_);
@@ -4115,8 +4198,10 @@ public:
         for (const auto &error : exceptions)
           if (error)
             std::rethrow_exception(error);
-        for (size_t i = 0; i < sts.size(); ++i)
+        for (size_t i = 0; i < sts.size(); ++i) {
           sts[i].rc = errors[2u * i] ? errors[2u * i] : errors[2u * i + 1u];
+          sts[i].host.reset();
+        }
       } else {
         for (auto &st : sts)
           st.rc = readExpert(st, /*use_pool=*/true, /*demand=*/true);
@@ -4166,12 +4251,16 @@ public:
   }
 
   bool beginExpertPrefetch(const std::vector<ExpertFileDesc> &ds, bool decode) {
+    waitHostExpertReads();
     const remote_handle64 session =
       static_cast<remote_handle64>(HtpBackend::global().handle());
     auto batch = std::make_unique<PrefetchBatch>();
+    batch->experts.reserve(ds.size());
     batch->decode = decode;
     {
       std::lock_guard<std::mutex> lock(handle_mutex_);
+      // Make failure cleanup allocation-free before reserving any slots.
+      free_expert_slots_.reserve(free_expert_slots_.size() + ds.size());
       try {
         for (const ExpertFileDesc &d : ds) {
           if (experts_.count(d.key_gu) == 0)
@@ -4185,14 +4274,21 @@ public:
     }
     if (batch->experts.empty())
       return false;
-    startPrefetchReaders();
-    std::lock_guard<std::mutex> lock(prefetch_mutex_);
-    PrefetchBatch *b = batch.get();
-    prefetch_batches_.push_back(std::move(batch));
-    for (size_t i = 0; i < b->experts.size(); ++i)
-      prefetch_jobs_.emplace_back(b, i);
-    if (decode && b->experts.size() < prefetch_readers_.size()) {
-      for (size_t i = 0; i < b->experts.size(); ++i)
+    const size_t count = batch->experts.size();
+    try {
+      startPrefetchReaders();
+      std::lock_guard<std::mutex> lock(prefetch_mutex_);
+      htpPublishExpertBatch(batch, prefetch_batches_, prefetch_jobs_);
+    } catch (...) {
+      // No jobs from this batch are visible. Return slots before rethrowing;
+      // the local batch then releases every host lease during unwinding.
+      std::lock_guard<std::mutex> lock(handle_mutex_);
+      for (const auto &st : batch->experts)
+        free_expert_slots_.push_back(st.slot);
+      throw;
+    }
+    if (decode && count < prefetch_readers_.size()) {
+      for (size_t i = 0; i < count; ++i)
         prefetch_cv_.notify_one();
     } else {
       prefetch_cv_.notify_all();
@@ -4290,6 +4386,7 @@ public:
           ++batch->done;
           ++result.cancelled;
           cancelled_mask |= bit;
+          batch->experts[it->second].host.reset();
           it = prefetch_jobs_.erase(it);
         } else {
           ++it;
@@ -7922,13 +8019,22 @@ private:
     uint8_t *base;
     ArenaEntry gu, dn;
     int rc; /**< preadAll's result for the whole expert */
+    std::shared_ptr<HostExpertBank::Lease> host;
   };
 
   /** @note Call with handle_mutex_ held. */
   StagedExpert stageExpert(remote_handle64 session, const ExpertFileDesc &d) {
+    auto host = hostExpertLease(d);
+    if (host && free_expert_slots_.empty())
+      throw std::logic_error("host expert promotion requires a freed slot");
     const ExpertSlot slot = takeExpertSlot(session, d);
-    return StagedExpert{
-      d, slot, arena_chunks_[slot.chunk].buf->data() + slot.off, {}, {}, 0};
+    return StagedExpert{d,
+                        slot,
+                        arena_chunks_[slot.chunk].buf->data() + slot.off,
+                        {},
+                        {},
+                        0,
+                        std::move(host)};
   }
 
   /** @brief A free slot, or a new one bumped into a chunk (the load, and
@@ -8013,6 +8119,10 @@ private:
    *  throw -- the slot is this expert's alone until registerStaged -- so a
    *  background thread can run it. @return 0, errno, or -1 at EOF. */
   int readExpert(StagedExpert &st, bool use_pool, bool demand = false) {
+    struct ReleaseHost {
+      StagedExpert &st;
+      ~ReleaseHost() { st.host.reset(); }
+    } release_host{st};
     const int rc = readExpertPart(st, false, use_pool, demand);
     return rc ? rc : readExpertPart(st, true, use_pool, demand);
   }
@@ -8027,6 +8137,18 @@ private:
     ArenaEntry &entry = down ? st.dn : st.gu;
     entry.chunk = st.slot.chunk;
     entry.off = st.slot.off + offset;
+    if (st.host) {
+      const auto &record = st.host->record();
+      // The bank contains only initialized compact bytes. Leave page padding
+      // untouched, exactly like the existing validated direct read path.
+      const size_t bytes = down ? record.dn_bytes : record.gu_bytes;
+      const int rc = st.host->copyPart(down, st.base + offset, bytes);
+      if (rc)
+        return rc;
+      entry.K = down ? d.inter : d.K;
+      entry.N = down ? d.N_out : 2u * d.inter;
+      return 0;
+    }
     return readWeight(d.fd, down ? d.off_dn : d.off_gu, down ? d.inter : d.K,
                       down ? d.N_out : 2u * d.inter, st.base + offset, entry,
                       use_pool, d.weight_bits, demand);
@@ -8267,6 +8389,49 @@ private:
     return packet;
   }
 
+  static bool hostExpertProfile() {
+    const char *v = std::getenv("NNTR_MOE_IO_PROFILE");
+    return v && std::atoi(v) != 0;
+  }
+
+  std::shared_ptr<HostExpertBank> hostExpertBank() {
+    std::lock_guard<std::mutex> lock(prefetch_mutex_);
+    return host_expert_bank_;
+  }
+
+  std::shared_ptr<HostExpertBank::Lease>
+  hostExpertLease(const ExpertFileDesc &d) {
+    auto bank = hostExpertBank();
+    return bank ? bank->take(d) : nullptr;
+  }
+
+  void waitHostExpertReads() {
+    auto bank = hostExpertBank();
+    if (!bank)
+      return;
+    const uint64_t begin = hostExpertProfile() ? HtpProfile::nowUs() : 0;
+    bank->waitReads();
+    if (hostExpertProfile())
+      host_expert_wait_us_ += HtpProfile::nowUs() - begin;
+  }
+
+  void readHostExpert(const std::shared_ptr<HostExpertBank> &bank) {
+    bank->readOne([&](HostExpertBank::Record &record) {
+      const uint64_t begin = HtpProfile::nowUs();
+      ArenaEntry gu, dn;
+      const auto &d = record.d;
+      int rc = readWeight(record.fd(), d.off_gu, d.K, 2u * d.inter,
+                          record.payload.get(), gu, false, 2u, false);
+      if (!rc)
+        rc = readWeight(record.fd(), d.off_dn, d.inter, d.N_out,
+                        record.payload.get() + record.gu_bytes, dn, false, 2u,
+                        false);
+      if (HtpProfile::global().level())
+        HtpProfile::global().addPrefetchRead(HtpProfile::nowUs() - begin);
+      return rc;
+    });
+  }
+
   /** @brief Starts the readers once, pinned to NNTR_MOE_PREFETCH_CPUS or
    *  else to every core but the caller's. */
   void startPrefetchReaders() {
@@ -8291,18 +8456,32 @@ private:
   void prefetchReaderLoop() {
     for (;;) {
       std::pair<PrefetchBatch *, size_t> job;
+      std::shared_ptr<HostExpertBank> bank;
       {
         std::unique_lock<std::mutex> lock(prefetch_mutex_);
-        prefetch_cv_.wait(
-          lock, [this] { return prefetch_stop_ || !prefetch_jobs_.empty(); });
+        prefetch_cv_.wait(lock, [this] {
+          return prefetch_stop_ || !prefetch_jobs_.empty() ||
+                 (host_expert_bank_ && host_expert_bank_->hasWork());
+        });
         if (prefetch_stop_)
           return;
-        job = prefetch_jobs_.front();
-        prefetch_jobs_.pop_front();
+        if (host_expert_bank_ && host_expert_bank_->hasWork())
+          bank = host_expert_bank_;
+        else if (!prefetch_jobs_.empty()) {
+          job = prefetch_jobs_.front();
+          prefetch_jobs_.pop_front();
+        } else {
+          continue; // Another worker claimed the last host record.
+        }
       }
       prefetch_reader_cpus_.fetch_or(cpuBit());
+      if (bank) {
+        readHostExpert(bank);
+        continue;
+      }
       const uint64_t t0 = HtpProfile::nowUs();
       StagedExpert &st = job.first->experts[job.second];
+      const bool from_host = static_cast<bool>(st.host);
       static const bool decode_mmap = [] {
         const char *v = std::getenv("NNTR_MOE_DECODE_PREFETCH_MMAP");
         return !v || std::atoi(v) != 0;
@@ -8314,7 +8493,7 @@ private:
         st.rc = EIO; // Required predictions surface errors during registration.
       }
       HtpProfile &profile = HtpProfile::global();
-      if (profile.level() != 0)
+      if (profile.level() != 0 && !from_host)
         profile.addPrefetchRead(HtpProfile::nowUs() - t0);
       {
         std::lock_guard<std::mutex> lock(prefetch_mutex_);
@@ -9153,6 +9332,10 @@ private:
   std::deque<std::unique_ptr<PrefetchBatch>> prefetch_batches_;
   std::deque<std::unique_ptr<PrefetchBatch>> prefetch_retired_;
   std::deque<std::pair<PrefetchBatch *, size_t>> prefetch_jobs_;
+  std::mutex host_scope_mutex_;
+  std::shared_ptr<HostExpertBank> host_expert_bank_; // prefetch_mutex_
+  uint64_t host_expert_epoch_ = 0;
+  std::atomic<uint64_t> host_expert_wait_us_{0};
   bool prefetch_stop_ = false;
   std::atomic<uint64_t> qs2_reads_{0}, qs2_read_us_{0}, qs2_copy_us_{0},
     qs2_metadata_us_{0}, qs2_copied_bytes_{0};

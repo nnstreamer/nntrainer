@@ -680,6 +680,10 @@ void CausalLM::run(const WSTR prompt, bool do_sample, const WSTR system_prompt,
   }
   allocateAndBindKVCache();
   const unsigned int prefill_from = SYS_PROMP_LEN + global_token_len;
+  // Starts after start_prefill, and its explicit finish and exception cleanup
+  // both join owned work while this model and its weight descriptors are alive.
+  auto prefill_work = beginPrefillWork(
+    prefill_from, SKIP_PREFILL && init_len > 1 ? input_len - 1 : input_len);
   std::vector<unsigned int> id_list;
 
   if (SKIP_PREFILL && init_len > 1) {
@@ -725,6 +729,7 @@ void CausalLM::run(const WSTR prompt, bool do_sample, const WSTR system_prompt,
     delete[] out;
   }
 
+  prefill_work.reset();
   auto finish_prefill = std::chrono::high_resolution_clock::now();
   if (ppl_on) {
     double nll = 0.0;

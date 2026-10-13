@@ -44,6 +44,7 @@
 #include <transformer.h>
 
 #include <atomic>
+#include <memory>
 
 extern "C" {
 struct BaseStreamer;
@@ -168,6 +169,17 @@ protected:
    * @brief registerCutomLayers
    */
   void registerCustomLayers() override;
+
+  /** Optional model-owned work whose entire lifetime is measured as prefill. */
+  struct PrefillWorkScope {
+    virtual ~PrefillWorkScope() = default;
+  };
+  virtual std::unique_ptr<PrefillWorkScope>
+  beginPrefillWork(unsigned int from, unsigned int rows) {
+    (void)from;
+    (void)rows;
+    return {};
+  }
 
   /**
    * @brief Clear stale stop state at run start unless caller prepared it.
