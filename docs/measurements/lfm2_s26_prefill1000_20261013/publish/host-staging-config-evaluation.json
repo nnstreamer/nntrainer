@@ -1,0 +1,178 @@
+{
+  "runtime": "combined-v15-publish",
+  "input_tokens": 1024,
+  "output_tokens": 64,
+  "readers": 7,
+  "npu_cache_experts_per_layer": 22,
+  "registry_limit": 2048,
+  "samples": [
+    {
+      "file": "v15-pub-stage64-unpinned-clean-al1.json",
+      "staging_experts": 64,
+      "cpu_mask": null,
+      "reader_cpus": null,
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1041,
+        "tps": 983.67
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 1877,
+        "tps": 34.097
+      },
+      "raw_log_sha256": "9a5bc3dfc87bc00d28d1db1b951deb6dedf140d5554f1da3c2d219f0a707a44d"
+    },
+    {
+      "file": "v15-pub-stage64-pinned-clean-al2.json",
+      "staging_experts": 64,
+      "cpu_mask": "40",
+      "reader_cpus": "0,1,2,3,4,5,7",
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1036,
+        "tps": 988.417
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 1881,
+        "tps": 34.0245
+      },
+      "raw_log_sha256": "a9855a4aec3dca7bf772be8cd4a5046afbe4c32e6dde779759a862b6ec667dd4"
+    },
+    {
+      "file": "v15-pub-stage64-pinned-clean-al3.json",
+      "staging_experts": 64,
+      "cpu_mask": "40",
+      "reader_cpus": "0,1,2,3,4,5,7",
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1054,
+        "tps": 971.537
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 1882,
+        "tps": 34.0064
+      },
+      "raw_log_sha256": "2bf83d2ef59f071cf145a809c61c10f72bfd0ee12f477f295f8c91f1a4311c85"
+    },
+    {
+      "file": "v15-pub-stage64-unpinned-clean-al4.json",
+      "staging_experts": 64,
+      "cpu_mask": null,
+      "reader_cpus": null,
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1052,
+        "tps": 973.384
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 1876,
+        "tps": 34.1151
+      },
+      "raw_log_sha256": "ca197ff89d5e3a09ba2029cef865e7c866d7485e0b4c23cce3f0cd896d50f95d"
+    },
+    {
+      "file": "v15-pub-stage64-clean-am1.json",
+      "staging_experts": 64,
+      "cpu_mask": null,
+      "reader_cpus": null,
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1044,
+        "tps": 980.843
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 1865,
+        "tps": 34.3164
+      },
+      "raw_log_sha256": "f608b6df7bd09dd22bf1f85098e8ab1f9f11646302ac5008dbc16fd416200bf0"
+    },
+    {
+      "file": "v15-pub-stage96-clean-am2.json",
+      "staging_experts": 96,
+      "cpu_mask": null,
+      "reader_cpus": null,
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1064,
+        "tps": 962.406
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 1912,
+        "tps": 33.4728
+      },
+      "raw_log_sha256": "6e23f3d80ff897316a6704113e0c7cec5aa288725ce156eb409ffde872f50b43"
+    },
+    {
+      "file": "v15-pub-stage96-clean-am3.json",
+      "staging_experts": 96,
+      "cpu_mask": null,
+      "reader_cpus": null,
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1103,
+        "tps": 928.377
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 1889,
+        "tps": 33.8804
+      },
+      "raw_log_sha256": "0008ef2a7ce00b216187037b3d260dbe831d3676654d24bc7567525631f8fbc0"
+    },
+    {
+      "file": "v15-pub-stage64-clean-am4.json",
+      "staging_experts": 64,
+      "cpu_mask": null,
+      "reader_cpus": null,
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1042,
+        "tps": 982.726
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 1886,
+        "tps": 33.9343
+      },
+      "raw_log_sha256": "2670a2190d3ff38212279ffb57aa2d4eb01ceed120bb01426d2751ccc2b6d8f8"
+    }
+  ],
+  "affinity": {
+    "default_ms": [
+      1041,
+      1052
+    ],
+    "pinned_ms": [
+      1036,
+      1054
+    ],
+    "default_mean_ms": 1046.5,
+    "pinned_mean_ms": 1045,
+    "decision": "Do not adopt;1.5ms difference is small relative to sample variability.",
+    "diagnostic_tasks": "v15-pub-stage64-affinity-screen-ak1-tasks.json",
+    "observed_main_cpu": 6,
+    "observed_reader_allowed_cpus": "0-5,7",
+    "reader_threads": 7
+  },
+  "budget": {
+    "experts64_ms": [
+      1044,
+      1042
+    ],
+    "experts96_ms": [
+      1064,
+      1103
+    ],
+    "experts64_mean_ms": 1043,
+    "experts96_mean_ms": 1083.5,
+    "decision": "Retain64.96 is slower in this matched ABBA despite the scheduling hypothesis."
+  },
+  "target_met": false,
+  "next_candidate": "Remove the extra scratch-to-ordinary-memory bulk copy; requires separate correctness and performance gates."
+}
