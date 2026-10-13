@@ -27,6 +27,8 @@
 #include "hexkl_mm_opts.h"
 #include "hvx_dequant_i32.h"
 #include "hvx_quant_u8.h"
+#include "hvx_rmsnorm_rows_f32.h"
+#include "hvx_rope_rows_f32.h"
 #include "hvx_swiglu_f32.h"
 
 #include "hexkl_probe.h"
@@ -668,6 +670,25 @@ static int fc_m1_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm,
   return AEE_SUCCESS;
 }
 
+/** @brief A staged batch's per-head passes (hexkl_mm_opts.post_done): the
+ *         run of columns a row just got, normed and rotated in place. */
+typedef struct {
+  const float *gamma; /**< the handle's chunk gamma */
+  const float *cs;    /**< the table row of the batch's row 0, or NULL */
+  uint32_t n, chunk, hd;
+  float eps;
+} fc_post;
+
+static void fc_row_post(void *v, float *seg, uint32_t row) {
+  const fc_post *p = (const fc_post *)v;
+  if (p->chunk != 0u) {
+    hvx_rmsnorm_row_chunks_f32(seg, seg, p->gamma, p->n, p->chunk, p->eps);
+  }
+  if (p->cs != NULL) {
+    hvx_rope_row_f32(seg, p->n, p->hd, p->cs + (size_t)row * 2u * p->hd);
+  }
+}
+
 int hexkl_mm_u8i4_layer_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
                             uint32_t vtcm_size, uint32_t config_off, uint32_t M,
                             uint32_t K, const uint32_t *handles,
@@ -756,6 +777,20 @@ int hexkl_mm_u8i4_layer_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
   uint32_t acc_tiles = (arena - result_off) / (2u * ACC_TILE_BYTES);
   if (acc_tiles > 32u) {
     acc_tiles = 32u;
+  }
+  /* With the per-head passes asked for (post_done), a batch of whole
+     heads when the room allows one: the widest head's tiles divide it. */
+  if (o->post_done != NULL) {
+    uint32_t unit = 1u;
+    for (uint32_t i = 0; i < n_handles; ++i) {
+      const uint32_t c = o->post_chunk ? o->post_chunk[i] : 0u;
+      const uint32_t hd = i < o->rope_handles ? o->rope_hd : 0u;
+      const uint32_t w = (c > hd ? c : hd) / HEXKL_ACC_TILE_COLS;
+      unit = w > unit ? w : unit;
+    }
+    if (acc_tiles >= unit) {
+      acc_tiles -= acc_tiles % unit;
+    }
   }
 
   // Reset once per call, before ANY push2d -- moved here (was just before
@@ -869,8 +904,22 @@ int hexkl_mm_u8i4_layer_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
     M > 1u && pipelined &&
     fc_acc_planes_supported(vtcm_base + config_off, vtcm_base + result_off,
                             acc_layout);
-  hvx_dq_tiles_job dq_job[2];
+  hvx_dq_rows_job dq_job[2];
+  fc_post post[2];
   uint32_t sb = 0u;
+  int fuse_post = pipelined && o->post_done != NULL;
+  for (uint32_t i = 0; fuse_post && i < n_handles; ++i) {
+    const uint32_t cols = acc_tiles * HEXKL_ACC_TILE_COLS;
+    const uint32_t c = o->post_chunk ? o->post_chunk[i] : 0u;
+    if ((c && cols % c) ||
+        (i < o->rope_handles && o->rope_hd && cols % o->rope_hd)) {
+      fuse_post = 0;
+    }
+  }
+  if (fuse_post) {
+    *o->post_done = 1;
+  }
+  const float *post_gamma = o->post_gamma;
 
   // Handle 0's weight was issued before the activation quantization above;
   // this is where the wait for it lands. With one handle -- every MoE
@@ -953,7 +1002,19 @@ int hexkl_mm_u8i4_layer_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
           hvx_worker_pool_wait(o->pool);
           HEXKL_PROBE_ADD(HEXKL_PROBE_DEQUANT, p0);
           if (cnt != 0u) {
-            hvx_dq_tiles_job *jb = &dq_job[sb & 1u];
+            hvx_dq_rows_job *rj = &dq_job[sb & 1u];
+            hvx_dq_tiles_job *jb = &rj->t;
+            fc_post *pp = &post[sb & 1u];
+            pp->chunk = fuse_post && o->post_chunk ? o->post_chunk[i] : 0u;
+            pp->gamma = post_gamma;
+            pp->eps = o->post_eps;
+            pp->hd = o->rope_hd;
+            pp->cs = fuse_post && i < o->rope_handles
+                       ? o->rope_cs + (size_t)m0 * 2u * o->rope_hd
+                       : NULL;
+            pp->n = nb * HEXKL_ACC_TILE_COLS;
+            rj->row_done = (pp->chunk != 0u || pp->cs) ? fc_row_post : NULL;
+            rj->ctx = pp;
             jb->tiles_base =
               (const uint8_t *)((const int32_t *)(vtcm_base + stage_off) +
                                 (acc_planes ? 0u : acc_layout->base));
@@ -971,7 +1032,12 @@ int hexkl_mm_u8i4_layer_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
             jb->split = h->N;
             jb->dst_stride = ld_h;
             jb->n_tiles = nb;
-            hvx_worker_pool_submit(o->pool, hvx_dq_tiles_worker, jb, nb);
+            if (rj->row_done) {
+              hvx_worker_pool_submit(o->pool, hvx_dq_tiles_rows_worker, rj,
+                                     (cnt + 3u) / 4u);
+            } else {
+              hvx_worker_pool_submit(o->pool, hvx_dq_tiles_worker, jb, nb);
+            }
           }
         } else if (acc_layout->usable) {
           /* Dequantize each tile where it is, on this thread. */
@@ -1022,6 +1088,9 @@ int hexkl_mm_u8i4_layer_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
       HEXKL_PROBE_ADD(HEXKL_PROBE_DEQUANT, p0);
     }
     out_off += (size_t)M * h->N;
+    if (post_gamma && o->post_chunk) {
+      post_gamma += o->post_chunk[i];
+    }
   }
 
 out:

@@ -139,7 +139,7 @@ int main(void) {
   const uint32_t counts[] = {0, 1, 3, 4, 5, 31, 32, 33, 63, 64};
   unsigned checked = 0;
   for (uint32_t m = 0; m < sizeof counts / sizeof counts[0]; ++m) {
-    for (uint32_t mode = 0; mode < 4; ++mode) {
+    for (uint32_t mode = 0; mode < 5; ++mode) {
       for (uint32_t i = 0; i < 64 * STRIDE; ++i)
         ref[i] = got[i] = 123.25f;
       if (mode < 2) {
@@ -148,13 +148,35 @@ int main(void) {
         hvx_dequant_acc_tile_to_f32((const int32_t *)planes[0], 0, counts[m],
                                     as, az, cs, ws, bias, got + 32, STRIDE,
                                     mode);
-      } else {
+      } else if (mode < 4) {
         hvx_dequant_swiglu_acc_tiles_to_f32(
           (const uint8_t *)tiles, 8192, PAIRS, 1, 32, counts[m], as, az, cs, ws,
           bias, INTER, mode - 2, ref, STRIDE, NULL);
         hvx_dequant_swiglu_acc_tiles_to_f32(
           (const uint8_t *)planes, 8192, PAIRS, 1, 0, counts[m], as, az, cs, ws,
           bias, INTER, mode - 2, got, STRIDE, NULL);
+      } else {
+        hvx_dq_mul_job job = {(const uint8_t *)tiles,
+                              8192,
+                              PAIRS,
+                              32,
+                              32,
+                              counts[m],
+                              as,
+                              az,
+                              cs,
+                              ws,
+                              bias,
+                              cs + INTER,
+                              ws + INTER,
+                              bias + INTER,
+                              ref,
+                              STRIDE};
+        hvx_worker_pool_run(NULL, hvx_dq_mul_worker, &job, PAIRS);
+        job.tiles_base = (const uint8_t *)planes;
+        job.row_stride = 0;
+        job.dst = got;
+        hvx_worker_pool_run(NULL, hvx_dq_mul_worker, &job, PAIRS);
       }
       if (memcmp(ref, got, sizeof ref)) {
         printf("DEQUANT PLANES FAILED rows=%u mode=%u\n", counts[m], mode);
@@ -163,7 +185,8 @@ int main(void) {
       ++checked;
     }
   }
-  printf("DEQUANT PLANES OK: %u cases (store, accumulate, SwiGLU, GeGLU)\n",
-         checked);
+  printf(
+    "DEQUANT PLANES OK: %u cases (store, accumulate, SwiGLU, GeGLU, Conv)\n",
+    checked);
   return check_weighted_scatter();
 }

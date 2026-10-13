@@ -14,6 +14,8 @@
 #include "hexkl_mm_opts.h"
 #include "hexkl_mm_u8i4_dma.h"
 #include "hexkl_probe.h"
+#include "hvx_rmsnorm_rows_f32.h"
+#include "hvx_rope_rows_f32.h"
 #include "hvx_scalar_stubs.h"
 #include <AEEStdErr.h>
 #include <math.h>
@@ -58,11 +60,11 @@ static int compare(const char *what, const float *got, const float *want,
 }
 
 int main(void) {
-  /** Three row blocks with a short last one; the widest handle is 33
+  /** Three row blocks with a short last one; the widest handle is 34
      n-tiles, one more than a staging batch, so the first handle takes two
      batches per row block and the parity crosses handles unevenly. */
   const uint32_t M = 150, K = 64;
-  const uint32_t N[3] = {1056, 512, 512};
+  const uint32_t N[3] = {1088, 512, 512};
   static uint8_t vtcm[8u << 20];
   W w[3];
   const W *ws[3];
@@ -174,6 +176,76 @@ int main(void) {
                                  handles, 3, x, got, &o);
     reference(ws, 3, x, 1, K, want, 0.f);
     fail |= rc != 0 || compare("HVX tiny arena", got, want, count);
+  }
+
+  /* The per-head passes in the epilogue (hexkl_mm_opts.post_done): the
+     norm of handles 0 and 2 and the rotation of handle 0 must give the
+     bytes of the plain run with those passes made over it afterwards, and
+     the kernel must say it did them. Then a table row off by one, which
+     must not. */
+  {
+    const uint32_t HD = 64u, chunk[3] = {64u, 0u, 64u};
+    float gm[128], *cs = (float *)malloc(sizeof(float) * (M + 1u) * 2u * HD);
+    float *got2 = (float *)malloc(sizeof(float) * out_n);
+    for (uint32_t j = 0; j < 128u; ++j)
+      gm[j] = 0.5f + 0.01f * (float)j;
+    for (uint32_t j = 0; j < (M + 1u) * 2u * HD; ++j)
+      cs[j] = rndf();
+    rc = hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, M, K,
+                                 handles, 3, x, got, NULL);
+    size_t off = 0;
+    for (uint32_t i = 0; i < 3; ++i) {
+      for (uint32_t m = 0; m < M; ++m) {
+        float *row = got + off + (size_t)m * N[i];
+        if (chunk[i])
+          hvx_rmsnorm_row_chunks_f32(row, row, gm + (i ? 64 : 0), N[i],
+                                     chunk[i], 1e-6f);
+        if (i == 0)
+          hvx_rope_row_f32(row, N[i], HD, cs + (size_t)m * 2u * HD);
+      }
+      off += (size_t)M * N[i];
+    }
+    int done = 0;
+    hexkl_mm_opts o = {0};
+    o.post_done = &done;
+    o.post_chunk = chunk;
+    o.post_gamma = gm;
+    o.post_eps = 1e-6f;
+    o.rope_hd = HD;
+    o.rope_handles = 1u;
+    o.rope_cs = cs;
+    rc |= hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, M, K,
+                                  handles, 3, x, got2, &o);
+    const int same = !memcmp(got, got2, sizeof(float) * out_n);
+    o.rope_cs = cs + 2u * HD;
+    rc |= hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, M, K,
+                                  handles, 3, x, got2, &o);
+    const int blind = !memcmp(got, got2, sizeof(float) * out_n);
+    printf("post in epilogue  : rc=%d done=%d %s%s\n", rc, done,
+           same ? "bit-identical to the passes after" : "DIFFERS",
+           blind ? " (compare is blind)" : "");
+    fail |= (rc != 0) | !done | !same | blind;
+    /* One staging tile cannot contain a 64-column head. The kernel
+       must leave the post passes to the caller and return raw FC output. */
+    const uint32_t small_arena = 192u * K + K * N[0] + 2u * 8192u;
+    done = 0;
+    o.rope_cs = cs;
+    rc = hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, small_arena, small_arena, M, K,
+                                 handles, 3, x, got2, &o);
+    reference(ws, 3, x, M, K, want, 0.f);
+    fail |= rc != 0 || done != 0 || compare("post fallback", got2, want, out_n);
+
+    uint8_t ah[64u * 64u] __attribute__((aligned(128)));
+    o.m1_scratch = ah;
+    o.m1_chunk_tiles = 8;
+    done = 0;
+    rc = hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, 1, K,
+                                 handles, 3, x, got2, &o);
+    reference(ws, 3, x, 1, K, want, 0.f);
+    fail |= rc != 0 || done != 0 ||
+            compare("post M1 fallback", got2, want, N[0] + N[1] + N[2]);
+    free(cs);
+    free(got2);
   }
 
   /* accumulate: the synchronous path, adding into what is there. */

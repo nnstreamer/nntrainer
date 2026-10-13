@@ -1,0 +1,143 @@
+{
+  "device": "R5KL309ALRK",
+  "order": "ABBA",
+  "runs": [
+    {
+      "index": 1,
+      "mode": "separate",
+      "exit_code": 0,
+      "log": "device-bench-01-separate.log",
+      "values_us": [
+        1355,
+        1335,
+        1324,
+        1321,
+        1326,
+        1329,
+        1323,
+        1332,
+        1357,
+        1318,
+        1320,
+        1319
+      ],
+      "mean_us": 1329.9166666666667,
+      "median_us": 1325.0,
+      "counter_lines": [
+        "[HTP-MATH] shape=M>1 op=rope_qkv_prefill calls=1 prepare_us=114 rpc_us=1087 dsp_us=684 copyout_us=0 bytes=524288",
+        "[HTP-MATH] shape=M>1 op=rope calls=15 prepare_us=209 rpc_us=11313 dsp_us=7685 copyout_us=1 bytes=7864320",
+        "[HTP-MATH] shape=M>1 op=rope_fp16 calls=15 prepare_us=398 rpc_us=4887 dsp_us=1606 copyout_us=2 bytes=7864320",
+        "[HTP-MATH] shape=M>1 op=cast_fp16 calls=15 prepare_us=4 rpc_us=3504 dsp_us=1242 copyout_us=0 bytes=0"
+      ]
+    },
+    {
+      "index": 2,
+      "mode": "fused",
+      "exit_code": 0,
+      "log": "device-bench-02-fused.log",
+      "values_us": [
+        1062,
+        1058,
+        1055,
+        1062,
+        1061,
+        1070,
+        1054,
+        1058,
+        1073,
+        1049,
+        1057,
+        1053
+      ],
+      "mean_us": 1059.3333333333333,
+      "median_us": 1058.0,
+      "counter_lines": [
+        "[HTP-MATH] shape=M>1 op=rope_qkv_prefill calls=15 prepare_us=340 rpc_us=15644 dsp_us=10257 copyout_us=0 bytes=7864320",
+        "[HTP-MATH] shape=M>1 op=rope calls=1 prepare_us=18 rpc_us=751 dsp_us=522 copyout_us=0 bytes=524288",
+        "[HTP-MATH] shape=M>1 op=rope_fp16 calls=1 prepare_us=84 rpc_us=394 dsp_us=143 copyout_us=0 bytes=524288",
+        "[HTP-MATH] shape=M>1 op=cast_fp16 calls=1 prepare_us=1 rpc_us=262 dsp_us=98 copyout_us=0 bytes=0"
+      ]
+    },
+    {
+      "index": 3,
+      "mode": "fused",
+      "exit_code": 0,
+      "log": "device-bench-03-fused.log",
+      "values_us": [
+        1095,
+        1058,
+        1076,
+        1424,
+        1058,
+        1065,
+        1059,
+        1054,
+        1059,
+        1055,
+        1052,
+        1046
+      ],
+      "mean_us": 1091.75,
+      "median_us": 1058.5,
+      "counter_lines": [
+        "[HTP-MATH] shape=M>1 op=rope_qkv_prefill calls=15 prepare_us=368 rpc_us=16035 dsp_us=10511 copyout_us=0 bytes=7864320",
+        "[HTP-MATH] shape=M>1 op=rope calls=1 prepare_us=27 rpc_us=749 dsp_us=520 copyout_us=0 bytes=524288",
+        "[HTP-MATH] shape=M>1 op=rope_fp16 calls=1 prepare_us=169 rpc_us=504 dsp_us=150 copyout_us=0 bytes=524288",
+        "[HTP-MATH] shape=M>1 op=cast_fp16 calls=1 prepare_us=1 rpc_us=270 dsp_us=98 copyout_us=0 bytes=0"
+      ]
+    },
+    {
+      "index": 4,
+      "mode": "separate",
+      "exit_code": 0,
+      "log": "device-bench-04-separate.log",
+      "values_us": [
+        1338,
+        1342,
+        1336,
+        1333,
+        1339,
+        1332,
+        1343,
+        1333,
+        1327,
+        1325,
+        1335,
+        1332
+      ],
+      "mean_us": 1334.5833333333333,
+      "median_us": 1334.0,
+      "counter_lines": [
+        "[HTP-MATH] shape=M>1 op=rope_qkv_prefill calls=1 prepare_us=95 rpc_us=1070 dsp_us=691 copyout_us=1 bytes=524288",
+        "[HTP-MATH] shape=M>1 op=rope calls=15 prepare_us=165 rpc_us=11325 dsp_us=7702 copyout_us=0 bytes=7864320",
+        "[HTP-MATH] shape=M>1 op=rope_fp16 calls=15 prepare_us=352 rpc_us=4914 dsp_us=1631 copyout_us=0 bytes=7864320",
+        "[HTP-MATH] shape=M>1 op=cast_fp16 calls=15 prepare_us=3 rpc_us=3535 dsp_us=1251 copyout_us=0 bytes=0"
+      ]
+    }
+  ],
+  "summary": {
+    "separate": {
+      "n": 24,
+      "mean_us": 1332.25,
+      "median_us": 1332.0,
+      "min_us": 1318,
+      "max_us": 1357
+    },
+    "fused": {
+      "n": 24,
+      "mean_us": 1075.5416666666667,
+      "median_us": 1058.0,
+      "min_us": 1046,
+      "max_us": 1424
+    }
+  },
+  "check": "PASS cases192 invalid_transactions1924",
+  "actual_new_RPC_counter": "device-check.log op=rope_qkv_prefill calls=192; bench selected fused call count15 (one parity, two warmup, twelve measured).",
+  "median_saved_us": 274.0,
+  "median_reduction_percent": 20.570570570570567,
+  "environment": {
+    "NNTR_HTP_PREFILL_ROPE_FUSION": "0",
+    "NNTR_HTP_PREFILL_QKV_PREPARE": "1"
+  },
+  "scope": "1024 rows Q2048 KV512 head64 same-binary block bench; not an end-to-end TPS result."
+}

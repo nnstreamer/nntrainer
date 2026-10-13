@@ -57,11 +57,57 @@ static void conv_gate_row(const conv_gate_ctx *c, uint32_t r) {
   }
 }
 
+/** Four rows share their three taps and six consecutive input vectors.
+ * Every row keeps the existing multiply/add order and f32 boundaries. */
+static void conv_gate_rows4(const conv_gate_ctx *c, uint32_t r) {
+  const uint32_t t = c->t0 + r;
+  const float *g = c->g + (size_t)(t - 2u) * c->g_stride;
+  float *z = c->z + (size_t)r * c->z_stride;
+  for (uint32_t j = 0; j < c->C; j += LANES) {
+    const HVX_Vector k0 = ((const HVX_UVector *)(c->w + j))[0];
+    const HVX_Vector k1 = ((const HVX_UVector *)(c->w + c->C + j))[0];
+    const HVX_Vector k2 = ((const HVX_UVector *)(c->w + 2u * c->C + j))[0];
+    const HVX_Vector x0 = ((const HVX_UVector *)(g + j))[0];
+    const HVX_Vector x1 = ((const HVX_UVector *)(g + c->g_stride + j))[0];
+    const HVX_Vector x2 = ((const HVX_UVector *)(g + 2u * c->g_stride + j))[0];
+    const HVX_Vector x3 = ((const HVX_UVector *)(g + 3u * c->g_stride + j))[0];
+    const HVX_Vector x4 = ((const HVX_UVector *)(g + 4u * c->g_stride + j))[0];
+    const HVX_Vector x5 = ((const HVX_UVector *)(g + 5u * c->g_stride + j))[0];
+    HVX_Vector y0 = Q6_Vsf_vadd_VsfVsf(Q6_Vsf_vmpy_VsfVsf(k0, x2),
+                                       Q6_Vsf_vmpy_VsfVsf(k1, x1));
+    HVX_Vector y1 = Q6_Vsf_vadd_VsfVsf(Q6_Vsf_vmpy_VsfVsf(k0, x3),
+                                       Q6_Vsf_vmpy_VsfVsf(k1, x2));
+    HVX_Vector y2 = Q6_Vsf_vadd_VsfVsf(Q6_Vsf_vmpy_VsfVsf(k0, x4),
+                                       Q6_Vsf_vmpy_VsfVsf(k1, x3));
+    HVX_Vector y3 = Q6_Vsf_vadd_VsfVsf(Q6_Vsf_vmpy_VsfVsf(k0, x5),
+                                       Q6_Vsf_vmpy_VsfVsf(k1, x4));
+    y0 = Q6_Vsf_vadd_VsfVsf(y0, Q6_Vsf_vmpy_VsfVsf(k2, x0));
+    y1 = Q6_Vsf_vadd_VsfVsf(y1, Q6_Vsf_vmpy_VsfVsf(k2, x1));
+    y2 = Q6_Vsf_vadd_VsfVsf(y2, Q6_Vsf_vmpy_VsfVsf(k2, x2));
+    y3 = Q6_Vsf_vadd_VsfVsf(y3, Q6_Vsf_vmpy_VsfVsf(k2, x3));
+    HVX_UVector *z0 = (HVX_UVector *)(z + j);
+    HVX_UVector *z1 = (HVX_UVector *)(z + c->z_stride + j);
+    HVX_UVector *z2 = (HVX_UVector *)(z + 2u * c->z_stride + j);
+    HVX_UVector *z3 = (HVX_UVector *)(z + 3u * c->z_stride + j);
+    z0[0] = Q6_Vsf_vmpy_VsfVsf(z0[0], y0);
+    z1[0] = Q6_Vsf_vmpy_VsfVsf(z1[0], y1);
+    z2[0] = Q6_Vsf_vmpy_VsfVsf(z2[0], y2);
+    z3[0] = Q6_Vsf_vmpy_VsfVsf(z3[0], y3);
+  }
+}
+
 static void conv_gate_worker(uint32_t n_threads, uint32_t i, void *vctx) {
   const conv_gate_ctx *c = (const conv_gate_ctx *)vctx;
   const uint32_t lo = (uint32_t)((uint64_t)c->m_count * i / n_threads);
   const uint32_t hi = (uint32_t)((uint64_t)c->m_count * (i + 1) / n_threads);
-  for (uint32_t r = lo; r < hi; ++r) {
+  uint32_t r = lo;
+  for (; r < hi && c->t0 + r < 2u; ++r) {
+    conv_gate_row(c, r);
+  }
+  for (; r + 4u <= hi; r += 4u) {
+    conv_gate_rows4(c, r);
+  }
+  for (; r < hi; ++r) {
     conv_gate_row(c, r);
   }
 }

@@ -10,6 +10,7 @@
  * @bug    No known bugs except for NYI items
  */
 
+#include "generation_prefill_tail.h"
 #include "htp_strict.h"
 #include <acti_func.h>
 #include <algorithm>
@@ -214,6 +215,10 @@ static constexpr unsigned EXTRA_TOPK = 5;
  *  resident at once -- 32 at prefill -- which 22 layers x 2 can lend one
  *  layer and a per-layer bound of 2 cannot. */
 static causallm::ExpertLru g_expert_lru;
+
+bool generationPrefillTailFitsExpertPool(unsigned experts) {
+  return experts > 0 && g_expert_lru.capacity() >= experts;
+}
 
 using ExpertFileDesc = nntrainer::ComputeOps::ExpertFileDesc;
 
@@ -2149,21 +2154,26 @@ void Lfm2MoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
                      true);
   }
 
+  const unsigned tail_offset = generationPrefillTailOffset(
+    context.getName(), from, to, input_.batch(), training);
+  const unsigned rows = to - from - tail_offset;
+  const size_t tail_elements =
+    static_cast<size_t>(tail_offset) * input_.width();
   input_step_dim.batch(1);
   output_step_dim.batch(1);
-  router_logits_step_dim.batch(to - from);
+  router_logits_step_dim.batch(rows);
 
-  input_step_dim.height(to - from);
-  output_step_dim.height(to - from);
+  input_step_dim.height(rows);
+  output_step_dim.height(rows);
 
   for (unsigned int b = 0; b < input_.batch(); ++b) {
 
     auto input = input_.getSharedDataTensor(
-      input_step_dim, b * input_step_dim.getFeatureLen(), true);
+      input_step_dim, b * input_step_dim.getFeatureLen() + tail_elements, true);
     auto router_in = router_in_.getSharedDataTensor(
-      input_step_dim, b * input_step_dim.getFeatureLen(), true);
+      input_step_dim, b * input_step_dim.getFeatureLen() + tail_elements, true);
     auto raw = raw_input_.getSharedDataTensor(
-      input_step_dim, b * input_step_dim.getFeatureLen(), true);
+      input_step_dim, b * input_step_dim.getFeatureLen() + tail_elements, true);
     // With out_add the experts' input norm rides the prefill MoE call (its
     // pre_gamma), which then has the raw rows on the DSP for the
     // epilogue's residual (doc 57 section 9.30). Alone it gained nothing
@@ -2179,9 +2189,11 @@ void Lfm2MoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
     nntrainer::Tensor x2;
     if (out_add)
       x2 = context.getInput(1).getSharedDataTensor(
-        input_step_dim, b * input_step_dim.getFeatureLen(), true);
+        input_step_dim, b * input_step_dim.getFeatureLen() + tail_elements,
+        true);
     auto output = output_.getSharedDataTensor(
-      output_step_dim, b * output_step_dim.getFeatureLen(), true);
+      output_step_dim, b * output_step_dim.getFeatureLen() + tail_elements,
+      true);
     auto router_logits =
       router_logits_.getSharedDataTensor(router_logits_step_dim, 0, true);
 
@@ -2409,16 +2421,18 @@ void Lfm2MoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
     if (out_norm && !out_normed_on_accel) {
       auto scratch =
         context.getTensor(experts_in_idx)
-          .getSharedDataTensor(output_step_dim,
-                               b * output_step_dim.getFeatureLen(), true);
+          .getSharedDataTensor(
+            output_step_dim,
+            b * output_step_dim.getFeatureLen() + tail_elements, true);
       normRows(output, scratch, context.getWeight(out_gamma_idx), norm_eps);
       output.copyData(scratch);
     }
     if (out_add && !add_done) {
       auto scratch =
         context.getTensor(experts_in_idx)
-          .getSharedDataTensor(output_step_dim,
-                               b * output_step_dim.getFeatureLen(), true);
+          .getSharedDataTensor(
+            output_step_dim,
+            b * output_step_dim.getFeatureLen() + tail_elements, true);
       addEpilogue(context, raw, x2, output, scratch, norm_eps);
     }
 

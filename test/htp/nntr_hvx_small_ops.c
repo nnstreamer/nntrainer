@@ -13,7 +13,8 @@
  *
  * Each entry validates the FastRPC lengths the kernel cannot see, then
  * runs on the caller's buffers with the session's worker pool. RoPE with
- * half output uses temporary f32 storage; cast-only needs no scratch.
+ * half output emits directly for disjoint 64-channel rows, with a temporary
+ * f32 fallback; cast-only needs no scratch.
  * A bad shape is AEE_EINVALIDFORMAT; AEE_EBADPARM stays the stale-skel
  * symptom (rule 3), so the gtest can tell the two apart.
  */
@@ -28,6 +29,7 @@
 #include "nntr_hvx.h"
 #include "nntr_hvx_session.h"
 
+#include "htp_rope_prefill_shape.h"
 #include "hvx_convert.h"
 #include "hvx_m1_ops_f32.h"
 #include "hvx_rmsnorm_rows_f32.h"
@@ -87,6 +89,85 @@ static void math_run(hvx_worker_pool *pool, uint32_t op, uint32_t count,
   hvx_worker_pool_run(pool, math_worker, &c, (count + 4095u) / 4096u);
 }
 
+typedef struct {
+  const float *x, *cs;
+  uint16_t *out;
+  uint32_t rows, width;
+} rope_half64_ctx;
+
+/** The common 64-channel RoPE emits the cache's fp16 rows directly.
+ * Preserve the rounded f32 rotation that the old temporary buffer held
+ * before converting to fp16. Workers own complete rows and output vectors.
+ */
+static void rope_half64_worker(uint32_t threads, uint32_t tid, void *opaque) {
+  const rope_half64_ctx *c = opaque;
+  const uint32_t lo = (uint32_t)((uint64_t)c->rows * tid / threads);
+  const uint32_t hi = (uint32_t)((uint64_t)c->rows * (tid + 1u) / threads);
+  for (uint32_t r = lo; r < hi; ++r) {
+    const HVX_Vector cosine = *(const HVX_UVector *)(c->cs + (size_t)r * 128u);
+    const HVX_Vector sine =
+      *(const HVX_UVector *)(c->cs + (size_t)r * 128u + 64u);
+    const HVX_UVector *x = (const HVX_UVector *)(c->x + (size_t)r * c->width);
+    HVX_UVector *out = (HVX_UVector *)(c->out + (size_t)r * c->width);
+    for (uint32_t h = 0; h < c->width / 64u; ++h) {
+      const HVX_Vector a = x[2u * h], b = x[2u * h + 1u];
+      HVX_Vector ra = Q6_Vsf_vsub_VsfVsf(Q6_Vsf_vmpy_VsfVsf(a, cosine),
+                                         Q6_Vsf_vmpy_VsfVsf(b, sine));
+      HVX_Vector rb = Q6_Vsf_vadd_VsfVsf(Q6_Vsf_vmpy_VsfVsf(a, sine),
+                                         Q6_Vsf_vmpy_VsfVsf(b, cosine));
+      __asm__ volatile("" : "+v"(ra), "+v"(rb));
+      out[h] = Q6_Vh_vdeal_Vh(Q6_Vhf_vcvt_VsfVsf(ra, rb));
+    }
+  }
+}
+
+typedef struct {
+  uint32_t rows, qw, kw;
+  const float *cs, *k, *v;
+  float *q;
+  uint16_t *ko, *vo;
+} rope_prefill_ctx;
+
+/** Reuse the exact separate-call arithmetic with one worker dispatch.
+ * Only Q is in-place; K/V caches and input ranges are disjoint. */
+static void rope_prefill_worker(uint32_t threads, uint32_t tid, void *opaque) {
+  const rope_prefill_ctx *c = opaque;
+  rope_half64_ctx key = {c->k, c->cs, c->ko, c->rows, c->kw};
+  rope_half64_worker(threads, tid, &key);
+  math_ctx value = {c->v, NULL, c->vo, c->rows * c->kw, 6u, 1.0f};
+  math_worker(threads, tid, &value);
+  const uint32_t lo = (uint32_t)((uint64_t)c->rows * tid / threads);
+  const uint32_t hi = (uint32_t)((uint64_t)c->rows * (tid + 1u) / threads);
+  for (uint32_t r = lo; r < hi; ++r)
+    hvx_rope_row_f32(c->q + (size_t)r * c->qw, c->qw, 64u,
+                     c->cs + (size_t)r * 128u);
+}
+
+int nntr_hvx_rope_qkv_prefill_f32(remote_handle64 handle, uint32 M, uint32 qw,
+                                  uint32 kw, uint32 hd, const float *cs,
+                                  int csLen, const float *q, int qLen,
+                                  const float *k, int kLen, const float *v,
+                                  int vLen, float *qo, int qoLen, uint16 *ko,
+                                  int koLen, uint16 *vo, int voLen,
+                                  uint32 *elapsed_us, int elapsedLen) {
+  const uint64_t nq = (uint64_t)M * qw, nk = (uint64_t)M * kw;
+  if (!handle || q != qo || !elapsed_us || elapsedLen != 1 ||
+      (uint64_t)csLen != (uint64_t)M * 2u * hd || (uint64_t)qLen != nq ||
+      (uint64_t)qoLen != nq || (uint64_t)kLen != nk || (uint64_t)vLen != nk ||
+      (uint64_t)koLen != nk || (uint64_t)voLen != nk ||
+      !nntr_rope_prefill_valid(M, qw, kw, hd, cs, qo, k, v, ko, vo))
+    return AEE_EINVALIDFORMAT;
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  const uint64_t start =
+    HAP_perf_qtimer_count_to_us(HAP_perf_get_qtimer_count());
+  rope_prefill_ctx c = {M, qw, kw, cs, k, v, qo, ko, vo};
+  hvx_worker_pool_run(s->quant_pool, rope_prefill_worker, &c, M);
+  elapsed_us[0] =
+    (uint32_t)(HAP_perf_qtimer_count_to_us(HAP_perf_get_qtimer_count()) -
+               start);
+  return AEE_SUCCESS;
+}
+
 int nntr_hvx_inference_math_f32(remote_handle64 handle, uint32 op, uint32 M,
                                 uint32 N, uint32 chunk, float eps, float scale,
                                 const float *x, int xLen, const float *aux,
@@ -111,6 +192,12 @@ int nntr_hvx_inference_math_f32(remote_handle64 handle, uint32 op, uint32 M,
     return AEE_EINVALIDFORMAT;
   if (op == 7u) {
     float *sum = (float *)out;
+    if (M > 1u) {
+      const int rc =
+        hvx_add_rmsnorm_rows_f32(x, aux, sum, sum + count, M, N, chunk,
+                                 paramLen ? param : NULL, eps, s->quant_pool);
+      return rc ? AEE_EINVALIDFORMAT : AEE_SUCCESS;
+    }
     math_run(s->quant_pool, 1u, (uint32_t)count, x, aux, sum, 1.0f);
     const int rc =
       hvx_rmsnorm_rows_f32(sum, sum + count, M, N, chunk,
@@ -120,6 +207,22 @@ int nntr_hvx_inference_math_f32(remote_handle64 handle, uint32 op, uint32 M,
   if (op == 6u) {
     math_run(s->quant_pool, 6u, (uint32_t)count, x, NULL, out, 1.0f);
     return AEE_SUCCESS;
+  }
+  if (op == 5u && chunk == 64u) {
+    // The generic scratch path also supports overlapping input/output.
+    // Direct row workers must never overwrite another worker's input.
+    const uintptr_t xa = (uintptr_t)x, ya = (uintptr_t)out;
+    const int disjoint = xa <= ya ? ya - xa >= count * sizeof(float)
+                                  : xa - ya >= count * sizeof(uint16_t);
+    const uintptr_t ca = (uintptr_t)param;
+    const int phase_disjoint = ca <= ya
+                                 ? ya - ca >= (uint64_t)paramLen * sizeof(float)
+                                 : ca - ya >= count * sizeof(uint16_t);
+    if (disjoint && phase_disjoint) {
+      rope_half64_ctx c = {x, param, (uint16_t *)out, M, N};
+      hvx_worker_pool_run(s->quant_pool, rope_half64_worker, &c, M);
+      return AEE_SUCCESS;
+    }
   }
   float *y =
     half ? (float *)memalign(128, (size_t)count * sizeof(float)) : (float *)out;
@@ -162,6 +265,15 @@ int nntr_hvx_add_rmsnorm_f32(remote_handle64 handle, uint32 M, uint32 N,
   const uint64_t start =
     HAP_perf_qtimer_count_to_us(HAP_perf_get_qtimer_count());
   nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  if (M > 1u) {
+    const int rc =
+      hvx_add_rmsnorm_rows_f32(x, residual, sum, norm, M, N, N,
+                               gammaLen ? gamma : NULL, eps, s->quant_pool);
+    elapsed_us[0] =
+      (uint32_t)(HAP_perf_qtimer_count_to_us(HAP_perf_get_qtimer_count()) -
+                 start);
+    return rc ? AEE_EINVALIDFORMAT : AEE_SUCCESS;
+  }
   math_run(s->quant_pool, 1u, (uint32_t)count, x, residual, sum, 1.0f);
   const int rc = hvx_rmsnorm_rows_f32(
     sum, norm, M, N, N, gammaLen ? gamma : NULL, eps, s->quant_pool);

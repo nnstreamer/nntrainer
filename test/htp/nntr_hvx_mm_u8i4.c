@@ -1190,11 +1190,26 @@ static int layer_norm_impl(nntr_hvx_session *s, uint32 M, uint32 K, float eps,
 
   /** The pre norm goes into the quant pass, rows normed four at a time into
      a worker's slice of norm_rows: the normed rows stay in cache. */
+  int post_done = 0;
+  uint32_t chunks[HEXKL_MM_U8I4_MAX_WEIGHTS] = {0};
+  if ((uint32_t)w_handlesLen > HEXKL_MM_U8I4_MAX_WEIGHTS) {
+    return AEE_EBADPARM;
+  }
+  for (i = 0; i < post_chunkLen; ++i) {
+    chunks[i] = post_chunk[i];
+  }
   hexkl_mm_opts opts = {.pool = s->quant_pool,
                         .weight_src_bypass =
                           (s->moe_flags & HEXKL_MOE_FLAG_DMA_BYPASS) != 0u,
                         .out_off = out_off,
-                        .out_ld = out_ld};
+                        .out_ld = out_ld,
+                        .post_done = &post_done,
+                        .post_chunk = chunks,
+                        .post_gamma = post_gamma,
+                        .post_eps = eps,
+                        .rope_hd = rope_hd,
+                        .rope_handles = rope_handles,
+                        .rope_cs = rope_cs};
   if (pre_gammaLen != 0) {
     if (!norm_rows_reserve(s, (size_t)M * K)) {
       return AEE_ENOMEMORY;
@@ -1211,7 +1226,7 @@ static int layer_norm_impl(nntr_hvx_session *s, uint32 M, uint32 K, float eps,
   /* The post norms, in place on each handle's rows. */
   size_t off = 0;
   const float *g = post_gamma;
-  for (i = 0; i < post_chunkLen; ++i) {
+  for (i = 0; !post_done && i < post_chunkLen; ++i) {
     const uint32_t n_i = s->weights_u8i4.slots[w_handles[i]].N;
     const uint32_t c = post_chunk[i];
     float *o_i = out_off ? out_cat + out_off[i] : out_cat + off;
@@ -1224,7 +1239,7 @@ static int layer_norm_impl(nntr_hvx_session *s, uint32 M, uint32 K, float eps,
   }
   /* Then RoPE on the first rope_handles handles' rows, after their norms. */
   off = 0;
-  for (i = 0; rope_hd != 0u && i < (int)rope_handles; ++i) {
+  for (i = 0; !post_done && rope_hd != 0u && i < (int)rope_handles; ++i) {
     const uint32_t n_i = s->weights_u8i4.slots[w_handles[i]].N;
     hvx_rope_rows_ld_f32(out_off ? out_cat + out_off[i] : out_cat + off, M, n_i,
                          out_ld ? out_ld[i] : n_i, rope_hd, rope_cs,

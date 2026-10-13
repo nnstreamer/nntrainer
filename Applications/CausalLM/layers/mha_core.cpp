@@ -31,6 +31,9 @@ static std::mutex rope_init_mtx;
 
 #include "htp_decode_hook.h"
 #include "htp_strict.h"
+#ifdef ENABLE_HEXKL
+#include <htp_rope_prefill.h>
+#endif
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
@@ -1729,6 +1732,49 @@ bool MHACoreLayer::try_fused_rope_qkv(nntrainer::Tensor &q,
   const auto f32 = ml::train::TensorDim::DataType::FP32;
   const auto f16 = ml::train::TensorDim::DataType::FP16;
   const auto u16 = ml::train::TensorDim::DataType::UINT16;
+#ifdef ENABLE_HEXKL
+  static const bool prefill_fused_enabled = [] {
+    const char *e = std::getenv("NNTR_HTP_PREFILL_QKV_PREPARE");
+    return e && std::atoi(e) != 0;
+  }();
+  if (prefill_fused_enabled && q.height() > 1 && htpStrict() && use_rope &&
+      !skip_prefill &&
+      !std::get<props::PrefillRopeFused>(mha_core_props).get() &&
+      head_dim == 64 && q.batch() == 1 && q.channel() == 1 && k.batch() == 1 &&
+      k.channel() == 1 && v.batch() == 1 && v.channel() == 1 &&
+      q.getDataType() == f32 && k.getDataType() == f32 &&
+      v.getDataType() == f32 && k.height() == q.height() &&
+      v.height() == q.height() && k.width() == v.width() &&
+      kc.width() == k.width() && vc.width() == v.width() &&
+      kc.height() == q.height() && vc.height() == q.height() &&
+      kc.batch() == 1 && kc.channel() == 1 && vc.batch() == 1 &&
+      vc.channel() == 1 &&
+      (kc.getDataType() == f16 || kc.getDataType() == u16) &&
+      (vc.getDataType() == f16 || vc.getDataType() == u16)) {
+    const unsigned maximum =
+      std::min(max_position_embeddings,
+               std::get<nntrainer::props::MaxTimestep>(mha_core_props).get());
+    if (from < maximum && q.height() <= maximum - from) {
+      if (!freqs_fp32) {
+        const std::lock_guard<std::mutex> lock(rope_init_mtx);
+        if (!freqs_fp32)
+          precompute_freqs(head_dim, maximum, theta, false);
+      }
+      std::vector<float> cs(q.height() * 2u * head_dim);
+      for (unsigned r = 0; r < q.height(); ++r) {
+        std::memcpy(cs.data() + static_cast<size_t>(r) * 2u * head_dim,
+                    freqs_fp32->cos[from + r].data(), head_dim * sizeof(float));
+        std::memcpy(cs.data() + (static_cast<size_t>(r) * 2u + 1u) * head_dim,
+                    freqs_fp32->sin[from + r].data(), head_dim * sizeof(float));
+      }
+      if (nntrainer::htp_rope_qkv_prefill(
+            q.height(), q.width(), k.width(), head_dim, cs.data(),
+            q.getData<float>(), k.getData<float>(), v.getData<float>(),
+            kc.getData<uint16_t>(), vc.getData<uint16_t>()))
+        return true;
+    }
+  }
+#endif
   if (!htpStrict() || !use_rope || !from || q.height() != 1 ||
       k.height() != 1 || v.height() != 1 || q.batch() != 1 ||
       q.channel() != 1 || k.batch() != 1 || k.channel() != 1 ||

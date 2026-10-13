@@ -15,6 +15,8 @@
 #include "htp_strict.h"
 #include <app_context.h>
 #include <engine.h>
+#include <generation_prefill_tail.h>
+#include <lfm2_moe_causallm.h>
 #include <llm_util.hpp>
 #include <model.h>
 #include <tensor_api.h>
@@ -22,9 +24,11 @@
 #include <algorithm>
 #include <chrono>
 #include <cpu_backend.h>
+#include <cstdio>
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
+#include <typeinfo>
 
 #include <causal_conv1d_layer.h>
 #include <conv_block_layer.h>
@@ -571,6 +575,49 @@ void Lfm2CausalLM::run(const WSTR prompt, bool do_sample,
                        const WSTR system_prompt, const WSTR tail_prompt,
                        bool log_output) {
   if (!USE_EMBEDDING) {
+    // Only this generation entry point consumes the terminal last row. Keep
+    // graph dimensions and the full final Conv/cache update intact, and select
+    // the suffix by its actual layer contract rather than changing
+    // architecture.
+    const std::string prefix = "layer" + std::to_string(NUM_LAYERS - 1);
+    const auto *moe = dynamic_cast<const Lfm2MoeCausalLM *>(this);
+    bool tail_graph =
+      GenerationPrefillTailScope::requestedRows() &&
+      !GenerationPrefillTailScope::diagnostics() && is_initialized && model &&
+      typeid(*this) == typeid(Lfm2MoeCausalLM) && moe && NUM_LAYERS > 0 &&
+      BATCH_SIZE == 1 && !do_sample && !SKIP_PREFILL && !USE_KVCACHE &&
+      !logits_processor && htpStrict() &&
+      layer_types_.size() == static_cast<size_t>(NUM_LAYERS) &&
+      layer_types_.back() == "conv" && moe->fuseMoeInputNorm(NUM_LAYERS - 1);
+    if (tail_graph) {
+      unsigned contract = 0;
+      model->forEachLayer(
+        [&](ml::train::Layer &layer, nntrainer::RunLayerContext &context,
+            void *) {
+          const std::string name = layer.getName();
+          if (name == prefix + "_conv_block" && layer.getType() == "conv_block")
+            contract |= 1u;
+          if (name == prefix + "_ffn_norm" && layer.getType() == "rms_norm" &&
+              context.getNumInputs() == 2 && context.getNumOutputs() == 2)
+            contract |= 2u;
+          if (name == prefix + "_ffn_down" && layer.getType() == "lfm2_moe" &&
+              context.getNumInputs() == 1 && context.getNumOutputs() == 1 &&
+              context.getNumWeights() >= 4 &&
+              context.getNumWeights() % 2 == 0 &&
+              generationPrefillTailFitsExpertPool(
+                (context.getNumWeights() - 2) / 2))
+            contract |= 4u;
+          if (name == "output_norm" && layer.getType() == "rms_norm" &&
+              context.getNumInputs() == 2 && context.getNumOutputs() == 2)
+            contract |= 8u;
+        },
+        nullptr);
+      tail_graph = contract == 15u;
+    }
+    GenerationPrefillTailScope tail_scope(prefix, tail_graph);
+    if (generationPrefillTailState().rows)
+      std::fprintf(stderr, "[LFM2-TAIL] rows=%u terminal_layer=%d\n",
+                   generationPrefillTailState().rows, NUM_LAYERS - 1);
     CausalLM::run(prompt, do_sample, system_prompt, tail_prompt, log_output);
     return;
   }

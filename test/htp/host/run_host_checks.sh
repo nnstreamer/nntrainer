@@ -116,6 +116,14 @@ g++ -std=c++17 -O2 -I "$BACKEND/.." \
 
 "$OUT/kv_i8_pool_host_check"
 
+# Full INT8 WH tiles must match scalar scatter for the probed permutation;
+# partial overwrites and alternate layouts retain the original writer.
+"$cc" -std=gnu11 -O2 -Wall -Wextra -Wno-unused-parameter -pthread \
+  -I "$HERE/stub" -I "$BACKEND/hmx" -I "$BACKEND/hvx" \
+  -o "$OUT/kv_i8_tile_host_check" \
+  "$HERE/kv_i8_tile_host_check.c" "$BACKEND/hvx/hvx_worker_pool.c" -lm
+"$OUT/kv_i8_tile_host_check"
+
 # The DMA probe's descriptor plan (test/htp/nntr_dma_probe_plan.h): the
 # skel runs the same header-only function, so the geometry checked here --
 # disjoint rows, in-bounds destinations, worker balance -- is what the
@@ -333,6 +341,16 @@ done
   "$BACKEND/hvx/hvx_scale_add_f32.c" -lm
 
 "$OUT/dequant_planes_host_check"
+
+python3 "$HERE/run_prefill_host_checks.py"
+
+# Compare per-row FC epilogues with the original separate HVX passes.
+"$cc" -std=c99 -O2 -Wall -Wextra -Wno-unused-parameter -ffp-contract=off \
+  -I "$HERE/hvx_emu" -I "$BACKEND/.." -I "$BACKEND/hvx" -I "$BACKEND/hmx" \
+  -o "$OUT/fc_epilogue_host_check" \
+  "$HERE/fc_epilogue_host_check.c" "$BACKEND/hvx/hvx_dequant_i32.c" \
+  "$BACKEND/hvx/hvx_rmsnorm_rows_f32.c" "$BACKEND/hvx/hvx_rope_rows_f32.c" -lm
+"$OUT/fc_epilogue_host_check"
 
 # The prefill-shape router logits (doc 57 section 5 step 5): the real HVX
 # source on the lane emulation against a double reference, at the softmax

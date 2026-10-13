@@ -11,6 +11,7 @@
  */
 
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <AEEStdErr.h>
@@ -28,6 +29,7 @@
 #include "hexkl_micro.h"
 #include "htp_kv_cache.h"
 #include "hvx_attn_decode_q.h"
+#include "hvx_kv_quant.h"
 #include "hvx_softmax_q.h"
 #include "nntr_hvx.h"
 #include "nntr_hvx_session.h"
@@ -940,6 +942,13 @@ static int attn_q8_step_impl(
   } else {
     hexkl_attn_f16_tiling tiling = {0, 0, 0, 0};
     hexkl_attn_f16_choose_tiling(&shape, &tiling);
+    // Full LFM2 prefill: four activation tiles share each KV DMA and pool
+    // launch. Keep the existing softmax columns and their arithmetic
+    // order; 64 query rows divide every selected KV block exactly.
+    if (n_q >= 64u && n_q % 64u == 0u && cache_from == 0u && cache_to == n_q &&
+        n_head_q == 32u && kv->n_head_kv == 8u && kv->head_dim == 64u &&
+        window == 0u && tiling.bc % 64u == 0u)
+      tiling.br = 64u;
     if (bc)
       tiling.bc = bc;
     if (hexkl_attn_q_tiling_init(&shape, &tiling) != HEXKL_ATTN_OK)
@@ -954,6 +963,70 @@ static int attn_q8_step_impl(
   stats[3] = (uint32)(t2 - t0);
   if (statsLen >= 16)
     copy_q_prefill_stats(stats + 4, &detail);
+  return rc;
+}
+
+int nntr_hvx_attn_q8_npu_step(remote_handle64 handle, uint32 kv_handle,
+                              uint32 row0, const uint16 *k, int kLen,
+                              const uint16 *v, int vLen, uint32 n_q,
+                              uint32 cache_from, uint32 cache_to,
+                              uint32 n_head_q, uint32 window, float softcap,
+                              const float *q, int qLen, const float *sinks,
+                              int sinksLen, float *out, int outLen,
+                              uint32 *stats, int statsLen) {
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  if (!s || !s->hmx_locked)
+    return AEE_EUNSUPPORTED;
+  const hexkl_kv_q *kv = hexkl_kv_q_get(&s->kv_q, kv_handle);
+  if (!kv || kv->kind != HEXKL_KV_Q8 || kv->fixed || n_q < 5u || n_q > 65535u ||
+      n_head_q > 4096u || kv->head_dim > 256u || cache_to > kv->max_rows)
+    return AEE_EBADPARM;
+  const uint32_t hd = kv->head_dim;
+  const uint64_t stride = (uint64_t)kv->n_head_kv * hd;
+  const uint64_t q_heads = (uint64_t)n_q * n_head_q;
+  if (!stats || statsLen < 8 || !q || !out || !n_head_q ||
+      n_head_q % kv->n_head_kv || kLen < 0 || kLen != vLen ||
+      (uint64_t)kLen % stride || (uint64_t)qLen != q_heads * hd ||
+      qLen != outLen || (kLen && (!k || !v)) || cache_from > cache_to ||
+      n_q > cache_to - cache_from || row0 > cache_to ||
+      (uint64_t)kLen / stride > cache_to - row0)
+    return AEE_EBADPARM;
+  const uint32_t n_rows = (uint32_t)((uint64_t)kLen / stride);
+  const uint64_t kv_heads = (uint64_t)n_rows * kv->n_head_kv;
+  const uint64_t metadata = (2u * kv_heads + 2u * q_heads) * sizeof(float);
+  const uint64_t bytes = metadata + 2u * (uint64_t)kLen + (uint64_t)qLen;
+  if (bytes > 0x7FFFFFFFu)
+    return AEE_EBADPARM;
+  const uint64_t begin = HAP_perf_get_time_us();
+  uint8_t *scratch = memalign(128u, (size_t)bytes);
+  if (!scratch)
+    return AEE_ENOMEMORY;
+  float *ks = (float *)scratch, *qs = ks + 2u * kv_heads;
+  int32_t *qz = (int32_t *)(qs + q_heads);
+  uint8_t *k8 = scratch + metadata, *v8 = k8 + kLen, *q8 = v8 + kLen;
+  int rc =
+    hvx_attn_quant_rows_q8(k, v, q, (uint32_t)kv_heads, (uint32_t)q_heads, hd,
+                           k8, v8, ks, q8, qs, qz, s->quant_pool);
+  const uint64_t packed = HAP_perf_get_time_us();
+  uint32_t stages[16] = {0};
+  if (!rc)
+    rc = attn_q8_step_impl(handle, kv_handle, row0, n_rows, n_q, cache_from,
+                           cache_to, n_head_q, window, softcap, k8, kLen, v8,
+                           vLen, ks, (int)(2u * kv_heads), q8, qLen, qs,
+                           (int)q_heads, qz, (int)q_heads, sinks, sinksLen, out,
+                           outLen, stages, 16, 0u, 0u, 0);
+  else
+    rc = AEE_EBADPARM;
+  free(scratch);
+  memset(stats, 0, (size_t)statsLen * sizeof(*stats));
+  stats[0] = stages[0];
+  stats[1] = stages[1];
+  stats[2] = stages[2];
+  stats[3] = (uint32_t)(HAP_perf_get_time_us() - begin);
+  stats[4] = (uint32_t)(packed - begin);
+  stats[7] = n_rows;
+  if (statsLen >= 20)
+    memcpy(stats + 8, stages + 4, 12u * sizeof(*stats));
   return rc;
 }
 

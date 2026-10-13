@@ -58,6 +58,8 @@
 #include <htp_q4_0_convert.h>
 #include <htp_qs2_mapped_file.h>
 #include <htp_qs2_reader.h>
+#include <htp_rope_prefill.h>
+#include <htp_rope_prefill_shape.h>
 #include <htp_rpcmem.h>
 #include <htp_wh_layout.h>
 #include <m1_ops_det.h>
@@ -79,6 +81,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <deque>
+#include <limits>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -397,11 +400,13 @@ public:
                          uint64_t host_us, const uint32_t *stage_us,
                          const HtpRpcBuffer &act_stage,
                          const HtpRpcBuffer &out_stage, size_t in_arg_bytes,
-                         int kind = 0, bool via_dspq = false) {
+                         int kind = 0, bool via_dspq = false,
+                         bool direct_io = false) {
     std::lock_guard<std::mutex> lock(mutex_);
     Bucket &b = buckets_[std::make_tuple(K, N_out, M == 1, kind)];
     ++b.calls;
     b.dspq_calls += via_dspq ? 1 : 0;
+    b.direct_io_calls += direct_io ? 1 : 0;
     b.rows += M;
     b.host_us += host_us;
     // [#88] What this call staged through, for the staging: line. The
@@ -631,6 +636,8 @@ private:
     /** [#141] Of calls, how many rode the dspqueue; then in_arg_bytes is
         the request message, not the stub's non-ION in-args. */
     uint64_t dspq_calls = 0;
+    uint64_t direct_io_calls =
+      0; /**< staging capacities include spare buffers */
   };
 
   HtpProfile() {
@@ -844,6 +851,12 @@ private:
                      static_cast<double>(b.dsp_us) / n);
       }
       if (level_ >= 2 && b.stage_act_bytes != 0) {
+        if (b.direct_io_calls)
+          std::fprintf(stderr,
+                       "\n[HTP-PROFILE]     direct model I/O: %llu/%llu calls; "
+                       "staging capacities below include spare buffers",
+                       (unsigned long long)b.direct_io_calls,
+                       (unsigned long long)b.calls);
         // [#88] The MoE call's per-call transport inventory. The driver's
         // cache maintenance covers the whole staging buffer, so the class
         // size is the number that explains a transport figure; rpc allocs
@@ -1163,6 +1176,12 @@ public:
    *  session may already be closed. The expert prefetch readers (doc 52)
    *  are stopped first. */
   ~HtpComputeOps() override {
+    for (unsigned i = 0; i < 3; ++i)
+      if (shared_io_calls_[i])
+        std::fprintf(stderr,
+                     "[HTP-SHARED-IO] kind=%u calls=%llu direct_bytes=%llu\n",
+                     i, static_cast<unsigned long long>(shared_io_calls_[i]),
+                     static_cast<unsigned long long>(shared_io_bytes_[i]));
     {
       std::lock_guard<std::mutex> lock(prefetch_mutex_);
       prefetch_stop_ = true;
@@ -1233,6 +1252,17 @@ public:
       std::fprintf(stderr, "[HTP] fused RPC calls: router=%llu qkv_norm=%llu\n",
                    (unsigned long long)fused_router_calls_,
                    (unsigned long long)fused_qkv_calls_);
+    if (rope_prefill_calls_)
+      std::fprintf(stderr,
+                   "[HTP-MATH] shape=M>1 op=rope_qkv_prefill calls=%llu "
+                   "prepare_us=%llu rpc_us=%llu dsp_us=%llu copyout_us=%llu "
+                   "bytes=%llu\n",
+                   (unsigned long long)rope_prefill_calls_,
+                   (unsigned long long)rope_prefill_prepare_us_,
+                   (unsigned long long)rope_prefill_rpc_us_,
+                   (unsigned long long)rope_prefill_dsp_us_,
+                   (unsigned long long)rope_prefill_copyout_us_,
+                   (unsigned long long)rope_prefill_staged_bytes_);
     static const char *const names[] = {"norm",      "add",     "swiglu",
                                         "geglu",     "rope",    "rope_fp16",
                                         "cast_fp16", "add_norm"};
@@ -1264,6 +1294,8 @@ public:
   }
 
   uint64_t queued_fc_calls_ = 0, queued_qkv_calls_ = 0;
+  // Directly passed bytes, including inputs staging could already reuse.
+  uint64_t shared_io_calls_[3] = {}, shared_io_bytes_[3] = {};
   uint64_t rope_qkv_calls_ = 0;
   bool rope_qkv_decode(unsigned qw, unsigned kw, unsigned hd, const float *cs,
                        const float *q, const float *k, const float *v,
@@ -1299,6 +1331,83 @@ public:
     stagedMemcpy(ko, st.out->data() + 4u * qw, kw * sizeof(uint16_t));
     stagedMemcpy(vo, st.out->data() + 4u * qw + 2u * kw, kw * sizeof(uint16_t));
     ++rope_qkv_calls_;
+    return true;
+  }
+
+  uint64_t rope_prefill_calls_ = 0;
+  uint64_t rope_prefill_prepare_us_ = 0, rope_prefill_rpc_us_ = 0;
+  uint64_t rope_prefill_dsp_us_ = 0, rope_prefill_copyout_us_ = 0;
+  uint64_t rope_prefill_staged_bytes_ = 0;
+
+  bool ropeQkvPrefill(unsigned M, unsigned qw, unsigned kw, unsigned hd,
+                      const float *cs, float *q, const float *k, const float *v,
+                      uint16_t *ko, uint16_t *vo) {
+    static const bool enabled = [] {
+      const char *e = std::getenv("NNTR_HTP_PREFILL_QKV_PREPARE");
+      return e && std::atoi(e) != 0;
+    }();
+    if (!enabled ||
+        !nntr_rope_prefill_valid(M, qw, kw, hd, cs, q, k, v, ko, vo))
+      return false;
+    const uint64_t enter = HtpProfile::nowUs();
+    const size_t nq = static_cast<size_t>(M) * qw;
+    const size_t nk = static_cast<size_t>(M) * kw;
+    const size_t nc = static_cast<size_t>(M) * 2u * hd;
+    auto &backend = HtpBackend::global();
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    size_t staged_bytes = 0;
+    auto input = [&](const float *src, size_t bytes, unsigned slot) {
+      if (backend.isSharedRange(src, bytes))
+        return src;
+      auto *dst = reinterpret_cast<float *>(
+        stage(rope_prefill_pool_[slot], bytes).data());
+      stagedMemcpy(dst, src, bytes);
+      staged_bytes += bytes;
+      return static_cast<const float *>(dst);
+    };
+    float *rq = const_cast<float *>(input(q, nq * sizeof(float), 0));
+    const float *rk = input(k, nk * sizeof(float), 1);
+    const float *rv = input(v, nk * sizeof(float), 2);
+    const float *rcs = input(cs, nc * sizeof(float), 3);
+    const bool direct_k = backend.isSharedRange(ko, nk * sizeof(uint16_t));
+    const bool direct_v = backend.isSharedRange(vo, nk * sizeof(uint16_t));
+    uint16_t *rko =
+      direct_k ? ko
+               : reinterpret_cast<uint16_t *>(
+                   stage(rope_prefill_pool_[4], nk * sizeof(uint16_t)).data());
+    uint16_t *rvo =
+      direct_v ? vo
+               : reinterpret_cast<uint16_t *>(
+                   stage(rope_prefill_pool_[5], nk * sizeof(uint16_t)).data());
+    uint32_t dsp_us = 0;
+    const uint64_t start = HtpProfile::nowUs();
+    const int err = nntr_hvx_rope_qkv_prefill_f32(
+      static_cast<remote_handle64>(backend.handle()), M, qw, kw, hd, rcs,
+      static_cast<int>(nc), rq, static_cast<int>(nq), rk, static_cast<int>(nk),
+      rv, static_cast<int>(nk), rq, static_cast<int>(nq), rko,
+      static_cast<int>(nk), rvo, static_cast<int>(nk), &dsp_us, 1);
+    const uint64_t end = HtpProfile::nowUs();
+    if (err != AEE_SUCCESS)
+      throw std::runtime_error("HTP prefill QKV RoPE failed: " +
+                               std::to_string(err));
+    if (rq != q) {
+      stagedMemcpy(q, rq, nq * sizeof(float));
+      staged_bytes += nq * sizeof(float);
+    }
+    if (!direct_k) {
+      stagedMemcpy(ko, rko, nk * sizeof(uint16_t));
+      staged_bytes += nk * sizeof(uint16_t);
+    }
+    if (!direct_v) {
+      stagedMemcpy(vo, rvo, nk * sizeof(uint16_t));
+      staged_bytes += nk * sizeof(uint16_t);
+    }
+    ++rope_prefill_calls_;
+    rope_prefill_prepare_us_ += start - enter;
+    rope_prefill_rpc_us_ += end - start;
+    rope_prefill_dsp_us_ += dsp_us;
+    rope_prefill_copyout_us_ += HtpProfile::nowUs() - end;
+    rope_prefill_staged_bytes_ += staged_bytes;
     return true;
   }
 
@@ -4207,6 +4316,18 @@ public:
   }
 
 private:
+  /** Direct prefill I/O for tensors already allocated in rpcmem. Bit 0:
+   * MoE, bit 1: FC, bit 2: convolution. Decode keeps its small queue buffers.
+   * The caller's host tensor remains fully valid after the synchronous RPC.
+   * Set NNTR_HTP_PREFILL_SHARED_IO=0 to compare with the staging path. */
+  static bool sharedPrefillIo(unsigned bit) {
+    static const unsigned mask = [] {
+      const char *e = std::getenv("NNTR_HTP_PREFILL_SHARED_IO");
+      return e ? static_cast<unsigned>(std::strtoul(e, nullptr, 0)) : 7u;
+    }();
+    return (mask & bit) != 0;
+  }
+
   /** @brief Grows @a buf to at least @a bytes, reusing it otherwise.
    *
    *  One buffer for activation, one for output, reused across every call
@@ -4518,7 +4639,8 @@ private:
                    const std::vector<float *> *dsts = nullptr,
                    const FusedNorms *norms = nullptr,
                    const std::vector<OutSlice> *slices = nullptr,
-                   bool retain_moe_input = false) {
+                   bool retain_moe_input = false,
+                   bool allow_strided_output = false) {
     sendMoeOptsOnce(session);
     const int act_len = static_cast<int>(M) * static_cast<int>(K);
     const int out_len = static_cast<int>(M) * static_cast<int>(N);
@@ -4536,25 +4658,91 @@ private:
     if (invokeLayerQueue(session, handles, num_handles, matBdata, matCdata, M,
                          N, K, blocks, dsts, norms, slices, pending))
       return;
+    const bool shared_io = M > 1 && sharedPrefillIo(2u);
+    const bool direct_in =
+      shared_io && !pending &&
+      HtpBackend::global().isSharedRange(
+        matBdata, static_cast<size_t>(act_len) * sizeof(float));
+    // Column slices can write directly into the caller's row-major tensor
+    // using the existing ld entry. Keep batches and fused norms on their
+    // original paths; invokeFc also checks overlap across ALL row chunks.
+    std::vector<uint32_t> fc_out_off, fc_out_ld;
+    bool strided_out = false;
+    if (shared_io && allow_strided_output && !pending && !slices && !dsts &&
+        (!norms || !norms->any()) && blocks && num_handles > 1 &&
+        blocks->size() == static_cast<size_t>(num_handles) && act_len > 0 &&
+        out_len > 0 &&
+        HtpBackend::global().isSharedRange(
+          matCdata, static_cast<size_t>(out_len) * sizeof(float))) {
+      uint64_t column = 0;
+      for (unsigned int width : *blocks) {
+        if (width == 0 || width % 32u || column + width > N ||
+            column + static_cast<uint64_t>(M - 1u) * N + width >
+              static_cast<uint64_t>(out_len))
+          break;
+        fc_out_off.push_back(static_cast<uint32_t>(column));
+        fc_out_ld.push_back(N);
+        column += width;
+      }
+      strided_out = column == N && fc_out_off.size() == blocks->size();
+    }
+    const bool direct_out =
+      strided_out ||
+      (shared_io && !pending && !slices && !dsts &&
+       (!blocks || blocks->size() == 1) &&
+       HtpBackend::global().isSharedRange(
+         matCdata, static_cast<size_t>(out_len) * sizeof(float)));
+    if (direct_in || direct_out) {
+      ++shared_io_calls_[1];
+      shared_io_bytes_[1] +=
+        (direct_in ? static_cast<size_t>(act_len) * sizeof(float) : 0u) +
+        (direct_out ? static_cast<size_t>(out_len) * sizeof(float) : 0u);
+    }
     float *act_f32;
     HtpRpcBuffer *act_stage = nullptr;
     if (pending) {
       act_f32 = reinterpret_cast<float *>(
         stage(act_pool_, pending->inputs.size() * 4).data());
       stagedMemcpy(act_f32, pending->inputs.data(), pending->inputs.size() * 4);
+    } else if (direct_in) {
+      act_f32 = matBdata;
     } else {
       act_stage =
         &stageInput(act_pool_, matBdata,
                     static_cast<size_t>(act_len) * sizeof(float), &out_pool_);
       act_f32 = reinterpret_cast<float *>(act_stage->data());
     }
-    float *out_cat =
-      reinterpret_cast<float *>(stage(out_pool_, (static_cast<size_t>(out_len) +
-                                                  (pending ? 2u * K : 0u)) *
-                                                   sizeof(float))
-                                  .data());
+    const size_t out_bytes =
+      (static_cast<size_t>(out_len) + (pending ? 2u * K : 0u)) * sizeof(float);
+    float *out_cat;
+    if (direct_out) {
+      out_cat = matCdata;
+      // Preserve stage()'s invalidation without allocating unused scratch.
+      const size_t cls = stageClass(out_bytes);
+      out_pool_.holds.erase(cls);
+      out_pool_.copied_out.erase(cls);
+    } else {
+      out_cat = reinterpret_cast<float *>(stage(out_pool_, out_bytes).data());
+    }
 
     HtpProfile &profile = HtpProfile::global();
+    if (strided_out) {
+      const uint64_t t0 = HtpProfile::nowUs();
+      const int err = nntr_hvx_mm_u8i4_layer_norm_ld(
+        session, M, K, 0.0f, nullptr, 0, nullptr, 0, nullptr, 0, 0, 0, nullptr,
+        0, handles, num_handles, fc_out_off.data(), num_handles,
+        fc_out_ld.data(), num_handles, act_f32, act_len, out_cat, out_len);
+      if (err != AEE_SUCCESS)
+        throw std::runtime_error(
+          "HTP strided FC failed: err=" + std::to_string(err) + shape());
+      if (retain_moe_input && act_stage)
+        moe_input_reuse_.remember(matBdata, M, K, act_stage);
+      // The existing ld entry has no timed twin. As with fused norms,
+      // report host wall time without inventing a DSP stage measurement.
+      if (profile.level())
+        profile.addInvoke(M, K, N, HtpProfile::nowUs() - t0, nullptr);
+      return;
+    }
     if (norms && norms->any()) {
       // The norms ride the same call; the timed twin has no norm variant,
       // so this path counts as an untimed call in the profile.
@@ -4623,7 +4811,8 @@ private:
                          static_cast<size_t>(M) * o.stride * sizeof(float));
         }
       } else {
-        copyOut(matCdata, out_cat, M, N, blocks, dsts);
+        if (!direct_out)
+          copyOut(matCdata, out_cat, M, N, blocks, dsts);
       }
       if (profile.level())
         profile.addInvoke(M, K, N, elapsed, nullptr);
@@ -4637,7 +4826,8 @@ private:
         throw std::runtime_error("nntr_hvx_mm_u8i4_layer failed: err=" +
                                  std::to_string(err) + shape());
       }
-      copyOut(matCdata, out_cat, M, N, blocks, dsts);
+      if (!direct_out)
+        copyOut(matCdata, out_cat, M, N, blocks, dsts);
       if (retain_moe_input && act_stage)
         moe_input_reuse_.remember(matBdata, M, K, act_stage);
       return;
@@ -4659,7 +4849,8 @@ private:
                                              : "nntr_hvx_mm_u8i4_layer") +
                                " failed: err=" + std::to_string(err) + shape());
     }
-    copyOut(matCdata, out_cat, M, N, blocks, dsts);
+    if (!direct_out)
+      copyOut(matCdata, out_cat, M, N, blocks, dsts);
     if (retain_moe_input && act_stage)
       moe_input_reuse_.remember(matBdata, M, K, act_stage);
     profile.addInvoke(M, K, N, elapsed, timed ? stage_us : nullptr);
@@ -6018,9 +6209,14 @@ private:
     const bool host_prenorm = HtpProfile::global().level() >= 2 && with_norms &&
                               !via_dspq && pre_gamma != nullptr;
     const bool reused = !via_dspq && !host_prenorm && saved != nullptr;
+    const bool shared_io = M > 1 && sharedPrefillIo(1u);
+    const bool direct_in = shared_io && !host_prenorm &&
+                           HtpBackend::global().isSharedRange(act, act_bytes);
+    const bool direct_out =
+      shared_io && HtpBackend::global().isSharedRange(out, out_bytes);
     HtpRpcBuffer &act_stage = reused     ? *static_cast<HtpRpcBuffer *>(saved)
                               : via_dspq ? *dspq_->act
-                              : host_prenorm
+                              : (host_prenorm || direct_in)
                                 ? stage(act_pool_, act_bytes)
                                 : stageInput(act_pool_, act, act_bytes);
     // The post-FFN epilogue's second addend rides its own staging buffer,
@@ -6034,10 +6230,18 @@ private:
       x2_f32 = reinterpret_cast<float *>(
         stageInput(x2_pool_, add_x2, out_bytes, &out_pool_).data());
     }
-    float *act_f32 = reinterpret_cast<float *>(act_stage.data() + act_offset);
+    if (direct_in || direct_out) {
+      ++shared_io_calls_[0];
+      shared_io_bytes_[0] +=
+        (direct_in ? act_bytes : 0u) + (direct_out ? out_bytes : 0u);
+    }
+    float *act_f32 =
+      direct_in ? const_cast<float *>(act)
+                : reinterpret_cast<float *>(act_stage.data() + act_offset);
     HtpRpcBuffer &out_stage =
       via_dspq ? *dspq_->out : stage(out_pool_, out_bytes);
-    float *out_f32 = reinterpret_cast<float *>(out_stage.data());
+    float *out_f32 =
+      direct_out ? out : reinterpret_cast<float *>(out_stage.data());
     // NNTR_HTP_PROFILE>=2 on a call with folded norms: the timed entry
     // (stage breakdown) and the norms on the host around it, so the prefill
     // MoE and dense calls, which always carry them, have stages too (doc 57
@@ -6162,7 +6366,7 @@ private:
     }
     if (via_dspq)
       stagedMemcpy(out, out_f32, out_bytes);
-    else
+    else if (!direct_out)
       copyOutOf(out_pool_, out, out_bytes);
     if (host_post_norm) {
       std::vector<float> raw(out, out + static_cast<size_t>(out_len));
@@ -6199,9 +6403,9 @@ private:
                  : 48 + sizeof(uint32_t) *
                           (h_gu.size() + h_dn.size() + row_index.size() +
                            row_count.size() + row_weight.size());
-      profile.addInvokeMoeLayer(M, K, N_out, elapsed,
-                                timed ? stage_us : nullptr, act_stage,
-                                out_stage, in_arg_bytes, kind, via_dspq);
+      profile.addInvokeMoeLayer(
+        M, K, N_out, elapsed, timed ? stage_us : nullptr, act_stage, out_stage,
+        in_arg_bytes, kind, via_dspq, direct_in || direct_out);
     }
     if (timed) {
       // [#87] The per-descriptor trace of the last repeat, for the first
@@ -6338,8 +6542,23 @@ private:
                 (static_cast<size_t>(out_len) + (pending ? 2u * K : 0u)) *
                   sizeof(float),
                 flags);
-    float *act_f32 = reinterpret_cast<float *>(act_stage.data());
-    float *out_f32 = reinterpret_cast<float *>(out_stage.data());
+    const bool shared_io = M > 1 && sharedPrefillIo(4u) && !uncached;
+    const bool direct_in = shared_io && !pending &&
+                           HtpBackend::global().isSharedRange(act, input_bytes);
+    const bool direct_out =
+      shared_io && !pending &&
+      HtpBackend::global().isSharedRange(out, static_cast<size_t>(out_len) *
+                                                sizeof(float));
+    if (direct_in || direct_out) {
+      ++shared_io_calls_[2];
+      shared_io_bytes_[2] +=
+        (direct_in ? input_bytes : 0u) +
+        (direct_out ? static_cast<size_t>(out_len) * sizeof(float) : 0u);
+    }
+    float *act_f32 = direct_in ? const_cast<float *>(act)
+                               : reinterpret_cast<float *>(act_stage.data());
+    float *out_f32 =
+      direct_out ? out : reinterpret_cast<float *>(out_stage.data());
     float *conv_f32 = nullptr, *state_in = nullptr, *state_f32;
     if (via_dspq) {
       req.seq = ++dspq_->seq;
@@ -6372,8 +6591,9 @@ private:
       if (cached_req.updates & HTP_DSPQ_CONV_UPDATE_STATE)
         std::memcpy(dst, state, state_len * sizeof(float));
     } else {
-      stagedMemcpy(act_f32, pending ? pending->inputs.data() : act,
-                   input_bytes);
+      if (!direct_in)
+        stagedMemcpy(act_f32, pending ? pending->inputs.data() : act,
+                     input_bytes);
       std::memcpy(conv_f32, conv_w,
                   static_cast<size_t>(conv_len) * sizeof(float));
       std::memcpy(state_in, state,
@@ -6441,7 +6661,8 @@ private:
     }
     if (pending)
       publishNorm(out_f32 + out_len);
-    stagedMemcpy(out, out_f32, static_cast<size_t>(out_len) * sizeof(float));
+    if (!direct_out)
+      stagedMemcpy(out, out_f32, static_cast<size_t>(out_len) * sizeof(float));
     std::memcpy(state, state_f32,
                 static_cast<size_t>(state_len) * sizeof(float));
     if (trace) {
@@ -6469,9 +6690,9 @@ private:
         cached     ? sizeof(cached_req)
         : via_dspq ? sizeof(req)
                    : (timed ? 52 : 48) + sizeof(uint32_t) * ch.h_in.size();
-      profile.addInvokeMoeLayer(M, K, N_out, elapsed,
-                                timed ? stage_us : nullptr, act_stage,
-                                out_stage, in_arg_bytes, /*kind=*/2, via_dspq);
+      profile.addInvokeMoeLayer(
+        M, K, N_out, elapsed, timed ? stage_us : nullptr, act_stage, out_stage,
+        in_arg_bytes, /*kind=*/2, via_dspq, direct_in || direct_out);
     }
   }
 
@@ -6642,18 +6863,38 @@ private:
     std::vector<unsigned int> cols; /**< N of each handle */
   };
 
+  /** Direct FC output must not overwrite a later row chunk's input. */
+  static bool fcDisjointIo(const float *input, const float *output, unsigned M,
+                           unsigned N, unsigned K) {
+    const size_t max_floats =
+      std::numeric_limits<size_t>::max() / sizeof(float);
+    if (!input || !output || !M || !N || !K || M > max_floats / K ||
+        M > max_floats / N)
+      return false;
+    const size_t input_bytes = static_cast<size_t>(M) * K * sizeof(float);
+    const size_t output_bytes = static_cast<size_t>(M) * N * sizeof(float);
+    const uintptr_t a = reinterpret_cast<uintptr_t>(input);
+    const uintptr_t b = reinterpret_cast<uintptr_t>(output);
+    const uintptr_t limit = std::numeric_limits<uintptr_t>::max();
+    if (a > limit - input_bytes || b > limit - output_bytes)
+      return false;
+    return a <= b ? b - a >= input_bytes : a - b >= output_bytes;
+  }
+
   /** @brief One FC weight's layer calls, in fcMaxRows row chunks. */
   void invokeFc(remote_handle64 session, const FcHandles &fh, float *matBdata,
                 float *matCdata, unsigned int M, unsigned int N, unsigned int K,
                 bool retain_moe_input = false) {
+    const bool allow_strided_output =
+      M > 1 && sharedPrefillIo(2u) && fcDisjointIo(matBdata, matCdata, M, N, K);
     const unsigned int step = fcMaxRows(K);
     for (unsigned int m0 = 0; m0 < M; m0 += step) {
       const unsigned int m = std::min(step, M - m0);
-      invokeLayer(session, fh.handles.data(),
-                  static_cast<int>(fh.handles.size()),
-                  matBdata + static_cast<size_t>(m0) * K,
-                  matCdata + static_cast<size_t>(m0) * N, m, N, K, &fh.cols,
-                  nullptr, nullptr, nullptr, retain_moe_input && M <= step);
+      invokeLayer(
+        session, fh.handles.data(), static_cast<int>(fh.handles.size()),
+        matBdata + static_cast<size_t>(m0) * K,
+        matCdata + static_cast<size_t>(m0) * N, m, N, K, &fh.cols, nullptr,
+        nullptr, nullptr, retain_moe_input && M <= step, allow_strided_output);
     }
   }
 
@@ -8548,6 +8789,8 @@ private:
   std::array<std::array<MathTiming, 8>, 2> math_timing_{};
   HtpActivationReuse moe_input_reuse_;
   StagingPool out_pool_;
+  StagingPool
+    rope_prefill_pool_[6];    /**< independent Q/K/V/phase/cache staging */
   StagingPool rope_pool_;     /**< the fused projection call's RoPE rows */
   StagingPool x2_pool_;       /**< the MoE call's post-FFN second addend */
   StagingPool attn_q_pool_;   /**< the row-blocked attention's f32 Q */
@@ -8701,6 +8944,67 @@ public:
     }
   }
 
+  bool sdpa_q8_npu(int handle, unsigned row0, unsigned rows, const uint16_t *k,
+                   const uint16_t *v, const float *q, unsigned n_q,
+                   unsigned cache_from, unsigned cache_to, unsigned q_heads,
+                   unsigned kv_heads, unsigned hd, unsigned window,
+                   float softcap, const float *sinks, float *out) {
+    if (!q || !out || n_q > 65535u || rows > 65535u || q_heads > 4096u)
+      return false;
+    const uint64_t q_count = uint64_t(n_q) * q_heads * hd;
+    const uint64_t kv_count = uint64_t(rows) * kv_heads * hd;
+    if (q_count > INT32_MAX / sizeof(float) ||
+        kv_count > INT32_MAX / sizeof(uint16_t))
+      return false;
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    auto &backend = HtpBackend::global();
+    const int64_t start = now_us();
+    const size_t q_bytes = size_t(q_count) * sizeof(float);
+    const size_t kv_bytes = size_t(kv_count) * sizeof(uint16_t);
+    const float *rpc_q = q;
+    const uint16_t *rpc_k = k, *rpc_v = v;
+    if (!backend.isSharedRange(q, q_bytes)) {
+      rpc_q =
+        reinterpret_cast<float *>(stage(attn_f16_q_pool_, q_bytes).data());
+      stagedMemcpy(const_cast<float *>(rpc_q), q, q_bytes);
+    }
+    if (rows && !backend.isSharedRange(k, kv_bytes)) {
+      rpc_k = reinterpret_cast<uint16_t *>(
+        stage(attn_native_k_pool_, kv_bytes).data());
+      stagedMemcpy(const_cast<uint16_t *>(rpc_k), k, kv_bytes);
+    }
+    if (rows && !backend.isSharedRange(v, kv_bytes)) {
+      rpc_v = reinterpret_cast<uint16_t *>(
+        stage(attn_native_v_pool_, kv_bytes).data());
+      stagedMemcpy(const_cast<uint16_t *>(rpc_v), v, kv_bytes);
+    }
+    const bool direct = backend.isSharedRange(out, q_bytes);
+    float *result =
+      direct
+        ? out
+        : reinterpret_cast<float *>(stage(attn_f16_out_pool_, q_bytes).data());
+    const int64_t prepared = now_us();
+    uint32_t stats[20] = {};
+    const int err = nntr_hvx_attn_q8_npu_step(
+      static_cast<remote_handle64>(backend.handle()), uint32_t(handle), row0,
+      rpc_k, int(kv_count), rpc_v, int(kv_count), n_q, cache_from, cache_to,
+      q_heads, window, softcap, rpc_q, int(q_count), sinks,
+      sinks ? int(q_heads) : 0, result, int(q_count), stats, 20);
+    const int64_t returned = now_us();
+    if (!direct && err == AEE_SUCCESS)
+      stagedMemcpy(out, result, q_bytes);
+    if (attn_trace_enabled())
+      ml_logi("HTP attn trace q8npu: n_q=%u cache=%u..%u err=0x%x "
+              "prepare_us=%lld rpc_us=%lld wall_us=%lld dsp_us=%u "
+              "quant_us=%u append_us=%u attn_us=%u direct_out=%u",
+              n_q, cache_from, cache_to, err,
+              static_cast<long long>(prepared - start),
+              static_cast<long long>(returned - prepared),
+              static_cast<long long>(now_us() - start), stats[3], stats[4],
+              stats[0], stats[1], unsigned(direct));
+    return err == AEE_SUCCESS;
+  }
+
   bool sdpa_q8_transport(int handle, unsigned int row0, unsigned int n_rows,
                          const uint16_t *k, const uint16_t *v, const float *q,
                          unsigned int n_q, unsigned int cache_from,
@@ -8825,6 +9129,12 @@ public:
       const auto it = attn_cache_kinds_.find(handle);
       q8_cache = it != attn_cache_kinds_.end() && it->second == 0u;
     }
+    const char *npu_quant = std::getenv("NNTR_HTP_ATTN_Q8_NPU");
+    if (q8_cache && n_q >= 5u && head_dim <= 256u &&
+        (!npu_quant || std::atoi(npu_quant) != 0))
+      return sdpa_q8_npu(handle, append_row0, append_rows, k_rows, v_rows, q,
+                         n_q, cache_from, cache_to, n_head_q, n_head_kv,
+                         head_dim, window, softcap, sinks, out);
     if (q8_cache)
       return sdpa_q8_transport(
         handle, append_row0, append_rows, k_rows, v_rows, q, n_q, cache_from,
@@ -9105,6 +9415,13 @@ public:
 ComputeOps *get_htp_ops() {
   static HtpComputeOps instance;
   return &instance;
+}
+
+bool htp_rope_qkv_prefill(unsigned rows, unsigned qw, unsigned kw, unsigned hd,
+                          const float *cs, float *q, const float *k,
+                          const float *v, uint16_t *ko, uint16_t *vo) {
+  return static_cast<HtpComputeOps *>(get_htp_ops())
+    ->ropeQkvPrefill(rows, qw, kw, hd, cs, q, k, v, ko, vo);
 }
 
 } // namespace nntrainer

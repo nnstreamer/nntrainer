@@ -1392,4 +1392,24 @@ interface nntr_hvx : remote_handle64 {
    // The arena stays borrowed until disable, weight release or rebind.
    AEEResult weight_prepare_conv_decode(in uint32 w_handle,
      in uint32 arena, in uint32 off, in uint32 chunk);
+   // FP32 Q and FP16 K/V already in accelerator-visible buffers: quantize
+   // on HVX, append to resident Q8 KV, then run HMX prefill in one call.
+   // n_q >= 5; dynamic Q8 only. Quantization errors leave the KV cache intact.
+   // stats[0..3]: append/attention/path/total; [4]: QKV quantization;
+   // [7]: appended rows; optional [8..19]: HMX phase counters.
+   AEEResult attn_q8_npu_step(in uint32 kv_handle, in uint32 row0,
+     in sequence<uint16> k_rows, in sequence<uint16> v_rows,
+     in uint32 n_q, in uint32 cache_from, in uint32 cache_to,
+     in uint32 n_head_q, in uint32 window, in float softcap,
+     in sequence<float> q_f32, in sequence<float> sinks,
+     rout sequence<float> out_f32, rout sequence<uint32> stats_us);
+   // One prefill prepare boundary, with separate shared outputs and no scratch.
+   // q_out aliases q exactly; K/V caches must be disjoint from all inputs.
+   // hd=64, M>=2; existing FP32 RoPE then FP16 conversion arithmetic.
+   // Appended only: all prior RPC method ordinals remain unchanged.
+   AEEResult rope_qkv_prefill_f32(in uint32 M, in uint32 q_width,
+     in uint32 kv_width, in uint32 head_dim, in sequence<float> cs,
+     in sequence<float> q, in sequence<float> k, in sequence<float> v,
+     rout sequence<float> q_out, rout sequence<uint16> k_out,
+     rout sequence<uint16> v_out, rout sequence<uint32> elapsed_us);
 };

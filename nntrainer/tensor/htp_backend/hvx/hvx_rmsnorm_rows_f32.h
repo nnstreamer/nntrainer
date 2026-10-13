@@ -44,8 +44,23 @@ int hvx_rmsnorm_rows_ld_f32(const float *x, float *y, uint32_t M, uint32_t n,
                             uint32_t ld, uint32_t chunk, const float *gamma,
                             float eps, hvx_worker_pool *pool);
 
+/** @brief Compute sum = x + residual and norm = RMSNorm(sum) together.
+ * Each output may alias either input, but the two outputs must be distinct
+ * and no partially overlapping ranges are supported. Uses the same f32
+ * rounding and reduction order as separate addition and RMSNorm calls.
+ */
+int hvx_add_rmsnorm_rows_f32(const float *x, const float *residual, float *sum,
+                             float *norm, uint32_t M, uint32_t n,
+                             uint32_t chunk, const float *gamma, float eps,
+                             hvx_worker_pool *pool);
+
 /** @brief One row of hvx_rmsnorm_rows_f32 with chunk = n, inline on the
  *         caller: the same arithmetic, so the same floats. */
+/** @brief Per-head RMSNorm of one row; chunk divides n and is a multiple of 32.
+ */
+void hvx_rmsnorm_row_chunks_f32(const float *x, float *y, const float *gamma,
+                                uint32_t n, uint32_t chunk, float eps);
+
 void hvx_rmsnorm_row_f32(const float *x, float *y, const float *gamma,
                          uint32_t n, float eps);
 

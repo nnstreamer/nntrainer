@@ -216,6 +216,52 @@ void hvx_dq_tiles_worker(uint32_t n_threads, uint32_t i, void *vctx) {
   }
 }
 
+void hvx_dq_tiles_rows_worker(uint32_t n_threads, uint32_t i, void *vjob) {
+  const hvx_dq_rows_job *jb = (const hvx_dq_rows_job *)vjob;
+  const hvx_dq_tiles_job *c = &jb->t;
+  const uint32_t groups = (c->m_count + 3u) / 4u;
+  const uint32_t lo = (uint32_t)((uint64_t)groups * i / n_threads) * 4u;
+  const uint32_t hi0 = (uint32_t)((uint64_t)groups * (i + 1u) / n_threads) * 4u;
+  const uint32_t hi = hi0 < c->m_count ? hi0 : c->m_count;
+  const uint32_t c0 = c->nt0 * HEXKL_ACC_TILE_COLS;
+  const HVX_UVector *cs = (const HVX_UVector *)(c->colsum_w + c0);
+  const HVX_UVector *ws = (const HVX_UVector *)(c->w_scale + c0);
+  const HVX_UVector *bs = (const HVX_UVector *)(c->bias + c0);
+
+  for (uint32_t m = lo; m < hi; m += 4u) {
+    for (uint32_t j = 0; j < c->n_tiles; ++j) {
+      const int32_t *tile =
+        (const int32_t *)(c->tiles_base + (size_t)j * c->tile_stride);
+      HVX_Vector rows[4];
+      if (c->row_stride == 0u) {
+        acc_plane_rows(tile, m, rows);
+      }
+      const HVX_Vector csf = Q6_Vsf_equals_Vw(cs[j]);
+#pragma unroll(4)
+      for (uint32_t q = 0; q < 4u; ++q) {
+        if (m + q >= hi) {
+          break;
+        }
+        const HVX_Vector acc =
+          c->row_stride == 0u
+            ? rows[q]
+            : ((const HVX_UVector *)(tile +
+                                     (size_t)(m + q) * c->row_stride))[0];
+        HVX_UVector *vo =
+          (HVX_UVector *)(c->dst_a + (size_t)(m + q) * c->dst_stride + c0);
+        vo[j] = dq_vector_sf(acc, c->act_scale[m + q], c->act_zp[m + q], csf,
+                             ws[j], bs[j]);
+      }
+    }
+    for (uint32_t q = 0; q < 4u && m + q < hi; ++q) {
+      if (jb->row_done) {
+        jb->row_done(jb->ctx, c->dst_a + (size_t)(m + q) * c->dst_stride + c0,
+                     m + q);
+      }
+    }
+  }
+}
+
 void hvx_dequant_acc_tiles_to_f32(
   const uint8_t *tiles_base, uint32_t tile_stride, uint32_t n_tiles,
   uint32_t nt0, uint32_t row_stride, uint32_t m_count, const float *act_scale,
@@ -342,6 +388,27 @@ void hvx_dq_mul_worker(uint32_t n_threads, uint32_t i, void *vctx) {
       Q6_Vsf_equals_Vw(((const HVX_UVector *)(c->colsum_b + col))[0]);
     const HVX_Vector vwb = ((const HVX_UVector *)(c->w_scale_b + col))[0];
     const HVX_Vector vbb = ((const HVX_UVector *)(c->bias_b + col))[0];
+
+    if (c->row_stride == 0u) {
+      for (uint32_t m = 0; m < c->m_count; m += 4u) {
+        HVX_Vector ar[4], br[4];
+        acc_plane_rows(at, m, ar);
+        acc_plane_rows(bt, m, br);
+#pragma unroll(4)
+        for (uint32_t q = 0; q < 4u; ++q) {
+          if (m + q >= c->m_count) {
+            break;
+          }
+          const HVX_Vector a = dq_vector_sf(ar[q], c->act_scale[m + q],
+                                            c->act_zp[m + q], csa, vwa, vba);
+          const HVX_Vector b = dq_vector_sf(br[q], c->act_scale[m + q],
+                                            c->act_zp[m + q], csb, vwb, vbb);
+          ((HVX_UVector *)(c->dst + (size_t)(m + q) * c->dst_stride + col))[0] =
+            Q6_Vsf_vmpy_VsfVsf(a, b);
+        }
+      }
+      continue;
+    }
 
     for (uint32_t m = 0; m < c->m_count; ++m) {
       const HVX_Vector a =

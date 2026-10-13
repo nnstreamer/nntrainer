@@ -27,13 +27,19 @@
 #include <AEEStdErr.h>
 
 #include "hexkl_acc_tile.h"
+#include "hexkl_cvt.h"
 #include "hexkl_dma_ring.h"
+#include "hexkl_hmx_mm.h"
 #include "hexkl_micro.h"
 #include "hexkl_probe.h"
 #include "hvx_conv_gate_f32.h"
 #include "hvx_dequant_i32.h"
 #include "hvx_gemm_u8i4_wh.h"
 #include "hvx_quant_u8.h"
+
+#if defined(__hexagon__)
+#include <hexagon_types.h>
+#endif
 
 #define ROUND_UP_U32(v, a) ((((v) + ((a)-1)) / (a)) * (a))
 #define ROUND_UP_SZ(v, a) ((((v) + ((a)-1)) / (a)) * (a))
@@ -45,6 +51,85 @@
 
 /** @brief Bounded chunk-index arrays; a shape needing more is refused. */
 #define CB_MAX_CHUNKS 16u
+
+/** @brief Build-time control for comparing the SDK accumulator reader. */
+#ifndef NNTR_CONV_ACC_PLANES
+#define NNTR_CONV_ACC_PLANES 1
+#endif
+
+/** The four SDK convert passes already write the bytes the epilogues need.
+ * Leave them as planes in the double-buffered stage: workers reconstruct
+ * four rows in registers while the issuing thread starts the next HMX batch.
+ * Unknown SDK configuration/layouts keep the checked vendor reader. */
+static int cb_acc_planes_supported(const uint8_t *config, const uint8_t *stage,
+                                   const hexkl_acc_layout *layout) {
+#if defined(__hexagon__) && NNTR_CONV_ACC_PLANES
+  if (layout->base != 0u || layout->row_stride != HEXKL_ACC_TILE_COLS ||
+      ((uintptr_t)config & (HEXKL_CVT_BLOCK_BYTES - 1u)) != 0u ||
+      ((uintptr_t)stage & (HEXKL_CVT_PLANE_ALIGN - 1u)) != 0u) {
+    return 0;
+  }
+  const uint32_t scale[4] = {0x6000u, 0x4000u, 0x2000u, 0u};
+  const uint32_t *words = (const uint32_t *)config;
+  for (uint32_t p = 0; p < 4u; ++p) {
+    for (uint32_t w = 0; w < HEXKL_CVT_BLOCK_BYTES / sizeof(uint32_t); ++w) {
+      if (words[p * (HEXKL_CVT_BLOCK_BYTES / sizeof(uint32_t)) + w] !=
+          (w < 64u ? scale[p] : 0u)) {
+        return 0;
+      }
+    }
+  }
+  return 1;
+#else
+  (void)config;
+  (void)stage;
+  (void)layout;
+  return 0;
+#endif
+}
+
+/** Keep the SDK's dependency between convert writes and the next clear. */
+static inline void cb_acc_read_planes(const uint8_t *config, uint8_t *stage) {
+  for (uint32_t p = 0; p < 4u; ++p) {
+    hexkl_cvt_issue(config + p * HEXKL_CVT_BLOCK_BYTES,
+                    stage + p * HEXKL_CVT_PLANE_BYTES);
+  }
+#if defined(__hexagon__)
+  (void)*(const volatile HVX_Vector *)(stage + ACC_TILE_BYTES - 128u);
+#endif
+}
+
+/** The tile layout establishes alignment once per call. Keep the vendor
+ * path for layouts that do not meet it and for scalar host stand-ins. The
+ * inline packet uses the same HMX activation and weight descriptors, without
+ * repeating the library's call frame and alignment checks for every K tile. */
+static inline int cb_mm_reduce(uint8_t *vtcm_base, uint32_t act_off,
+                               uint32_t weight_off, uint32_t k_tiles,
+                               uint32_t weight_stride, int hmx_inline) {
+#if defined(__hexagon__)
+  if (hmx_inline) {
+    const uint8_t *a = vtcm_base + act_off;
+    const uint8_t *w = vtcm_base + weight_off;
+    for (uint32_t kt = 0; kt < k_tiles; ++kt) {
+      hexkl_hmx_mm_u8i4(a, w);
+      a += HEXKL_HMX_ACTIVATION_ALIGNMENT;
+      w += weight_stride;
+    }
+    return AEE_SUCCESS;
+  }
+#else
+  (void)hmx_inline;
+#endif
+  for (uint32_t kt = 0; kt < k_tiles; ++kt) {
+    const int rc = hexkl_micro_hmx_mm_u8i4(
+      vtcm_base, act_off + kt * HEXKL_HMX_ACTIVATION_ALIGNMENT,
+      weight_off + kt * weight_stride);
+    if (rc != AEE_SUCCESS) {
+      return rc;
+    }
+  }
+  return AEE_SUCCESS;
+}
 
 /** Input quantization and AH packing share 16-row background units. Four
  * units publish one HMX row block, keeping the first block parallel while
@@ -584,11 +669,18 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
   if (rc != AEE_SUCCESS) {
     return rc;
   }
+  /** All activation steps are 2048 bytes, all weight steps are multiples
+     of 512 bytes, and both mid blocks start at aligned tile boundaries. */
+  const int hmx_inline =
+    hexkl_hmx_mm_aligned(vtcm_base + L.act_off, vtcm_base + L.w_a_off) &&
+    hexkl_hmx_mm_aligned(vtcm_base + L.mid_off, vtcm_base + L.w_b_off);
   const hexkl_acc_layout *acc = hexkl_acc_layout_get(vtcm_base, L.result_off);
   if (!acc->usable) {
     return AEE_EUNSUPPORTED;
   }
   hexkl_probe_us[HEXKL_PROBE_ACC_STRIDE] = acc->row_stride;
+  const int acc_planes = cb_acc_planes_supported(vtcm_base + config_off,
+                                                 vtcm_base + L.result_off, acc);
 
   const uint32_t BR = HEXKL_HMX_INT8_BLOCK_N_ROW;
   const uint32_t k_tiles = K / HEXKL_HMX_INT8_BLOCK_N_INNER;
@@ -742,17 +834,20 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
         const uint32_t col = g0 + ((j < np) ? j : (j - np));
         const uint32_t w_off = (j < np) ? L.w_a_off : L.w_b_off;
         hexkl_micro_hmx_acc_clear_int32();
-        for (uint32_t kt = 0; kt < k_tiles; ++kt) {
-          rc = hexkl_micro_hmx_mm_u8i4(
-            vtcm_base, L.act_off + kt * HEXKL_HMX_ACTIVATION_ALIGNMENT,
-            w_off + (kt * c_ntiles + col) * WEIGHT_TILE_BYTES_U8I4);
-          if (rc != AEE_SUCCESS) {
-            goto out;
-          }
+        rc = cb_mm_reduce(vtcm_base, L.act_off,
+                          w_off + col * WEIGHT_TILE_BYTES_U8I4, k_tiles,
+                          c_ntiles * WEIGHT_TILE_BYTES_U8I4, hmx_inline);
+        if (rc != AEE_SUCCESS) {
+          goto out;
         }
         HEXKL_PROBE_T0(p0);
-        rc = hexkl_micro_hmx_acc_read_int32(vtcm_base, config_off,
-                                            stage_off + j * ACC_TILE_BYTES);
+        if (acc_planes) {
+          cb_acc_read_planes(vtcm_base + config_off,
+                             vtcm_base + stage_off + j * ACC_TILE_BYTES);
+        } else {
+          rc = hexkl_micro_hmx_acc_read_int32(vtcm_base, config_off,
+                                              stage_off + j * ACC_TILE_BYTES);
+        }
         HEXKL_PROBE_ADD(HEXKL_PROBE_ACC_READ, p0);
         if (rc != AEE_SUCCESS) {
           goto out;
@@ -769,11 +864,11 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
         hvx_dq_mul_job *jb = &mul_job[ac_batch & 1u];
         jb->tiles_base =
           (const uint8_t *)((const int32_t *)(vtcm_base + stage_off) +
-                            acc->base);
+                            (acc_planes ? 0u : acc->base));
         jb->tile_stride = ACC_TILE_BYTES;
         jb->n_pairs = np;
         jb->c0 = g0 * HEXKL_HMX_INT8_BLOCK_N_COL;
-        jb->row_stride = acc->row_stride;
+        jb->row_stride = acc_planes ? 0u : acc->row_stride;
         jb->m_count = m_blk;
         jb->act_scale = scale_all + mb;
         jb->act_zp = zp_all + mb;
@@ -855,17 +950,21 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
         HEXKL_MOE_MM_BEGIN();
         for (uint32_t j = 0; j < nb; ++j) {
           hexkl_micro_hmx_acc_clear_int32();
-          for (uint32_t kt = 0; kt < k_tiles; ++kt) {
-            rc = hexkl_micro_hmx_mm_u8i4(
-              vtcm_base, L.act_off + kt * HEXKL_HMX_ACTIVATION_ALIGNMENT,
-              L.w_a_off + (kt * c_ntiles + nt0 + j) * WEIGHT_TILE_BYTES_U8I4);
-            if (rc != AEE_SUCCESS) {
-              goto out;
-            }
+          rc = cb_mm_reduce(vtcm_base, L.act_off,
+                            L.w_a_off + (nt0 + j) * WEIGHT_TILE_BYTES_U8I4,
+                            k_tiles, c_ntiles * WEIGHT_TILE_BYTES_U8I4,
+                            hmx_inline);
+          if (rc != AEE_SUCCESS) {
+            goto out;
           }
           HEXKL_PROBE_T0(p0);
-          rc = hexkl_micro_hmx_acc_read_int32(vtcm_base, config_off,
-                                              stage_off + j * ACC_TILE_BYTES);
+          if (acc_planes) {
+            cb_acc_read_planes(vtcm_base + config_off,
+                               vtcm_base + stage_off + j * ACC_TILE_BYTES);
+          } else {
+            rc = hexkl_micro_hmx_acc_read_int32(vtcm_base, config_off,
+                                                stage_off + j * ACC_TILE_BYTES);
+          }
           HEXKL_PROBE_ADD(HEXKL_PROBE_ACC_READ, p0);
           if (rc != AEE_SUCCESS) {
             goto out;
@@ -888,10 +987,10 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
           hvx_dq_tiles_job *jb = &dq_job[bo_batch & 1u];
           jb->tiles_base =
             (const uint8_t *)((const int32_t *)(vtcm_base + stage_off) +
-                              acc->base);
+                              (acc_planes ? 0u : acc->base));
           jb->tile_stride = ACC_TILE_BYTES;
           jb->nt0 = nt0;
-          jb->row_stride = acc->row_stride;
+          jb->row_stride = acc_planes ? 0u : acc->row_stride;
           jb->m_count = m_blk;
           jb->act_scale = scale_all + mb;
           jb->act_zp = zp_all + mb;
@@ -964,19 +1063,21 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
         HEXKL_MOE_MM_BEGIN();
         for (uint32_t j = 0; j < nb; ++j) {
           hexkl_micro_hmx_acc_clear_int32();
-          for (uint32_t kt = 0; kt < c_ktiles; ++kt) {
-            rc = hexkl_micro_hmx_mm_u8i4(vtcm_base,
-                                         (uint32_t)(midbuf[prev] - vtcm_base) +
-                                           kt * HEXKL_HMX_ACTIVATION_ALIGNMENT,
-                                         L.w_b_off + (kt * o_ntiles + nt0 + j) *
-                                                       WEIGHT_TILE_BYTES_U8I4);
-            if (rc != AEE_SUCCESS) {
-              goto out;
-            }
+          rc = cb_mm_reduce(vtcm_base, (uint32_t)(midbuf[prev] - vtcm_base),
+                            L.w_b_off + (nt0 + j) * WEIGHT_TILE_BYTES_U8I4,
+                            c_ktiles, o_ntiles * WEIGHT_TILE_BYTES_U8I4,
+                            hmx_inline);
+          if (rc != AEE_SUCCESS) {
+            goto out;
           }
           HEXKL_PROBE_T0(p0);
-          rc = hexkl_micro_hmx_acc_read_int32(vtcm_base, config_off,
-                                              stage_off + j * ACC_TILE_BYTES);
+          if (acc_planes) {
+            cb_acc_read_planes(vtcm_base + config_off,
+                               vtcm_base + stage_off + j * ACC_TILE_BYTES);
+          } else {
+            rc = hexkl_micro_hmx_acc_read_int32(vtcm_base, config_off,
+                                                stage_off + j * ACC_TILE_BYTES);
+          }
           HEXKL_PROBE_ADD(HEXKL_PROBE_ACC_READ, p0);
           if (rc != AEE_SUCCESS) {
             goto out;
@@ -999,10 +1100,10 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
           hvx_dq_tiles_job *jb = &dq_job[bo_batch & 1u];
           jb->tiles_base =
             (const uint8_t *)((const int32_t *)(vtcm_base + stage_off) +
-                              acc->base);
+                              (acc_planes ? 0u : acc->base));
           jb->tile_stride = ACC_TILE_BYTES;
           jb->nt0 = nt0;
-          jb->row_stride = acc->row_stride;
+          jb->row_stride = acc_planes ? 0u : acc->row_stride;
           jb->m_count = pm_blk;
           jb->act_scale = rq_scale[prev];
           jb->act_zp = rq_zp[prev];

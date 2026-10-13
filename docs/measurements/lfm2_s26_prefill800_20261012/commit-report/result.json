@@ -1,0 +1,141 @@
+{
+  "status": "accepted_by_user_for_commit",
+  "scope": "Measured frozen working-tree runtime; selected commit excludes unrelated TL2/decode experiments. Clean commit source build checks are recorded separately.",
+  "model": "LFM2-24B-A2B",
+  "device": "S26 Ultra SM-S948N",
+  "serial": "R5KL30G6MCX",
+  "input_tokens": 1024,
+  "generated_tokens": 64,
+  "weights": "Existing expert2bit / other4bit mixed format, unchanged",
+  "weight_sha256": "271f48e3d7b36746f0ddf6997ca37034cc4d7d1e5e9d47b12ed40fba765d4a3c",
+  "protocol": {
+    "clean": true,
+    "prefill_excludes_model_startup": true,
+    "prefill_counter": "Application integer-millisecond prefill counter",
+    "quiet_seconds": 30,
+    "thermal_status_required": 0,
+    "max_start_temperature_c": {
+      "AP": 36,
+      "BAT": 31,
+      "SKIN": 34
+    },
+    "no_concurrent_benchmark_pids": true,
+    "order": "ABBA+B, same binary, only new prefill QKV prepare flag differs"
+  },
+  "selected": {
+    "expert_cache": 22,
+    "reader_threads": 4,
+    "terminal_tail_rows": 64,
+    "qkv_prepare": 1,
+    "legacy_prefill_rope_fusion": 0,
+    "registry_capacity": 2048,
+    "environment": "selected-environment.json",
+    "configuration": "nntr_config.json"
+  },
+  "selected_result": {
+    "samples": 3,
+    "prefill_ms": [
+      1240,
+      1237,
+      1320
+    ],
+    "tps": [
+      825.806,
+      827.809,
+      775.758
+    ],
+    "median_ms": 1240,
+    "tps_at_median_ms": 825.8064516129032,
+    "range_tps": [
+      775.7575757575758,
+      827.8092158447857
+    ],
+    "median_at_least_800_tps": true,
+    "all_samples_at_least_800_tps": false
+  },
+  "all_runs": [
+    {
+      "label": "reconnected-combined-v2-c22-r4-a1",
+      "qkv_prepare": "0",
+      "prefill_ms": 1246,
+      "prefill_tps": 821.83,
+      "generation_tps": 34.5386,
+      "valid": true
+    },
+    {
+      "label": "reconnected-combined-v2-c22-r4-b1",
+      "qkv_prepare": "1",
+      "prefill_ms": 1240,
+      "prefill_tps": 825.806,
+      "generation_tps": 34.0245,
+      "valid": true
+    },
+    {
+      "label": "reconnected-combined-v2-c22-r4-b2",
+      "qkv_prepare": "1",
+      "prefill_ms": 1237,
+      "prefill_tps": 827.809,
+      "generation_tps": 33.6134,
+      "valid": true
+    },
+    {
+      "label": "reconnected-combined-v2-c22-r4-a2",
+      "qkv_prepare": "0",
+      "prefill_ms": 1254,
+      "prefill_tps": 816.587,
+      "generation_tps": 34.4271,
+      "valid": true
+    },
+    {
+      "label": "reconnected-combined-v2-c22-r4-b3",
+      "qkv_prepare": "1",
+      "prefill_ms": 1320,
+      "prefill_tps": 775.758,
+      "generation_tps": 33.5782,
+      "valid": true
+    }
+  ],
+  "earlier_baseline": {
+    "median_ms": 1652.5,
+    "tps_at_median_ms": 619.6671709531014,
+    "samples": 2,
+    "expert_cache": 8,
+    "reader_threads": 6,
+    "evidence": "baseline-clean-abba.json",
+    "comparison_scope": "Earlier recovered-device ABBA; final result also changes cache capacity and reader count."
+  },
+  "accuracy": {
+    "full_graph": "286 prefill outputs and five raw logit/token vectors byte-identical for RoPE v2 with full final FFN; rope-full-graph-parity.json",
+    "selected_combined": "Full 64 generated tokens and all 64 x 65536 FP32 logit vectors byte-identical and finite on the fixed 1024-token prompt with actual tail64 enabled; combined-64-step-parity.json",
+    "scope": "One prompt only. The original quantized model already repeated the token cred; equality is not a language-quality evaluation."
+  },
+  "measured_runtime_sha256": {
+    "libnntrainer.so": {
+      "sha256": "88964cc24be4640c09a9c3595ac2c32714c0fd95eab79c33f6e160e1bc980221"
+    },
+    "libnntr_hvx_skel.so": {
+      "sha256": "8d640716b56b9af96ab3ef41d5c8f39493eb95dba97f483fc5a66aae80248876"
+    },
+    "libcausallm_core.so": {
+      "sha256": "24c08b2fff21c129adc0b2d2603308773f831dd60c05eb84faf2a1bf2d92352a"
+    }
+  },
+  "cache_tradeoff": {
+    "logical_extra_expert_slot_mib_vs_cache8": 1221.9375,
+    "startup_prep_outside_prefill": true,
+    "total_peak_ram_and_startup_delta_measured": false
+  },
+  "not_retained": [
+    "MoE GU row balancing: failed repeatable performance comparison",
+    "4096-slot registry and cache28/cache32: experimental, not part of selected runtime",
+    "Reader2/3, CPU affinity and direct-copy-read tuning: scouting only; selected setting stays at four readers"
+  ],
+  "remaining_cpu": "Tokenization, embedding, sampling, expert file I/O, scheduling, metadata and some staging copies remain.",
+  "limitations": [
+    "The median exceeds 800 TPS; one of three selected runs is 775.758 TPS. The user accepted the current result.",
+    "Block timings are not added to infer whole-model TPS.",
+    "No total peak RAM or startup latency delta was collected before the user requested the commit.",
+    "Rebuild and deploy ARM FastRPC stub and DSP skel together from the committed IDL; unrelated methods in the measured working tree change ordinal numbering.",
+    "Full CI/build matrix was not run. Device timings/parity refer to the explicitly hashed measured runtime, not to newly rebuilt commit artifacts."
+  ]
+}

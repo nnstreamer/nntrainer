@@ -1,0 +1,49 @@
+{
+  "serial": "R5KL30G6MCX",
+  "input_tokens": 1024,
+  "order": "ABBA",
+  "weight_sha256": "271f48e3d7b36746f0ddf6997ca37034cc4d7d1e5e9d47b12ed40fba765d4a3c",
+  "precision": "Existing expert2bit / other4bit unchanged",
+  "variants": {
+    "reconnected_baseline": {
+      "prefill_ms": [
+        1632,
+        1673
+      ],
+      "prefill_tps": [
+        627.451,
+        612.074
+      ],
+      "median_ms": 1652.5,
+      "tps_at_median_ms": 619.6671709531014,
+      "minimum_tps": 612.074,
+      "samples": 2
+    },
+    "reconnected_final": {
+      "prefill_ms": [
+        1415,
+        1436
+      ],
+      "prefill_tps": [
+        723.675,
+        713.092
+      ],
+      "median_ms": 1425.5,
+      "tps_at_median_ms": 718.3444405471764,
+      "minimum_tps": 713.092,
+      "samples": 2
+    }
+  },
+  "all_runs_valid": true,
+  "final_all_samples_ge_800_tps": false,
+  "tensor_parity": "Pending separate diagnostic runs; timing runs do not dump tensors",
+  "samples": [
+    "../reconnected-1024-A1.json",
+    "../reconnected-1024-B1.json",
+    "../reconnected-1024-B2.json",
+    "../reconnected-1024-A2.json"
+  ],
+  "generated_last_line_hashes_match": true,
+  "last_line_scope": "Only the last printed generation line; raw tensor/logit comparison is separate",
+  "target_rounding_guard": "Require reported prefill_ms <=1279 in repeated clean runs; displayed1280ms is a truncated-ms boundary"
+}

@@ -15,6 +15,7 @@
 #include <cpu_backend.h>
 #include <iostream>
 
+#include "generation_prefill_tail.h"
 #include "htp_decode_hook.h"
 #include "htp_strict.h"
 #include "moe_decode_lookahead.h"
@@ -99,18 +100,23 @@ void RMSNormLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
   if (skip_prefill && is_prefill)
     return;
 
+  const unsigned tail_offset = generationPrefillTailOffset(
+    context.getName(), from, to, in_dim.batch(), training);
+  const unsigned rows = to - from - tail_offset;
+  const size_t tail_elements =
+    static_cast<size_t>(tail_offset) * in_dim.width();
   in_step_dim.batch(1);
-  in_step_dim.height(to - from);
+  in_step_dim.height(rows);
   out_step_dim.batch(1);
-  out_step_dim.height(to - from);
+  out_step_dim.height(rows);
 
   unsigned int b_size = in_dim.batch();
 
   for (unsigned int b = 0; b < b_size; ++b) {
-    nntrainer::Tensor in_step =
-      in.getSharedDataTensor(in_step_dim, b * in_dim.getFeatureLen(), true);
-    nntrainer::Tensor out_step =
-      out.getSharedDataTensor(out_step_dim, b * out_dim.getFeatureLen(), true);
+    nntrainer::Tensor in_step = in.getSharedDataTensor(
+      in_step_dim, b * in_dim.getFeatureLen() + tail_elements, true);
+    nntrainer::Tensor out_step = out.getSharedDataTensor(
+      out_step_dim, b * out_dim.getFeatureLen() + tail_elements, true);
 
     if (b_size == 1 &&
         in_step.getDataType() == ml::train::TensorDim::DataType::FP32)
@@ -139,9 +145,9 @@ void RMSNormLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       const auto &dim = in_step.getDim();
       if (context.getNumInputs() == 2) {
         auto residual = context.getInput(1).getSharedDataTensor(
-          in_step_dim, b * in_dim.getFeatureLen(), true);
+          in_step_dim, b * in_dim.getFeatureLen() + tail_elements, true);
         auto sum = context.getOutput(1).getSharedDataTensor(
-          out_step_dim, b * out_dim.getFeatureLen(), true);
+          out_step_dim, b * out_dim.getFeatureLen() + tail_elements, true);
         if (b_size == 1 && dim.height() == 1 && deferred_consumer_ != "none" &&
             htpStrictOps()->defer_decode_norm(
               deferred_consumer_, dim.width(), epsilon,

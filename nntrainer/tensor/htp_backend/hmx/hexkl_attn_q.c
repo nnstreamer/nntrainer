@@ -124,6 +124,7 @@ typedef struct {
   HVX_Vector col_idx;
   HVX_Vector cap_hf, inv_cap_hf;
   int softcap_on;
+  uint32_t prefill_acc[2]; /**< Disjoint QK accumulator blocks for workers. */
   uint32_t acc_stage; /**< Optional per-column QK planes for the head worker. */
   uint32_t scale_stage; /**< Double-buffered K scale, colsum and V scale. */
   uint64_t worker_dequant_us;
@@ -294,6 +295,21 @@ static void q8_pack_worker(uint32_t n_threads, uint32_t i, void *opaque) {
         scales[rr + j] = (valid ? c->q8->scales[row] : 1.0f) * c->scale;
         zero_points[rr + j] = valid ? c->q8->zero_points[row] : 0;
         src[j] = valid ? c->q8->values + row * hd : NULL;
+      }
+      // Four LFM2 heads form one contiguous 256-byte run. Deinterleave
+      // its 32-byte groups directly into the two HMX activation tiles.
+      // A padded query falls through to the bounded generic gather.
+      if (hd == 64u && c->t->g == 4u && src[0] && src[3]) {
+        const HVX_VectorPair packed = Q6_W_vdeal_VVR(
+          hvx_tile_load_u(src[0] + 128u), hvx_tile_load_u(src[0]), -32);
+        const uint32_t tile_row = r % HEXKL_ATTN_Q_ROWS;
+        hvx_tile_store_u(q_tile(c, qi, r / HEXKL_ATTN_Q_ROWS, 0u) +
+                           tile_row * 32u,
+                         Q6_V_lo_W(packed));
+        hvx_tile_store_u(q_tile(c, qi, r / HEXKL_ATTN_Q_ROWS, 1u) +
+                           tile_row * 32u,
+                         Q6_V_hi_W(packed));
+        continue;
       }
       for (uint32_t d = 0; d < c->L.n_dot_tiles; ++d) {
         uint8_t packed[128] __attribute__((aligned(128)));
@@ -533,7 +549,15 @@ static int phase_qk(attn_ctx *c, uint32_t n, uint32_t kb, uint32_t buf,
       const uint32_t acc = c->L.acc;
       if (c->acc_stage)
         c->L.acc = c->acc_stage + col * HEXKL_ATTN_Q_ACC_BYTES;
-      int rc = read_acc(c);
+      int rc;
+      if (c->prefill_acc[0]) {
+        const uint32_t staged =
+          c->prefill_acc[sbuf] +
+          (i * c->L.n_col_tiles + col) * HEXKL_ATTN_Q_ACC_BYTES;
+        rc = hexkl_micro_hmx_acc_read_int32(c->vb, c->cfg, staged);
+      } else {
+        rc = read_acc(c);
+      }
       c->L.acc = acc;
       if (rc != AEE_SUCCESS) {
         return rc;
@@ -541,8 +565,10 @@ static int phase_qk(attn_ctx *c, uint32_t n, uint32_t kb, uint32_t buf,
       if (!c->acc_stage) {
         uint64_t t1 = now_us();
         c->st->us_qk += t1 - t0;
-        dequant_s(c, n, kb, i, col, sbuf);
-        c->st->us_dequant += now_us() - t1;
+        if (!c->prefill_acc[0]) {
+          dequant_s(c, n, kb, i, col, sbuf);
+          c->st->us_dequant += now_us() - t1;
+        }
       }
     }
   }
@@ -589,6 +615,8 @@ static void softmax_worker(uint32_t n_threads, uint32_t i, void *ctx_) {
   }
 }
 
+static void softmax_pquant_worker(uint32_t n_threads, uint32_t i, void *ctx_);
+
 static void softmax_start(attn_ctx *c, uint32_t n, uint32_t qb, uint32_t kb,
                           uint32_t sbuf, int masked) {
   c->w_n = n;
@@ -596,8 +624,10 @@ static void softmax_start(attn_ctx *c, uint32_t n, uint32_t qb, uint32_t kb,
   c->w_kb = kb;
   c->w_sbuf = sbuf;
   c->w_masked = masked;
-  const uint32_t units = c->active_rows / 2u;
-  hvx_worker_pool_submit(c->pool, softmax_worker, c, units);
+  const int fused = c->s->n_q >= 5u;
+  const uint32_t units = c->active_rows / (fused ? 4u : 2u);
+  hvx_worker_pool_submit(
+    c->pool, fused ? softmax_pquant_worker : softmax_worker, c, units);
 }
 
 /**
@@ -613,7 +643,8 @@ static void softmax_start(attn_ctx *c, uint32_t n, uint32_t qb, uint32_t kb,
  * covering every 32-dim group, so the quantized P' feeds all of the P.V
  * matmuls rather than needing a separate pass per group.
  */
-static void pquant_unit(attn_ctx *c, uint32_t i32) {
+static void pquant_rows(attn_ctx *c, uint32_t i32, uint32_t v_begin,
+                        uint32_t v_end) {
   const HVX_Vector one_hf = Q6_Vh_vsplat_R((int)HVX_ATTN_HF_ONE);
   const HVX_Vector zero = Q6_V_vzero();
   const uint32_t ct = c->L.n_col_tiles;
@@ -632,7 +663,7 @@ static void pquant_unit(attn_ctx *c, uint32_t i32) {
   const HVX_Vector inv255 = hvx_splat_sf(1.0f / 255.0f);
   const HVX_Vector one_sf = hvx_splat_sf(1.0f);
 
-  for (uint32_t v = 0; v < TILE_VECS; v += 2u) {
+  for (uint32_t v = v_begin; v < v_end; v += 2u) {
     if (32u * i32 + 2u * v >= c->active_rows)
       break;
     // Pass 1: row max of P * s_v over the block, rows 2v..2v+3.
@@ -690,13 +721,75 @@ static void pquant_unit(attn_ctx *c, uint32_t i32) {
   }
 }
 
+/** Reconstruct one worker's four score rows from a completed QK block.
+ * The caller drains the other accumulator bank while these rows are read.
+ * Every floating-point conversion and product matches dequant_s_impl.
+ */
+static void dequant_prefill_four(attn_ctx *c, uint32_t r) {
+  const uint32_t i = r / HEXKL_ATTN_Q_ROWS;
+  const uint32_t row = r % HEXKL_ATTN_Q_ROWS;
+  const float *restrict qs = c->q_scale + (size_t)c->qi * c->t->g_br + r;
+  const int32_t *restrict qz = c->q_zp + (size_t)c->qi * c->t->g_br + r;
+  for (uint32_t col = 0; col < c->L.n_col_tiles; ++col) {
+    const uint32_t k0 = c->w_kb * c->t->bc + 32u * col;
+    HVX_Vector sk = Q6_V_vzero(), cs = Q6_V_vzero();
+    if (k0 + 32u <= c->kv->max_rows) {
+      const size_t index = hexkl_kv_q_sk_index(c->kv, c->w_n, k0);
+      sk = hvx_tile_load_u(c->kv->s_k + index);
+      cs = Q6_Vsf_equals_Vw(hvx_tile_load_u(c->kv->colsum_k + index));
+    }
+    const uint32_t staged =
+      c->prefill_acc[c->w_sbuf] +
+      (i * c->L.n_col_tiles + col) * HEXKL_ATTN_Q_ACC_BYTES;
+    const HVX_Vector *restrict source = (const HVX_Vector *)(c->vb + staged) +
+                                        c->acc_layout->base / 32u +
+                                        row * (c->acc_layout->row_stride / 32u);
+    HVX_Vector q[4];
+    for (uint32_t j = 0; j < 4u; ++j) {
+      const HVX_Vector a =
+        Q6_Vsf_equals_Vw(source[j * (c->acc_layout->row_stride / 32u)]);
+      const HVX_Vector zc =
+        Q6_Vsf_vmpy_VsfVsf(Q6_Vsf_equals_Vw(Q6_V_vsplat_R(qz[j])), cs);
+      const HVX_Vector corr = Q6_Vsf_vsub_VsfVsf(a, zc);
+      const HVX_Vector scaled = Q6_Vsf_vmpy_VsfVsf(corr, hvx_splat_sf(qs[j]));
+      q[j] = Q6_Vqf32_vmpy_VsfVsf(scaled, sk);
+    }
+    HVX_Vector *restrict dst =
+      s_tile(c, c->w_sbuf, r / 32u, col) + (r % 32u) / 2u;
+    dst[0] = Q6_Vhf_equals_Wqf32(Q6_W_vcombine_VV(q[1], q[0]));
+    dst[1] = Q6_Vhf_equals_Wqf32(Q6_W_vcombine_VV(q[3], q[2]));
+  }
+}
+
+/** Four rows own complete score and P vectors. Their softmax, rescale
+ * conversion and P quantization can finish in the same worker while HMX
+ * computes the next block's QK. No other worker reads these rows before
+ * the caller joins, and each row keeps the original arithmetic order.
+ */
+static void softmax_pquant_worker(uint32_t n_threads, uint32_t i, void *ctx_) {
+  attn_ctx *c = (attn_ctx *)ctx_;
+  uint32_t lo, hi;
+  unit_range(c->active_rows / 4u, n_threads, i, &lo, &hi);
+  for (uint32_t u = lo; u < hi; ++u) {
+    const uint32_t i32 = u / (TILE_VECS / 2u);
+    const uint32_t v = (u % (TILE_VECS / 2u)) * 2u;
+    if (c->prefill_acc[0])
+      dequant_prefill_four(c, 4u * u);
+    softmax_row_pair(c, i32, v);
+    softmax_row_pair(c, i32, v + 1u);
+    for (uint32_t r = 4u * u; r < 4u * u + 4u; ++r)
+      c->a_f32[r] = hvx_attn_hf_to_f32(c->a_hf[r]);
+    pquant_rows(c, i32, v, v + 2u);
+  }
+}
+
 static void pquant_worker(uint32_t n_threads, uint32_t i, void *ctx_) {
   attn_ctx *c = (attn_ctx *)ctx_;
   const uint32_t n = (c->active_rows + 31u) / 32u;
   uint32_t lo, hi;
   unit_range(n, n_threads, i, &lo, &hi);
   for (uint32_t u = lo; u < hi; ++u) {
-    pquant_unit(c, u);
+    pquant_rows(c, u, 0u, TILE_VECS);
   }
 }
 
@@ -706,6 +799,10 @@ static void softmax_finish_pquant(attn_ctx *c, uint32_t buf) {
   hvx_worker_pool_wait(c->pool);
   uint64_t t1 = now_us();
   c->st->us_softmax += t1 - t0;
+  // Prefill's worker already emitted P; its exposed wait is included in
+  // us_softmax. There is no separate P-quantization fork or wait to time.
+  if (c->s->n_q >= 5u)
+    return;
   for (uint32_t r = 0; r < c->active_rows; ++r) {
     c->a_f32[r] = hvx_attn_hf_to_f32(c->a_hf[r]);
   }
@@ -792,9 +889,10 @@ static int phase_pv(attn_ctx *c, uint32_t buf, int first) {
 }
 
 /** @brief out rows = O / l, f32. */
-static void phase_store(attn_ctx *c, uint32_t n, uint32_t qb) {
+static void store_rows(attn_ctx *c, uint32_t n, uint32_t qb, uint32_t lo,
+                       uint32_t hi) {
   const uint32_t hd = c->s->head_dim;
-  for (uint32_t r = 0; r < c->active_rows; ++r) {
+  for (uint32_t r = lo; r < hi; ++r) {
     uint32_t q, g;
     if (!hexkl_attn_f16_tile_row_to_qg(c->s, c->t, qb, r, &q, &g)) {
       continue;
@@ -806,6 +904,27 @@ static void phase_store(attn_ctx *c, uint32_t n, uint32_t qb) {
     for (uint32_t d = 0; d < c->L.n_dot_tiles; ++d) {
       hvx_tile_store_u(dst + 32u * d, Q6_Vsf_vmpy_VsfVsf(o[d], inv_l));
     }
+  }
+}
+
+typedef struct {
+  attn_ctx *c;
+  uint32_t n, qb;
+} store_ctx;
+
+static void store_worker(uint32_t n_threads, uint32_t i, void *opaque) {
+  const store_ctx *s = opaque;
+  uint32_t lo, hi;
+  unit_range(s->c->active_rows, n_threads, i, &lo, &hi);
+  store_rows(s->c, s->n, s->qb, lo, hi);
+}
+
+static void phase_store(attn_ctx *c, uint32_t n, uint32_t qb) {
+  if (c->active_rows >= 128u && c->s->n_q >= 5u) {
+    store_ctx ctx = {c, n, qb};
+    hvx_worker_pool_run(c->pool, store_worker, &ctx, c->active_rows);
+  } else {
+    store_rows(c, n, qb, 0u, c->active_rows);
   }
 }
 
@@ -855,8 +974,8 @@ static int run_q_block(attn_ctx *c, uint32_t n, uint32_t qb) {
       }
     }
 
-    // The softmax of this block has to finish writing P before pquant
-    // reads it; both happen here, workers joined in between.
+    // Join before HMX consumes P. Prefill produces it in the same worker
+    // as softmax, overlapping both phases with the next block's QK.
     softmax_finish_pquant(c, buf);
 
     rc = phase_pv(c, buf, first);
@@ -1091,6 +1210,17 @@ static int prefill_impl(uint8_t *vtcm_base, uint32_t config_off,
     c.acc_stage = c.L.total;
     c.scale_stage = c.acc_stage + c.L.n_col_tiles * HEXKL_ATTN_Q_ACC_BYTES;
     c.L.total = staged_total;
+  }
+  // Keep complete QK blocks until their row workers finish. Both banks
+  // are disjoint from the scratch accumulator used by PV. If VTCM is
+  // tight, retain the validated caller-side dequantization pipeline.
+  const uint32_t acc_block_bytes =
+    c.L.n_row_tiles * c.L.n_col_tiles * HEXKL_ATTN_Q_ACC_BYTES;
+  if (!io->decode_flags && q8 && s->n_q >= 5u && s->head_dim == 64u &&
+      t->g == 4u && (uint64_t)c.L.total + 2u * acc_block_bytes <= config_off) {
+    c.prefill_acc[0] = c.L.total;
+    c.prefill_acc[1] = c.L.total + acc_block_bytes;
+    c.L.total += 2u * acc_block_bytes;
   }
   // Per-row metadata in cached heap memory: it is read and written by the
   // scalar unit, which VTCM serves slowly (see the file comment).

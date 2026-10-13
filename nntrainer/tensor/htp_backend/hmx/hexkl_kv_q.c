@@ -283,9 +283,24 @@ void hexkl_kv_q_stage(hexkl_kv_q *kv, uint32_t n, uint32_t c) {
  *        re-staging, no HexKL call per token. int4 tiles are nibble-packed
  *        and keep the re-bake path.
  */
-#ifdef __hexagon__
 static uint16_t g_wh_i8_pos[1024];
+
+/** @brief Full dynamic-cache tiles can copy their interleaved masters only
+ * when the device's probed WH permutation matches these 128-byte segments.
+ */
+static inline int wh_i8_segments_match(const uint16_t *pos) {
+  for (uint32_t r = 0; r < 32u; ++r)
+    for (uint32_t k = 0; k < 32u; ++k)
+      if (pos[r * 32u + k] != (r / 4u) * 128u + 4u * k + r % 4u)
+        return 0;
+  return 1;
+}
+
+enum { WH_I8_SCATTER = 1, WH_I8_SEGMENTS = 2 };
+
+#ifdef __hexagon__
 static int g_wh_i8_state; /* 0 unprobed, 1 usable, -1 not */
+static int g_wh_i8_segments;
 
 static int wh_i8_probe(uint8_t *vtcm_base) {
   if (g_wh_i8_state != 0) {
@@ -314,6 +329,7 @@ static int wh_i8_probe(uint8_t *vtcm_base) {
     seen[idx] = 1;
     g_wh_i8_pos[idx] = (uint16_t)p;
   }
+  g_wh_i8_segments = wh_i8_segments_match(g_wh_i8_pos);
   g_wh_i8_state = 1;
   return 1;
 }
@@ -321,6 +337,7 @@ static int wh_i8_probe(uint8_t *vtcm_base) {
 const uint16_t *hexkl_kv_q_wh_i8_pos(uint8_t *vtcm_base) {
   return wh_i8_probe(vtcm_base) ? g_wh_i8_pos : NULL;
 }
+#endif
 
 /** @brief Writes one quantized row of head n straight into its int8 WH
  *         tiles: cache row @a row is column row%32 of the K^T tiles and
@@ -337,7 +354,37 @@ static void write_row_i8_tiles(hexkl_kv_q *kv, uint32_t n, uint32_t row,
     }
   }
 }
+
+/** @brief A full 32-row dynamic-cache tile is already in WH segment order
+ * in the masters. Copy each 128-byte segment and remove the offset bias.
+ * No row-major scratch, scalar per-element WH stores, or shared VTCM.
+ */
+static void copy_interleaved_i8_tile(hexkl_kv_q *kv, uint32_t n, uint32_t c) {
+#ifdef __hexagon__
+  const HVX_Vector bias = Q6_V_vsplat_R(0x80808080);
 #endif
+  for (uint32_t d = 0; d < kv->n_dot_tiles; ++d) {
+    uint8_t *kt = kv->kt + hexkl_kv_q_tile_off(kv, n, c, d);
+    uint8_t *vt = kv->v + hexkl_kv_q_tile_off(kv, n, c, d);
+    for (uint32_t seg = 0; seg < 8u; ++seg) {
+      const uint8_t *km =
+        kv->kt4 + hexkl_kv_q_kt4_index(kv, n, 32u * c, 32u * d + 4u * seg);
+      const uint8_t *vm =
+        kv->v4 + hexkl_kv_q_v4_index(kv, n, 32u * c + 4u * seg, 32u * d);
+#ifdef __hexagon__
+      hvx_tile_store_u(kt + 128u * seg,
+                       Q6_V_vxor_VV(hvx_tile_load_u(km), bias));
+      hvx_tile_store_u(vt + 128u * seg,
+                       Q6_V_vxor_VV(hvx_tile_load_u(vm), bias));
+#else
+      for (uint32_t b = 0; b < 128u; ++b) {
+        kt[128u * seg + b] = km[b] ^ 0x80u;
+        vt[128u * seg + b] = vm[b] ^ 0x80u;
+      }
+#endif
+    }
+  }
+}
 
 #ifdef __hexagon__
 /**
@@ -836,6 +883,8 @@ static void append_i8_worker(uint32_t n_threads, uint32_t i, void *vctx) {
     const uint32_t first = c->row0 > tile_row ? c->row0 : tile_row;
     const uint32_t end = c->row0 + c->n_rows;
     const uint32_t last = end < tile_row + 32u ? end : tile_row + 32u;
+    const int tile_copy = c->direct == WH_I8_SEGMENTS && !kv->plain_masters &&
+                          first == tile_row && last == tile_row + 32u;
     for (uint32_t row = first; row < last; ++row) {
       const uint32_t r = row - c->row0;
       const size_t src = (size_t)r * kv->n_head_kv + n;
@@ -852,11 +901,11 @@ static void append_i8_worker(uint32_t n_threads, uint32_t i, void *vctx) {
       kv->s_k[hexkl_kv_q_sk_index(kv, n, row)] = c->scales[2u * src];
       kv->s_v[hexkl_kv_q_sv_index(kv, n, row)] = c->scales[2u * src + 1u];
       kv->colsum_k[hexkl_kv_q_sk_index(kv, n, row)] = sum;
-#ifdef __hexagon__
-      if (c->direct)
+      if (c->direct && !tile_copy)
         write_row_i8_tiles(kv, n, row, kr, vr);
-#endif
     }
+    if (tile_copy)
+      copy_interleaved_i8_tile(kv, n, c->c_lo + col);
     if (++col == c->n_col) {
       col = 0u;
       ++n;
@@ -880,7 +929,8 @@ int hexkl_kv_q_append_i8_pool(hexkl_kv_q_table *tbl, uint32_t handle,
     return AEE_SUCCESS;
   int direct = 0;
 #ifdef __hexagon__
-  direct = vtcm_base && wh_i8_probe(vtcm_base);
+  if (vtcm_base && wh_i8_probe(vtcm_base))
+    direct = g_wh_i8_segments ? WH_I8_SEGMENTS : WH_I8_SCATTER;
 #endif
   const uint32_t c_lo = row0 / 32u;
   const uint32_t n_col = (row0 + n_rows - 1u) / 32u - c_lo + 1u;
