@@ -386,6 +386,20 @@ bool isQs4cxPayloadDropped(const void *ptr);
 void unmarkQs4cxPayloadDropped(const void *base);
 
 /**
+ * @brief Forget ALL dropped-payload ranges.
+ *
+ * Called from the OpenCL teardown hook (cl_fc_release_caches) when a model is
+ * destroyed. The per-payload deleters already retract their own range, but a
+ * teardown can leave orphans: a tensor freed while a range vector entry it
+ * seeded is not its deleter's to retract (e.g. an exception unwound through
+ * the load), or a loader mapping whose entries outlive the map. Every
+ * address in the registry belongs to memory the destroyed model owned, and
+ * no run is in flight at the call site, so an empty registry is always the
+ * correct state at a model teardown.
+ */
+void clearQs4cxDroppedRanges();
+
+/**
  * @brief Refuse a host read of a QS4CX payload whose pages were released.
  *
  * The one guard every host consumer of the plain payload calls before it
@@ -414,7 +428,11 @@ void refuseIfQs4cxPayloadDropped(const void *payload, const char *who);
  * repack (see NNTR_V8C_DROP_PLAIN). Elsewhere the bypass stays opt-in, as the
  * SDK bundles that were measured with it already set the variable.
  *
- * Read once; the first call latches the answer for the process.
+ * Re-resolved on every call, NOT latched for the process: the decision gates
+ * allocator and residency behaviour per model load, and an application can
+ * change the variable between two loads in one process (train_qwen3_lora
+ * turns the drop off for its hybrid trunk load after a plain inference has
+ * already run -- a latched answer silently broke that run).
  */
 bool qs4cxHeapBypassOn();
 
@@ -430,7 +448,8 @@ bool qs4cxHeapBypassOn();
  *
  * The drop after the v8c build and the default of the zero-copy load
  * (NNTR_LOAD_ZEROCOPY) both ask this one function, so the two cannot
- * disagree. Read once; the first call latches the answer for the process.
+ * disagree. Re-resolved on every call, NOT latched (see
+ * qs4cxHeapBypassOn()).
  */
 bool qs4cxDropPlainOn();
 

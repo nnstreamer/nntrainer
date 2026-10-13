@@ -1039,21 +1039,28 @@ static V8cWeightEntry *v8c_get_or_build_weight(const Tensor &weight,
 #if defined(__x86_64__) || defined(__i386__) || defined(_M_X64) ||             \
   defined(_M_IX86) || defined(__aarch64__) || defined(_M_ARM64)
   {
-    static const bool drop_plain = qs4cxDropPlainOn();
-    // Announce the resolved decision once. The drop is otherwise invisible in
-    // a run log -- same outputs, same caches, only the residency differs --
-    // which makes "was it actually on?" unanswerable after the fact. The
-    // marker token is what a deployed-binary check greps for.
-    static const bool announced = [&]() {
+    // Resolved per call, NOT latched: qs4cxDropPlainOn() is per-call now, and
+    // an earlier model in the same process must not pin this arm's decision
+    // (train_qwen3_lora turns the drop off for its trunk load after a plain
+    // inference has already run).
+    const bool drop_plain = qs4cxDropPlainOn();
+    // Announce the resolved decision on every CHANGE. The drop is otherwise
+    // invisible in a run log -- same outputs, same caches, only the residency
+    // differs -- which makes "was it actually on?" unanswerable after the
+    // fact. The marker token is what a deployed-binary check greps for.
+    // Logging per weight would spam (an SDK run has 423 of them), so the
+    // announcement fires when the decision differs from the last one logged;
+    // the racy static is log-only and at worst duplicates a line.
+    static int announced_for = -1;
+    if (announced_for != static_cast<int>(drop_plain)) {
+      announced_for = static_cast<int>(drop_plain);
       ml_logi("[v8c] DROP_PLAIN %s (NNTR_V8C_DROP_PLAIN, heap bypass %s) "
               "POOLBYPASS_MARKER_A",
               drop_plain
                 ? "ON: the plain QS4CX payload is released after the repack"
                 : "OFF: the plain QS4CX payload stays resident",
               qs4cxHeapBypassOn() ? "on" : "off");
-      return true;
-    }();
-    (void)announced;
+    }
 #if !defined(ENABLE_FP16)
     // An imageless weight (N above the image2d height cap -- the untied int4
     // lm_head) has no image GEMM, and its only other route is the fp16
@@ -2428,6 +2435,19 @@ void cl_fc_release_caches() {
   //    the previous model's pack, whose aux sub-buffers point into an arena the
   //    next load is still bumping through (see v8c_release_aux_arena).
   v8c_weight_cache().clear();
+  // The dropped-payload registry, keyed by the SAME recycled HOST addresses:
+  // a QS4CX FC weight's plain payload is madvise(DONTNEED)'d after its device
+  // repack and recorded here so host readers refuse it. The per-tensor
+  // deleters retract their own range when the memory is freed, but the
+  // entries outlive a torn-down model's tensors whenever a payload's
+  // shared_ptr last release lands after this hook (or never runs its
+  // deleter). A fresh model whose weights recycle those addresses then has
+  // its healthy, fully resident payloads refused on first host read -- the
+  // train-after-infer path (trainLora rebuilds weights on the host) dies on
+  // its first batch fetch with "[v8c weight rebuild] refusing to read".
+  // Model teardown is exactly when all of them are invalid: clear the
+  // registry wholesale with the caches above.
+  clearQs4cxDroppedRanges();
   // 2. The norm-site strike counters, keyed by the gamma HOST pointer: a
   //    recycled address hands the next model's norm the previous model's
   //    "written off, never fuse again" verdict.

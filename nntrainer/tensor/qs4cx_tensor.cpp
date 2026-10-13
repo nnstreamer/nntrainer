@@ -100,9 +100,12 @@ void readLegacyQint4ToQs4cx(
  * Escape hatch: NNTR_QS4CX_ALLOC_ZERO=1 restores the old double zero-fill.
  */
 bool qs4cxAllocUninitialized() {
-  static const bool v =
-    qs4cxHeapBypassOn() && !nntr_env_on("NNTR_QS4CX_ALLOC_ZERO");
-  return v;
+  // Re-resolved per call: it follows qs4cxHeapBypassOn(), which is resolved
+  // per call too. An allocation and every read of the payload it backs happen
+  // within one model load, whose env the application set before creating that
+  // model, so per-call resolution cannot split an allocation from its fill --
+  // and each tensor's deleter stays bound to the allocation path that ran.
+  return qs4cxHeapBypassOn() && !nntr_env_on("NNTR_QS4CX_ALLOC_ZERO");
 }
 
 /**
@@ -516,6 +519,12 @@ void unmarkQs4cxPayloadDropped(const void *base) {
   // while another range is still live would skip that range's check.
 }
 
+void clearQs4cxDroppedRanges() {
+  std::lock_guard<std::mutex> lock(qs4cx_dropped_mtx());
+  qs4cx_dropped_ranges().clear();
+  qs4cx_dropped_any.store(false, std::memory_order_release);
+}
+
 void refuseIfQs4cxPayloadDropped(const void *payload, const char *who) {
   if (!isQs4cxPayloadDropped(payload))
     return;
@@ -529,35 +538,45 @@ void refuseIfQs4cxPayloadDropped(const void *payload, const char *who) {
 }
 
 bool qs4cxHeapBypassOn() {
-  static const bool on = []() {
-    const char *e = std::getenv("NNTR_QS4CX_HEAP_BYPASS");
-    if (e != nullptr)
-      return e[0] != '0';
+  // Re-resolved per call, NOT latched: this decision gates allocator and
+  // residency behaviour PER MODEL, and an application can legitimately change
+  // the env between two models in one process. train_qwen3_lora sets
+  // NNTR_V8C_DROP_PLAIN=0 before its hybrid trunk load so the CPU head can
+  // read those weights on the host; a plain inference run first in the same
+  // process used to latch the Android default ON here, the training load
+  // inherited it, and its host consumers then read a payload the loader had
+  // never filled (first-iteration NaN loss, silent). getenv is a string
+  // lookup; the cost is noise next to the allocations and uploads this
+  // decision gates.
+  const char *e = std::getenv("NNTR_QS4CX_HEAP_BYPASS");
+  if (e != nullptr)
+    return e[0] != '0';
 #if defined(__ANDROID__)
-    return true;
+  return true;
 #else
-    return false;
+  return false;
 #endif
-  }();
-  return on;
 }
 
 bool qs4cxDropPlainOn() {
-  static const bool on = []() {
-    const char *e = std::getenv("NNTR_V8C_DROP_PLAIN");
-    if (e != nullptr)
-      return e[0] == '1';
+  // Re-resolved per call -- same reasoning as qs4cxHeapBypassOn(). The
+  // consumers that used to latch this decision (fc_layer_cl's zero-copy
+  // gate, the v8c prebuild's drop arm) resolve it per model load now, and
+  // the dropped-payload registry's teardown hook (cl_fc_release_caches)
+  // forgets stale ranges when a model is destroyed, so a mid-process env
+  // change switches cleanly at the next load.
+  const char *e = std::getenv("NNTR_V8C_DROP_PLAIN");
+  if (e != nullptr)
+    return e[0] == '1';
 #if defined(__ANDROID__)
-    return qs4cxHeapBypassOn();
+  return qs4cxHeapBypassOn();
 #else
-    // Opt-in off Android. DiscardVirtualMemory does work on the WDDM SVM
-    // host shadow (verified on every weight, goldens byte-identical); the
-    // bundles that ship it set the variable, and a bare run keeps the
-    // long-measured residency it always had.
-    return false;
+  // Opt-in off Android. DiscardVirtualMemory does work on the WDDM SVM
+  // host shadow (verified on every weight, goldens byte-identical); the
+  // bundles that ship it set the variable, and a bare run keeps the
+  // long-measured residency it always had.
+  return false;
 #endif
-  }();
-  return on;
 }
 
 } // namespace nntrainer

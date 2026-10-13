@@ -274,7 +274,13 @@ void FullyConnectedLayerCl::read(ReadSource src, RunLayerContext &run_context,
   // heap bypass) skipping the copy is strictly better than making it and then
   // madvising it away. Where it is off, the copy stays.
   // NNTR_LOAD_ZEROCOPY=1/0 overrides either way.
-  static const bool zerocopy_on = []() {
+  // Resolved per call, NOT latched: its default IS qs4cxDropPlainOn(), which
+  // is per-call now. train_qwen3_lora sets NNTR_V8C_DROP_PLAIN=0 before its
+  // trunk load so the hybrid CPU head can read the weights on the host; a
+  // latched default from an earlier model in the same process (a plain TEST
+  // inference ran first) would keep zero-copy on here and leave the trunk's
+  // payloads never filled -- silently wrong loss from the first iteration.
+  const bool zerocopy_on = []() {
     const char *e = std::getenv("NNTR_LOAD_ZEROCOPY");
     if (e != nullptr)
       return e[0] != '0';
