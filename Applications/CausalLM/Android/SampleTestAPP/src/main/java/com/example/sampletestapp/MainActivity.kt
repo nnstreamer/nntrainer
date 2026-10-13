@@ -275,6 +275,9 @@ class MainActivity : AppCompatActivity() {
     private var trainWeightQ4: Boolean = true
     private var trainNorms: Boolean = false
     private var trainOutputPath: String = ""
+    /** adapter files the last training run saved (empty: none yet) */
+    private var trainSavedPath: String = ""
+    private var trainSavedQ4Path: String = ""
     private var trainResumePath: String = ""
     private var trainSeed: String = "42"
     private var trainRunning: Boolean = false
@@ -2623,13 +2626,16 @@ class MainActivity : AppCompatActivity() {
             rebuildUi()
             return
         }
-        // After column: load the FP32 adapter. A QAT run's _q4 file needs a
-        // Q4-tensor graph that rank-8 LoRA dims cannot build (Q4_0 requires
-        // width % 32 == 0) — LORA_TRAINING.md documents this: use the FP32
-        // adapter. Before column runs base only.
+        // After column: a QAT run's Q4_0 adapter when there is one -- the
+        // int4 values training quantized against, i.e. what ships -- else
+        // the FP32 adapter. Before column runs base only.
         val loraPath = if (which == "after") {
-            "$modelDir/lora_adapter.bin"
+            val q4 = trainSavedQ4Path.ifEmpty { "$modelDir/lora_adapter_q4.bin" }
+            val fp32 = trainSavedPath.ifEmpty { "$modelDir/lora_adapter.bin" }
+            if (trainQatEnabled && java.io.File(q4).exists()) q4 else fp32
         } else ""
+        if (loraPath.isNotEmpty())
+            appendTrainLog("TEST after: adapter ${java.io.File(loraPath).name}")
 
         engineExecutor.execute {
             val load: () -> Long = {
@@ -2777,6 +2783,10 @@ class MainActivity : AppCompatActivity() {
                     epochSeconds: Double, trainSeconds: Double
                 ) {
                     mainHandler.post {
+                        if (saved) {
+                            trainSavedPath = outputPath
+                            trainSavedQ4Path = q4OutputPath
+                        }
                         trainEpochBoundaries.add(trainLossPoints.size - 1)
                         // No validation pass: the epoch marker is the mean
                         // training loss of the epoch.
