@@ -492,6 +492,11 @@ void CausalLM::run(const WSTR prompt, bool do_sample, const WSTR system_prompt,
   unsigned int generation_cnt = 0;
   int64_t total_generation_duration = 0;
 
+  // Record generated IDs without requesting logits or forcing a continuation.
+  // This lets performance runs verify the normal DSP token-id path as well.
+  const char *generated_ids_path = std::getenv("NNTR_GENERATED_IDS");
+  std::vector<unsigned int> generated_ids;
+
   // NNTR_PPL_DECODE=<ids file> (#134): decode-side teacher-forced NLL of
   // the logits each greedy pick is taken from, after the prompt's prefill.
   // A missing file makes a normal greedy run that scores its own path and
@@ -768,6 +773,24 @@ void CausalLM::run(const WSTR prompt, bool do_sample, const WSTR system_prompt,
   for (auto &out : output) {
     delete[] out;
   }
+  if (generated_ids_path)
+    generated_ids.insert(generated_ids.end(), id_list.begin(), id_list.end());
+
+#ifdef ENABLE_HEXKL
+  // The resident decode graph only needs a row of the CPU prefill scratch.
+  // Outputs have been consumed above; KV placeholders and persistent tensors
+  // retain their pages. Keep this opt-in while measuring the memory profile.
+  if (const char *release = std::getenv("NNTR_HTP_RELEASE_PREFILL_SCRATCH")) {
+    if (std::strcmp(release, "1") == 0) {
+      if (auto *network =
+            dynamic_cast<nntrainer::NeuralNetwork *>(model.get())) {
+        const size_t bytes = network->releaseInferenceScratch();
+        std::cerr << "[HTP] CPU prefill scratch discarded: " << (bytes >> 20)
+                  << " MiB of virtual pages" << std::endl;
+      }
+    }
+  }
+#endif
 
   auto finish_prefill = std::chrono::high_resolution_clock::now();
   if (ppl_on) {
@@ -927,6 +950,10 @@ void CausalLM::run(const WSTR prompt, bool do_sample, const WSTR system_prompt,
         ppl_cont.push_back(target);
     }
 
+    if (generated_ids_path)
+      generated_ids.insert(generated_ids.end(), ids_list.begin(),
+                           ids_list.end());
+
     // Feed the newly generated token back as the next input token.
     // token_generation_idx always starts at input_len + 1, so we are
     // always in the auto-regressive generation phase here.
@@ -1007,6 +1034,14 @@ void CausalLM::run(const WSTR prompt, bool do_sample, const WSTR system_prompt,
   htpDecodeWantLogits(true); // [#132 Part B E3] back to the default
   htpDecodeBan(nullptr, 0u);
   auto finish_generation = std::chrono::high_resolution_clock::now();
+  if (generated_ids_path) {
+    std::ofstream ids_file(generated_ids_path);
+    for (unsigned int id : generated_ids)
+      ids_file << id << '\n';
+    if (!ids_file)
+      throw std::runtime_error(std::string("Cannot write generated IDs: ") +
+                               generated_ids_path);
+  }
   auto generation_duration =
     std::chrono::duration_cast<std::chrono::milliseconds>(finish_generation -
                                                           start_generation);

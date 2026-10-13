@@ -18,6 +18,7 @@
 #include <node_exporter.h>
 #include <thread_manager.h>
 #include <util_func.h>
+#include <weight_file_reader.h>
 
 #include "../third_party/nlohmann/json.hpp"
 
@@ -537,7 +538,10 @@ void EmbeddingLayer::finalize(nntrainer::InitLayerContext &context) {
 
   weight_idx = context.requestWeight(
     dim, weight_initializer, weight_regularizer, weight_regularizer_constant,
-    weight_decay, "Embedding", true);
+    weight_decay, "Embedding", true,
+    context.getExecutionMode() == ml::train::ExecutionMode::INFERENCE &&
+      nntrainer::weightPageCachePolicy() >= 0 &&
+      context.getWeightDataType() == nntrainer::TensorDim::DataType::Q4_0);
 }
 
 void EmbeddingLayer::setProperty(const std::vector<std::string> &values) {
@@ -707,8 +711,20 @@ void EmbeddingLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       } else if (weight.getDataType() == nntrainer::TensorDim::DataType::Q4_0) {
         ///@note this should be replaced with quantizer operation
         int num_blocks_per_row = (weight.width() + 32 - 1) / 32;
-        const void *src = (void *)((char *)weight.getData<uint8_t>() +
-                                   (18 * num_blocks_per_row) * embed_idx);
+        const size_t row_bytes = 18u * num_blocks_per_row;
+        std::vector<uint8_t> row;
+        const void *src;
+        if (weight.isVirtual()) {
+          row.resize(row_bytes);
+          const int rc = nntrainer::weightPread(
+            weight.getFd(), row.data(), row.size(),
+            weight.getFileOffset() + row_bytes * embed_idx);
+          NNTR_THROW_IF(rc != 0, std::runtime_error)
+            << "Embedding row read failed: " << std::strerror(rc);
+          src = row.data();
+        } else {
+          src = weight.getData<uint8_t>() + row_bytes * embed_idx;
+        }
         if (out_tensor.getDataType() == nntrainer::TensorDim::DataType::FP32) {
           nntrainer::dequantize_row_q4_0(src, out_tensor.getData(), out_dim);
         } else {
