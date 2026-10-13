@@ -45,6 +45,17 @@ number (~240 tok/s) because it is below the flash-attention threshold and is
 dominated by fixed setup cost — not representative of sustained throughput.
 Peak RSS ≈ 0.94 GB.
 
+### Gemma 4 HTP memory profile
+
+For Gemma 4 26B-A4B with QS2CX_WH experts and QS4CX FC weights, use
+`run_gemma4_memory.sh [--decode-fast] --page-cache off|on EXECUTABLE MODEL_DIR`
+on Android to select model page-cache use. With 2K input and 128 output tokens, the C=12
+profile measured 3.59–3.65 GB total peak with cache OFF and 5.31 GB with cache ON
+on a Galaxy S26 Ultra. `--decode-fast` starts at C12, grows to C34 during decode,
+and measured 3.87/5.48 GB OFF/ON with approximately 12.1 decode tok/s.
+See the [memory profile report](../../docs/htp_attention/61_gemma4_memory_profile.md)
+for configuration, throughput, accounting and reproduction commands.
+
 ## CausalLM API
 
 The CausalLM application exposes a C API for easy integration with other applications (e.g., Android JNI).

@@ -1,0 +1,37 @@
+{
+  "base_commit": "87f8580f5916d07cbb75dec660009edfaa407df1",
+  "device": "Galaxy S26 Ultra SM-S948N / Hexagon v81 / Android 16",
+  "workload": "../workload",
+  "input_tokens": 2048,
+  "output_tokens": 128,
+  "units": "decimal GB",
+  "expert_cache": {
+    "prefill_C": 12,
+    "decode_C": 34,
+    "layers": 30,
+    "growth_after_first_decode": 22
+  },
+  "env": {
+    "NNTR_HTP_RELEASE_PREFILL_SCRATCH": "1",
+    "NNTR_MOE_CACHE_GROW": "22",
+    "NNTR_HTP_PREDICT": "2",
+    "NNTR_MOE_PREFETCH_DIRECT": "1",
+    "NNTR_MOE_PREFETCH": "4",
+    "NNTR_MOE_PREFETCH_READERS": "4",
+    "NNTR_MOE_PREFETCH_TOP": "8",
+    "NNTR_MOE_PREFETCH_SLOTS": "32",
+    "NNTR_MOE_PREFETCH_RESIDUAL": "0.5",
+    "NNTR_MOE_DMA_QUEUES": "4"
+  },
+  "normal_runs": "NNTR_GENERATED_IDS; NNTR_PPL_DECODE unset",
+  "scoring_run": "final-check, OFF after ON; new NNTR_PPL_DECODE path, source=self",
+  "failures": [
+    {
+      "stage": "initial final-off launch",
+      "error": "DSP AEE_ENOMEMORY 0x80000402 during first expert registration",
+      "disposition": "same binaries/settings succeeded on retry; cause undetermined"
+    }
+  ],
+  "target_decode_tps": 15,
+  "target_reached": false
+}

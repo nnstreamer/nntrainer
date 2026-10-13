@@ -1,0 +1,44 @@
+[HTP] ppl levers=0x0 L1=exact
+[HTP] graph: description n_ops=542 resident=RMSNORM|FC|QK_NORM|ROPE|ATTN_M1|ADD|ROUTER_TOPK|MOE|DENSE_FFN|LM_HEAD moe_ops=30
+[HTP] gemma: list n_ops=542 layers=30 params=60 by name
+[HTP] moe m1 gemv: on (applied=0xcf03e1) lead=192KB rows1=1 feed=vtcm dma_bypass=1 dma_q=4 source=default
+[HTP] LM head shares 16 DSP handles for prefill/decode; released 396 MiB host source
+[HTP] graph: q4m1 weights=206 handles=16 feed=vtcm wh_handles=570
+[HTP] e2e: fc arena weights=206 handles=16 attach_mib=396.0 chunks=2 mapped_mib=448 feed=vtcm load_ms=569.3 lanes=6,3 s1_arena_mib=1344 s1_heap_kib=130160
+[HTP] CPU prefill scratch discarded: 295 MiB of virtual pages
+[HTP] mem t1 before graph init (= prefill end): s1_heap_mib=151 staging_pools_mib=370 rss_mib=246 mem_available_mib=4892
+[HTP] mem t1 after graph init: s1_heap_mib=196 staging_pools_mib=370 rss_mib=246 mem_available_mib=4843
+[HTP] graph: init n_ops=542 resident=RMSNORM|FC|QK_NORM|ROPE|ATTN_M1|ADD|ROUTER_TOPK|MOE|DENSE_FFN|LM_HEAD moe_ops=30
+[HTP] e2e: freed 0 quantized KV caches
+[HTP] attn_m1: registered layers=25 kv=8 gqa=2 head_dim=256 max_seq=2176 cache=217600 KiB int8
+[HTP] attn_m1: registered layers=5 kv=2 gqa=8 head_dim=512 max_seq=2176 cache=21760 KiB int8
+[HTP] dspq: on queue=0x1b8400000000 dsp_spin_us=0 arm_spin_us=5000 buffers=65536+1048576 ion=y domain=3
+[HTP] token driver: on mbox=65536 spin_us=0 moe_ops=30 logits_buf=1048576 fadvise=0
+[HTP] t1: graph_init_ms=168.3
+[HTP-PREFETCH] direct slots=32 bytes=48758784 readers=4
+[HTP] t1: pool_sync_ms=5.9 (drop_host_fc+pin 4.3) kv_seed_rpc_ms=153.4 seeds=30 (dsp 0, kvq freed late 0) rss_mib=265.9 mem_available_mib=4923.5
+[HTP] staging: prefill classes released mib=320
+[HTP] pool: +22 experts a layer from the second token
+[HTP] token driver: first token pos=2048 id=45518 us=269035 logits=0
+prefill: 2048 tokens, 3047 ms, 672.137 TPS
+generation: 127 tokens, 10520 ms, 12.0722 TPS
+generation(last 64): 64 tokens, 4739 ms, 13.505 TPS
+peak memory: 1703908 KB
+[HTP] dspq: close calls=127 served=127 bad=0 empty_polls=0 dsp_spin_us=0 stop_err=0x0
+[HTP] graph: tokens=127 pcyc/token=139960761 wait_us/token=0.0
+[HTP] graph per-kind pcyc/token: RMSNORM=3488514(1.909ms) FC=21299815(11.657ms) QK_NORM=574505(0.314ms) ROPE=487029(0.267ms) ATTN_M1=16776955(9.182ms) ADD=734885(0.402ms) ROUTER_TOPK=6920285(3.788ms) MOE=73798734(40.390ms) DENSE_FFN=2265330(1.240ms) LM_HEAD=13614708(7.451ms) | wall_ms/token=76.973 mhz=1827 spin_us=0
+[HTP] graph per-kind us/token: RMSNORM=1652 FC=10085 QK_NORM=272 ROPE=230 ATTN_M1=7943 ADD=348 ROUTER_TOPK=3276 MOE=45324(net of miss wait 20208) DENSE_FFN=1072 LM_HEAD=6446 | ops/wall=0.9958 compute_mhz=2113
+[HTP] graph moe pcyc/op=2459958 (1.346 ms) router pcyc/op=230676; fc+dense_ffn+lm_head ms/token=20.349; arm token_ms=78.231
+[HTP] token driver: L0 wake us/token disp=33.8 pkt=6.7 ret=1218.3 clk_resid=-0.0
+[HTP] token driver: L0 us/token rt=78231.4 dsp_wall=76972.6 wake=1258.8 hop_us=0.0 arm_fwd=79217.8 arm_us=775.2 arm_n=126
+[HTP] token driver: pool misses=7011 misses/token=55.20 miss_wait_us/token=25115.6 rounds=3100 arm_ms/round=1.394 pgpgin_mib=7663.8 rss_mib=130.8 mem_available_mib=4555.8
+[HTP] token driver: round us: notice=14 pre=122 read=1272 answer=1394 (arm total) | dsp overlap=570 wait=1029 anslat=189 rebind=39
+[HTP] token driver: moe calls/token=69.69 (one-at-a-time 166.48)
+[HTP] token driver: close tokens=127 hops/token=0.00 served=127 timeouts=0 stale=0 id_checked=0 id_mismatch=0 stop_err=0x0
+[HTP] e2e: close mapped_mib=449.12 unmap_fail=0 detach_fail=0 heap_used_kib=481765 (info rc 0x0)
+[HTP-PREDICT] arm submitted=3678 completed=3678 failed=0 full=0
+[HTP-PREFETCH] submitted=8424 completed=8380 used=4293 late=1112 discarded=4131 failed=0 full=0 joined=1112 registration_rpc=0
+[HTP] arena: chunks unmapped 11/11 mib=2368 (release rc=0x0 put=11)
+[HTP] graph: forward calls=127 tokens=127 calls/token=1.00
+[HTP] graph: cpu fc skipped=19080
+[memory] sampled peak including swap/cache: 5.478 GB

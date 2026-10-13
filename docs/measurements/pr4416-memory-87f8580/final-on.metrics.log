@@ -1,0 +1,167 @@
+[HTP] ppl levers=0x0 L1=exact
+[HTP] graph: description n_ops=542 resident=RMSNORM|FC|QK_NORM|ROPE|ATTN_M1|ADD|ROUTER_TOPK|MOE|DENSE_FFN|LM_HEAD moe_ops=30
+[HTP] gemma: list n_ops=542 layers=30 params=60 by name
+[HTP] moe m1 gemv: on (applied=0xf03e1) lead=192KB rows1=1 feed=vtcm dma_bypass=1 dma_q=1 source=default
+[HTP] LM head shares 16 DSP handles for prefill/decode; released 396 MiB host source
+[HTP] graph: q4m1 weights=206 handles=16 feed=vtcm wh_handles=570
+[HTP] e2e: fc arena weights=206 handles=16 attach_mib=396.0 chunks=2 mapped_mib=448 feed=vtcm load_ms=527.5 lanes=6,3 s1_arena_mib=1344 s1_heap_kib=130160
+[HTP] mem t1 before graph init (= prefill end): s1_heap_mib=151 staging_pools_mib=370 rss_mib=254 mem_available_mib=4355
+[HTP] mem t1 after graph init: s1_heap_mib=196 staging_pools_mib=370 rss_mib=254 mem_available_mib=4318
+[HTP] graph: init n_ops=542 resident=RMSNORM|FC|QK_NORM|ROPE|ATTN_M1|ADD|ROUTER_TOPK|MOE|DENSE_FFN|LM_HEAD moe_ops=30
+[HTP] e2e: freed 0 quantized KV caches
+[HTP] attn_m1: registered layers=25 kv=8 gqa=2 head_dim=256 max_seq=2176 cache=217600 KiB int8
+[HTP] attn_m1: registered layers=5 kv=2 gqa=8 head_dim=512 max_seq=2176 cache=21760 KiB int8
+[HTP] dspq: on queue=0x78400000000 dsp_spin_us=0 arm_spin_us=5000 buffers=65536+1048576 ion=y domain=3
+[HTP] token driver: on mbox=65536 spin_us=0 moe_ops=30 logits_buf=1048576 fadvise=0
+[HTP] t1: graph_init_ms=167.8
+[HTP] t1: pool_sync_ms=1.8 (drop_host_fc+pin 0.0) kv_seed_rpc_ms=147.8 seeds=30 (dsp 0, kvq freed late 0) rss_mib=274.5 mem_available_mib=4445.7
+[HTP] token driver: first token pos=2048 id=45518 us=250563 logits=1
+[PPL] decode step=1 target=45518 nll=5.187000819439902e-05 top1=45518
+[PPL] decode step=2 target=107 nll=5.7920019294499525e-05 top1=107
+[PPL] decode step=3 target=101 nll=0.33887722120474617 top1=101
+[PPL] decode step=4 target=818 nll=0.10758563324981552 top1=818
+[PPL] decode step=5 target=2072 nll=0.11701880794497299 top1=2072
+[PPL] decode step=6 target=15517 nll=0.48768287334482352 top1=15517
+[PPL] decode step=7 target=496 nll=0.00041016009204142279 top1=496
+[PPL] decode step=8 target=1806 nll=0.013503834499360323 top1=1806
+[PPL] decode step=9 target=236772 nll=6.6651409404983042e-06 top1=236772
+[PPL] decode step=10 target=3704 nll=0.0010448321657818838 top1=3704
+[PPL] decode step=11 target=2748 nll=0.0091756984978701439 top1=2748
+[PPL] decode step=12 target=528 nll=0.24048909647363104 top1=528
+[PPL] decode step=13 target=496 nll=0.0083652191462597614 top1=496
+[PPL] decode step=14 target=3207 nll=0.33615042949422858 top1=3207
+[PPL] decode step=15 target=607 nll=0.75495086266130684 top1=607
+[PPL] decode step=16 target=236743 nll=0.84971010930311408 top1=236743
+[PPL] decode step=17 target=236812 nll=0.00018028514326573486 top1=236812
+[PPL] decode step=18 target=236771 nll=3.0067820645740539e-05 top1=236771
+[PPL] decode step=19 target=236771 nll=3.5275657690903017e-05 top1=236771
+[PPL] decode step=20 target=236764 nll=8.1827924265809315e-05 top1=236764
+[PPL] decode step=21 target=236771 nll=8.9760798935856201e-06 top1=236771
+[PPL] decode step=22 target=236771 nll=5.394355266474804e-06 top1=236771
+[PPL] decode step=23 target=236771 nll=1.8383334960958564e-06 top1=236771
+[PPL] decode step=24 target=36089 nll=0.022327472646193058 top1=36089
+[PPL] decode step=25 target=236764 nll=0.53333327320504509 top1=236764
+[PPL] decode step=26 target=1298 nll=0.88701021323452522 top1=1298
+[PPL] decode step=27 target=496 nll=0.024145504444426535 top1=496
+[PPL] decode step=28 target=19707 nll=0.69898392624779149 top1=19707
+[PPL] decode step=29 target=3707 nll=0.11667278352419075 top1=3707
+[PPL] decode step=30 target=529 nll=7.0104276055360515e-06 top1=529
+[PPL] decode step=31 target=2708 nll=0.0070258041840993712 top1=2708
+[PPL] decode step=32 target=236772 nll=4.7078818603552008e-06 top1=236772
+[PPL] decode step=33 target=13769 nll=5.9130047961986065e-05 top1=13769
+[PPL] decode step=34 target=34407 nll=0.077282170423625729 top1=34407
+[PPL] decode step=35 target=532 nll=8.2646945795517013e-05 top1=532
+[PPL] decode step=36 target=4204 nll=0.00025545782326830135 top1=4204
+[PPL] decode step=37 target=21615 nll=7.3048822446963868e-05 top1=21615
+[PPL] decode step=38 target=691 nll=0.00094024960272420799 top1=691
+[PPL] decode step=39 target=1456 nll=0.3014172749295625 top1=1456
+[PPL] decode step=40 target=531 nll=0.0002401899876645075 top1=531
+[PPL] decode step=41 target=29888 nll=0.44499258818924048 top1=29888
+[PPL] decode step=42 target=532 nll=0.10145617055997747 top1=532
+[PPL] decode step=43 target=57761 nll=0.63803339778025503 top1=57761
+[PPL] decode step=44 target=11497 nll=0.082341236134258367 top1=11497
+[PPL] decode step=45 target=46302 nll=0.59143041840733801 top1=46302
+[PPL] decode step=46 target=528 nll=0.096739619128108245 top1=528
+[PPL] decode step=47 target=496 nll=0.35560107401472507 top1=496
+[PPL] decode step=48 target=19312 nll=0.92496512398556519 top1=19312
+[PPL] decode step=49 target=1813 nll=0.00025754034667002657 top1=1813
+[PPL] decode step=50 target=3707 nll=0.6754417295891102 top1=3707
+[PPL] decode step=51 target=236761 nll=0.0001321630287911546 top1=236761
+[PPL] decode step=52 target=3763 nll=0.14510631553470077 top1=3763
+[PPL] decode step=53 target=26614 nll=0.023386228181404789 top1=26614
+[PPL] decode step=54 target=3446 nll=0.70802569918306091 top1=3446
+[PPL] decode step=55 target=236772 nll=0.00018394346138705941 top1=236772
+[PPL] decode step=56 target=5101 nll=0.00013880231026064394 top1=5101
+[PPL] decode step=57 target=3671 nll=0.003726512033100704 top1=3671
+[PPL] decode step=58 target=607 nll=0.17162219776424337 top1=607
+[PPL] decode step=59 target=34407 nll=0.001634419210667204 top1=34407
+[PPL] decode step=60 target=14824 nll=0.15814890786427327 top1=14824
+[PPL] decode step=61 target=236764 nll=0.0058344526063223157 top1=236764
+[PPL] decode step=62 target=506 nll=0.0043389975401240122 top1=506
+[PPL] decode step=63 target=2203 nll=0.83109404446540935 top1=2203
+[PPL] decode step=64 target=7808 nll=0.95539303135976539 top1=7808
+[PPL] decode step=65 target=506 nll=0.005803761489403314 top1=506
+[PPL] decode step=66 target=14955 nll=0.030146216353895028 top1=14955
+[PPL] decode step=67 target=699 nll=0.0057647140880199288 top1=699
+[PPL] decode step=68 target=496 nll=0.00066320941146713608 top1=496
+[PPL] decode step=69 target=35266 nll=0.00025664316253681818 top1=35266
+[PPL] decode step=70 target=531 nll=1.1957224375461806 top1=531
+[PPL] decode step=71 target=496 nll=0.00010560405928572436 top1=496
+[PPL] decode step=72 target=53591 nll=0.046434878773606414 top1=53591
+[PPL] decode step=73 target=4313 nll=0.7307110723898198 top1=4313
+[PPL] decode step=74 target=236764 nll=0.0029557003262041803 top1=236764
+[PPL] decode step=75 target=21558 nll=0.93602351118493843 top1=21558
+[PPL] decode step=76 target=13947 nll=0.75685922600649747 top1=13947
+[PPL] decode step=77 target=529 nll=0.00049095840085655595 top1=529
+[PPL] decode step=78 target=30254 nll=0.25468002845245508 top1=30254
+[PPL] decode step=79 target=46302 nll=0.00130258934150973 top1=46302
+[PPL] decode step=80 target=532 nll=0.11066912499899928 top1=532
+[PPL] decode step=81 target=8792 nll=0.65847495536290523 top1=8792
+[PPL] decode step=82 target=13471 nll=0.00054326524472614324 top1=13471
+[PPL] decode step=83 target=1813 nll=0.74504357105662322 top1=1813
+[PPL] decode step=84 target=3967 nll=0.00042080001751898521 top1=3967
+[PPL] decode step=85 target=699 nll=0.63311732951848754 top1=699
+[PPL] decode step=86 target=236743 nll=0.4661323367707304 top1=236743
+[PPL] decode step=87 target=236778 nll=5.864246261921835e-07 top1=236778
+[PPL] decode step=88 target=236828 nll=1.2149222406776516e-05 top1=236828
+[PPL] decode step=89 target=236908 nll=0.022479297012438337 top1=236908
+[PPL] decode step=90 target=531 nll=0.00064891726368188074 top1=531
+[PPL] decode step=91 target=236743 nll=0.027868680434824711 top1=236743
+[PPL] decode step=92 target=236770 nll=6.9319331785777649e-07 top1=236770
+[PPL] decode step=93 target=236810 nll=0.00034921026814060951 top1=236810
+[PPL] decode step=94 target=9525 nll=0.68437222271344211 top1=9525
+[PPL] decode step=95 target=669 nll=0.067657732846122087 top1=669
+[PPL] decode step=96 target=1458 nll=0.37180552166946512 top1=1458
+[PPL] decode step=97 target=12183 nll=1.0736027826339907 top1=12183
+[PPL] decode step=98 target=6112 nll=0.44880077301971966 top1=6112
+[PPL] decode step=99 target=2157 nll=0.27295171216886871 top1=2157
+[PPL] decode step=100 target=236772 nll=5.2206979290758682e-06 top1=236772
+[PPL] decode step=101 target=25931 nll=0.0028019561771337465 top1=25931
+[PPL] decode step=102 target=236764 nll=0.0062794970431667707 top1=236764
+[PPL] decode step=103 target=13888 nll=0.83667220086997673 top1=13888
+[PPL] decode step=104 target=573 nll=0.0010355128976797801 top1=573
+[PPL] decode step=105 target=4850 nll=0.43199609415128037 top1=4850
+[PPL] decode step=106 target=2351 nll=0.0038773181395050926 top1=2351
+[PPL] decode step=107 target=12571 nll=0.3376400420134793 top1=12571
+[PPL] decode step=108 target=3794 nll=0.00016564682954722798 top1=3794
+[PPL] decode step=109 target=532 nll=0.5171277068983855 top1=532
+[PPL] decode step=110 target=6655 nll=0.034796308088019146 top1=6655
+[PPL] decode step=111 target=496 nll=0.25174929573210392 top1=496
+[PPL] decode step=112 target=8906 nll=0.028499910827193276 top1=8906
+[PPL] decode step=113 target=236764 nll=0.69511482032847383 top1=236764
+[PPL] decode step=114 target=1262 nll=0.89349336061209428 top1=1262
+[PPL] decode step=115 target=236772 nll=3.8739995886771794e-06 top1=236772
+[PPL] decode step=116 target=27612 nll=9.2794834241516355e-05 top1=27612
+[PPL] decode step=117 target=21385 nll=0.56125959770132994 top1=21385
+[PPL] decode step=118 target=529 nll=0.012480068869646033 top1=529
+[PPL] decode step=119 target=506 nll=0.00077367948463447078 top1=506
+[PPL] decode step=120 target=12308 nll=0.23874495837993592 top1=12308
+[PPL] decode step=121 target=600 nll=0.71704807788137614 top1=600
+[PPL] decode step=122 target=691 nll=1.7365309037527297 top1=691
+[PPL] decode step=123 target=711 nll=0.14261942516194637 top1=711
+[PPL] decode step=124 target=7539 nll=0.31360522788456535 top1=7539
+[PPL] decode step=125 target=2653 nll=0.34149362817354501 top1=2653
+[PPL] decode step=126 target=236761 nll=0.02989559993650559 top1=236761
+[PPL] decode step=127 target=106 nll=0.0049428702520550871 top1=106
+[PPL] decode tokens=127 nll/token=0.240543 ppl=1.27194 top1=127/127 source=self nll_sum=30.548928186064231
+prefill: 2048 tokens, 2979 ms, 687.479 TPS
+generation: 127 tokens, 15140 ms, 8.38838 TPS
+generation(last 64): 64 tokens, 7104 ms, 9.00901 TPS
+peak memory: 1703836 KB
+[e2e time]: 22734 ms
+[HTP] dspq: close calls=127 served=127 bad=0 empty_polls=0 dsp_spin_us=0 stop_err=0x0
+[HTP] graph: tokens=127 pcyc/token=177652725 wait_us/token=0.0
+[HTP] graph per-kind pcyc/token: RMSNORM=3222642(1.964ms) FC=20997529(12.797ms) QK_NORM=563591(0.343ms) ROPE=488680(0.298ms) ATTN_M1=16623193(10.131ms) ADD=748923(0.456ms) ROUTER_TOPK=6045186(3.684ms) MOE=115055910(70.123ms) DENSE_FFN=72003(0.044ms) LM_HEAD=13835069(8.432ms) | wall_ms/token=109.515 mhz=1641 spin_us=0
+[HTP] graph per-kind us/token: RMSNORM=1526 FC=9942 QK_NORM=267 ROPE=231 ATTN_M1=7870 ADD=354 ROUTER_TOPK=2862 MOE=78911(net of miss wait 20176) DENSE_FFN=34 LM_HEAD=6550 | ops/wall=0.9912 compute_mhz=2113
+[HTP] graph moe pcyc/op=3835197 (2.337 ms) router pcyc/op=201506; fc+dense_ffn+lm_head ms/token=21.273; arm token_ms=110.917
+[HTP] token driver: L0 wake us/token disp=40.0 pkt=6.4 ret=1355.6 clk_resid=-0.1
+[HTP] token driver: L0 us/token rt=110917.5 dsp_wall=109515.5 wake=1402.0 hop_us=0.0 arm_fwd=113646.7 arm_us=2767.1 arm_n=126
+[HTP] token driver: pool misses=16089 misses/token=126.69 miss_wait_us/token=58735.4 rounds=3787 arm_ms/round=2.391 pgpgin_mib=8851.5 rss_mib=116.5 mem_available_mib=5145.3
+[HTP] token driver: round us: notice=2 pre=19 read=2372 answer=2391 (arm total) | dsp overlap=452 wait=1970 anslat=28 rebind=32
+[HTP] token driver: moe calls/token=71.43 (one-at-a-time 225.43)
+[HTP] token driver: close tokens=127 hops/token=0.00 served=127 timeouts=0 stale=0 id_checked=127 id_mismatch=0 stop_err=0x0
+[HTP] e2e: close mapped_mib=449.12 unmap_fail=0 detach_fail=0 heap_used_kib=448930 (info rc 0x0)
+[HTP] arena: chunks unmapped 6/6 mib=1344 (release rc=0x0 put=6)
+[HTP] graph: forward calls=127 tokens=127 calls/token=1.00
+[HTP] graph: cpu fc skipped=19080
+[memory] sampled peak including swap/cache: 5.312 GB

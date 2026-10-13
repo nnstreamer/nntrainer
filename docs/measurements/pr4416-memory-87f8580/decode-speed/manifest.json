@@ -1,0 +1,38 @@
+{
+  "base_commit": "87f8580f5916d07cbb75dec660009edfaa407df1",
+  "source_sha256": {
+    "Applications/CausalLM/README.md": "66edfc8e525c36005a8d4fff8d1153bf6b934ce34b1a309da5ff9740673f92b7",
+    "Applications/CausalLM/layers/embedding_layer.cpp": "ecab04b1df321ce7e83b229d3fa2974c4411c8969e0ba7d1a4410ebb08be190b",
+    "Applications/CausalLM/layers/lm_head.cpp": "5269716bbd254598d2554a6a8dada4ab1c184146e763194bf5292ca6e2b33912",
+    "Applications/CausalLM/layers/mha_core.cpp": "18bcbcca2423d87d2e66585f64f4db74d3887482943fc6bb7724ba0eb9eafdb9",
+    "Applications/CausalLM/models/causal_lm.cpp": "682ecfcdcf05d96bffdd5064bef1d354d2498526ba7aebf9f1cf9cec450d540a",
+    "Applications/CausalLM/models/transformer.cpp": "cef88e60447f3593a57993a1f11ad1d3e7132d92a33088d9d10a26e4c27582f6",
+    "Applications/CausalLM/run_gemma4_memory.sh": "c7fda894e5f6abb5d3d98637a86b524909a3852ae39b3f7a088d839b28de489a",
+    "nntrainer/graph/network_graph.h": "e9262f5d9ca495fc5124832c3417e9834314cd3e07bddcfc4cce9501ed715e32",
+    "nntrainer/models/neuralnet.cpp": "8eb779f8cb20c4b988a66466be6cc7d735b34cf260bcdaa0b1d8f258ec9ef3b0",
+    "nntrainer/models/neuralnet.h": "643a99b30f4cded014dc080aa222ad269e35f247e783be13b28777430a2a5073",
+    "nntrainer/tensor/cpu_backend/compute_ops.h": "bdcd2ffc6f80331dbb3ed67c19cf2658ee7c97b6b40652c81058ea24221d15d7",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "23824ebba9cdfe69e8a3ac6234e3f17f2db0b842cac43eb2066a3a1e0c40f937",
+    "nntrainer/tensor/htp_backend/htp_router_predict.h": "4402d914f9a68188659f58bfea590be3cb383ccb54b36f8392390fc0158bf8c6",
+    "nntrainer/tensor/manager.h": "b3507d3123a90fe407b520593a5a6e36fafe0b3150ac005d9aadcd305b005260",
+    "nntrainer/tensor/tensor_pool.cpp": "d0a61157c6636bb0742ac6d3992b24aef5d0aedca8e4f0ada3809db0f05f56fa",
+    "nntrainer/tensor/tensor_pool.h": "3d0720ae9d45f5f1a7390949cda3229d08c1957b0013be9116d08476f4e96e6b",
+    "nntrainer/utils/meson.build": "3d3d6e1840e25dfa5afecd6782cee6153117033b9a81a89b029e855156cc092c",
+    "nntrainer/utils/util_func.cpp": "920e1cbe0f070da14fa90c72b8d733d5310fd9ffa75551cf86a08839a6823b18",
+    "nntrainer/utils/util_func.h": "4541547b2b5bc3991f5e9a52295036727079dcf0b20fbedb2fc407d1f66c36d8",
+    "nntrainer/utils/weight_file_reader.cpp": "6cd299ffce9672574d106bf3b060ac4fef887e1198bbc057fb45833e0ee51319",
+    "nntrainer/utils/weight_file_reader.h": "7918f8c73ca8d5a0d6e551d2c4b1a70b072a8ee47b95f43ab625e6db35c2485d",
+    "test/htp/host/measure_memory.cpp": "8000251a77b243a58ea138161003e0a1015bc5fb113fba1889c325480850d9e6",
+    "test/htp/host/run_host_checks.sh": "5470e892eb507fd2c2bdac3c83c189f292aa04e11d73ebc04cc8e459341f9661",
+    "test/htp/host/weight_file_reader_check.cpp": "1e79590f62a2c1fea5b4153cac9ba112b901b1cd4359e90d7d9664046b245d80",
+    "test/unittest/unittest_nntrainer_tensor_pool.cpp": "ef7d6888836ae27a0a820719d87e5a9cee4e95b308a226715f1123f58ca73a85"
+  },
+  "artifact_sha256": {
+    "builddir/jni/arm64-v8a/libnntrainer.so": "e0fcaf5b956823238d8b630097b80c42fa06bebdc37370d15b140f1794450a37",
+    "builddir/jni/arm64-v8a/libccapi-nntrainer.so": "571b4a56572de450012e3700c769ed731ca3159804d649e9aa48bd14bae5ad48",
+    "Applications/CausalLM/jni/libs/arm64-v8a/libcausallm_core.so": "ac98749483d3d532f2400cbe629666e4d1fc309308e413cd49533d0e1a51565b",
+    "Applications/CausalLM/jni/libs/arm64-v8a/nntrainer_causallm": "01e28caaadd276967a289dd019acb2e126a1ca2cf67fd9eaf62bf3fe8979360c",
+    "libnntr_hvx_skel.so": "a04bf88aae5b932e1d7403fe14927f3c65c1f2b480469eaba5897011df0965f2",
+    "measure-v2": "14ba4669859a4050a652b7818c57f2094ef85ef8c8f6285b6b0b02c0a31b283f"
+  }
+}

@@ -1,0 +1,10 @@
+../model-2048
+/data/local/tmp/nntrainer/causallm/models/gemma4-26b-a4b-ternary-fcqs4cx/nntr_gemma4_26b_a4b_qs2cx_fcqs4cx.bin
+[HTP] ppl levers=0x0 L1=exact
+[HTP] graph: description n_ops=542 resident=RMSNORM|FC|QK_NORM|ROPE|ATTN_M1|ADD|ROUTER_TOPK|MOE|DENSE_FFN|LM_HEAD moe_ops=30
+[HTP] gemma: list n_ops=542 layers=30 params=60 by name
+
+[!] FATAL ERROR: Failed to repack weights: nntr_hvx_weight_swap_batch_u2i4_arena failed: err=0x80000402 at expert 0 of 1 (a skel older than test/htp/nntr_hvx.idl answers this call with an error: rebuild and push libnntr_hvx_skel.so)
+[HTP] e2e: close mapped_mib=0.00 unmap_fail=0 detach_fail=0 heap_used_kib=464 (info rc 0x0)
+[HTP] arena: chunks unmapped 1/1 mib=256 (release rc=0x0 put=1)
+[memory] sampled peak including swap/cache: 1.736 GB

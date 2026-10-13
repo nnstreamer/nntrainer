@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-13",
+  "pr": "https://github.com/nntrainer/nntrainer/pull/4416",
+  "base_revision": "87f8580f5916d07cbb75dec660009edfaa407df1",
+  "model_bytes": 7540724856,
+  "device": "Galaxy S26 Ultra SM-S948N",
+  "android": "16",
+  "dsp": "v81",
+  "source_sha256": {
+    "Applications/CausalLM/layers/embedding_layer.cpp": "ecab04b1df321ce7e83b229d3fa2974c4411c8969e0ba7d1a4410ebb08be190b",
+    "Applications/CausalLM/layers/lm_head.cpp": "5269716bbd254598d2554a6a8dada4ab1c184146e763194bf5292ca6e2b33912",
+    "Applications/CausalLM/layers/mha_core.cpp": "18bcbcca2423d87d2e66585f64f4db74d3887482943fc6bb7724ba0eb9eafdb9",
+    "Applications/CausalLM/models/transformer.cpp": "cef88e60447f3593a57993a1f11ad1d3e7132d92a33088d9d10a26e4c27582f6",
+    "Applications/CausalLM/run_gemma4_memory.sh": "eed60343b6d6244962ac96e821be453d809d868156f8d499c71828f2e122b5ea",
+    "nntrainer/models/neuralnet.cpp": "8eb779f8cb20c4b988a66466be6cc7d735b34cf260bcdaa0b1d8f258ec9ef3b0",
+    "nntrainer/tensor/cpu_backend/compute_ops.h": "bdcd2ffc6f80331dbb3ed67c19cf2658ee7c97b6b40652c81058ea24221d15d7",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "c720ed88f9a94177156322f3646f4850aea07851decae4a69a6ce72343170929",
+    "nntrainer/utils/meson.build": "3d3d6e1840e25dfa5afecd6782cee6153117033b9a81a89b029e855156cc092c",
+    "nntrainer/utils/util_func.cpp": "920e1cbe0f070da14fa90c72b8d733d5310fd9ffa75551cf86a08839a6823b18",
+    "nntrainer/utils/util_func.h": "4541547b2b5bc3991f5e9a52295036727079dcf0b20fbedb2fc407d1f66c36d8",
+    "nntrainer/utils/weight_file_reader.cpp": "f74310939985d6406d37a95dcd7f3fa98bd76de8900b81226fb44f1c1c21d53f",
+    "nntrainer/utils/weight_file_reader.h": "56f483541e109619f1c103a3168d115319b02d1bd57c4f8a1bfbc2c1f1259d97",
+    "test/htp/host/measure_memory.cpp": "8000251a77b243a58ea138161003e0a1015bc5fb113fba1889c325480850d9e6",
+    "test/htp/host/run_host_checks.sh": "5470e892eb507fd2c2bdac3c83c189f292aa04e11d73ebc04cc8e459341f9661",
+    "test/htp/host/weight_file_reader_check.cpp": "ff1daf0e8571a6d726454f3d3b98c38ca338057cdf90791b97cf61fc97feeb52"
+  },
+  "artifact_sha256": {
+    "libnntrainer.so": "e696c7142c0811d3a52236e39ce416b2616b81b1a0d2085e94c1453ac4a24f5d",
+    "libccapi-nntrainer.so": "571b4a56572de450012e3700c769ed731ca3159804d649e9aa48bd14bae5ad48",
+    "libcausallm_core.so": "37bcc68ff210621e3b124033298e9d295fba223f24c38dc4f24f9315123ee64d",
+    "nntrainer_causallm": "01e28caaadd276967a289dd019acb2e126a1ca2cf67fd9eaf62bf3fe8979360c",
+    "libnntr_hvx_skel.so": "a04bf88aae5b932e1d7403fe14927f3c65c1f2b480469eaba5897011df0965f2",
+    "measure-v2": "14ba4669859a4050a652b7818c57f2094ef85ef8c8f6285b6b0b02c0a31b283f"
+  },
+  "validation": {
+    "host_checks_exit_code": 0,
+    "android_core_and_app_build": "pass",
+    "android_weight_reader": "pass",
+    "tiny_cpu_legacy_off_on": "identical tok14tok12",
+    "neon_emulation": "skipped: aarch64 g++ or qemu-aarch64 unavailable",
+    "remote_ci": "not run"
+  }
+}

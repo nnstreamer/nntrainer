@@ -1,0 +1,45 @@
+[HTP] ppl levers=0x0 L1=exact
+[HTP] graph: description n_ops=542 resident=RMSNORM|FC|QK_NORM|ROPE|ATTN_M1|ADD|ROUTER_TOPK|MOE|DENSE_FFN|LM_HEAD moe_ops=30
+[HTP] gemma: list n_ops=542 layers=30 params=60 by name
+[HTP] moe m1 gemv: on (applied=0xcf03e1) lead=192KB rows1=1 feed=vtcm dma_bypass=1 dma_q=4 source=default
+[HTP] LM head shares 16 DSP handles for prefill/decode; released 396 MiB host source
+[HTP] graph: q4m1 weights=206 handles=16 feed=vtcm wh_handles=570
+[HTP] e2e: fc arena weights=206 handles=16 attach_mib=396.0 chunks=2 mapped_mib=448 feed=vtcm load_ms=561.4 lanes=6,3 s1_arena_mib=1344 s1_heap_kib=130160
+[HTP] CPU prefill scratch discarded: 295 MiB of virtual pages
+[HTP] mem t1 before graph init (= prefill end): s1_heap_mib=151 staging_pools_mib=370 rss_mib=249 mem_available_mib=4899
+[HTP] mem t1 after graph init: s1_heap_mib=196 staging_pools_mib=370 rss_mib=249 mem_available_mib=4848
+[HTP] graph: init n_ops=542 resident=RMSNORM|FC|QK_NORM|ROPE|ATTN_M1|ADD|ROUTER_TOPK|MOE|DENSE_FFN|LM_HEAD moe_ops=30
+[HTP] e2e: freed 0 quantized KV caches
+[HTP] attn_m1: registered layers=25 kv=8 gqa=2 head_dim=256 max_seq=2176 cache=217600 KiB int8
+[HTP] attn_m1: registered layers=5 kv=2 gqa=8 head_dim=512 max_seq=2176 cache=21760 KiB int8
+[HTP] dspq: on queue=0x1c0400000000 dsp_spin_us=0 arm_spin_us=5000 buffers=65536+1048576 ion=y domain=3
+[HTP] token driver: on mbox=65536 spin_us=0 moe_ops=30 logits_buf=1048576 fadvise=0
+[HTP] t1: graph_init_ms=156.1
+[HTP-PREFETCH] direct slots=32 bytes=48758784 readers=4
+[HTP] t1: pool_sync_ms=5.6 (drop_host_fc+pin 3.9) kv_seed_rpc_ms=154.6 seeds=30 (dsp 0, kvq freed late 0) rss_mib=269.4 mem_available_mib=4918.4
+[HTP] staging: prefill classes released mib=320
+[HTP] pool: +22 experts a layer from the second token
+[HTP] token driver: first token pos=2048 id=45518 us=247572 logits=1
+[PPL] decode tokens=127 nll/token=0.240543 ppl=1.27194 top1=127/127 source=self nll_sum=30.548928186064231
+prefill: 2048 tokens, 3189 ms, 642.208 TPS
+generation: 127 tokens, 11087 ms, 11.4549 TPS
+generation(last 64): 64 tokens, 5125 ms, 12.4878 TPS
+peak memory: 1696452 KB
+[HTP] dspq: close calls=127 served=127 bad=0 empty_polls=0 dsp_spin_us=0 stop_err=0x0
+[HTP] graph: tokens=127 pcyc/token=138884642 wait_us/token=0.0
+[HTP] graph per-kind pcyc/token: RMSNORM=3491657(1.923ms) FC=21484721(11.835ms) QK_NORM=576189(0.317ms) ROPE=484400(0.267ms) ATTN_M1=16660621(9.178ms) ADD=729165(0.402ms) ROUTER_TOPK=6654339(3.666ms) MOE=72962994(40.193ms) DENSE_FFN=2263771(1.247ms) LM_HEAD=13576786(7.479ms) | wall_ms/token=77.598 mhz=1815 spin_us=0
+[HTP] graph per-kind us/token: RMSNORM=1654 FC=10172 QK_NORM=272 ROPE=229 ATTN_M1=7888 ADD=345 ROUTER_TOPK=3150 MOE=45447(net of miss wait 19066) DENSE_FFN=1072 LM_HEAD=6428 | ops/wall=0.9879 compute_mhz=2113
+[HTP] graph moe pcyc/op=2432100 (1.340 ms) router pcyc/op=221811; fc+dense_ffn+lm_head ms/token=20.561; arm token_ms=78.506
+[HTP] token driver: L0 wake us/token disp=35.9 pkt=7.4 ret=865.1 clk_resid=-0.0
+[HTP] token driver: L0 us/token rt=78506.3 dsp_wall=77597.9 wake=908.4 hop_us=0.0 arm_fwd=81714.2 arm_us=2835.7 arm_n=126
+[HTP] token driver: pool misses=7011 misses/token=55.20 miss_wait_us/token=26381.0 rounds=3100 arm_ms/round=1.416 pgpgin_mib=16086.1 rss_mib=138.6 mem_available_mib=4530.2
+[HTP] token driver: round us: notice=1 pre=52 read=1365 answer=1416 (arm total) | dsp overlap=529 wait=1081 anslat=191 rebind=38
+[HTP] token driver: moe calls/token=69.69 (one-at-a-time 166.48)
+[HTP] token driver: close tokens=127 hops/token=0.00 served=127 timeouts=0 stale=0 id_checked=127 id_mismatch=0 stop_err=0x0
+[HTP] e2e: close mapped_mib=449.12 unmap_fail=0 detach_fail=0 heap_used_kib=481765 (info rc 0x0)
+[HTP-PREDICT] arm submitted=3683 completed=3683 failed=0 full=0
+[HTP-PREFETCH] submitted=8433 completed=8322 used=4301 late=1355 discarded=4132 failed=0 full=0 joined=1355 registration_rpc=0
+[HTP] arena: chunks unmapped 11/11 mib=2368 (release rc=0x0 put=11)
+[HTP] graph: forward calls=127 tokens=127 calls/token=1.00
+[HTP] graph: cpu fc skipped=19080
+[memory] sampled peak including swap/cache: 3.873 GB

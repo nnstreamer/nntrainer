@@ -1,0 +1,91 @@
+{
+  "final-off": {
+    "prefill": {
+      "tokens": 2048,
+      "ms": 3118,
+      "tps": 656.831
+    },
+    "generation": {
+      "tokens": 127,
+      "ms": 10456,
+      "tps": 12.1461
+    },
+    "peak_bytes": 3871473664,
+    "peak_sample": {
+      "ms": "9677.4",
+      "rss_anon_kb": "245440",
+      "rss_file_kb": "42568",
+      "rss_shmem_kb": "400",
+      "swap_kb": "0",
+      "dma_bytes": "3576143872",
+      "model_cache_bytes": "0"
+    },
+    "generated_tokens": 128,
+    "generated_ids_sha256": "8963dc83afa90fece211d8c3ac03f649058c6945693cbdbad37c91aa2fddc6ab",
+    "matches_baseline": true,
+    "max_sample_gap_ms": 78.6,
+    "model_cache_peak_bytes": 0,
+    "swap_peak_bytes": 0
+  },
+  "final-on": {
+    "prefill": {
+      "tokens": 2048,
+      "ms": 3047,
+      "tps": 672.137
+    },
+    "generation": {
+      "tokens": 127,
+      "ms": 10520,
+      "tps": 12.0722
+    },
+    "peak_bytes": 5478035456,
+    "peak_sample": {
+      "ms": "7992.1",
+      "rss_anon_kb": "228792",
+      "rss_file_kb": "42704",
+      "rss_shmem_kb": "400",
+      "swap_kb": "0",
+      "dma_bytes": "3212288000",
+      "model_cache_bytes": "1987325952"
+    },
+    "generated_tokens": 128,
+    "generated_ids_sha256": "8963dc83afa90fece211d8c3ac03f649058c6945693cbdbad37c91aa2fddc6ab",
+    "matches_baseline": true,
+    "max_sample_gap_ms": 116.3,
+    "model_cache_peak_bytes": 2125008896,
+    "swap_peak_bytes": 0
+  },
+  "final-check": {
+    "prefill": {
+      "tokens": 2048,
+      "ms": 3189,
+      "tps": 642.208
+    },
+    "generation": {
+      "tokens": 127,
+      "ms": 11087,
+      "tps": 11.4549
+    },
+    "peak_bytes": 3873103872,
+    "peak_sample": {
+      "ms": "17479.6",
+      "rss_anon_kb": "247780",
+      "rss_file_kb": "41816",
+      "rss_shmem_kb": "404",
+      "swap_kb": "0",
+      "dma_bytes": "3576143872",
+      "model_cache_bytes": "0"
+    },
+    "generated_tokens": 128,
+    "generated_ids_sha256": "8963dc83afa90fece211d8c3ac03f649058c6945693cbdbad37c91aa2fddc6ab",
+    "matches_baseline": true,
+    "max_sample_gap_ms": 110.3,
+    "model_cache_peak_bytes": 1419137024,
+    "swap_peak_bytes": 0,
+    "decode_accuracy": {
+      "tokens_scored": 127,
+      "source": "self",
+      "nll_sum": "30.548928186064231"
+    }
+  }
+}

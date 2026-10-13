@@ -1,0 +1,109 @@
+[==========] Running 50 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 50 tests from TensorPool
+[ RUN      ] TensorPool.release_inference_scratch_preserves_state_and_shared_pages
+[       OK ] TensorPool.release_inference_scratch_preserves_state_and_shared_pages (0 ms)
+[ RUN      ] TensorPool.release_inference_scratch_leaves_device_allocator_untouched
+[       OK ] TensorPool.release_inference_scratch_leaves_device_allocator_untouched (0 ms)
+[ RUN      ] TensorPool.create_destroy
+[       OK ] TensorPool.create_destroy (0 ms)
+[ RUN      ] TensorPool.request_01_n
+[       OK ] TensorPool.request_01_n (0 ms)
+[ RUN      ] TensorPool.request_02_n
+[       OK ] TensorPool.request_02_n (0 ms)
+[ RUN      ] TensorPool.request_03_n
+[       OK ] TensorPool.request_03_n (0 ms)
+[ RUN      ] TensorPool.request_04_p
+[       OK ] TensorPool.request_04_p (0 ms)
+[ RUN      ] TensorPool.view_01_n
+[       OK ] TensorPool.view_01_n (0 ms)
+[ RUN      ] TensorPool.view_02_n
+[       OK ] TensorPool.view_02_n (0 ms)
+[ RUN      ] TensorPool.view_03_n
+[       OK ] TensorPool.view_03_n (0 ms)
+[ RUN      ] TensorPool.view_04_n
+[       OK ] TensorPool.view_04_n (0 ms)
+[ RUN      ] TensorPool.view_05_n
+[       OK ] TensorPool.view_05_n (0 ms)
+[ RUN      ] TensorPool.view_06_n
+[       OK ] TensorPool.view_06_n (0 ms)
+[ RUN      ] TensorPool.view_07_p
+[       OK ] TensorPool.view_07_p (0 ms)
+[ RUN      ] TensorPool.view_08_p
+[       OK ] TensorPool.view_08_p (0 ms)
+[ RUN      ] TensorPool.set_batch_01_p
+[       OK ] TensorPool.set_batch_01_p (0 ms)
+[ RUN      ] TensorPool.set_batch_02_n
+[       OK ] TensorPool.set_batch_02_n (0 ms)
+[ RUN      ] TensorPool.set_batch_03_n
+[       OK ] TensorPool.set_batch_03_n (0 ms)
+[ RUN      ] TensorPool.finalize_01_p
+[       OK ] TensorPool.finalize_01_p (0 ms)
+[ RUN      ] TensorPool.finalize_02_p
+[       OK ] TensorPool.finalize_02_p (0 ms)
+[ RUN      ] TensorPool.finalize_03_p
+[       OK ] TensorPool.finalize_03_p (0 ms)
+[ RUN      ] TensorPool.allocate_deallocate_01_p
+[       OK ] TensorPool.allocate_deallocate_01_p (0 ms)
+[ RUN      ] TensorPool.allocate_deallocate_02_n
+[       OK ] TensorPool.allocate_deallocate_02_n (0 ms)
+[ RUN      ] TensorPool.allocate_deallocate_03_p
+[       OK ] TensorPool.allocate_deallocate_03_p (0 ms)
+[ RUN      ] TensorPool.validate_memory
+[       OK ] TensorPool.validate_memory (0 ms)
+[ RUN      ] TensorPool.validate_memory_reuse_01_p
+[       OK ] TensorPool.validate_memory_reuse_01_p (0 ms)
+[ RUN      ] TensorPool.create_allocate_has_data_p
+[       OK ] TensorPool.create_allocate_has_data_p (0 ms)
+[ RUN      ] TensorPool.create_clashing_name_n
+[       OK ] TensorPool.create_clashing_name_n (0 ms)
+[ RUN      ] TensorPool.placeholder_p
+[       OK ] TensorPool.placeholder_p (0 ms)
+[ RUN      ] TensorPool.placeholder_clashing_name_n
+[       OK ] TensorPool.placeholder_clashing_name_n (0 ms)
+[ RUN      ] TensorPool.view_is_same_p
+[       OK ] TensorPool.view_is_same_p (0 ms)
+[ RUN      ] TensorPool.view_is_subset_p
+[       OK ] TensorPool.view_is_subset_p (0 ms)
+[ RUN      ] TensorPool.view_is_subset_n
+[       OK ] TensorPool.view_is_subset_n (0 ms)
+[ RUN      ] TensorPool.view_is_view_of_view_and_subset_p
+[       OK ] TensorPool.view_is_view_of_view_and_subset_p (0 ms)
+[ RUN      ] TensorPool.view_is_view_of_view_and_subset_n
+[       OK ] TensorPool.view_is_view_of_view_and_subset_n (0 ms)
+[ RUN      ] TensorPool.view_of_placeholder_p
+[       OK ] TensorPool.view_of_placeholder_p (0 ms)
+[ RUN      ] TensorPool.view_clashing_name_n
+[       OK ] TensorPool.view_clashing_name_n (0 ms)
+[ RUN      ] TensorPool.view_out_of_range_n
+[       OK ] TensorPool.view_out_of_range_n (0 ms)
+[ RUN      ] TensorPool.view_of_view_out_of_range_n
+[       OK ] TensorPool.view_of_view_out_of_range_n (0 ms)
+[ RUN      ] TensorPool.view_of_placeholder_out_of_range_n
+[       OK ] TensorPool.view_of_placeholder_out_of_range_n (0 ms)
+[ RUN      ] TensorPool.extend_source_p
+[       OK ] TensorPool.extend_source_p (0 ms)
+[ RUN      ] TensorPool.extend_view_p
+[       OK ] TensorPool.extend_view_p (0 ms)
+[ RUN      ] TensorPool.extend_placeholder_p
+[       OK ] TensorPool.extend_placeholder_p (0 ms)
+[ RUN      ] TensorPool.extend_view_of_placeholder_p
+[       OK ] TensorPool.extend_view_of_placeholder_p (0 ms)
+[ RUN      ] TensorPool.extend_out_of_range_n
+[       OK ] TensorPool.extend_out_of_range_n (0 ms)
+[ RUN      ] TensorPool.extend_unmanged_n
+[       OK ] TensorPool.extend_unmanged_n (0 ms)
+[ RUN      ] TensorPool.createOrExtend_p
+[       OK ] TensorPool.createOrExtend_p (0 ms)
+[ RUN      ] TensorPool.createOrExtend_different_dim_n
+[       OK ] TensorPool.createOrExtend_different_dim_n (0 ms)
+[ RUN      ] TensorPool.createOrExtend_init_n
+[       OK ] TensorPool.createOrExtend_init_n (0 ms)
+[ RUN      ] TensorPool.createOrExtend_unmanaged_n
+[       OK ] TensorPool.createOrExtend_unmanaged_n (0 ms)
+[----------] 50 tests from TensorPool (5 ms total)
+
+[----------] Global test environment tear-down
+[==========] 50 tests from 1 test suite ran. (6 ms total)
+[  PASSED  ] 50 tests.
+WEIGHT FILE READ OK: direct/cache, unaligned EOF, parallel reads, no cache population
