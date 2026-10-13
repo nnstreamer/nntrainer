@@ -3270,8 +3270,17 @@ private class LossChartView(
 ) : View(context) {
 
     private val lossPoints = mutableListOf<Float>()
+    /**
+     * EMA-smoothed series, one entry per lossPoints entry. Drawn instead of
+     * the raw per-iteration line, which spikes too much to read; raw values
+     * stay for epoch-boundary indexing and a possible raw overlay later.
+     */
     private val epochBoundaries = mutableListOf<Int>()
     private val validLosses = mutableListOf<Float>()
+    private val emaPoints = mutableListOf<Float>()
+    private var emaValue = Float.NaN
+    /** EMA weight of the previous value (higher = smoother). */
+    private val emaAlpha = 0.9f
 
     private val paintLine = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
         style = android.graphics.Paint.Style.STROKE
@@ -3317,6 +3326,7 @@ private class LossChartView(
     fun setData(points: List<Float>, epochs: List<Int>, valid: List<Float>) {
         lossPoints.clear()
         lossPoints.addAll(points)
+        rebuildEma()
         epochBoundaries.clear()
         epochBoundaries.addAll(epochs)
         validLosses.clear()
@@ -3326,6 +3336,8 @@ private class LossChartView(
 
     fun addPoint(loss: Float) {
         lossPoints.add(loss)
+        emaValue = if (emaValue.isNaN()) loss else emaAlpha * emaValue + (1f - emaAlpha) * loss
+        emaPoints.add(emaValue)
         postInvalidate()
     }
 
@@ -3337,9 +3349,21 @@ private class LossChartView(
 
     fun clear() {
         lossPoints.clear()
+        emaPoints.clear()
+        emaValue = Float.NaN
         epochBoundaries.clear()
         validLosses.clear()
         postInvalidate()
+    }
+
+    /** Recompute the EMA series from scratch (used by setData). */
+    private fun rebuildEma() {
+        emaPoints.clear()
+        emaValue = Float.NaN
+        for (loss in lossPoints) {
+            emaValue = if (emaValue.isNaN()) loss else emaAlpha * emaValue + (1f - emaAlpha) * loss
+            emaPoints.add(emaValue)
+        }
     }
 
     override fun onDraw(canvas: android.graphics.Canvas) {
@@ -3356,8 +3380,8 @@ private class LossChartView(
         val chartW = w - padL - padR
         val chartH = h - padT - padB
 
-        var minLoss = lossPoints.min()
-        var maxLoss = lossPoints.max()
+        var minLoss = emaPoints.min()
+        var maxLoss = emaPoints.max()
         if (validLosses.isNotEmpty()) {
             minLoss = minOf(minLoss, validLosses.min())
             maxLoss = maxOf(maxLoss, validLosses.max())
@@ -3380,6 +3404,11 @@ private class LossChartView(
             canvas.drawText(String.format("%.2f", valLabel), padL - 8, y + 8, paintTextSmall)
         }
 
+        // Clip in-chart drawing to the plot area: a spike outside the
+        // EMA-derived y range must not spill over the header text.
+        canvas.save()
+        canvas.clipRect(padL, padT, w - padR, padT + chartH)
+
         for (idx in epochBoundaries) {
             if (idx in 0 until n) {
                 val x = padL + idx * xStep
@@ -3392,7 +3421,7 @@ private class LossChartView(
             path.moveTo(padL, padT + chartH)
             for (i in 0 until n) {
                 val x = padL + i * xStep
-                val y = padT + chartH * (1f - (lossPoints[i] - yMin) / yRangePadded)
+                val y = padT + chartH * (1f - (emaPoints[i] - yMin) / yRangePadded)
                 path.lineTo(x, y)
             }
             path.lineTo(padL + (n - 1) * xStep, padT + chartH)
@@ -3404,13 +3433,13 @@ private class LossChartView(
             val path = android.graphics.Path()
             for (i in 0 until n) {
                 val x = padL + i * xStep
-                val y = padT + chartH * (1f - (lossPoints[i] - yMin) / yRangePadded)
+                val y = padT + chartH * (1f - (emaPoints[i] - yMin) / yRangePadded)
                 if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
             }
             canvas.drawPath(path, paintLine)
         } else if (n == 1) {
             val x = padL
-            val y = padT + chartH * (1f - (lossPoints[0] - yMin) / yRangePadded)
+            val y = padT + chartH * (1f - (emaPoints[0] - yMin) / yRangePadded)
             canvas.drawCircle(x, y, 6f, paintLine)
         }
 
@@ -3424,7 +3453,9 @@ private class LossChartView(
             }
         }
 
-        val currentLoss = lossPoints.last()
+        canvas.restore()
+
+        val currentLoss = emaPoints.last()
         paintText.textAlign = android.graphics.Paint.Align.LEFT
         canvas.drawText(
             "iter $n  loss=${String.format("%.4f", currentLoss)}",
