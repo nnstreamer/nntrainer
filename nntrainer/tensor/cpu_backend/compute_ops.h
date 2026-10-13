@@ -1229,6 +1229,14 @@ public:
                                               float *sin_);
 #endif // ENABLE_FP16
 
+  // True after the accelerator completed this row and returned only its
+  // token id. CPU logit postprocessing is then unused. This does not
+  // consume the id: take_decode_token_id must still return it once.
+  virtual bool has_decode_token_id(unsigned pos) const {
+    (void)pos;
+    return false;
+  }
+
 protected:
   /**
    * @brief Helper used by default impls to throw a uniform "not

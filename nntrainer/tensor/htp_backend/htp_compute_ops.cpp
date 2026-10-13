@@ -6047,6 +6047,12 @@ private:
     return true;
   }
 
+  /** @brief A completed id-only row has no CPU logits to postprocess.
+   *  Peeking leaves the token for take_decode_token_id. */
+  bool has_decode_token_id(unsigned pos) const override {
+    return have_id_ && pos == cur_pos_ && pending_op_ == HTP_GRAPH_NO_OP;
+  }
+
   /** [#132 Part B E3] compute_ops.h: the model handed its last Q4_0
    *  weight. On the E2E path the FC set goes into its arena chunks now,
    *  at load (the startup cell), not at the first decode token. */

@@ -32,6 +32,7 @@
 #include <iostream>
 #include <iterator>
 #include <limits>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -45,6 +46,7 @@
 #include <layer_context.h>
 #include <lm_head.h>
 #include <mha_core.h>
+#include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <tensor.h>
 #include <tie_word_embedding.h>
@@ -820,8 +822,19 @@ void CausalLM::run(const WSTR prompt, bool do_sample, const WSTR system_prompt,
   // unless something reads the logits (NNTR_PPL_DECODE, sampling, a logits
   // processor, a batch); the NPU's pick skips the bad words as
   // applyBadWordsPenalty does
-  htpDecodeWantLogits(ppl_dec || do_sample || logits_processor != nullptr ||
-                      BATCH_SIZE != 1);
+  const bool want_logits =
+    ppl_dec || do_sample || logits_processor != nullptr || BATCH_SIZE != 1;
+  htpDecodeWantLogits(want_logits);
+  // The public pointer-return inference API always materializes its outputs.
+  // Use the internal tensor result only when generation can consume an NPU
+  // token id instead. A backend fallback still copies logits before generate.
+  nntrainer::NeuralNetwork *decode_model = nullptr;
+#ifdef ENABLE_HEXKL
+  // Use the prefill result count: getOutputDimension() reports label shapes
+  // and can be unavailable on an inference-only graph without label nodes.
+  if (!want_logits && label.empty() && output.size() == 1u)
+    decode_model = dynamic_cast<nntrainer::NeuralNetwork *>(model.get());
+#endif
   htpDecodeBan(BAD_WORD_IDS.data(),
                BAD_WORD_IDS.size() != 0 ? NUM_BADWORDS : 0u);
   for (unsigned int token_generation_idx = input_len + 1;
@@ -834,12 +847,56 @@ void CausalLM::run(const WSTR prompt, bool do_sample, const WSTR system_prompt,
 
     allocateAndBindKVCache();
     const auto op_t0 = op_now();
-    auto output_interval =
-      model->incremental_inference(BATCH_SIZE, input, label, input_len,
-                                   token_generation_idx - 1 + global_token_len,
-                                   token_generation_idx + global_token_len);
+    const unsigned int from = token_generation_idx - 1 + global_token_len;
+    const unsigned int to = token_generation_idx + global_token_len;
+    std::vector<float *> output_interval;
+    std::optional<nntrainer::Tensor> tensor_logits;
+    unsigned int decoded_id = 0;
+    bool have_decoded_id = false;
+    nntrainer::sharedConstTensors decode_inputs;
+    if (decode_model) {
+      auto dims = decode_model->getInputDimension();
+      bool supported = dims.size() == input.size();
+      for (const auto &dim : dims) {
+        const auto type = dim.getDataType();
+        supported &= type == nntrainer::TensorDim::DataType::FP32 ||
+                     type == nntrainer::TensorDim::DataType::FP16 ||
+                     type == nntrainer::TensorDim::DataType::UINT16;
+      }
+      if (supported) {
+        decode_inputs.reserve(dims.size());
+        for (size_t i = 0; i < dims.size(); ++i) {
+          dims[i].batch(BATCH_SIZE);
+          const auto bytes = static_cast<unsigned int>(
+            dims[i].getDataLen() * dims[i].getDataTypeSize());
+          auto mapped =
+            dims[i].getDataType() == nntrainer::TensorDim::DataType::FP32
+              ? nntrainer::Tensor::Map(input[i], bytes, dims[i])
+              : nntrainer::Tensor::Map(reinterpret_cast<uint16_t *>(input[i]),
+                                       bytes, dims[i]);
+          decode_inputs.push_back(
+            std::make_shared<nntrainer::Tensor>(std::move(mapped)));
+        }
+      }
+    }
+    if (!decode_inputs.empty()) {
+      auto tensors =
+        decode_model->incremental_inference(decode_inputs, input_len, from, to);
+      have_decoded_id = htpDecodeTokenId(&decoded_id);
+      if (!have_decoded_id)
+        tensor_logits.emplace(
+          tensors.at(0)->clone(nntrainer::TensorDim::DataType::FP32));
+    } else {
+      output_interval = model->incremental_inference(BATCH_SIZE, input, label,
+                                                     input_len, from, to);
+    }
     const auto op_t1 = op_now();
-    std::vector<unsigned int> ids_list(generate(output_interval[0], do_sample));
+    std::vector<unsigned int> ids_list =
+      have_decoded_id
+        ? std::vector<unsigned int>{decoded_id}
+        : generate(decode_inputs.empty() ? output_interval[0]
+                                         : tensor_logits->getData<float>(),
+                   do_sample);
     const auto op_t2 = op_now();
     if (ppl_dec) {
       // Scored after generate(), on the logits the pick is taken from (the

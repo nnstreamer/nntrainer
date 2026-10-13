@@ -11,6 +11,7 @@
 #include <cmath>
 #include <fstream>
 #include <gtest/gtest.h>
+#include <limits>
 #include <random>
 #include <sstream>
 
@@ -377,6 +378,74 @@ TEST(Weight, basic_construction) {
                       true, false, "test_weight");
 
   EXPECT_EQ(w.getName(), "test_weight");
+}
+
+TEST(RunLayerContext, regularization_tracks_values_and_gradient_allocation) {
+  using namespace nntrainer;
+  const TensorDim dim(1, 1, 1, 4);
+  Var_Grad input(dim, Initializer::ONES, false, true, "input");
+  Var_Grad output(dim, Initializer::ONES, false, true, "output");
+  Weight regularized(dim, Initializer::ONES, WeightRegularizer::L2NORM, 0.25f,
+                     0.0f, 0.0f, true, false, "regularized");
+  Weight plain(dim, Initializer::ONES, WeightRegularizer::NONE, 1.0f, 0.0f,
+               0.0f, true, true, "plain");
+  regularized.getVariableRef().allocate();
+  RunLayerContext context("regularization", false, 0.0f, false, 1.0f, nullptr,
+                          false, {&plain, &regularized}, {&input}, {&output},
+                          {});
+
+  EXPECT_FLOAT_EQ(context.getRegularizationLoss(), 0.0f);
+  regularized.getGradientRef().allocate();
+  regularized.getVariableRef().setValue(2.0f);
+  EXPECT_GT(context.getRegularizationLoss(), 0.0f);
+  EXPECT_FLOAT_EQ(context.getRegularizationLoss(),
+                  regularized.getRegularizationLoss());
+  regularized.getVariableRef().setValue(3.0f);
+  EXPECT_FLOAT_EQ(context.getRegularizationLoss(),
+                  regularized.getRegularizationLoss());
+  regularized.getGradientRef().deallocate();
+  EXPECT_FLOAT_EQ(context.getRegularizationLoss(), 0.0f);
+}
+
+TEST(RunLayerContext, regularization_preserves_order_and_context_copy) {
+  using namespace nntrainer;
+  const TensorDim dim(1, 1, 1, 4);
+  Var_Grad input(dim, Initializer::ONES, false, true, "input");
+  Var_Grad output(dim, Initializer::ONES, false, true, "output");
+  Weight first(dim, Initializer::ONES, WeightRegularizer::L2NORM, 1e8f, 0.0f,
+               0.0f, true, true, "first");
+  Weight plain(dim, Initializer::ONES, WeightRegularizer::NONE, 1.0f, 0.0f,
+               0.0f, true, true, "plain");
+  Weight second(dim, Initializer::ONES, WeightRegularizer::L2NORM, 3.0f, 0.0f,
+                0.0f, true, true, "second");
+  Weight third(dim, Initializer::ONES, WeightRegularizer::L2NORM, 3.0f, 0.0f,
+               0.0f, true, true, "third");
+  const std::vector<Weight *> weights{&first, &plain, &second, &third};
+  RunLayerContext context("regularization", false, 0.0f, false, 1.0f, nullptr,
+                          false, weights, {&input}, {&output}, {});
+  RunLayerContext copied = context;
+  float expected = 0.0f;
+  for (auto *weight : weights)
+    expected += weight->getRegularizationLoss();
+  EXPECT_NE(expected, second.getRegularizationLoss() +
+                        third.getRegularizationLoss() +
+                        first.getRegularizationLoss());
+  EXPECT_EQ(context.getRegularizationLoss(), expected);
+  EXPECT_EQ(copied.getRegularizationLoss(), expected);
+}
+
+TEST(RunLayerContext, unregularized_weights_have_zero_loss) {
+  using namespace nntrainer;
+  const TensorDim dim(1, 1, 1, 4);
+  Var_Grad input(dim, Initializer::ONES, false, true, "input");
+  Var_Grad output(dim, Initializer::ONES, false, true, "output");
+  Weight plain(dim, Initializer::ONES, WeightRegularizer::NONE, 1.0f, 0.0f,
+               0.0f, true, true, "plain");
+  RunLayerContext context("regularization", true, 0.0f, false, 1.0f, nullptr,
+                          false, {&plain}, {&input}, {&output}, {});
+  plain.getVariableRef().setValue(std::numeric_limits<float>::quiet_NaN());
+  EXPECT_FLOAT_EQ(context.getRegularizationLoss(), 0.0f);
+  EXPECT_FLOAT_EQ(RunLayerContext().getRegularizationLoss(), 0.0f);
 }
 
 //==============================================================================
