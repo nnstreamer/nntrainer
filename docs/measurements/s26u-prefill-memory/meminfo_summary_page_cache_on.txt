@@ -1,0 +1,53 @@
+pf5 p1024 C16: prefill 1627 ms 629.379 TPS | decode last64 14.395 TPS | md5 dc6144f6  | pf5_p1024_c16.log
+pf5 p1024 C16  system peak (MemAvailable drop)  4934 MiB | process peak: VmRSS 2575 (anon 2002 file  631 shmem    0) VmHWM 2689 MiB
+[HTP] mem t1 after drop host fc: s1_heap_mib=578 staging_pools_mib=64 rss_mib=1196 mem_available_mib=4282
+[HTP] e2e: fc arena weights=206 handles=16 attach_mib=396.0 chunks=2 mapped_mib=448 feed=vtcm load_ms=661.4 lanes=6,3 s1_arena_mib=1728 s1_heap_kib=592761
+<|channel>[HTP] mem t1 before graph init (= prefill end): s1_heap_mib=590 staging_pools_mib=177 rss_mib=1069 mem_available_mib=3912
+[HTP] mem t1 after graph init: s1_heap_mib=636 staging_pools_mib=177 rss_mib=1069 mem_available_mib=3907
+[HTP] attn_m1: registered layers=25 kv=8 gqa=2 head_dim=256 max_seq=2048 cache=204800 KiB int8
+[HTP] attn_m1: registered layers=5 kv=2 gqa=8 head_dim=512 max_seq=2048 cache=20480 KiB int8
+[HTP] mem t1 after drop host fc: s1_heap_mib=418 staging_pools_mib=177 rss_mib=692 mem_available_mib=4875
+[HTP] staging: prefill classes released mib=94
+prefill: 1024 tokens, 1627 ms, 629.379 TPS
+peak memory: 2753092 KB
+[HTP] arena: chunks unmapped 7/7 mib=1728 (release rc=0x0 put=7)
+pf5 p1024 C12: prefill 1648 ms 621.359 TPS | decode last64 15.0482 TPS | md5 dc6144f6  | pf5_p1024_c12.log
+pf5 p1024 C12  system peak (MemAvailable drop)  4377 MiB | process peak: VmRSS 1987 (anon 1937 file  182 shmem    0) VmHWM 2036 MiB
+[HTP] mem t1 after drop host fc: s1_heap_mib=573 staging_pools_mib=64 rss_mib=997 mem_available_mib=5034
+[HTP] e2e: fc arena weights=206 handles=16 attach_mib=396.0 chunks=2 mapped_mib=448 feed=vtcm load_ms=620.9 lanes=6,3 s1_arena_mib=1344 s1_heap_kib=586791
+<|channel>[HTP] mem t1 before graph init (= prefill end): s1_heap_mib=585 staging_pools_mib=177 rss_mib=590 mem_available_mib=4519
+[HTP] mem t1 after graph init: s1_heap_mib=630 staging_pools_mib=177 rss_mib=590 mem_available_mib=4518
+[HTP] attn_m1: registered layers=25 kv=8 gqa=2 head_dim=256 max_seq=2048 cache=204800 KiB int8
+[HTP] attn_m1: registered layers=5 kv=2 gqa=8 head_dim=512 max_seq=2048 cache=20480 KiB int8
+[HTP] mem t1 after drop host fc: s1_heap_mib=412 staging_pools_mib=177 rss_mib=213 mem_available_mib=5494
+thought[HTP] staging: prefill classes released mib=94
+prefill: 1024 tokens, 1648 ms, 621.359 TPS
+peak memory: 2084668 KB
+[HTP] arena: chunks unmapped 6/6 mib=1344 (release rc=0x0 put=6)
+pf5 p2048 C16: prefill 2945 ms 695.416 TPS | decode last64 15.3367 TPS | md5 b30eae5a  | pf5_p2048_c16.log
+pf5 p2048 C16  system peak (MemAvailable drop)  4870 MiB | process peak: VmRSS 2153 (anon 1984 file  400 shmem    0) VmHWM 2162 MiB
+[HTP] mem t1 after drop host fc: s1_heap_mib=606 staging_pools_mib=64 rss_mib=1197 mem_available_mib=4485
+[HTP] e2e: fc arena weights=206 handles=16 attach_mib=396.0 chunks=2 mapped_mib=448 feed=vtcm load_ms=623.2 lanes=6,3 s1_arena_mib=1728 s1_heap_kib=621236
+[HTP] mem t1 before graph init (= prefill end): s1_heap_mib=630 staging_pools_mib=290 rss_mib=1104 mem_available_mib=3814
+[HTP] mem t1 after graph init: s1_heap_mib=676 staging_pools_mib=290 rss_mib=1104 mem_available_mib=3813
+[HTP] attn_m1: registered layers=25 kv=8 gqa=2 head_dim=256 max_seq=2176 cache=217600 KiB int8
+[HTP] attn_m1: registered layers=5 kv=2 gqa=8 head_dim=512 max_seq=2176 cache=21760 KiB int8
+[HTP] mem t1 after drop host fc: s1_heap_mib=444 staging_pools_mib=290 rss_mib=727 mem_available_mib=4772
+thought[HTP] staging: prefill classes released mib=242
+prefill: 2048 tokens, 2945 ms, 695.416 TPS
+peak memory: 2214236 KB
+[HTP] arena: chunks unmapped 7/7 mib=1728 (release rc=0x0 put=7)
+pf5 p2048 C12: prefill 3019 ms 678.37 TPS | decode last64 15.2599 TPS | md5 b30eae5a  | pf5_p2048_c12.log
+pf5 p2048 C12  system peak (MemAvailable drop)  4512 MiB | process peak: VmRSS 2412 (anon 1895 file  517 shmem    0) VmHWM 2449 MiB
+[HTP] mem t1 after drop host fc: s1_heap_mib=600 staging_pools_mib=64 rss_mib=1118 mem_available_mib=4992
+[HTP] e2e: fc arena weights=206 handles=16 attach_mib=396.0 chunks=2 mapped_mib=448 feed=vtcm load_ms=623.1 lanes=6,3 s1_arena_mib=1344 s1_heap_kib=615266
+[HTP] mem t1 before graph init (= prefill end): s1_heap_mib=624 staging_pools_mib=290 rss_mib=821 mem_available_mib=4343
+[HTP] mem t1 after graph init: s1_heap_mib=670 staging_pools_mib=290 rss_mib=821 mem_available_mib=4342
+[HTP] attn_m1: registered layers=25 kv=8 gqa=2 head_dim=256 max_seq=2176 cache=217600 KiB int8
+[HTP] attn_m1: registered layers=5 kv=2 gqa=8 head_dim=512 max_seq=2176 cache=21760 KiB int8
+[HTP] mem t1 after drop host fc: s1_heap_mib=438 staging_pools_mib=290 rss_mib=445 mem_available_mib=5311
+thought[HTP] staging: prefill classes released mib=242
+prefill: 2048 tokens, 3019 ms, 678.37 TPS
+peak memory: 2508256 KB
+[HTP] arena: chunks unmapped 6/6 mib=1344 (release rc=0x0 put=6)
+MEM DONE

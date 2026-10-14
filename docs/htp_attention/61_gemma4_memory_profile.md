@@ -38,6 +38,10 @@ source and binary hashes are in
 The model file was 7,540,724,856 bytes. Its contents were not read to compute a
 hash during measurement, to avoid warming its cache.
 
+The same sampler at C = 12 and C = 16 under the prefill performance
+environment (no decode-fast profile), after the prefill commits of 10-14,
+with the DMA-buf bytes itemized: [`measurements/s26u-prefill-memory.md`](../measurements/s26u-prefill-memory.md).
+
 ## Final decode configuration
 
 The optional `--decode-fast` profile starts prefill at C12 and grows the shared

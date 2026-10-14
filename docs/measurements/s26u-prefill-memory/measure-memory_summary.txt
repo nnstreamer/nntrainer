@@ -1,0 +1,5 @@
+pf5 p1024 C16 NNTR_HTP_PAGE_CACHE=0: 1743 ms 587.493 TPS | decode last64 8.78638 | md5 dc6144f6 | [memory] sampled peak including swap/cache: 3.686 GB
+pf5 p1024 C12 NNTR_HTP_PAGE_CACHE=0: 1754 ms 583.808 TPS | decode last64 8.05335 | md5 dc6144f6 | [memory] sampled peak including swap/cache: 3.335 GB
+pf5 p2048 C16 NNTR_HTP_PAGE_CACHE=0: 3060 ms 669.281 TPS | decode last64 8.6545 | md5 b30eae5a | [memory] sampled peak including swap/cache: 3.901 GB
+pf5 p2048 C12 NNTR_HTP_PAGE_CACHE=0: 3057 ms 669.938 TPS | decode last64 7.89733 | md5 b30eae5a | [memory] sampled peak including swap/cache: 3.563 GB
+MM DONE
