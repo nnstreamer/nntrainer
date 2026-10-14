@@ -10,17 +10,23 @@
  * @bug    No known bugs except for NYI items
  *
  * The kernel of 24_attention_a16_plan.md (the a8 version was plan 23). Per
- * KV head its K^T and V tiles stay resident in VTCM; per 64-row block of
- * one query head:
+ * KV head its K^T and V tiles stay resident in VTCM -- or, when they do
+ * not fit, stream per block in K^T chunks and V dim tiles with the same
+ * result (hexkl_attn_q2_plan.h); per 64-row block of one query head:
  *
  *   1. Q.K^T on HMX in two u8 sweeps (Q's high and low bytes), each read
  *      out through the convert unit as int16 (two passes at power-of-two
  *      scales, D9) and added: one int16 score tile per column tile
- *   2. one integer softmax over the whole row with a normalized u16 P
- *      (hvx_softmax_q16), left as its low and high byte tiles
- *   3. P.V on HMX in two u8 sweeps, read out as int16 at the constant
- *      scale 2^1 / 512 (sum_j P_j <= 65535 bounds the accumulator)
- *   4. epilogue: int16 * c[d] + zp -> u16 rows in DDR
+ *   2. one integer softmax over the whole row, P' left unnormalized (65535
+ *      at the row's maximum) as its low and high byte tiles, with the row
+ *      sums l (hvx_softmax_q16's max and exp passes and merge_sum)
+ *   3. P'.V on HMX in two u8 sweeps, each read out as int24 at 2^-s
+ *      (s from the longest row) and combined in f32
+ *   4. epilogue: o * 2^s * s_v[d] / (l * s_o) + zp -> u16 rows in DDR
+ *
+ * A decode row (n_q == 1) folds each kv head's G query heads into one
+ * block, a head per tile row (Q re-quantized to an encoding shared by the
+ * G heads), so the kv head's K/V are read once rather than G times.
  *
  * Q arrives as the model's 16-bit asymmetric tensor (per-head scale and
  * zero point, q = s_q (u - zp)); the zero-point term zp * colsum_k is a
@@ -72,6 +78,7 @@ typedef struct {
   uint64_t us_total;
   uint64_t pcycles;
   uint32_t n_blocks; /**< (q head, row block) pairs run */
+  uint32_t kv_chunk; /**< 0: K/V resident; else K^T chunk tiles, streamed */
 } hexkl_attn_q2_stats;
 
 /**

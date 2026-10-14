@@ -432,6 +432,65 @@ TEST(HvxSoftmaxQ16, FlatRowAndSingleColumn) {
   EXPECT_EQ(lo[1] | (hi[1] << 8), 0);
 }
 
+TEST(HvxSoftmaxQ16, SameRowRowsAreSingleRowBlocks) {
+  // A GQA-folded decode block: 64 rows (query heads) at one position, a
+  // 512 window whose left edge cuts a tile. Row r must be what a plain
+  // one-row block at that position gives for row r's scores.
+  std::mt19937 rng(0x5a1a);
+  std::uniform_int_distribution<int> dist(-3000, 3000);
+  const uint32_t pos = 4000, window = 512;
+  const uint32_t lo_tile = (pos + 1 - window) / 32;
+  hvx_softmax_q_block blk{};
+  blk.n_col_tiles = pos / 32 - lo_tile + 1;
+  blk.col0 = 32 * lo_tile;
+  blk.n_cols = pos + 1 - blk.col0;
+  blk.row0 = pos;
+  blk.n_rows = 64;
+  blk.window = window;
+  blk.rho_q15 = 30000;
+  blk.frac_bits = 9;
+  blk.same_row = 1;
+  const uint32_t ct = blk.n_col_tiles;
+  std::vector<int16_t> s(ct * kTile), corr((ct + 1) * 32);
+  for (auto &x : s) {
+    x = static_cast<int16_t>(dist(rng));
+  }
+  for (auto &x : corr) {
+    x = static_cast<int16_t>(dist(rng) / 8);
+  }
+  std::vector<uint8_t> lo(s.size()), hi(s.size());
+  std::vector<int32_t> rowsum(HVX_SOFTMAX_Q_ROWSUM_WORDS);
+  hvx_softmax_q16_ref(&blk, s.data(), corr.data(), lo.data(), hi.data(),
+                      rowsum.data());
+
+  hvx_softmax_q_block one = blk;
+  one.n_rows = 1;
+  one.same_row = 0;
+  std::vector<int16_t> s1(s.size(), 0);
+  std::vector<uint8_t> lo1(s.size()), hi1(s.size());
+  std::vector<int32_t> rowsum1(HVX_SOFTMAX_Q_ROWSUM_WORDS);
+  for (uint32_t r = 0; r < 64; ++r) {
+    for (uint32_t t = 0; t < ct; ++t) {
+      for (uint32_t j = 0; j < 32; ++j) {
+        s1[t * kTile + j] = s[t * kTile + r * 32 + j];
+      }
+    }
+    hvx_softmax_q16_ref(&one, s1.data(), corr.data(), lo1.data(), hi1.data(),
+                        rowsum1.data());
+    ASSERT_EQ(rowsum[hvx_softmax_q_rowsum_index(r)],
+              rowsum1[hvx_softmax_q_rowsum_index(0)])
+      << "row " << r;
+    for (uint32_t t = 0; t < ct; ++t) {
+      for (uint32_t j = 0; j < 32; ++j) {
+        ASSERT_EQ(lo[t * kTile + r * 32 + j], lo1[t * kTile + j])
+          << "row " << r << " tile " << t << " col " << j;
+        ASSERT_EQ(hi[t * kTile + r * 32 + j], hi1[t * kTile + j])
+          << "row " << r << " tile " << t << " col " << j;
+      }
+    }
+  }
+}
+
 TEST(HvxSoftmaxQ, CausalBlockMatchesExactSoftmax) {
   std::mt19937 rng(0x5a17);
   // 64 rows at positions 1000.., 35 tiles starting at column 0: the

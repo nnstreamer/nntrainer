@@ -107,6 +107,11 @@ typedef struct {
   uint16_t rho_q15;     /**< rho in (0.5, 1] times 32768, at most 32767 */
   uint8_t frac_bits;    /**< F: fraction bits of the log2 logit, 1..15 (9
                              in the a16 kernel unless its k had to move) */
+  uint8_t same_row;     /**< nonzero: every row is at position row0 (one
+                             token, a query head per row: a GQA-folded
+                             decode block); n_rows must then be 64 -- no row
+                             is padding, the caller ignores the ones it does
+                             not need. 0: row r is at row0 + r */
 } hvx_softmax_q_block;
 
 /**

@@ -1165,10 +1165,13 @@ interface nntr_hvx : remote_handle64 {
    // sinks; Q is the model's u16 tensor with q_enc = n_head_q (scale, zero
    // point) pairs, the output is u16 with out_enc likewise.
    // stats_us = { qprep, dma, qk, softmax, pv, epilogue, total, n_blocks,
-   // kcycles, hmx wait, head setup, submit }.
+   // kcycles, hmx wait, head setup, submit, K^T chunk tiles (0 = K/V
+   // resident) }. arena_cap, when nonzero and below the session's arena,
+   // is the arena the kernel plans in: a test caps it to make K/V stream.
    AEEResult attn_q2_prefill(in uint32 kv_handle, in uint32 n_q,
                              in uint32 cache_from, in uint32 cache_to,
                              in uint32 n_head_q, in uint32 window,
+                             in uint32 arena_cap,
                              in sequence<uint16> q_u16,
                              in sequence<float> q_enc,
                              in sequence<float> out_enc,
@@ -1213,9 +1216,11 @@ interface nntr_hvx : remote_handle64 {
 
    // The same for the 16-bit P of the a16 contract (hvx_softmax_q16):
    // P16 leaves as its low and high byte tiles, rowsum holds the P' sums.
+   // same_row: every row at row0 (hvx_softmax_q_block.same_row).
    AEEResult probe_softmax_q16(in uint32 n_col_tiles, in uint32 col0,
                                in uint32 n_cols, in uint32 row0,
-                               in uint32 n_rows, in uint32 window,
+                               in uint32 n_rows, in uint32 same_row,
+                               in uint32 window,
                                in uint32 rho_q15, in uint32 frac_bits,
                                in sequence<int16> s_tiles,
                                in sequence<int16> corr,

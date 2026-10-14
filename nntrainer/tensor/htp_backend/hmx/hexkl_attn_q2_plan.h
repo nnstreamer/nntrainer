@@ -25,7 +25,16 @@
  * two buffers when they fit, so the next KV head's DMA runs under the
  * current head's blocks.
  *
- * Plain arithmetic, host-tested.
+ * When one KV head's K^T and V do not fit (a 512-wide head past ~4K rows:
+ * 4 MiB each at 8192), they stream instead, per block: K^T in chunks of
+ * column tiles for Q.K^T and V one dim tile at a time, V[:, d] over every
+ * column the block sees, for P'.V. Each score tile sums over the dim tiles
+ * of its own column tile and each output tile over every column tile of
+ * its dim tile, so both splits leave the accumulation order -- and the
+ * result -- as it is resident. The score and P' rows of a block stay
+ * whole: the softmax is the same two-pass one, nothing is rescaled.
+ *
+ * Plain arithmetic.
  */
 
 #ifndef __NNTRAINER_HEXKL_ATTN_Q2_PLAN_H__
@@ -45,8 +54,18 @@ extern "C" {
 #define HEXKL_ATTN_Q2_ROWS 64u
 /** @brief Bytes of one uint8 tile (Q, P', convert plane). */
 #define HEXKL_ATTN_Q2_TILE 2048u
-/** @brief Bytes of one int16 tile (scores, O). */
+/** @brief Bytes of one int16 tile (scores). */
 #define HEXKL_ATTN_Q2_TILE16 4096u
+/** @brief Bytes of one f32 tile (O, unnormalized). */
+#define HEXKL_ATTN_Q2_TILE32 8192u
+/** @brief Bytes of one block's P' row sums (HVX_SOFTMAX_Q_ROWSUM_WORDS). */
+#define HEXKL_ATTN_Q2_RS_BYTES 2048u
+/** @brief Convert planes: two sweeps of the QK readout (int16, 2 + 2) or of
+ *         the PV readout (int24, 3 + 3). */
+#define HEXKL_ATTN_Q2_PLANES 6u
+/** @brief Largest PV readout shift: its third convert scale, 2^(-7 - s),
+ *         must stay an fp16 normal. */
+#define HEXKL_ATTN_Q2_PV_SHIFT_MAX 7u
 /** @brief Largest head_dim / 32. */
 #define HEXKL_ATTN_Q2_MAX_DT 16u
 /** @brief Q tile slots and block slots of the pipeline. */
@@ -87,25 +106,38 @@ static inline hexkl_attn_q2_range hexkl_attn_q2_cols(uint32_t row_lo,
  * Regions start on 2 KiB boundaries (the activation alignment).
  */
 typedef struct {
-  uint32_t kt_wh;      /**< [n_kv_bufs][n_res][dt] K^T weight tiles, 1 KiB */
-  uint32_t v_wh;       /**< [n_kv_bufs][n_res][dt] V weight tiles */
-  uint32_t kv_bytes;   /**< bytes of one K^T (or V) buffer */
+  uint32_t kt_wh;      /**< [n_kv_bufs][n_res][dt] K^T weight tiles, 1 KiB;
+                            streamed: [2][stream][dt] K^T chunks */
+  uint32_t v_wh;       /**< [n_kv_bufs][n_res][dt] V weight tiles;
+                            streamed: [2][n_blk] tiles of one V[:, d] */
+  uint32_t kv_bytes;   /**< bytes of one K^T (or V) buffer; streamed: of
+                            one K^T chunk */
   uint32_t n_kv_bufs;  /**< 2 when the next head's K/V fit alongside */
+  uint32_t stream;     /**< 0: K/V resident; else column tiles of a K^T
+                            chunk, K^T and V streamed per block */
+  uint32_t v_slice;    /**< streamed: bytes of one V[:, d] buffer */
   uint32_t q_u16;      /**< [2][64][hd] u16 Q rows staged by DMA */
   uint32_t q_ah;       /**< [3][2][dt] uint8 Q tiles: low bytes, high bytes */
   uint32_t s16;        /**< [2][n_blk][64][32] int16 scores */
-  uint32_t planes;     /**< 4 convert planes, 2 KiB each (HMX thread only) */
-  uint32_t p_ah;       /**< [2][2][n_blk] uint8 P16 tiles: low, high bytes */
-  uint32_t o16;        /**< [2][dt][64][32] int16 output */
+  uint32_t planes;     /**< HEXKL_ATTN_Q2_PLANES convert planes, 2 KiB each
+                            (HMX thread only) */
+  uint32_t p_ah;       /**< [2][2][n_blk] uint8 P' tiles: low, high bytes */
+  uint32_t o32;        /**< [2][dt][64][32] f32 output, sum_j P'_j V_j */
+  uint32_t rs;         /**< [3][HVX_SOFTMAX_Q_ROWSUM_WORDS] int32 P' row
+                            sums, by Q slot: softmax(i + 2) shares a job
+                            with epilogue(i) */
   uint32_t corr;       /**< [2][n_res + 1][32] int16 zero-point correction */
   uint32_t corr_bytes; /**< bytes of one corr slot */
   uint32_t cvt;        /**< bias blocks: QK 2^(k+8), 2^k, 2^(k-8) x 2 slots,
-                            PV 2^9, 2^1, 2^-7 (HEXKL_ATTN_Q2_CVT_BLOCKS) */
+                            PV 2^(9-s), 2^(1-s), 2^(-7-s)
+                            (HEXKL_ATTN_Q2_CVT_BLOCKS) */
   uint32_t smx;        /**< [HEXKL_ATTN_Q2_SMX_PARTS] softmax scratches */
   uint32_t total;      /**< first byte past the last region */
   uint32_t n_res;      /**< resident column tiles */
   uint32_t n_blk;      /**< most column tiles one block sees */
   uint32_t dt;         /**< head_dim / 32 */
+  uint32_t pv_shift;   /**< s: the PV readout is floor(acc / 2^s) as int24,
+                            so 127 * 255 * 32 n_blk >> s fits */
 } hexkl_attn_q2_layout;
 
 /** @brief Bias blocks in the cvt region: 3 QK blocks per head parity and
@@ -132,20 +164,22 @@ static inline int hexkl_attn_q2_check(const hexkl_attn_f16_shape *s) {
   return HEXKL_ATTN_OK;
 }
 
+/** @brief Column tiles of the largest streamed K^T chunk (1 MiB at a
+ *         512-wide head); the plan halves it until the layout fits. */
+#define HEXKL_ATTN_Q2_KC_MAX 64u
+
 /**
- * @brief Lays the regions out and checks them against the arena. Tries
- *        two K/V buffers first, falls back to one.
- *
- * @param arena_top  first byte NOT available
+ * @brief The shape's tile counts into @a L: resident column tiles, the
+ *        most one block sees, dim tiles, and the per-head region sizes.
+ *        Checks that each of @a n_parts softmax parts stays within the
+ *        softmax's staged tiles (it splits a block's tiles evenly).
  */
-static inline int hexkl_attn_q2_plan(const hexkl_attn_f16_shape *s,
-                                     uint32_t arena_top,
-                                     hexkl_attn_q2_layout *L) {
-  if (hexkl_attn_q2_check(s) != HEXKL_ATTN_OK || !L) {
+static inline int hexkl_attn_q2_geometry(const hexkl_attn_f16_shape *s,
+                                         uint32_t n_parts,
+                                         hexkl_attn_q2_layout *L) {
+  if (hexkl_attn_q2_check(s) != HEXKL_ATTN_OK || !L || n_parts == 0) {
     return HEXKL_ATTN_EBADPARM;
   }
-  const uint32_t TB = HEXKL_ATTN_Q2_TILE;
-  const uint32_t dt = s->head_dim / 32u;
   const hexkl_attn_q2_range res = hexkl_attn_q2_cols(
     s->cache_from, s->cache_from + s->n_q - 1u, s->cache_to, s->window);
   uint32_t n_blk = 0;
@@ -157,42 +191,111 @@ static inline int hexkl_attn_q2_plan(const hexkl_attn_f16_shape *s,
       n_blk = b.n;
     }
   }
-  if (n_blk > HVX_SOFTMAX_Q_MAX_TILES) {
+  if ((n_blk + n_parts - 1u) / n_parts > HVX_SOFTMAX_Q_MAX_TILES) {
     return HEXKL_ATTN_EBADPARM;
   }
+  /* One PV sweep sums u8 x i8 over the block's columns: |acc| <=
+     127 * 255 * 32 n_blk, read out as floor(acc / 2^s) in 24 bits. */
+  const uint64_t acc_max = 127ull * 255ull * 32ull * n_blk;
+  uint32_t shift = 0;
+  while ((acc_max >> shift) >= (1ull << 23)) {
+    ++shift;
+  }
+  if (shift > HEXKL_ATTN_Q2_PV_SHIFT_MAX) {
+    return HEXKL_ATTN_EBADPARM;
+  }
+  L->pv_shift = shift;
   L->n_res = res.n;
   L->n_blk = n_blk;
-  L->dt = dt;
-  L->kv_bytes = hexkl_attn_round_up(res.n * dt * 1024u, TB);
-  L->corr_bytes = hexkl_attn_round_up((res.n + 1u) * 64u, TB);
+  L->dt = s->head_dim / 32u;
+  L->corr_bytes = hexkl_attn_round_up((res.n + 1u) * 64u, HEXKL_ATTN_Q2_TILE);
+  return HEXKL_ATTN_OK;
+}
 
+/** @brief The regions after K/V, from @a off; returns the end. */
+static inline uint32_t hexkl_attn_q2_layout_rest(const hexkl_attn_f16_shape *s,
+                                                 hexkl_attn_q2_layout *L,
+                                                 uint32_t off) {
+  const uint32_t TB = HEXKL_ATTN_Q2_TILE;
+  const uint32_t dt = L->dt, n_blk = L->n_blk;
+  L->q_u16 = off;
+  off += 2u * HEXKL_ATTN_Q2_ROWS * s->head_dim * 2u;
+  L->q_ah = off;
+  off += HEXKL_ATTN_Q2_Q_SLOTS * 2u * dt * TB;
+  L->s16 = off;
+  off += HEXKL_ATTN_Q2_SLOTS * n_blk * HEXKL_ATTN_Q2_TILE16;
+  L->planes = off;
+  off += HEXKL_ATTN_Q2_PLANES * HEXKL_CVT_PLANE_BYTES;
+  L->p_ah = off;
+  off += HEXKL_ATTN_Q2_SLOTS * 2u * n_blk * TB;
+  L->o32 = off;
+  off += HEXKL_ATTN_Q2_SLOTS * dt * HEXKL_ATTN_Q2_TILE32;
+  L->rs = off;
+  off += HEXKL_ATTN_Q2_Q_SLOTS * HEXKL_ATTN_Q2_RS_BYTES;
+  L->corr = off;
+  off += 2u * L->corr_bytes;
+  L->cvt = off;
+  off += HEXKL_ATTN_Q2_CVT_BLOCKS * HEXKL_CVT_BLOCK_BYTES;
+  L->smx = off;
+  off += HEXKL_ATTN_Q2_SMX_PARTS * HEXKL_ATTN_Q2_SMX_BYTES;
+  L->total = off;
+  return off;
+}
+
+/** @brief Resident layout with @a bufs K/V buffers (after the geometry);
+ *         returns its total bytes. */
+static inline uint32_t
+hexkl_attn_q2_layout_resident(const hexkl_attn_f16_shape *s,
+                              hexkl_attn_q2_layout *L, uint32_t bufs) {
+  L->stream = 0;
+  L->v_slice = 0;
+  L->n_kv_bufs = bufs;
+  L->kv_bytes =
+    hexkl_attn_round_up(L->n_res * L->dt * 1024u, HEXKL_ATTN_Q2_TILE);
+  L->kt_wh = 0;
+  L->v_wh = bufs * L->kv_bytes;
+  return hexkl_attn_q2_layout_rest(s, L, 2u * bufs * L->kv_bytes);
+}
+
+/** @brief Streamed layout with K^T chunks of @a kc column tiles (after the
+ *         geometry); returns its total bytes. */
+static inline uint32_t
+hexkl_attn_q2_layout_stream(const hexkl_attn_f16_shape *s,
+                            hexkl_attn_q2_layout *L, uint32_t kc) {
+  const uint32_t TB = HEXKL_ATTN_Q2_TILE;
+  L->stream = kc;
+  L->n_kv_bufs = 1;
+  L->kv_bytes = hexkl_attn_round_up(kc * L->dt * 1024u, TB);
+  L->v_slice = hexkl_attn_round_up(L->n_blk * 1024u, TB);
+  L->kt_wh = 0;
+  L->v_wh = 2u * L->kv_bytes;
+  return hexkl_attn_q2_layout_rest(s, L, L->v_wh + 2u * L->v_slice);
+}
+
+/**
+ * @brief Lays the regions out and checks them against the arena. Tries
+ *        two resident K/V buffers first, then one, then streamed K/V with
+ *        the largest K^T chunk that fits.
+ *
+ * @param arena_top  first byte NOT available
+ * @param n_parts    softmax parts the kernel will run (>= 1)
+ */
+static inline int hexkl_attn_q2_plan(const hexkl_attn_f16_shape *s,
+                                     uint32_t arena_top, uint32_t n_parts,
+                                     hexkl_attn_q2_layout *L) {
+  const int rc = hexkl_attn_q2_geometry(s, n_parts, L);
+  if (rc != HEXKL_ATTN_OK) {
+    return rc;
+  }
   for (uint32_t bufs = 2; bufs >= 1; --bufs) {
-    uint32_t off = 0;
-    L->n_kv_bufs = bufs;
-    L->kt_wh = off;
-    off += bufs * L->kv_bytes;
-    L->v_wh = off;
-    off += bufs * L->kv_bytes;
-    L->q_u16 = off;
-    off += 2u * HEXKL_ATTN_Q2_ROWS * s->head_dim * 2u;
-    L->q_ah = off;
-    off += HEXKL_ATTN_Q2_Q_SLOTS * 2u * dt * TB;
-    L->s16 = off;
-    off += HEXKL_ATTN_Q2_SLOTS * n_blk * HEXKL_ATTN_Q2_TILE16;
-    L->planes = off;
-    off += 4u * HEXKL_CVT_PLANE_BYTES;
-    L->p_ah = off;
-    off += HEXKL_ATTN_Q2_SLOTS * 2u * n_blk * TB;
-    L->o16 = off;
-    off += HEXKL_ATTN_Q2_SLOTS * dt * HEXKL_ATTN_Q2_TILE16;
-    L->corr = off;
-    off += 2u * L->corr_bytes;
-    L->cvt = off;
-    off += HEXKL_ATTN_Q2_CVT_BLOCKS * HEXKL_CVT_BLOCK_BYTES;
-    L->smx = off;
-    off += HEXKL_ATTN_Q2_SMX_PARTS * HEXKL_ATTN_Q2_SMX_BYTES;
-    L->total = off;
-    if (off <= arena_top) {
+    if (hexkl_attn_q2_layout_resident(s, L, bufs) <= arena_top) {
+      return HEXKL_ATTN_OK;
+    }
+  }
+  const uint32_t kc0 =
+    L->n_res < HEXKL_ATTN_Q2_KC_MAX ? L->n_res : HEXKL_ATTN_Q2_KC_MAX;
+  for (uint32_t kc = kc0; kc != 0; kc /= 2u) {
+    if (hexkl_attn_q2_layout_stream(s, L, kc) <= arena_top) {
       return HEXKL_ATTN_OK;
     }
   }

@@ -32,15 +32,31 @@
  * second buffer; otherwise QK of the new head waits for the last PV of the
  * old one (try_qk) and the pipeline drains at the boundary.
  *
+ * Streamed K/V (the plan's stream != 0, a cache too long for them to be
+ * resident): QK walks the block's column tiles in K^T chunks and PV its
+ * dim tiles, each with the next chunk or V[:, d] slice in flight on the
+ * other of two buffers. Both stages wait only for their own transfers, so
+ * the per-iteration drain still finds nothing but Q in the queue. Every
+ * block reads its K^T and V again: K/V traffic grows with the blocks and
+ * query heads per KV head instead of being paid once per KV head.
+ *
  * 16-bit activations on a u8 x i8 array. A = 256 A_hi + A_lo, so
- * A . W = 256 (A_hi . W) + (A_lo . W): two accumulations, each read out as
- * int16 through two convert passes (exact at power-of-two scales, D9) and
- * added modulo 2^16. The combined value is made to fit int16 by the choice
- * of scale: for QK through 2^k from hvx_softmax_q_scale_k (k in [-6, 7] so
- * 2^(k-8) is still an fp16 normal), for PV by the normalized P, whose row
- * sum is at most 65535 + n/2, so |acc| <= 127 * 67584 and floor(acc / 512)
- * stays below 2^15 with a factor of two to spare (2^kv = 2^0; 2^1 would
- * give the output one more bit but overflow on a pathological row).
+ * A . W = 256 (A_hi . W) + (A_lo . W): two accumulations, each read out
+ * through the convert unit (exact at power-of-two scales, D9). For QK the
+ * combined value is made to fit int16 by the choice of scale, 2^k from
+ * hvx_softmax_q_scale_k (k in [-6, 7] so 2^(k-8) is still an fp16 normal),
+ * and the two int16 readouts add modulo 2^16.
+ *
+ * PV takes P' as the softmax leaves it, unnormalized (65535 at each row's
+ * maximum), and the row sum l separately: the output is sum_j P'_j V_j / l,
+ * with the division in the epilogue. A P normalized to sum 65535 before
+ * P.V would hold 65535 / n per column on a flat row -- 8 at n = 8192, its
+ * rounding the error -- where P' keeps 16 bits per column at any length.
+ * The price is the readout's range: a sweep's |acc| reaches 127 * 255 * n,
+ * so each sweep is read as floor(acc / 2^s), 24 bits in three passes, with
+ * the plan's s making the call's longest row fit, and the two sweeps
+ * combine in f32. PV is 16 converts a block against QK's 4 per column tile,
+ * so the third pass is cheap.
  */
 
 #include "hexkl_attn_q2.h"
@@ -69,14 +85,14 @@
 /** QK convert exponent range: 2^(k-8) and 2^(k+8) must be fp16 normals. */
 #define QK_K_MIN (-6)
 #define QK_K_MAX 7
-/** PV convert exponent (see the file comment). */
-#define PV_KV 0
 
 static inline uint64_t now_us(void) { return HAP_perf_get_time_us(); }
 
-/** @brief One (query head, row block). */
+/** @brief One (query head, row block), or with GQA folding one kv head's
+ *         G query heads at the call's single row, a head per tile row. */
 typedef struct {
-  uint32_t n, h;   /**< kv head, query head */
+  uint32_t n, h;   /**< kv head, query head (folded: the first of G) */
+  uint32_t hs;     /**< per-head constant slot: h, or n when folded */
   uint32_t q0;     /**< first query row, relative to cache_from */
   uint32_t n_rows; /**< valid rows, <= 64 */
   uint32_t row0;   /**< absolute position of row 0 */
@@ -109,6 +125,10 @@ typedef struct {
   uint32_t kv_slice;    /**< tiles per slice */
   uint32_t kv_resident; /**< highest kv head whose K/V are all in VTCM */
   uint32_t kv_in_use;   /**< lowest kv head a pending PV still reads */
+  int fold;             /**< one row, G > 1: a kv head's query heads share
+                             an item (decode), one K/V read for all G */
+  float *fold_enc;      /**< folded: [n_head_kv][2] Q scale, zero point
+                             covering the kv head's G query heads */
   hexkl_attn_q2_stats st;
 } ctx;
 
@@ -173,8 +193,13 @@ static inline uint8_t *p_tiles_lo(ctx *c, uint32_t slot) {
 static inline uint8_t *p_tiles_hi(ctx *c, uint32_t slot) {
   return p_tiles_lo(c, slot) + c->L.n_blk * HEXKL_ATTN_Q2_TILE;
 }
-static inline uint8_t *o16_tiles(ctx *c, uint32_t slot) {
-  return c->vb + c->L.o16 + slot * c->dt * HEXKL_ATTN_Q2_TILE16;
+/** @brief f32 output tiles of a slot: [dt][64][32]. */
+static inline float *o32_tiles(ctx *c, uint32_t slot) {
+  return (float *)(c->vb + c->L.o32 + slot * c->dt * HEXKL_ATTN_Q2_TILE32);
+}
+/** @brief P' row sums of a Q slot, hvx_softmax_q_rowsum_index order. */
+static inline int32_t *rs_buf(ctx *c, uint32_t qslot) {
+  return (int32_t *)(c->vb + c->L.rs + qslot * HEXKL_ATTN_Q2_RS_BYTES);
 }
 static inline int16_t *corr_v(ctx *c, uint32_t h) {
   return (int16_t *)(c->vb + c->L.corr + (h & 1u) * c->L.corr_bytes);
@@ -183,7 +208,7 @@ static inline int16_t *corr_v(ctx *c, uint32_t h) {
 static inline uint8_t *cvt_qk(ctx *c, uint32_t h) {
   return c->vb + c->L.cvt + (h & 1u) * 3u * HEXKL_CVT_BLOCK_BYTES;
 }
-/** @brief The three PV bias blocks: 2^(kv+8), 2^kv, 2^(kv-8). */
+/** @brief The three PV bias blocks: bytes 0, 1, 2 of floor(acc / 2^s). */
 static inline uint8_t *cvt_pv(ctx *c) {
   return c->vb + c->L.cvt + 6u * HEXKL_CVT_BLOCK_BYTES;
 }
@@ -197,23 +222,75 @@ static inline uint8_t *kt_buf(ctx *c, uint32_t n) {
 static inline uint8_t *v_buf(ctx *c, uint32_t n) {
   return c->vb + c->L.v_wh + (n % c->L.n_kv_bufs) * c->L.kv_bytes;
 }
-static inline float q_scale_of(const ctx *c, uint32_t h) {
-  return c->io->q_enc[2u * h];
+/** @brief Streamed: K^T chunk buffer @a b and V[:, d] buffer @a b. */
+static inline uint8_t *kt_chunk(ctx *c, uint32_t b) {
+  return c->vb + c->L.kt_wh + b * c->L.kv_bytes;
 }
-static inline uint32_t q_zp_of(const ctx *c, uint32_t h) {
-  const float zp = c->io->q_enc[2u * h + 1u];
+static inline uint8_t *v_slice(ctx *c, uint32_t b) {
+  return c->vb + c->L.v_wh + b * c->L.v_slice;
+}
+/** @brief Q's encoding as the item's tiles hold it: its head's, or the
+ *         kv head's shared one when folded. */
+static inline const float *q_enc_of(const ctx *c, const item_t *it) {
+  return c->fold ? c->fold_enc + 2u * it->n : c->io->q_enc + 2u * it->h;
+}
+static inline float q_scale_of(const ctx *c, const item_t *it) {
+  return q_enc_of(c, it)[0];
+}
+static inline uint32_t q_zp_of(const ctx *c, const item_t *it) {
+  const float zp = q_enc_of(c, it)[1];
   return zp <= 0.0f ? 0u : zp >= 65535.0f ? 65535u : (uint32_t)(zp + 0.5f);
 }
 
 /* ---- worker stages ------------------------------------------------------- */
 
-/** @brief Pushes the DMA of item i's Q rows into its staging half. */
+/**
+ * @brief Pushes the DMA of item i's Q rows into its staging half. A folded
+ *        item's G rows -- its query heads at the one row -- are written
+ *        there instead, each re-quantized from its head's encoding to the
+ *        kv head's shared one: u' = rint((u - zp_g) s_g / s + zp), G * hd
+ *        values (4096 for Gemma-4's eight 512-wide heads).
+ */
 static void q_dma_push(ctx *c, uint32_t i) {
   const item_t *it = &c->items[i];
   const uint16_t *src =
     c->io->q + (size_t)it->q0 * c->io->q_stride + it->h * c->hd;
-  hexkl_dma_ring_push2d(q_stage(c, i), src, c->hd * 2u, c->io->q_stride * 2u,
-                        c->hd * 2u, it->n_rows, 0, 1);
+  if (!c->fold) {
+    hexkl_dma_ring_push2d(q_stage(c, i), src, c->hd * 2u, c->io->q_stride * 2u,
+                          c->hd * 2u, it->n_rows, 0, 1);
+    return;
+  }
+  // HVX, 64 values a vector: the scalar float path cost ~290 us a call
+  const float *enc = q_enc_of(c, it);
+  uint16_t *dst = q_stage(c, i);
+  const HVX_Vector vzp = hvx_splat_sf(enc[1]);
+  const uint32_t hd64 = c->hd & ~63u;
+  for (uint32_t g = 0; g < it->n_rows; ++g) {
+    const float s_g = c->io->q_enc[2u * (it->h + g)];
+    const float zp_g = c->io->q_enc[2u * (it->h + g) + 1u];
+    const float ratio = s_g / enc[0];
+    const uint16_t *x = src + (size_t)g * c->hd;
+    uint16_t *y = dst + (size_t)g * c->hd;
+    const HVX_Vector vr = hvx_splat_sf(ratio), vz = hvx_splat_sf(zp_g);
+    for (uint32_t d = 0; d < hd64; d += 64u) {
+      const HVX_VectorPair w =
+        Q6_Wuw_vunpack_Vuh(*(const HVX_UVector *)(x + d));
+      const HVX_Vector f0 = Q6_Vsf_vadd_VsfVsf(
+        Q6_Vsf_vmpy_VsfVsf(
+          Q6_Vsf_vsub_VsfVsf(Q6_Vsf_equals_Vw(Q6_V_lo_W(w)), vz), vr),
+        vzp);
+      const HVX_Vector f1 = Q6_Vsf_vadd_VsfVsf(
+        Q6_Vsf_vmpy_VsfVsf(
+          Q6_Vsf_vsub_VsfVsf(Q6_Vsf_equals_Vw(Q6_V_hi_W(w)), vz), vr),
+        vzp);
+      *(HVX_UVector *)(y + d) =
+        Q6_Vuh_vpack_VwVw_sat(hvx_sf_to_w_rne(f1), hvx_sf_to_w_rne(f0));
+    }
+    for (uint32_t d = hd64; d < c->hd; ++d) {
+      const float r = rintf(((float)x[d] - zp_g) * ratio + enc[1]);
+      y[d] = (uint16_t)(r <= 0.0f ? 0.0f : r >= 65535.0f ? 65535.0f : r);
+    }
+  }
 }
 
 /**
@@ -226,7 +303,7 @@ static void q_dma_push(ctx *c, uint32_t i) {
 static void stage_qprep(ctx *c, uint32_t i) {
   const uint64_t t0 = now_us();
   item_t *it = &c->items[i];
-  const uint32_t zp = q_zp_of(c, it->h);
+  const uint32_t zp = q_zp_of(c, it);
   const HVX_Vector pad = Q6_Vh_vsplat_R((int)zp);
   const uint16_t *stage = q_stage(c, i);
   uint8_t *qlo = q_tiles_lo(c, it->qslot);
@@ -273,19 +350,22 @@ static void stage_qprep(ctx *c, uint32_t i) {
 static void stage_softmax(ctx *c, item_t *it, job_t *j, uint32_t idx,
                           uint32_t n) {
   const uint64_t t0 = now_us();
-  const head_t *hd = &c->heads[it->h];
+  const head_t *hd = &c->heads[it->hs];
   hvx_softmax_q_block b;
   b.n_col_tiles = it->blk.n;
   b.col0 = 32u * it->blk.lo;
   b.n_cols = c->s->cache_to - 32u * it->blk.lo;
   b.row0 = it->row0;
-  b.n_rows = it->n_rows;
+  // folded: every row at the one position, all 64 computed (the rows past
+  // G hold the zero point's flat scores; the epilogue drops them)
+  b.n_rows = c->fold ? HEXKL_ATTN_Q2_ROWS : it->n_rows;
+  b.same_row = (uint8_t)c->fold;
   b.window = c->s->window;
   b.rho_q15 = hd->rho;
   b.frac_bits = (uint8_t)hd->F;
   const int16_t *s16 = (const int16_t *)s16_tiles(c, it->slot);
   const int16_t *corr =
-    corr_v(c, it->h) + (size_t)(it->blk.lo - c->res.lo) * 32u;
+    corr_v(c, it->hs) + (size_t)(it->blk.lo - c->res.lo) * 32u;
   uint8_t *plo = p_tiles_lo(c, it->slot);
   uint8_t *phi = p_tiles_hi(c, it->slot);
   /** An even split by tile count; weighting partial tiles and the epilogue
@@ -302,64 +382,61 @@ static void stage_softmax(ctx *c, item_t *it, job_t *j, uint32_t idx,
   hvx_softmax_q16_merge_max(mine, parts, n);
   hvx_softmax_q16_part_exp(&b, s16, c0, c1, plo, phi, mine);
   job_barrier(j, 1, n);
-  hvx_softmax_q16_merge_sum(mine, parts, n, NULL);
-  hvx_softmax_q16_part_norm(&b, c0, c1, plo, phi, mine);
+  // P' stays unnormalized; its row sums go to the epilogue, which divides
   if (idx == 0) {
+    hvx_softmax_q16_merge_sum(mine, parts, n, rs_buf(c, it->qslot));
     it->us_softmax = (uint32_t)(now_us() - t0);
   }
 }
 
 /**
- * @brief Stage 4: out = sat_u16(round(o16 * c[d] + zp_o)) with
- *        c[d] = 512 / 2^kv * s_v[d] / (65535 * s_o), rows [r_lo, r_hi) of
- *        the block, two dim tiles (64 u16, one vector) per store.
+ * @brief Stage 4: out = sat_u16(round(o32 * 2^s * s_v[d] / (l_r * s_o) +
+ *        zp_o)) with l_r row r's P' sum (0 for a row with nothing visible:
+ *        the output is then the zero point), rows [r_lo, r_hi) of the
+ *        block, two dim tiles (64 u16, one vector) per store.
  */
 static void stage_epilogue(ctx *c, item_t *it, uint32_t r_lo, uint32_t r_hi) {
   const uint64_t t0 = now_us();
-  const float s_o = c->io->out_enc[2u * it->h];
-  const float zp_o = c->io->out_enc[2u * it->h + 1u];
-  const float back =
-    ldexpf(512.0f, -PV_KV) / (65535.0f * (s_o > 0.0f ? s_o : 1.0f));
-  const HVX_Vector vback = hvx_splat_sf(back);
-  const HVX_Vector vzp = hvx_splat_sf(zp_o);
+  // o32 is in units of 2^s (the PV readout's floor(acc / 2^s))
+  const float unit = ldexpf(1.0f, (int)c->L.pv_shift);
   const float *sv = c->io->kv->fs_v + (size_t)it->n * c->hd;
-  const uint8_t *o16 = o16_tiles(c, it->slot);
+  const float *o32 = o32_tiles(c, it->slot);
+  const int32_t *rs = rs_buf(c, it->qslot);
   const uint32_t r_end = r_hi < it->n_rows ? r_hi : it->n_rows;
-  for (uint32_t d = 0; d < c->dt; d += 2u) {
-    const int two = d + 1u < c->dt;
-    const HVX_Vector c0 =
-      Q6_Vsf_vmpy_VsfVsf(hvx_tile_load_u(sv + 32u * d), vback);
-    const HVX_Vector c1 =
-      two ? Q6_Vsf_vmpy_VsfVsf(hvx_tile_load_u(sv + 32u * (d + 1u)), vback)
-          : c0;
-    const HVX_Vector *o0 =
-      (const HVX_Vector *)(o16 + (size_t)d * HEXKL_ATTN_Q2_TILE16);
-    const HVX_Vector *o1 = o0 + (two ? HEXKL_ATTN_Q2_TILE16 / 128u : 0u);
-    for (uint32_t v = r_lo / 2u; 2u * v < r_end; ++v) {
-      const uint32_t r0 = 2u * v;
-      /* Row-pair vectors -> words by halves: lo_W row r0, hi_W row r0+1. */
-      const HVX_VectorPair w0 = Q6_Ww_vunpack_Vh(o0[v]);
-      const HVX_VectorPair w1 = Q6_Ww_vunpack_Vh(o1[v]);
-      for (uint32_t i = 0; i < 2u && r0 + i < r_end; ++i) {
-        HVX_Vector f0 =
-          Q6_Vsf_equals_Vw(i == 0 ? Q6_V_lo_W(w0) : Q6_V_hi_W(w0));
-        HVX_Vector f1 =
-          Q6_Vsf_equals_Vw(i == 0 ? Q6_V_lo_W(w1) : Q6_V_hi_W(w1));
-        f0 = Q6_Vsf_vadd_VsfVsf(Q6_Vsf_vmpy_VsfVsf(f0, c0), vzp);
-        f1 = Q6_Vsf_vadd_VsfVsf(Q6_Vsf_vmpy_VsfVsf(f1, c1), vzp);
-        const HVX_Vector u =
-          Q6_Vuh_vpack_VwVw_sat(hvx_sf_to_w_rne(f1), hvx_sf_to_w_rne(f0));
-        uint16_t *dst = c->io->out +
-                        (size_t)(it->q0 + r0 + i) * c->io->out_stride +
-                        it->h * c->hd + 32u * d;
-        if (two) {
-          *(HVX_UVector *)dst = u;
-        } else {
-          /* A lone last tile: its 32 values are the low half. */
-          HVX_Vector tmp[1] __attribute__((aligned(128)));
-          tmp[0] = u;
-          memcpy(dst, tmp, 64u);
-        }
+  for (uint32_t r = r_lo; r < r_end; ++r) {
+    // folded, tile row r is query head h + r at the item's row
+    const uint32_t h = c->fold ? it->h + r : it->h;
+    const uint32_t q = c->fold ? it->q0 : it->q0 + r;
+    const float s_o = c->io->out_enc[2u * h];
+    const HVX_Vector vzp = hvx_splat_sf(c->io->out_enc[2u * h + 1u]);
+    const int32_t l = rs[hvx_softmax_q_rowsum_index(r)];
+    const HVX_Vector vf = hvx_splat_sf(
+      l > 0 ? unit / ((s_o > 0.0f ? s_o : 1.0f) * (float)l) : 0.0f);
+    uint16_t *row =
+      c->io->out + (size_t)q * c->io->out_stride + (size_t)h * c->hd;
+    for (uint32_t d = 0; d < c->dt; d += 2u) {
+      const int two = d + 1u < c->dt;
+      const HVX_Vector *a0 =
+        (const HVX_Vector *)(o32 + ((size_t)d * HEXKL_ATTN_Q2_ROWS + r) * 32u);
+      const HVX_Vector *a1 = a0 + (two ? HEXKL_ATTN_Q2_TILE32 / 128u : 0u);
+      const HVX_Vector c0 =
+        Q6_Vsf_vmpy_VsfVsf(hvx_tile_load_u(sv + 32u * d), vf);
+      const HVX_Vector c1 =
+        two ? Q6_Vsf_vmpy_VsfVsf(hvx_tile_load_u(sv + 32u * (d + 1u)), vf) : c0;
+      const HVX_Vector f0 =
+        Q6_Vsf_vadd_VsfVsf(Q6_Vsf_vmpy_VsfVsf(*a0, c0), vzp);
+      const HVX_Vector f1 =
+        Q6_Vsf_vadd_VsfVsf(Q6_Vsf_vmpy_VsfVsf(*a1, c1), vzp);
+      const HVX_Vector u =
+        Q6_Vuh_vpack_VwVw_sat(hvx_sf_to_w_rne(f1), hvx_sf_to_w_rne(f0));
+      uint16_t *dst = row + 32u * d;
+      if (two) {
+        *(HVX_UVector *)dst = u;
+      } else {
+        /* A lone last tile: its 32 values are the low half. */
+        HVX_Vector tmp[1] __attribute__((aligned(128)));
+        tmp[0] = u;
+        memcpy(dst, tmp, 64u);
       }
     }
   }
@@ -438,12 +515,16 @@ static void kv_stream_step(ctx *c) {
  * corr = a1 + rint((256 a0 + B) / 2^sh), everything within int32; for
  * sh < 8, corr = A * 2^(8-sh) + rint(B / 2^sh). Modular like the
  * convert's truncation, no saturation.
+ *
+ * The constants are the item's slot's (it->hs): its query head's, or with
+ * GQA folding the kv head's, from the encoding the item's Q tiles hold.
  */
-static int setup_head(ctx *c, uint32_t h) {
+static int setup_head(ctx *c, const item_t *it) {
+  const uint32_t h = it->hs;
   head_t *hd = &c->heads[h];
-  const uint32_t n = h / c->G;
+  const uint32_t n = it->n;
   const hexkl_kv_q *kv = c->io->kv;
-  const float s_q = q_scale_of(c, h);
+  const float s_q = q_scale_of(c, it);
   if (!(s_q > 0.0f)) {
     return AEE_EBADPARM;
   }
@@ -483,7 +564,7 @@ static int setup_head(ctx *c, uint32_t h) {
   set_cvt_block(blk + HEXKL_CVT_BLOCK_BYTES, pow2_hf(hd->k));
   set_cvt_block(blk + 2u * HEXKL_CVT_BLOCK_BYTES, pow2_hf(hd->k - 8));
 
-  const uint32_t zp = q_zp_of(c, h);
+  const uint32_t zp = q_zp_of(c, it);
   // vmpyi(Vw, Rub) picks a byte of the scalar per lane: replicate it.
   const uint32_t zh4 = (zp >> 8) * 0x01010101u;
   const uint32_t zl4 = (zp & 0xffu) * 0x01010101u;
@@ -593,13 +674,184 @@ static inline void two_sweeps(ctx *c, const uint8_t *act_hi,
   zip_add_i16(a_lo, a_hi, b_lo, b_hi, dst);
 }
 
+/**
+ * @brief dst = mul * w + (acc ? dst : 0) over one tile, w the int24 of
+ *        three convert planes: w = b0 + 256 b1 + 65536 sext(b2), plane
+ *        byte p (row p / 32, column p % 32) to word p. vshuff(-1) pairs
+ *        the bytes into halfwords as zip_add_i16 does, vshuff(-2) the
+ *        halfwords into words, in element order.
+ */
+static inline void planes_to_f32(const uint8_t *q0, const uint8_t *q1,
+                                 const uint8_t *q2, float mul, int acc,
+                                 float *dst) {
+  const HVX_Vector *b0 = (const HVX_Vector *)q0;
+  const HVX_Vector *b1 = (const HVX_Vector *)q1;
+  const HVX_Vector *b2 = (const HVX_Vector *)q2;
+  HVX_Vector *d = (HVX_Vector *)dst;
+  const HVX_Vector zero = Q6_V_vzero();
+  const HVX_Vector ones = Q6_V_vnot_V(zero);
+  const HVX_Vector vmul = hvx_splat_sf(mul);
+  for (uint32_t i = 0; i < HEXKL_CVT_PLANE_BYTES / 128u; ++i) {
+    const HVX_Vector sign =
+      Q6_V_vmux_QVV(Q6_Q_vcmp_gt_VbVb(zero, b2[i]), ones, zero);
+    const HVX_VectorPair lo16 = Q6_W_vshuff_VVR(b1[i], b0[i], -1);
+    const HVX_VectorPair hi16 = Q6_W_vshuff_VVR(sign, b2[i], -1);
+    const HVX_VectorPair w0 =
+      Q6_W_vshuff_VVR(Q6_V_lo_W(hi16), Q6_V_lo_W(lo16), -2);
+    const HVX_VectorPair w1 =
+      Q6_W_vshuff_VVR(Q6_V_hi_W(hi16), Q6_V_hi_W(lo16), -2);
+    const HVX_Vector w[4] = {Q6_V_lo_W(w0), Q6_V_hi_W(w0), Q6_V_lo_W(w1),
+                             Q6_V_hi_W(w1)};
+    for (uint32_t k = 0; k < 4u; ++k) {
+      HVX_Vector f = Q6_Vsf_vmpy_VsfVsf(Q6_Vsf_equals_Vw(w[k]), vmul);
+      if (acc) {
+        f = Q6_Vsf_vadd_VsfVsf(f, d[4u * i + k]);
+      }
+      d[4u * i + k] = f;
+    }
+  }
+}
+
+/**
+ * @brief One f32 output tile of P'.V: the high-byte and the low-byte sweep
+ *        over @a n_pk packets, each read as floor(acc / 2^s) through the
+ *        three PV blocks, dst = 256 hi + lo (in units of 2^s).
+ */
+static inline void pv_sweeps(ctx *c, const uint8_t *p_hi, const uint8_t *p_lo,
+                             const uint8_t *wt, uint32_t wt_step, uint32_t n_pk,
+                             float *dst) {
+  uint8_t *pl = planes(c);
+  uint8_t *h0 = pl, *h1 = pl + HEXKL_CVT_PLANE_BYTES,
+          *h2 = pl + 2u * HEXKL_CVT_PLANE_BYTES;
+  uint8_t *l0 = pl + 3u * HEXKL_CVT_PLANE_BYTES,
+          *l1 = pl + 4u * HEXKL_CVT_PLANE_BYTES,
+          *l2 = pl + 5u * HEXKL_CVT_PLANE_BYTES;
+  const uint8_t *blk = cvt_pv(c);
+  hexkl_micro_hmx_acc_clear_int32();
+  for (uint32_t p = 0; p < n_pk; ++p) {
+    hexkl_hmx_mm_u8i8(p_hi + (size_t)p * HEXKL_ATTN_Q2_TILE,
+                      wt + (size_t)p * wt_step);
+  }
+  hexkl_cvt_issue(blk, h0);
+  hexkl_cvt_issue(blk + HEXKL_CVT_BLOCK_BYTES, h1);
+  hexkl_cvt_issue(blk + 2u * HEXKL_CVT_BLOCK_BYTES, h2);
+  cvt_fence(h2);
+  hexkl_micro_hmx_acc_clear_int32();
+  for (uint32_t p = 0; p < n_pk; ++p) {
+    hexkl_hmx_mm_u8i8(p_lo + (size_t)p * HEXKL_ATTN_Q2_TILE,
+                      wt + (size_t)p * wt_step);
+  }
+  hexkl_cvt_issue(blk, l0);
+  hexkl_cvt_issue(blk + HEXKL_CVT_BLOCK_BYTES, l1);
+  hexkl_cvt_issue(blk + 2u * HEXKL_CVT_BLOCK_BYTES, l2);
+  planes_to_f32(h0, h1, h2, 256.0f, 0, dst);
+  planes_to_f32(l0, l1, l2, 1.0f, 1, dst);
+}
+
+/** @brief Queues K^T column tiles [t0, t0 + n) of kv head @a kvh into
+ *         chunk buffer @a b; returns the transfer's ring index. */
+static uint32_t kt_chunk_push(ctx *c, uint32_t kvh, uint32_t t0, uint32_t n,
+                              uint32_t b) {
+  const hexkl_kv_q *kv = c->io->kv;
+  const uint32_t row_bytes = c->dt * 1024u;
+  const uint32_t idx = hexkl_dma_ring_next_idx();
+  hexkl_dma_ring_push2d(kt_chunk(c, b),
+                        kv->kt + hexkl_kv_q_tile_off(kv, kvh, t0, 0), row_bytes,
+                        row_bytes, row_bytes, n, 0, 1);
+  return idx;
+}
+
+/** @brief Queues V[:, d] of kv head @a kvh over column tiles [t0, t0 + n)
+ *         -- one 1 KiB tile of each, a column tile's row apart in the
+ *         cache -- packed into slice buffer @a b; returns the ring index. */
+static uint32_t v_slice_push(ctx *c, uint32_t kvh, uint32_t t0, uint32_t n,
+                             uint32_t d, uint32_t b) {
+  const hexkl_kv_q *kv = c->io->kv;
+  const uint32_t idx = hexkl_dma_ring_next_idx();
+  hexkl_dma_ring_push2d(v_slice(c, b),
+                        kv->v + hexkl_kv_q_tile_off(kv, kvh, t0, d), 1024u,
+                        c->dt * 1024u, 1024u, n, 0, 1);
+  return idx;
+}
+
+/** @brief Waits for ring index @a idx, the wait counted as exposed DMA. */
+static inline void stream_wait(ctx *c, uint32_t idx) {
+  const uint64_t t0 = now_us();
+  hexkl_dma_ring_wait(idx);
+  c->st.us_dma += now_us() - t0;
+}
+
+/**
+ * @brief Stage 1, streamed: the block's column tiles in K^T chunks of
+ *        L.stream tiles, chunk j + 1 in flight while chunk j multiplies.
+ *        A chunk's buffer is free again once its tiles are done: the
+ *        readout of each tile's second sweep waits for the HMX.
+ */
+static void stage_qk_stream(ctx *c, const item_t *it) {
+  const uint64_t t0 = now_us();
+  const uint64_t dma0 = c->st.us_dma;
+  const uint8_t *q_lo = q_tiles_lo(c, it->qslot);
+  const uint8_t *q_hi = q_tiles_hi(c, it->qslot);
+  const uint8_t *blocks = cvt_qk(c, it->hs);
+  uint8_t *s16 = s16_tiles(c, it->slot);
+  const uint32_t kc = c->L.stream, n = it->blk.n;
+  uint32_t idx[2];
+  idx[0] = kt_chunk_push(c, it->n, it->blk.lo, n < kc ? n : kc, 0);
+  for (uint32_t j = 0, c0 = 0; c0 < n; ++j, c0 += kc) {
+    const uint32_t nj = n - c0 < kc ? n - c0 : kc;
+    if (c0 + nj < n) {
+      const uint32_t c1 = c0 + nj;
+      idx[(j + 1u) & 1u] = kt_chunk_push(
+        c, it->n, it->blk.lo + c1, n - c1 < kc ? n - c1 : kc, (j + 1u) & 1u);
+    }
+    stream_wait(c, idx[j & 1u]);
+    const uint8_t *kt = kt_chunk(c, j & 1u);
+    for (uint32_t t = 0; t < nj; ++t) {
+      two_sweeps(c, q_hi, q_lo, HEXKL_ATTN_Q2_TILE,
+                 kt + (size_t)t * c->dt * 1024u, 1024u, c->dt, blocks,
+                 (int16_t *)(s16 + (size_t)(c0 + t) * HEXKL_ATTN_Q2_TILE16));
+    }
+  }
+  c->st.us_qk += now_us() - t0 - (c->st.us_dma - dma0);
+}
+
+/**
+ * @brief Stage 3, streamed: per dim tile d, V[:, d] over the block's
+ *        column tiles into one of two slices, d + 1 in flight while d
+ *        multiplies -- the same packets in the same order as resident.
+ */
+static void stage_pv_stream(ctx *c, item_t *it) {
+  const uint64_t t0 = now_us();
+  const uint64_t dma0 = c->st.us_dma;
+  const uint8_t *p_lo = p_tiles_lo(c, it->slot);
+  const uint8_t *p_hi = p_tiles_hi(c, it->slot);
+  float *o32 = o32_tiles(c, it->slot);
+  const uint32_t n = it->blk.n;
+  uint32_t idx[2];
+  idx[0] = v_slice_push(c, it->n, it->blk.lo, n, 0, 0);
+  for (uint32_t d = 0; d < c->dt; ++d) {
+    if (d + 1u < c->dt) {
+      idx[(d + 1u) & 1u] =
+        v_slice_push(c, it->n, it->blk.lo, n, d + 1u, (d + 1u) & 1u);
+    }
+    stream_wait(c, idx[d & 1u]);
+    pv_sweeps(c, p_hi, p_lo, v_slice(c, d & 1u), 1024u, n,
+              o32 + (size_t)d * (HEXKL_ATTN_Q2_TILE32 / 4u));
+  }
+  c->st.us_pv += now_us() - t0 - (c->st.us_dma - dma0);
+}
+
 /** @brief Stage 1: the block's score tiles. Per column tile the packets
  *         run over the dim tiles: Q tile d x K^T tile (col, d). */
 static void stage_qk(ctx *c, const item_t *it) {
+  if (c->L.stream) {
+    stage_qk_stream(c, it);
+    return;
+  }
   const uint64_t t0 = now_us();
   const uint8_t *q_lo = q_tiles_lo(c, it->qslot);
   const uint8_t *q_hi = q_tiles_hi(c, it->qslot);
-  const uint8_t *blocks = cvt_qk(c, it->h);
+  const uint8_t *blocks = cvt_qk(c, it->hs);
   const uint8_t *kt0 = kt_buf(c, it->n);
   uint8_t *s16 = s16_tiles(c, it->slot);
   for (uint32_t t = 0; t < it->blk.n; ++t) {
@@ -614,17 +866,19 @@ static void stage_qk(ctx *c, const item_t *it) {
 /** @brief Stage 3: the block's output tiles. Per dim tile the packets run
  *         over the column tiles: P tile t x V tile (t, d). */
 static void stage_pv(ctx *c, item_t *it) {
+  if (c->L.stream) {
+    stage_pv_stream(c, it);
+    return;
+  }
   const uint64_t t0 = now_us();
   const uint8_t *p_lo = p_tiles_lo(c, it->slot);
   const uint8_t *p_hi = p_tiles_hi(c, it->slot);
-  const uint8_t *blocks = cvt_pv(c);
   const uint8_t *v0 =
     v_buf(c, it->n) + (size_t)(it->blk.lo - c->res.lo) * c->dt * 1024u;
-  uint8_t *o16 = o16_tiles(c, it->slot);
+  float *o32 = o32_tiles(c, it->slot);
   for (uint32_t d = 0; d < c->dt; ++d) {
-    two_sweeps(c, p_hi, p_lo, HEXKL_ATTN_Q2_TILE, v0 + d * 1024u, c->dt * 1024u,
-               it->blk.n, blocks,
-               (int16_t *)(o16 + (size_t)d * HEXKL_ATTN_Q2_TILE16));
+    pv_sweeps(c, p_hi, p_lo, v0 + d * 1024u, c->dt * 1024u, it->blk.n,
+              o32 + (size_t)d * (HEXKL_ATTN_Q2_TILE32 / 4u));
   }
   c->st.us_pv += now_us() - t0;
 }
@@ -632,6 +886,29 @@ static void stage_pv(ctx *c, item_t *it) {
 static void free_ctx(ctx *c) {
   free(c->items);
   free(c->heads);
+  free(c->fold_enc);
+}
+
+/**
+ * @brief Folded: per kv head the one encoding that covers its G query
+ *        heads' Q ranges, [min_g -zp_g s_g, max_g (65535 - zp_g) s_g] over
+ *        65535 steps. A head with a narrower range loses
+ *        log2(range ratio) of its 16 bits; K/V's 8 bits stay the floor.
+ */
+static void fold_encodings(ctx *c) {
+  for (uint32_t n = 0; n < c->s->n_head_kv; ++n) {
+    float lo = 0.0f, hi = 0.0f;
+    for (uint32_t g = 0; g < c->G; ++g) {
+      const float s_g = c->io->q_enc[2u * (n * c->G + g)];
+      const float zp_g = c->io->q_enc[2u * (n * c->G + g) + 1u];
+      const float l = -zp_g * s_g, u = (65535.0f - zp_g) * s_g;
+      lo = g == 0 || l < lo ? l : lo;
+      hi = g == 0 || u > hi ? u : hi;
+    }
+    const float s = hi > lo ? (hi - lo) / 65535.0f : 0.0f;
+    c->fold_enc[2u * n] = s;
+    c->fold_enc[2u * n + 1u] = s > 0.0f ? rintf(-lo / s) : 0.0f;
+  }
 }
 
 /**
@@ -669,7 +946,8 @@ static int submit_job(ctx *c, hvx_worker_pool *pool, job_t *job,
 static int try_qk(ctx *c, uint32_t k, int *rc) {
   const item_t *it = &c->items[k];
   const uint32_t n = it->n;
-  if (n > c->kv_resident) {
+  // Streamed K/V have no resident buffer to wait for: stage_qk fetches.
+  if (!c->L.stream && n > c->kv_resident) {
     uint64_t t0 = now_us();
     if (c->kv_next == n && c->kv_next_c > 0u && c->kv_next_c <= c->res.n) {
       while (c->kv_next_c < c->res.n) {
@@ -689,9 +967,9 @@ static int try_qk(ctx *c, uint32_t k, int *rc) {
     c->kv_resident = n;
     c->st.us_dma += now_us() - t0;
   }
-  if (k == 0 || it->h != c->items[k - 1u].h) {
+  if (k == 0 || it->hs != c->items[k - 1u].hs) {
     const uint64_t t0 = now_us();
-    *rc = setup_head(c, it->h);
+    *rc = setup_head(c, it);
     c->st.us_head += now_us() - t0;
     if (*rc != AEE_SUCCESS) {
       return 1;
@@ -728,7 +1006,14 @@ int hexkl_attn_q2_prefill(uint8_t *vtcm_base, uint32_t arena_top,
   c.vb = vtcm_base;
   c.s = s;
   c.io = io;
-  if (hexkl_attn_q2_plan(s, arena_top, &c.L) != HEXKL_ATTN_OK) {
+  // worker_job's softmax parts: the job's lanes, at most SMX_PARTS, one
+  // when the pool runs it inline
+  const uint32_t workers = hvx_worker_pool_workers(pool);
+  const uint32_t n_parts = workers == 0u ? 1u
+                           : workers < HEXKL_ATTN_Q2_SMX_PARTS
+                             ? workers
+                             : HEXKL_ATTN_Q2_SMX_PARTS;
+  if (hexkl_attn_q2_plan(s, arena_top, n_parts, &c.L) != HEXKL_ATTN_OK) {
     return AEE_ENOMEMORY;
   }
   c.hd = s->head_dim;
@@ -736,20 +1021,41 @@ int hexkl_attn_q2_prefill(uint8_t *vtcm_base, uint32_t arena_top,
   c.G = s->n_head_q / s->n_head_kv;
   c.res = hexkl_attn_q2_cols(s->cache_from, s->cache_from + s->n_q - 1u,
                              s->cache_to, s->window);
+  // A decode row folds its kv heads' query heads into one item each: the
+  // G heads share K/V and the row's position, so one QK, softmax and PV
+  // over the kv head's columns serve all of them.
+  c.fold = s->n_q == 1u && c.G > 1u && c.G <= HEXKL_ATTN_Q2_ROWS;
   const uint32_t n_blocks =
     (s->n_q + HEXKL_ATTN_Q2_ROWS - 1u) / HEXKL_ATTN_Q2_ROWS;
-  c.n_items = s->n_head_q * n_blocks;
+  c.n_items = c.fold ? s->n_head_kv : s->n_head_q * n_blocks;
   c.items = (item_t *)calloc(c.n_items, sizeof(item_t));
   c.heads = (head_t *)calloc(s->n_head_q, sizeof(head_t));
-  if (!c.items || !c.heads) {
+  c.fold_enc = c.fold ? (float *)calloc(2u * s->n_head_kv, sizeof(float)) : 0;
+  if (!c.items || !c.heads || (c.fold && !c.fold_enc)) {
     free_ctx(&c);
     return AEE_ENOMEMORY;
   }
-  for (uint32_t h = 0, i = 0; h < s->n_head_q; ++h) {
+  if (c.fold) {
+    fold_encodings(&c);
+    for (uint32_t i = 0; i < c.n_items; ++i) {
+      item_t *it = &c.items[i];
+      it->n = i;
+      it->h = i * c.G;
+      it->hs = i;
+      it->q0 = 0;
+      it->n_rows = c.G;
+      it->row0 = s->cache_from;
+      it->blk = hexkl_attn_q2_cols(it->row0, it->row0, s->cache_to, s->window);
+      it->slot = i % HEXKL_ATTN_Q2_SLOTS;
+      it->qslot = i % HEXKL_ATTN_Q2_Q_SLOTS;
+    }
+  }
+  for (uint32_t h = 0, i = 0; !c.fold && h < s->n_head_q; ++h) {
     for (uint32_t b = 0; b < n_blocks; ++b, ++i) {
       item_t *it = &c.items[i];
       it->n = h / c.G;
       it->h = h;
+      it->hs = h;
       it->q0 = b * HEXKL_ATTN_Q2_ROWS;
       it->n_rows = s->n_q - it->q0 < HEXKL_ATTN_Q2_ROWS ? s->n_q - it->q0
                                                         : HEXKL_ATTN_Q2_ROWS;
@@ -762,17 +1068,20 @@ int hexkl_attn_q2_prefill(uint8_t *vtcm_base, uint32_t arena_top,
   }
   // The PV blocks are constants of the kernel.
   {
+    // bytes 0, 1, 2 of floor(acc / 2^s): floor(acc * scale / 512) with
+    // scale 2^(9 - s), 2^(1 - s), 2^(-7 - s)
+    const int s_pv = (int)c.L.pv_shift;
     uint8_t *blk = cvt_pv(&c);
-    set_cvt_block(blk, pow2_hf(PV_KV + 8));
-    set_cvt_block(blk + HEXKL_CVT_BLOCK_BYTES, pow2_hf(PV_KV));
-    set_cvt_block(blk + 2u * HEXKL_CVT_BLOCK_BYTES, pow2_hf(PV_KV - 8));
+    set_cvt_block(blk, pow2_hf(9 - s_pv));
+    set_cvt_block(blk + HEXKL_CVT_BLOCK_BYTES, pow2_hf(1 - s_pv));
+    set_cvt_block(blk + 2u * HEXKL_CVT_BLOCK_BYTES, pow2_hf(-7 - s_pv));
   }
 
   const uint64_t t_start = now_us();
   const uint64_t c_start = HAP_perf_get_pcycles();
   int rc = AEE_SUCCESS;
   const uint32_t N = c.n_items;
-  const uint32_t items_per_head = n_blocks * c.G;
+  const uint32_t items_per_head = c.fold ? 1u : n_blocks * c.G;
   job_t job;
   memset(&job, 0, sizeof(job));
 
@@ -781,7 +1090,9 @@ int hexkl_attn_q2_prefill(uint8_t *vtcm_base, uint32_t arena_top,
   // second K/V buffer, kv head 1 starts streaming in slices.
   hexkl_dma_ring_reset();
   uint64_t t0 = now_us();
-  dma_push(&c, 0);
+  if (!c.L.stream) {
+    dma_push(&c, 0);
+  }
   q_dma_push(&c, 0);
   if (N > 1u) {
     q_dma_push(&c, 1);
@@ -881,6 +1192,7 @@ int hexkl_attn_q2_prefill(uint8_t *vtcm_base, uint32_t arena_top,
   c.st.us_total = now_us() - t_start;
   c.st.pcycles = HAP_perf_get_pcycles() - c_start;
   c.st.n_blocks = N;
+  c.st.kv_chunk = c.L.stream;
   for (uint32_t i = 0; i < N; ++i) {
     c.st.us_qprep += c.items[i].us_qprep;
     c.st.us_softmax += c.items[i].us_softmax;

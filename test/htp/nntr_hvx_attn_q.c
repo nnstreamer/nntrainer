@@ -365,7 +365,7 @@ int nntr_hvx_probe_cvt(remote_handle64 handle, uint32 kv_handle, uint32 n,
 
 int nntr_hvx_attn_q2_prefill(remote_handle64 handle, uint32 kv_handle,
                              uint32 n_q, uint32 cache_from, uint32 cache_to,
-                             uint32 n_head_q, uint32 window,
+                             uint32 n_head_q, uint32 window, uint32 arena_cap,
                              const uint16 *q_u16, int q_u16Len,
                              const float *q_enc, int q_encLen,
                              const float *out_enc, int out_encLen,
@@ -397,8 +397,10 @@ int nntr_hvx_attn_q2_prefill(remote_handle64 handle, uint32 kv_handle,
   io.out_enc = out_enc;
   io.kv = kv;
   hexkl_attn_q2_stats st;
-  const int rc = hexkl_attn_q2_prefill(s->vtcm_base, s->config_off, &shape, &io,
-                                       s->quant_pool, &st);
+  const uint32_t arena =
+    arena_cap != 0u && arena_cap < s->config_off ? arena_cap : s->config_off;
+  const int rc =
+    hexkl_attn_q2_prefill(s->vtcm_base, arena, &shape, &io, s->quant_pool, &st);
   if (rc != AEE_SUCCESS) {
     FARF(ERROR, "attn_q2_prefill: kernel failed: 0x%08x", rc);
     return rc;
@@ -418,6 +420,9 @@ int nntr_hvx_attn_q2_prefill(remote_handle64 handle, uint32 kv_handle,
   if (stats_usLen > 11) {
     stats_us[10] = (uint32)st.us_head;
     stats_us[11] = (uint32)st.us_submit;
+  }
+  if (stats_usLen > 12) {
+    stats_us[12] = st.kv_chunk;
   }
   return AEE_SUCCESS;
 }
@@ -686,6 +691,7 @@ int nntr_hvx_probe_softmax_q(remote_handle64 handle, uint32 n_col_tiles,
   b.window = window;
   b.rho_q15 = (uint16_t)rho_q15;
   b.frac_bits = (uint8_t)frac_bits;
+  b.same_row = 0;
   const uint64_t c0 = HAP_perf_get_pcycles();
   hvx_softmax_q(&b, (const int16_t *)(vb + OFF_SM_S),
                 (const int16_t *)(vb + OFF_SM_CORR), vb + OFF_SM_P,
@@ -700,14 +706,12 @@ int nntr_hvx_probe_softmax_q(remote_handle64 handle, uint32 n_col_tiles,
   return AEE_SUCCESS;
 }
 
-int nntr_hvx_probe_softmax_q16(remote_handle64 handle, uint32 n_col_tiles,
-                               uint32 col0, uint32 n_cols, uint32 row0,
-                               uint32 n_rows, uint32 window, uint32 rho_q15,
-                               uint32 frac_bits, const int16 *s_tiles,
-                               int s_tilesLen, const int16 *corr, int corrLen,
-                               uint8 *p_lo, int p_loLen, uint8 *p_hi,
-                               int p_hiLen, int32 *rowsum, int rowsumLen,
-                               uint32 *stats, int statsLen) {
+int nntr_hvx_probe_softmax_q16(
+  remote_handle64 handle, uint32 n_col_tiles, uint32 col0, uint32 n_cols,
+  uint32 row0, uint32 n_rows, uint32 same_row, uint32 window, uint32 rho_q15,
+  uint32 frac_bits, const int16 *s_tiles, int s_tilesLen, const int16 *corr,
+  int corrLen, uint8 *p_lo, int p_loLen, uint8 *p_hi, int p_hiLen,
+  int32 *rowsum, int rowsumLen, uint32 *stats, int statsLen) {
   nntr_hvx_session *s = (nntr_hvx_session *)handle;
   if (!s || n_col_tiles == 0 || n_col_tiles > 128u || frac_bits == 0 ||
       frac_bits > 9 || rho_q15 > 32767u) {
@@ -733,6 +737,7 @@ int nntr_hvx_probe_softmax_q16(remote_handle64 handle, uint32 n_col_tiles,
   b.window = window;
   b.rho_q15 = (uint16_t)rho_q15;
   b.frac_bits = (uint8_t)frac_bits;
+  b.same_row = (uint8_t)(same_row != 0u);
   const uint64_t c0 = HAP_perf_get_pcycles();
   hvx_softmax_q16(&b, (const int16_t *)(vb + OFF_SM_S),
                   (const int16_t *)(vb + OFF_SM_CORR), vb + OFF_SM_P,

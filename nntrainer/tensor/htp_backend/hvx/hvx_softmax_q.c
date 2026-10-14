@@ -68,7 +68,7 @@ uint16_t hvx_softmax_q_exp2_q14(uint32_t f, uint32_t frac_bits) {
 
 static inline int masked(const hvx_softmax_q_block *b, uint32_t r,
                          uint32_t col) {
-  const uint32_t row = b->row0 + r;
+  const uint32_t row = b->same_row ? b->row0 : b->row0 + r;
   if (r >= b->n_rows || col >= b->col0 + b->n_cols || col > row) {
     return 1;
   }
@@ -302,7 +302,8 @@ enum {
  * block partial, which only the last block of a sequence pays. */
 int hvx_softmax_q_tile_class(const hvx_softmax_q_block *b, uint32_t c) {
   const uint32_t cl = b->col0 + 32u * c, ch = cl + 31u;
-  const uint32_t rl = b->row0, rh = b->row0 + HVX_SOFTMAX_Q_ROWS - 1u;
+  const uint32_t rl = b->row0,
+                 rh = b->same_row ? b->row0 : b->row0 + HVX_SOFTMAX_Q_ROWS - 1u;
   const uint32_t cend = b->col0 + b->n_cols;
   if (cl > rh || cl >= cend || (b->window != 0 && ch + b->window <= rl)) {
     return TILE_MASKED;
@@ -312,6 +313,11 @@ int hvx_softmax_q_tile_class(const hvx_softmax_q_block *b, uint32_t c) {
     return TILE_FULL;
   }
   return TILE_PARTIAL;
+}
+
+/* Position step from one row to the next: 0 when every row is at row0. */
+static inline int row_step(const hvx_softmax_q_block *b) {
+  return b->same_row ? 0 : 1;
 }
 
 /* True where (row, col) is masked, for the vector v of tile c. */
@@ -435,8 +441,9 @@ void hvx_softmax_q(const hvx_softmax_q_block *b, const int16_t *s_tiles,
   const HVX_Vector vmin = Q6_Vh_vsplat_R(-32768);
   const HVX_Vector colbase = Q6_Vh_vadd_VhVh(*(const HVX_Vector *)lane_col,
                                              Q6_Vh_vsplat_R((int)b->col0));
-  const HVX_Vector rowbase = Q6_V_vmux_QVV(qlow, Q6_Vh_vsplat_R((int)b->row0),
-                                           Q6_Vh_vsplat_R((int)b->row0 + 1));
+  const HVX_Vector rowbase =
+    Q6_V_vmux_QVV(qlow, Q6_Vh_vsplat_R((int)b->row0),
+                  Q6_Vh_vsplat_R((int)b->row0 + row_step(b)));
 
   uint8_t cls[HVX_SOFTMAX_Q_MAX_TILES];
   for (uint32_t c = 0; c < ct; ++c) {
@@ -474,9 +481,9 @@ void hvx_softmax_q(const hvx_softmax_q_block *b, const int16_t *s_tiles,
     const uint32_t v0 = 2u * w;
     const HVX_Vector m0 = M[v0], m1 = M[v0 + 1u];
     const HVX_Vector rowv0 =
-      Q6_Vh_vadd_VhVh(rowbase, Q6_Vh_vsplat_R(2 * (int)v0));
+      Q6_Vh_vadd_VhVh(rowbase, Q6_Vh_vsplat_R(row_step(b) * 2 * (int)v0));
     const HVX_Vector rowv1 =
-      Q6_Vh_vadd_VhVh(rowbase, Q6_Vh_vsplat_R(2 * (int)v0 + 2));
+      Q6_Vh_vadd_VhVh(rowbase, Q6_Vh_vsplat_R(row_step(b) * (2 * (int)v0 + 2)));
     HVX_Vector rs = zero;
     uint32_t c = 0;
     while (c < ct) {
@@ -599,8 +606,9 @@ void hvx_softmax_q16_part_max(const hvx_softmax_q_block *b,
   const HVX_Vector vmin = Q6_Vh_vsplat_R(-32768);
   const HVX_Vector colbase = Q6_Vh_vadd_VhVh(*(const HVX_Vector *)lane_col,
                                              Q6_Vh_vsplat_R((int)b->col0));
-  const HVX_Vector rowbase = Q6_V_vmux_QVV(qlow, Q6_Vh_vsplat_R((int)b->row0),
-                                           Q6_Vh_vsplat_R((int)b->row0 + 1));
+  const HVX_Vector rowbase =
+    Q6_V_vmux_QVV(qlow, Q6_Vh_vsplat_R((int)b->row0),
+                  Q6_Vh_vsplat_R((int)b->row0 + row_step(b)));
   uint8_t cls[HVX_SOFTMAX_Q_MAX_TILES];
   part_classes(b, c0, c1, cls);
   for (uint32_t c = c0; c < c1; ++c) {
@@ -641,8 +649,9 @@ void hvx_softmax_q16_part_exp(const hvx_softmax_q_block *b,
   const HVX_Vector vmin = Q6_Vh_vsplat_R(-32768);
   const HVX_Vector colbase = Q6_Vh_vadd_VhVh(*(const HVX_Vector *)lane_col,
                                              Q6_Vh_vsplat_R((int)b->col0));
-  const HVX_Vector rowbase = Q6_V_vmux_QVV(qlow, Q6_Vh_vsplat_R((int)b->row0),
-                                           Q6_Vh_vsplat_R((int)b->row0 + 1));
+  const HVX_Vector rowbase =
+    Q6_V_vmux_QVV(qlow, Q6_Vh_vsplat_R((int)b->row0),
+                  Q6_Vh_vsplat_R((int)b->row0 + row_step(b)));
   uint8_t cls[HVX_SOFTMAX_Q_MAX_TILES];
   part_classes(b, c0, c1, cls);
 
@@ -677,9 +686,9 @@ void hvx_softmax_q16_part_exp(const hvx_softmax_q_block *b,
     const uint32_t v0 = 2u * w;
     const HVX_Vector m0 = M[v0], m1 = M[v0 + 1u];
     const HVX_Vector rowv0 =
-      Q6_Vh_vadd_VhVh(rowbase, Q6_Vh_vsplat_R(2 * (int)v0));
+      Q6_Vh_vadd_VhVh(rowbase, Q6_Vh_vsplat_R(row_step(b) * 2 * (int)v0));
     const HVX_Vector rowv1 =
-      Q6_Vh_vadd_VhVh(rowbase, Q6_Vh_vsplat_R(2 * (int)v0 + 2));
+      Q6_Vh_vadd_VhVh(rowbase, Q6_Vh_vsplat_R(row_step(b) * (2 * (int)v0 + 2)));
     HVX_Vector rsl = zero, rsh = zero;
     uint32_t c = 0;
     while (c < n) {
@@ -834,13 +843,13 @@ static void pass1_rowmax(const hvx_softmax_q_block *b, const HVX_Vector *S,
   for (uint32_t v = 0; v < 32u; v += 4u) {
     HVX_Vector m0 = vmin, m1 = vmin, m2 = vmin, m3 = vmin;
     const HVX_Vector rowv0 =
-      Q6_Vh_vadd_VhVh(rowbase, Q6_Vh_vsplat_R(2 * (int)v));
+      Q6_Vh_vadd_VhVh(rowbase, Q6_Vh_vsplat_R(row_step(b) * 2 * (int)v));
     const HVX_Vector rowv1 =
-      Q6_Vh_vadd_VhVh(rowbase, Q6_Vh_vsplat_R(2 * (int)v + 2));
+      Q6_Vh_vadd_VhVh(rowbase, Q6_Vh_vsplat_R(row_step(b) * (2 * (int)v + 2)));
     const HVX_Vector rowv2 =
-      Q6_Vh_vadd_VhVh(rowbase, Q6_Vh_vsplat_R(2 * (int)v + 4));
+      Q6_Vh_vadd_VhVh(rowbase, Q6_Vh_vsplat_R(row_step(b) * (2 * (int)v + 4)));
     const HVX_Vector rowv3 =
-      Q6_Vh_vadd_VhVh(rowbase, Q6_Vh_vsplat_R(2 * (int)v + 6));
+      Q6_Vh_vadd_VhVh(rowbase, Q6_Vh_vsplat_R(row_step(b) * (2 * (int)v + 6)));
     for (uint32_t c = 0; c < n; ++c) {
       if (cls[c] == TILE_MASKED) {
         continue;

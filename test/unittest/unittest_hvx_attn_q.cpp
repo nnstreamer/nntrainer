@@ -30,6 +30,7 @@
 #include <string>
 #include <vector>
 
+#include "hexkl_attn_q2_plan.h"
 #include "hexkl_attn_q_plan.h"
 #include "hexkl_kv_q.h"
 #include "hvx_attn_q_model.h"
@@ -353,10 +354,11 @@ protected:
   }
 };
 
-constexpr int kQ2StatCount = 12;
+constexpr int kQ2StatCount = 13;
 const char *const kQ2StatNames[kQ2StatCount] = {
-  "qprep",    "dma",      "qk",      "softmax",  "pv",         "epilogue",
-  "us_total", "n_blocks", "kcycles", "hmx_wait", "head_setup", "submit"};
+  "qprep",      "dma",      "qk",       "softmax", "pv",
+  "epilogue",   "us_total", "n_blocks", "kcycles", "hmx_wait",
+  "head_setup", "submit",   "kv_chunk"};
 
 /**
  * @brief The row-blocked kernel (plan 23, R4) over a fixed-scale cache
@@ -366,7 +368,13 @@ const char *const kQ2StatNames[kQ2StatCount] = {
  */
 class HvxAttnQ2 : public hvx_test::SessionTest {
 protected:
-  void RunShape(const AttnShape &s, double min_snr_db, bool report = false) {
+  /** @param arena_cap nonzero: the arena the kernel plans in
+   *  @param out       the u16 output, when non-null
+   *  @param kv_chunk  the call's K^T chunk tiles (0 = resident), when
+   *                   non-null */
+  void RunShape(const AttnShape &s, double min_snr_db, bool report = false,
+                uint32_t arena_cap = 0, std::vector<uint16_t> *out = nullptr,
+                uint32_t *kv_chunk = nullptr, uint32_t *n_blocks = nullptr) {
     SCOPED_TRACE(
       "n_q=" + std::to_string(s.n_q) + " from=" + std::to_string(s.cache_from) +
       " to=" + std::to_string(s.cache_to) + " hq=" +
@@ -472,12 +480,21 @@ protected:
     std::vector<uint32_t> stats(kQ2StatCount, 0);
     err = nntr_hvx_attn_q2_prefill(
       handle_, h, s.n_q, s.cache_from, s.cache_to, s.n_head_q, s.window,
-      q_u16.data(), static_cast<int>(q_u16.size()), q_enc.data(),
+      arena_cap, q_u16.data(), static_cast<int>(q_u16.size()), q_enc.data(),
       static_cast<int>(q_enc.size()), out_enc.data(),
       static_cast<int>(out_enc.size()), out_u16.data(),
       static_cast<int>(out_u16.size()), stats.data(), kQ2StatCount);
     EXPECT_EQ(nntr_hvx_kv_release_q(handle_, h), AEE_SUCCESS);
     ASSERT_EQ(err, AEE_SUCCESS) << "attn_q2_prefill failed: " << hex(err);
+    if (out) {
+      *out = out_u16;
+    }
+    if (kv_chunk) {
+      *kv_chunk = stats[12];
+    }
+    if (n_blocks) {
+      *n_blocks = stats[7];
+    }
     std::vector<float> got(q_elems, 0.0f);
     for (uint32_t r = 0; r < s.n_q; ++r) {
       for (uint32_t hh = 0; hh < s.n_head_q; ++hh) {
@@ -535,6 +552,75 @@ TEST_F(HvxAttnQ2, ReportSliding4096Chunk) {
 TEST_F(HvxAttnQ2, ReportGlobal4096Chunk) {
   // The last 512-row chunk over the full 4096 cache, global layer shape.
   RunShape({512, 3584, 4096, 16, 2, 512, 0, 0, 0}, kSnrQ2, true);
+}
+
+TEST_F(HvxAttnQ2, StreamedKvMatchesResident) {
+  // The same call twice, the second with the arena capped just below the
+  // one-buffer resident layout: K^T in 16-tile chunks (blocks see 25-32
+  // column tiles, so a full and a partial chunk) and V by dim tile must
+  // give the resident call's output bit for bit -- the split leaves every
+  // accumulation as it was.
+  const AttnShape s = {256, 768, 1024, 8, 1, 512, 0, 0, 0};
+  const hexkl_attn_f16_shape sh = {s.n_q,      s.cache_from, s.cache_to,
+                                   s.n_head_q, s.n_head_kv,  s.head_dim,
+                                   s.window,   0.0f};
+  hexkl_attn_q2_layout L;
+  ASSERT_EQ(hexkl_attn_q2_geometry(&sh, HEXKL_ATTN_Q2_SMX_PARTS, &L),
+            HEXKL_ATTN_OK);
+  const uint32_t resident = hexkl_attn_q2_layout_resident(&sh, &L, 1);
+  std::vector<uint16_t> a, b;
+  uint32_t chunk_a = 1, chunk_b = 0;
+  RunShape(s, kSnrQ2, false, 0, &a, &chunk_a);
+  RunShape(s, kSnrQ2, false, resident - HEXKL_ATTN_Q2_TILE, &b, &chunk_b);
+  EXPECT_EQ(chunk_a, 0u) << "the uncapped call should keep K/V resident";
+  EXPECT_GT(chunk_b, 0u) << "the capped call should stream K/V";
+  ASSERT_EQ(a.size(), b.size());
+  EXPECT_EQ(std::memcmp(a.data(), b.data(), a.size() * sizeof(uint16_t)), 0)
+    << "streamed K/V changed the output";
+}
+
+TEST_F(HvxAttnQ2, ReportGlobal8192ChunkStreamsKv) {
+  // Gemma-4 E2B's full layers at the end of an 8192 prefill: the last
+  // 256-row chunk, eight query heads on one KV head of 512. K^T and V are
+  // 4 MiB each, past the arena, so they stream (#4096 cliff: this shape
+  // used to be refused and fall to the fp16 kernel).
+  uint32_t chunk = 0;
+  RunShape({256, 7936, 8192, 8, 1, 512, 0, 0, 0}, kSnrQ2, true, 0, nullptr,
+           &chunk);
+  EXPECT_GT(chunk, 0u) << "K/V of an 8192 cache should stream";
+}
+
+TEST_F(HvxAttnQ2, ReportGlobal8704DecodeStreamsKv) {
+  // The same layer's decode row at the end of the generation graph's
+  // context (8703 cached rows plus the token): streamed K/V, the eight
+  // query heads folded into one item.
+  uint32_t chunk = 0, items = 0;
+  RunShape({1, 8703, 8704, 8, 1, 512, 0, 0, 0}, kSnrQ2, true, 0, nullptr,
+           &chunk, &items);
+  EXPECT_GT(chunk, 0u) << "K/V of an 8704 cache should stream";
+  EXPECT_EQ(items, 1u) << "the eight query heads should fold into one item";
+}
+
+/** @brief Decode rows fold a kv head's query heads into one item: a full
+ *         layer resident, a sliding one (whose window must hold for every
+ *         folded row), two kv heads (their items alternate the per-head
+ *         constant slots), and G = 1 as the unfolded control. */
+TEST_F(HvxAttnQ2, DecodeFoldsQueryHeads) {
+  struct {
+    AttnShape s;
+    uint32_t items;
+  } cases[] = {
+    {{1, 1023, 1024, 8, 1, 512, 0, 0, 0}, 1},
+    {{1, 4095, 4096, 8, 1, 256, 512, 0, 0}, 1},
+    {{1, 2047, 2048, 8, 2, 128, 0, 0, 0}, 2},
+    {{1, 1023, 1024, 4, 4, 128, 0, 0, 0}, 4},
+  };
+  for (const auto &c : cases) {
+    uint32_t items = 0;
+    RunShape(c.s, kSnrQ2, true, 0, nullptr, nullptr, &items);
+    EXPECT_EQ(items, c.items)
+      << "hq=" << c.s.n_head_q << " hkv=" << c.s.n_head_kv;
+  }
 }
 
 /**
@@ -924,6 +1010,7 @@ TEST_F(HvxAttnQ, ConvertPlanesAreLow16BitsOfScaledAccumulator) {
 struct SoftmaxCase {
   const char *name;
   uint32_t ct, col0, n_cols, row0, n_rows, window;
+  uint32_t same_row; /**< every row at row0 (GQA-folded decode) */
 };
 
 /**
@@ -937,6 +1024,9 @@ TEST_F(HvxAttnQ, SoftmaxQ16MatchesReferenceBitExact) {
     {"window", 36, 992, 1152, 2048, 64, 1024},
     {"padding", 3, 0, 70, 30, 40, 0},
     {"dense4096", 128, 0, 4096, 4032, 64, 0},
+    // folded decode rows: a 512 window cutting tile 109, and a full row
+    {"same_row_window", 17, 3488, 513, 4000, 64, 512, 1},
+    {"same_row_full", 128, 0, 4096, 4095, 64, 0, 1},
   };
   const uint32_t F = 9;
   int k = 0;
@@ -966,6 +1056,7 @@ TEST_F(HvxAttnQ, SoftmaxQ16MatchesReferenceBitExact) {
     b.window = c.window;
     b.rho_q15 = rho;
     b.frac_bits = static_cast<uint8_t>(F);
+    b.same_row = static_cast<uint8_t>(c.same_row);
     std::vector<uint8_t> lo_ref(n, 0xAA), hi_ref(n, 0xAA), lo_dsp(n, 0x55),
       hi_dsp(n, 0x55);
     std::vector<int32_t> rs_ref(HVX_SOFTMAX_Q_ROWSUM_WORDS, -1),
@@ -974,8 +1065,8 @@ TEST_F(HvxAttnQ, SoftmaxQ16MatchesReferenceBitExact) {
                         rs_ref.data());
     std::vector<uint32_t> st(5, 0);
     const int err = nntr_hvx_probe_softmax_q16(
-      handle_, c.ct, c.col0, c.n_cols, c.row0, c.n_rows, c.window, rho, F,
-      s.data(), static_cast<int>(s.size()), corr.data(),
+      handle_, c.ct, c.col0, c.n_cols, c.row0, c.n_rows, c.same_row, c.window,
+      rho, F, s.data(), static_cast<int>(s.size()), corr.data(),
       static_cast<int>(corr.size()), lo_dsp.data(), static_cast<int>(n),
       hi_dsp.data(), static_cast<int>(n), rs_dsp.data(),
       static_cast<int>(rs_dsp.size()), st.data(), 5);
