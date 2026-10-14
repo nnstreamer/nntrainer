@@ -1395,7 +1395,9 @@ static ErrorCode load_into_handle(CausalLmModel &h, BackendType compute,
         nntr_cfg["lora_last_n_layers"] = lora_last_n_hint;
       if (!nntr_cfg.contains("lora_target") || nntr_cfg["lora_target"].empty())
         nntr_cfg["lora_target"] = std::vector<std::string>{
-          "wq", "wk", "wv", "wo", "ffn_up", "ffn_gate", "ffn_down"};
+          "wq",    "wk",             "wv",         "wo",     "ffn_up",
+          "ffn_gate", "ffn_down",     "wgate", "linattn_in_qkv",
+          "linattn_in_z", "linattn_out"};
       // The adapter graph runs on the cpu engine (setForceCpuEngine() below),
       // but mha_core's internal GPU arms -- rope_inplace_f16 and the device
       // attention -- gate on the use_gemm_attention LAYER property, not on the

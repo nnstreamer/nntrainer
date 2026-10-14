@@ -80,6 +80,7 @@
 #include "gemma2_causallm.h"
 #include "gemma3_causallm.h"
 #include "gemma4_causallm.h"
+#include "qwen35_causallm.h"
 #if !defined(_WIN32)
 #include "gptoss_cached_slim_causallm.h"
 #endif
@@ -349,6 +350,12 @@ void registerAllModels() {
         cfg, generation_cfg, nntr_cfg);
     });
 #endif
+  factory.registerModel(
+    "Qwen3_5ForConditionalGeneration",
+    [](json cfg, json generation_cfg, json nntr_cfg) {
+      return std::make_unique<causallm::Qwen35CausalLM>(cfg, generation_cfg,
+                                                        nntr_cfg);
+    });
   factory.registerModel("Qwen3Embedding",
                         [](json cfg, json generation_cfg, json nntr_cfg) {
                           return std::make_unique<causallm::Qwen3Embedding>(
@@ -813,6 +820,16 @@ int main(int argc, char *argv[]) {
     json generation_cfg =
       causallm::LoadJsonFile(model_path + "/generation_config.json");
     json nntr_cfg = causallm::LoadJsonFile(model_path + "/nntr_config.json");
+
+    // Multimodal wrappers (Qwen3.5) nest the text fields under text_config;
+    // flatten them to the top level here so the direct cfg reads below (and
+    // the model's own sanitizeConfig, which skips existing keys) see them.
+    if (cfg.contains("text_config") && cfg["text_config"].is_object()) {
+      const auto &text_cfg = cfg["text_config"];
+      for (auto it = text_cfg.begin(); it != text_cfg.end(); ++it)
+        if (!cfg.contains(it.key()))
+          cfg[it.key()] = it.value();
+    }
 
     // If a target config is specified, read dtypes from it
     if (!target_config_path.empty()) {

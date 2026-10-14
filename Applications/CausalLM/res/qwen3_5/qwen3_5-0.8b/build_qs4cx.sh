@@ -46,6 +46,20 @@ cp "$HF"/tokenizer*.json "$STAGE/" 2>/dev/null || true
 cp "$HF"/merges.txt "$STAGE/" 2>/dev/null || true
 cp "$HF"/vocab.json "$STAGE/" 2>/dev/null || true
 cp "$HF/special_tokens_map.json" "$STAGE/" 2>/dev/null || true
+# nntr_quantize reads generation_config.json unconditionally; a HF dir that
+# ships without a usable one gets a minimal greedy config (eos from the
+# text config so decode can stop early).
+if [ ! -s "$STAGE/generation_config.json" ]; then
+  EOS_ID="$(python3 -c "
+import json
+c = json.load(open('$STAGE/config.json'))
+t = c.get('text_config', c)
+e = t.get('eos_token_id', c.get('eos_token_id', 0))
+print(e[0] if isinstance(e, list) else e)
+")"
+  printf '{ "eos_token_id": %s, "bos_token_id": null, "do_sample": false }\n' \
+    "$EOS_ID" > "$STAGE/generation_config.json"
+fi
 
 if [ "${SKIP_QUANTIZE:-0}" = "1" ]; then
   mv "$STAGE/nntr_qwen3_5_0.8b_mixed.bin" "$OUT/"
@@ -75,7 +89,7 @@ fi
 cat > "$STAGE/nntr_config.json" <<EOF
 {
   "model_type": "CausalLM",
-  "model_tensor_type": "FP32-FP16",
+  "model_tensor_type": "FP32-FP32",
   "model_file_name": "nntr_qwen3_5_0.8b_mixed.bin",
   "fc_layer_dtype": "FP32",
   "embedding_dtype": "FP32",

@@ -8,9 +8,11 @@
  * @bug    No known bugs except for NYI items
  */
 
+#include <causal_lm.h>
 #include <decision.h>
+#include <factory.h>
 #include <lora_train.h>
-#include <qwen3_causallm.h>
+#include <model_registry.h>
 #include <residency_policy.h>
 #include <transformer.h>
 
@@ -100,9 +102,22 @@ void printUsage(const char *prog) {
 
 namespace causallm {
 
+/**
+ * @brief Architecture key for the Factory, from a model dir's config.json.
+ * The multimodal wrapper's architectures[0] ("Qwen3_5ForConditional...")
+ * is registered directly; the generic fallback matches the plain-Qwen3
+ * packs this driver shipped with originally.
+ */
+static std::string resolveTrainingArchitecture(const json &cfg) {
+  if (cfg.contains("architectures") && cfg["architectures"].is_array() &&
+      !cfg["architectures"].empty())
+    return cfg["architectures"].get<std::vector<std::string>>()[0];
+  return "Qwen3ForCausalLM";
+}
+
 /** @brief Bridges model.train(onEpochComplete, ...) to a TrainProgressCb. */
 struct EpochBridge {
-  Qwen3CausalLM *model;
+  Transformer *model;
   TrainParams params;
   std::string output_path;
   std::string q4_output_path; ///< empty unless lora_weight_q4 was passed
@@ -246,7 +261,9 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
 
     if (!nntr_cfg.contains("lora_target") || nntr_cfg["lora_target"].empty())
       nntr_cfg["lora_target"] = std::vector<std::string>{
-        "wq", "wk", "wv", "wo", "ffn_up", "ffn_gate", "ffn_down"};
+        "wq",    "wk",         "wv",         "wo",      "ffn_up",
+        "ffn_gate", "ffn_down", "wgate", "linattn_in_qkv", "linattn_in_z",
+        "linattn_out"};
 
     if (params.lora_last_n)
       nntr_cfg["lora_last_n_layers"] = params.lora_last_n;
@@ -320,13 +337,27 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
     else
       std::cout << std::flush;
 
-    Qwen3CausalLM model(cfg, generation_cfg, nntr_cfg);
+    // Factory-based model construction: the driver is architecture-agnostic
+    // (config.json's architectures[0] names the model; model_type=CausalLM
+    // is the generic fallback). registerAllModels() shares the api's single
+    // factory instance.
+    const std::string architecture = resolveTrainingArchitecture(cfg);
+    registerAllModels();
+    auto model_uptr =
+      causallm::Factory::Instance().create(architecture, cfg, generation_cfg,
+                                           nntr_cfg);
+    NNTR_THROW_IF(!model_uptr, std::invalid_argument)
+      << "unsupported architecture for LoRA training: " << architecture
+      << " (register it in model_registry.cpp / quantize.cpp)";
+    // The driver's plumbing (lora save/load, training stats, hybrid trunk)
+    // lives on Transformer; CausalLM adds the lm head. Both are covered.
+    Transformer &model = *model_uptr;
 
     // GPU-trunk / CPU-head split: the frozen blocks [0, S) run as an
     // inference graph on the GPU engine, the trainable blocks [S, L) as the
     // CPU training graph whose input is the trunk's hidden state.
     const bool hybrid = !params.hybrid_trunk_path.empty();
-    std::unique_ptr<Qwen3CausalLM> trunk;
+    std::unique_ptr<Transformer> trunk;
     int trunk_layers = 0;
     if (hybrid) {
       trunk_layers = model.getLoraLayerStart();
@@ -352,7 +383,10 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
       // rebuild guard (refuseIfQs4cxPayloadDropped). Costs one host copy of
       // the trunk FC weights.
       setenv("NNTR_V8C_DROP_PLAIN", "0", 0);
-      trunk = std::make_unique<Qwen3CausalLM>(tcfg, tgen, tnntr);
+      trunk = causallm::Factory::Instance().create(
+        resolveTrainingArchitecture(tcfg), tcfg, tgen, tnntr);
+      NNTR_THROW_IF(!trunk, std::invalid_argument)
+        << "unsupported trunk architecture";
       trunk->setTrunkLayers(trunk_layers);
       // the trunk's output is read back on the host by the CPU head
       auto &rp = nntrainer::ResidencyPolicy::global();
@@ -408,7 +442,13 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
     // positions are scored travels with the sample, in its label.
     if (hybrid) {
       const unsigned int L = seq_len;
-      Qwen3CausalLM *t = trunk.get();
+      // the trunk feeds the head its hidden state through CausalLM::
+      // trunkHidden(); every trainable architecture is a CausalLM. The
+      // Transformer base is virtual (diamond), so the downcast must be
+      // dynamic.
+      auto *t = dynamic_cast<CausalLM *>(trunk.get());
+      NNTR_THROW_IF(!t, std::invalid_argument)
+        << "hybrid trunk is not a CausalLM";
       data_gen.input_writer = [t, L](const int32_t *ids, unsigned int used,
                                      float *input) {
         const auto t0 = std::chrono::steady_clock::now();
