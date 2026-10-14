@@ -260,6 +260,7 @@ class MainActivity : AppCompatActivity() {
     /** (trainLora() value, dropdown label) */
     private val TRAIN_TASKS = listOf(
         "lm" to "Language model — text lines, next-token loss",
+        "lm35" to "Language model — Qwen3.5-0.8B demo",
         "decision" to "Decision model — JSONL questions")
     private val TRAIN_OBJECTIVES = listOf(
         "sft" to "SFT — supervised on the answer",
@@ -909,6 +910,11 @@ class MainActivity : AppCompatActivity() {
                         trainModelPath = "/sdcard/q_rlcd_qs4"
                         trainDataPath = "/sdcard/rlcd_triage.jsonl"
                         trainTrunkPath = "/sdcard/q_rlcd_qs4_gpu"
+                    }
+                    "lm35" -> {
+                        trainModelPath = "/sdcard/q35_qs4"
+                        trainDataPath = "/sdcard/t.txt"
+                        trainTrunkPath = "/sdcard/q35_qs4_gpu"
                     }
                     else -> {
                         trainModelPath = "/sdcard/q_qs4"

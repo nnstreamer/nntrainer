@@ -411,8 +411,11 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
     }
 
     const bool decision = params.task == "decision";
-    if (!decision && params.task != "lm")
-      throw std::invalid_argument("--task must be lm or decision, got " +
+    // "lm35" is the Qwen3.5 demo of the same language-model task (the
+    // Android TASK dropdown uses the value to switch the demo paths);
+    // anything starting with "lm" trains the next-token loss.
+    if (!decision && params.task.rfind("lm", 0) != 0)
+      throw std::invalid_argument("--task must be lm* or decision, got " +
                                   params.task);
     if (decision) {
       model.setDecisionTask(decisionLetterIds(model_path, model.getTokenizer()),
