@@ -1337,8 +1337,10 @@ bool MHACoreLayer::try_quantized_attention(
     std::vector<uint16_t> chk16;
     if (f32_check)
       chk16.resize(q_elems);
+    // Only rows the fused o-proj call takes (rows > 1, residual_add): a
+    // decode row's o-proj is a dot() that reads io.out, so it is written.
     const bool f32_ran =
-      attn_out_u16 && !f32_off &&
+      attn_out_u16 && !f32_off && n_q > 1 &&
       compute_ops_->sdpa_q2_kvcache_f32(
         handle, append_row0, append_rows, width, k_base + off, v_base + off,
         io.q, q_inv.data(), q2_q_enc.data(), q_stride, n_q, cache_from,
