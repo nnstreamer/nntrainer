@@ -1,0 +1,30 @@
+
+test/htp/build/libnntr_hvx_hadamard_shadow.so:	file format elf32-hexagon
+
+Disassembly of section .text:
+
+0004ad60 <shadow_rotate_restore>:
+   4ad60:	a0 c5 9d a0	a09dc5a0 { 	allocframe(#0x2d00) } 
+   4ad64:	1d f0 3d 76	763df01d { 	r29 = and(r29,#-0x80) } 
+   4ad68:	00 c0 9d a0	a09dc000 { 	allocframe(#0x0) } 
+   4ad6c:	1e c0 1e 90	901ec01e { 	deallocframe } 
+   4ad70:	53 42 01 8c	8c014253 { 	r19 = asl(r1,#0x2)
+   4ad74:	10 42 00 f5	f5004210   	r17:16 = combine(r0,r2)
+   4ad78:	fe 72 de a7	a7de72fe   	memd(r30+#-0x10) = r19:18
+   4ad7c:	ff f0 de a7	a7def0ff   	memd(r30+#-0x8) = r17:16 } 
+   4ad80:	14 50 1d b0	b01d5014 { 	r20 = add(r29,#0x80)
+   4ad84:	12 40 61 70	70614012   	r18 = r1
+   4ad88:	02 40 73 70	70734002   	r2 = r19
+   4ad8c:	fd f4 de a7	a7def4fd   	memd(r30+#-0x18) = r21:20 } 
+   4ad90:	10 74 f7 5b	5bf77410 { 	call 0x95b0 <memcpy@plt>
+   4ad94:	00 d4 11 f5	f511d400   	r1:0 = combine(r17,r20) } 
+   4ad98:	ec 7a f7 5b	5bf77aec { 	call 0xa370 <hvx_hadamard_f32@plt>
+   4ad9c:	00 51 12 f5	f5125100   	r1:0 = combine(r18,r17)
+   4ada0:	02 c0 70 70	7070c002   	r2 = r16 } 
+   4ada4:	06 74 f7 5b	5bf77406 { 	call 0x95b0 <memcpy@plt>
+   4ada8:	00 51 14 f5	f5145100   	r1:0 = combine(r20,r17)
+   4adac:	02 c0 73 70	7073c002   	r2 = r19 } 
+   4adb0:	f0 7f de 97	97de7ff0 { 	r17:16 = memd(r30+#-0x8)
+   4adb4:	d2 ff de 97	97deffd2   	r19:18 = memd(r30+#-0x10) } 
+   4adb8:	b4 7f de 97	97de7fb4 { 	r21:20 = memd(r30+#-0x18)
+   4adbc:	1e c0 1e 96	961ec01e   	dealloc_return } 

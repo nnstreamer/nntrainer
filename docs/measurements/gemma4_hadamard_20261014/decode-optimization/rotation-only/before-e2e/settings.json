@@ -1,0 +1,39 @@
+{
+  "serial": "R5KL30G6MCX",
+  "remote_root": "/data/local/tmp/nntr_gemma4_hadamard_e2e_20261014",
+  "environment": {
+    "LD_LIBRARY_PATH": ".",
+    "ADSP_LIBRARY_PATH": ".",
+    "NNTR_NUM_THREADS": "8",
+    "NNTR_HTP_E2E": "1",
+    "NNTR_HTP_E2E_FREE_KVQ": "1",
+    "NNTR_HTP_KV_DROP_CPU": "1",
+    "NNTR_HTP_DROP_HOST_FC": "1",
+    "NNTR_HTP_ATTN_M1_Q8": "2",
+    "NNTR_HTP_FC_IN_ARENA": "1",
+    "NNTR_HTP_PAGE_CACHE": "0",
+    "NNTR_MOE_CACHE_EXPERTS": "16",
+    "NNTR_MOE_CACHE_GROW": "0",
+    "NNTR_MOE_MISS_READERS": "4",
+    "NNTR_MOE_DMA_QUEUES": "4",
+    "NNTR_MOE_HADAMARD_SCOPE": "2bit"
+  },
+  "order": [
+    "off",
+    "both_hmx",
+    "both_hmx",
+    "off",
+    "both_hmx",
+    "off",
+    "off",
+    "both_hmx"
+  ],
+  "profile": false,
+  "measurement": "actual_rotation",
+  "runtime_sha256": {
+    "libnntr_hvx_skel.so": "a96c10348a8e21e5442bba7faf680842cf5a8b695f5cb96a1912497a9b820f13",
+    "libnntrainer.so": "9c7160d1640cecb35bfeea47810fbbb763d14305909c45bdd34a5fdaa740210c",
+    "nntrainer_causallm": "34e41676bae199fe0a5aeced86942372567226093a8d4dc69d62a00cd046e935"
+  },
+  "provenance_note": "Binary hashes added after the batch from the recorded deployment; benchmark runner now captures them automatically."
+}

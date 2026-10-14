@@ -1,0 +1,1289 @@
+layout rc=0 total=118784 (act 0 gu 4096 dn 6144 gate 8192 mid 16384 stage 20480 dn stage 53248 x4)
+run rc=0  n_rows=252
+mismatches=0 of 6208   worst_rel=0
+MOE KERNEL MATCHES REFERENCE
+pre norm in scan  : rc=0 bit-identical to normed rows + copy
+weight DMA        : 12 KB over 4 experts (want 12)
+HMX blocks        : 5 (want 5: two tails on the HVX)
+M=97 flag on      : rc=0 HMX blocks=5 dma_kb=12 (off 12) path=0 memcmp=0
+M=97 clean heap   : rc=0 bypassed 12288 B (want 12288) bit-identical
+M=97 dma bypass   : rc=0 bypassed 10240 B (want 10240, before 0, heap copies 0) memcmp=0
+MOE HMX DMA BYPASS OK (weights only, arena slots and flushed heap images only, bit-identical)
+gelu identity     : worst_rel=1.16218e-06 (want < 1e-5)
+gelu epilogue     : rc=0 mismatches=0 worst_rel=0 same_as_silu=0
+PF column not covered: lane=0 nt=0 n_col=2
+PF column not covered: lane=0 nt=1 n_col=2
+PF column not covered: lane=0 nt=0 n_col=2
+PF column not covered: lane=0 nt=1 n_col=2
+PF column not covered: lane=0 nt=0 n_col=2
+PF column not covered: lane=0 nt=1 n_col=2
+PF column not covered: lane=0 nt=0 n_col=2
+PF column not covered: lane=0 nt=1 n_col=2
+PF column not covered: lane=0 nt=0 n_col=2
+PF column not covered: lane=1 nt=1 n_col=2
+PF column not covered: lane=0 nt=0 n_col=2
+PF column not covered: lane=1 nt=1 n_col=2
+PF column not covered: lane=0 nt=0 n_col=2
+PF column not covered: lane=1 nt=1 n_col=2
+PF column not covered: lane=0 nt=0 n_col=2
+PF column not covered: lane=1 nt=1 n_col=2
+geglu M=97 bad=0 worst_rel=0 differs_from_swiglu=1; M=1 hmx/gemv-vtcm/gemv-arena bad=0 same_path_bytes=1 rc=0
+MOE GEGLU FLAG OK (HMX, tail, M=1 GEMV feed+arena)
+HADAMARD HMX+TAIL norm=0 mask=1 rc=0 bad=0 worst=0
+HADAMARD GEMV norm=0 mask=1 feed=0 rc=0 bad=0
+HADAMARD GEMV norm=0 mask=1 feed=1 rc=0 bad=0
+HADAMARD HMX+TAIL norm=0 mask=2 rc=0 bad=0 worst=0
+HADAMARD GEMV norm=0 mask=2 feed=0 rc=0 bad=0
+HADAMARD GEMV norm=0 mask=2 feed=1 rc=0 bad=0
+HADAMARD HMX+TAIL norm=0 mask=3 rc=0 bad=0 worst=0
+HADAMARD GEMV norm=0 mask=3 feed=0 rc=0 bad=0
+HADAMARD GEMV norm=0 mask=3 feed=1 rc=0 bad=0
+HADAMARD HMX+TAIL norm=1 mask=1 rc=0 bad=0 worst=0
+HADAMARD GEMV norm=1 mask=1 feed=0 rc=0 bad=0
+HADAMARD GEMV norm=1 mask=1 feed=1 rc=0 bad=0
+HADAMARD HMX+TAIL norm=1 mask=2 rc=0 bad=0 worst=0
+HADAMARD GEMV norm=1 mask=2 feed=0 rc=0 bad=0
+HADAMARD GEMV norm=1 mask=2 feed=1 rc=0 bad=0
+HADAMARD HMX+TAIL norm=1 mask=3 rc=0 bad=0 worst=0
+HADAMARD GEMV norm=1 mask=3 feed=0 rc=0 bad=0
+HADAMARD GEMV norm=1 mask=3 feed=1 rc=0 bad=0
+split 3+2 vs whole: rc=0 worst_rel=8.32039e-08
+2-bit experts     : rc=0/0  bitwise mismatches=0 of 6208
+2-bit weight DMA  : 0 KB vs 12 (want <= half)
+2-bit multi-chunk : rc=0/0  bitwise mismatches=0 of 204864 (chunks gu=3 dn=3)
+2-bit M1 GEMV arena         : rc=0/0 path=1/1 feed=0/0 dma_kb=0 vs 0 (want 0) audit=1  bitwise mismatches=0 of 2048
+2-bit M1 GEMV feed q=1      : rc=0/0 path=1/1 feed=1/1 dma_kb=10752 vs 21504 (want half) audit=1  bitwise mismatches=0 of 2048
+2-bit M1 GEMV feed q=4      : rc=0/0 path=1/1 feed=4/4 dma_kb=10752 vs 21504 (want half) audit=1  bitwise mismatches=0 of 2048
+2-bit M1 GEMV feed q=4 geglu: rc=0/0 path=1/1 feed=4/4 dma_kb=10752 vs 21504 (want half) audit=1  bitwise mismatches=0 of 2048
+PF column not covered: lane=0 nt=0 n_col=112
+PF column not covered: lane=0 nt=56 n_col=112
+PF column not covered: lane=0 nt=1 n_col=112
+PF column not covered: lane=0 nt=57 n_col=112
+PF column not covered: lane=0 nt=2 n_col=112
+PF column not covered: lane=0 nt=58 n_col=112
+PF column not covered: lane=0 nt=3 n_col=112
+PF column not covered: lane=0 nt=59 n_col=112
+PF column not covered: lane=0 nt=4 n_col=112
+PF column not covered: lane=0 nt=60 n_col=112
+PF column not covered: lane=0 nt=5 n_col=112
+PF column not covered: lane=0 nt=61 n_col=112
+PF column not covered: lane=0 nt=6 n_col=112
+PF column not covered: lane=0 nt=62 n_col=112
+PF column not covered: lane=0 nt=7 n_col=112
+PF column not covered: lane=0 nt=63 n_col=112
+PF column not covered: lane=0 nt=8 n_col=112
+PF column not covered: lane=0 nt=64 n_col=112
+PF column not covered: lane=1 nt=9 n_col=112
+PF column not covered: lane=1 nt=65 n_col=112
+PF column not covered: lane=1 nt=10 n_col=112
+PF column not covered: lane=1 nt=66 n_col=112
+PF column not covered: lane=1 nt=11 n_col=112
+PF column not covered: lane=1 nt=67 n_col=112
+PF column not covered: lane=1 nt=12 n_col=112
+PF column not covered: lane=1 nt=68 n_col=112
+PF column not covered: lane=1 nt=13 n_col=112
+PF column not covered: lane=1 nt=69 n_col=112
+PF column not covered: lane=1 nt=14 n_col=112
+PF column not covered: lane=1 nt=70 n_col=112
+PF column not covered: lane=1 nt=15 n_col=112
+PF column not covered: lane=1 nt=71 n_col=112
+PF column not covered: lane=1 nt=16 n_col=112
+PF column not covered: lane=1 nt=72 n_col=112
+PF column not covered: lane=1 nt=17 n_col=112
+PF column not covered: lane=1 nt=73 n_col=112
+PF column not covered: lane=2 nt=18 n_col=112
+PF column not covered: lane=2 nt=74 n_col=112
+PF column not covered: lane=2 nt=19 n_col=112
+PF column not covered: lane=2 nt=75 n_col=112
+PF column not covered: lane=2 nt=20 n_col=112
+PF column not covered: lane=2 nt=76 n_col=112
+PF column not covered: lane=2 nt=21 n_col=112
+PF column not covered: lane=2 nt=77 n_col=112
+PF column not covered: lane=2 nt=22 n_col=112
+PF column not covered: lane=2 nt=78 n_col=112
+PF column not covered: lane=2 nt=23 n_col=112
+PF column not covered: lane=2 nt=79 n_col=112
+PF column not covered: lane=2 nt=24 n_col=112
+PF column not covered: lane=2 nt=80 n_col=112
+PF column not covered: lane=2 nt=25 n_col=112
+PF column not covered: lane=2 nt=81 n_col=112
+PF column not covered: lane=2 nt=26 n_col=112
+PF column not covered: lane=2 nt=82 n_col=112
+PF column not covered: lane=2 nt=27 n_col=112
+PF column not covered: lane=2 nt=83 n_col=112
+PF column not covered: lane=3 nt=28 n_col=112
+PF column not covered: lane=3 nt=84 n_col=112
+PF column not covered: lane=3 nt=29 n_col=112
+PF column not covered: lane=3 nt=85 n_col=112
+PF column not covered: lane=3 nt=30 n_col=112
+PF column not covered: lane=3 nt=86 n_col=112
+PF column not covered: lane=3 nt=31 n_col=112
+PF column not covered: lane=3 nt=87 n_col=112
+PF column not covered: lane=3 nt=32 n_col=112
+PF column not covered: lane=3 nt=88 n_col=112
+PF column not covered: lane=3 nt=33 n_col=112
+PF column not covered: lane=3 nt=89 n_col=112
+PF column not covered: lane=3 nt=34 n_col=112
+PF column not covered: lane=3 nt=90 n_col=112
+PF column not covered: lane=3 nt=35 n_col=112
+PF column not covered: lane=3 nt=91 n_col=112
+PF column not covered: lane=3 nt=36 n_col=112
+PF column not covered: lane=3 nt=92 n_col=112
+PF column not covered: lane=4 nt=37 n_col=112
+PF column not covered: lane=4 nt=93 n_col=112
+PF column not covered: lane=4 nt=38 n_col=112
+PF column not covered: lane=4 nt=94 n_col=112
+PF column not covered: lane=4 nt=39 n_col=112
+PF column not covered: lane=4 nt=95 n_col=112
+PF column not covered: lane=4 nt=40 n_col=112
+PF column not covered: lane=4 nt=96 n_col=112
+PF column not covered: lane=4 nt=41 n_col=112
+PF column not covered: lane=4 nt=97 n_col=112
+PF column not covered: lane=4 nt=42 n_col=112
+PF column not covered: lane=4 nt=98 n_col=112
+PF column not covered: lane=4 nt=43 n_col=112
+PF column not covered: lane=4 nt=99 n_col=112
+PF column not covered: lane=4 nt=44 n_col=112
+PF column not covered: lane=4 nt=100 n_col=112
+PF column not covered: lane=4 nt=45 n_col=112
+PF column not covered: lane=4 nt=101 n_col=112
+PF column not covered: lane=5 nt=46 n_col=112
+PF column not covered: lane=5 nt=102 n_col=112
+PF column not covered: lane=5 nt=47 n_col=112
+PF column not covered: lane=5 nt=103 n_col=112
+PF column not covered: lane=5 nt=48 n_col=112
+PF column not covered: lane=5 nt=104 n_col=112
+PF column not covered: lane=5 nt=49 n_col=112
+PF column not covered: lane=5 nt=105 n_col=112
+PF column not covered: lane=5 nt=50 n_col=112
+PF column not covered: lane=5 nt=106 n_col=112
+PF column not covered: lane=5 nt=51 n_col=112
+PF column not covered: lane=5 nt=107 n_col=112
+PF column not covered: lane=5 nt=52 n_col=112
+PF column not covered: lane=5 nt=108 n_col=112
+PF column not covered: lane=5 nt=53 n_col=112
+PF column not covered: lane=5 nt=109 n_col=112
+PF column not covered: lane=5 nt=54 n_col=112
+PF column not covered: lane=5 nt=110 n_col=112
+PF column not covered: lane=5 nt=55 n_col=112
+PF column not covered: lane=5 nt=111 n_col=112
+PF column not covered: lane=0 nt=0 n_col=64
+PF column not covered: lane=0 nt=1 n_col=64
+PF column not covered: lane=0 nt=2 n_col=64
+PF column not covered: lane=0 nt=3 n_col=64
+PF column not covered: lane=0 nt=4 n_col=64
+PF column not covered: lane=0 nt=5 n_col=64
+PF column not covered: lane=0 nt=6 n_col=64
+PF column not covered: lane=0 nt=7 n_col=64
+PF column not covered: lane=0 nt=8 n_col=64
+PF column not covered: lane=0 nt=9 n_col=64
+PF column not covered: lane=1 nt=10 n_col=64
+PF column not covered: lane=1 nt=11 n_col=64
+PF column not covered: lane=1 nt=12 n_col=64
+PF column not covered: lane=1 nt=13 n_col=64
+PF column not covered: lane=1 nt=14 n_col=64
+PF column not covered: lane=1 nt=15 n_col=64
+PF column not covered: lane=1 nt=16 n_col=64
+PF column not covered: lane=1 nt=17 n_col=64
+PF column not covered: lane=1 nt=18 n_col=64
+PF column not covered: lane=1 nt=19 n_col=64
+PF column not covered: lane=1 nt=20 n_col=64
+PF column not covered: lane=2 nt=21 n_col=64
+PF column not covered: lane=2 nt=22 n_col=64
+PF column not covered: lane=2 nt=23 n_col=64
+PF column not covered: lane=2 nt=24 n_col=64
+PF column not covered: lane=2 nt=25 n_col=64
+PF column not covered: lane=2 nt=26 n_col=64
+PF column not covered: lane=2 nt=27 n_col=64
+PF column not covered: lane=2 nt=28 n_col=64
+PF column not covered: lane=2 nt=29 n_col=64
+PF column not covered: lane=2 nt=30 n_col=64
+PF column not covered: lane=2 nt=31 n_col=64
+PF column not covered: lane=3 nt=32 n_col=64
+PF column not covered: lane=3 nt=33 n_col=64
+PF column not covered: lane=3 nt=34 n_col=64
+PF column not covered: lane=3 nt=35 n_col=64
+PF column not covered: lane=3 nt=36 n_col=64
+PF column not covered: lane=3 nt=37 n_col=64
+PF column not covered: lane=3 nt=38 n_col=64
+PF column not covered: lane=3 nt=39 n_col=64
+PF column not covered: lane=3 nt=40 n_col=64
+PF column not covered: lane=3 nt=41 n_col=64
+PF column not covered: lane=4 nt=42 n_col=64
+PF column not covered: lane=4 nt=43 n_col=64
+PF column not covered: lane=4 nt=44 n_col=64
+PF column not covered: lane=4 nt=45 n_col=64
+PF column not covered: lane=4 nt=46 n_col=64
+PF column not covered: lane=4 nt=47 n_col=64
+PF column not covered: lane=4 nt=48 n_col=64
+PF column not covered: lane=4 nt=49 n_col=64
+PF column not covered: lane=4 nt=50 n_col=64
+PF column not covered: lane=4 nt=51 n_col=64
+PF column not covered: lane=4 nt=52 n_col=64
+PF column not covered: lane=5 nt=53 n_col=64
+PF column not covered: lane=5 nt=54 n_col=64
+PF column not covered: lane=5 nt=55 n_col=64
+PF column not covered: lane=5 nt=56 n_col=64
+PF column not covered: lane=5 nt=57 n_col=64
+PF column not covered: lane=5 nt=58 n_col=64
+PF column not covered: lane=5 nt=59 n_col=64
+PF column not covered: lane=5 nt=60 n_col=64
+PF column not covered: lane=5 nt=61 n_col=64
+PF column not covered: lane=5 nt=62 n_col=64
+PF column not covered: lane=5 nt=63 n_col=64
+PF column not covered: lane=0 nt=0 n_col=112
+PF column not covered: lane=0 nt=56 n_col=112
+PF column not covered: lane=0 nt=1 n_col=112
+PF column not covered: lane=0 nt=57 n_col=112
+PF column not covered: lane=0 nt=2 n_col=112
+PF column not covered: lane=0 nt=58 n_col=112
+PF column not covered: lane=0 nt=3 n_col=112
+PF column not covered: lane=0 nt=59 n_col=112
+PF column not covered: lane=0 nt=4 n_col=112
+PF column not covered: lane=0 nt=60 n_col=112
+PF column not covered: lane=0 nt=5 n_col=112
+PF column not covered: lane=0 nt=61 n_col=112
+PF column not covered: lane=0 nt=6 n_col=112
+PF column not covered: lane=0 nt=62 n_col=112
+PF column not covered: lane=0 nt=7 n_col=112
+PF column not covered: lane=0 nt=63 n_col=112
+PF column not covered: lane=0 nt=8 n_col=112
+PF column not covered: lane=0 nt=64 n_col=112
+PF column not covered: lane=1 nt=9 n_col=112
+PF column not covered: lane=1 nt=65 n_col=112
+PF column not covered: lane=1 nt=10 n_col=112
+PF column not covered: lane=1 nt=66 n_col=112
+PF column not covered: lane=1 nt=11 n_col=112
+PF column not covered: lane=1 nt=67 n_col=112
+PF column not covered: lane=1 nt=12 n_col=112
+PF column not covered: lane=1 nt=68 n_col=112
+PF column not covered: lane=1 nt=13 n_col=112
+PF column not covered: lane=1 nt=69 n_col=112
+PF column not covered: lane=1 nt=14 n_col=112
+PF column not covered: lane=1 nt=70 n_col=112
+PF column not covered: lane=1 nt=15 n_col=112
+PF column not covered: lane=1 nt=71 n_col=112
+PF column not covered: lane=1 nt=16 n_col=112
+PF column not covered: lane=1 nt=72 n_col=112
+PF column not covered: lane=1 nt=17 n_col=112
+PF column not covered: lane=1 nt=73 n_col=112
+PF column not covered: lane=2 nt=18 n_col=112
+PF column not covered: lane=2 nt=74 n_col=112
+PF column not covered: lane=2 nt=19 n_col=112
+PF column not covered: lane=2 nt=75 n_col=112
+PF column not covered: lane=2 nt=20 n_col=112
+PF column not covered: lane=2 nt=76 n_col=112
+PF column not covered: lane=2 nt=21 n_col=112
+PF column not covered: lane=2 nt=77 n_col=112
+PF column not covered: lane=2 nt=22 n_col=112
+PF column not covered: lane=2 nt=78 n_col=112
+PF column not covered: lane=2 nt=23 n_col=112
+PF column not covered: lane=2 nt=79 n_col=112
+PF column not covered: lane=2 nt=24 n_col=112
+PF column not covered: lane=2 nt=80 n_col=112
+PF column not covered: lane=2 nt=25 n_col=112
+PF column not covered: lane=2 nt=81 n_col=112
+PF column not covered: lane=2 nt=26 n_col=112
+PF column not covered: lane=2 nt=82 n_col=112
+PF column not covered: lane=2 nt=27 n_col=112
+PF column not covered: lane=2 nt=83 n_col=112
+PF column not covered: lane=3 nt=28 n_col=112
+PF column not covered: lane=3 nt=84 n_col=112
+PF column not covered: lane=3 nt=29 n_col=112
+PF column not covered: lane=3 nt=85 n_col=112
+PF column not covered: lane=3 nt=30 n_col=112
+PF column not covered: lane=3 nt=86 n_col=112
+PF column not covered: lane=3 nt=31 n_col=112
+PF column not covered: lane=3 nt=87 n_col=112
+PF column not covered: lane=3 nt=32 n_col=112
+PF column not covered: lane=3 nt=88 n_col=112
+PF column not covered: lane=3 nt=33 n_col=112
+PF column not covered: lane=3 nt=89 n_col=112
+PF column not covered: lane=3 nt=34 n_col=112
+PF column not covered: lane=3 nt=90 n_col=112
+PF column not covered: lane=3 nt=35 n_col=112
+PF column not covered: lane=3 nt=91 n_col=112
+PF column not covered: lane=3 nt=36 n_col=112
+PF column not covered: lane=3 nt=92 n_col=112
+PF column not covered: lane=4 nt=37 n_col=112
+PF column not covered: lane=4 nt=93 n_col=112
+PF column not covered: lane=4 nt=38 n_col=112
+PF column not covered: lane=4 nt=94 n_col=112
+PF column not covered: lane=4 nt=39 n_col=112
+PF column not covered: lane=4 nt=95 n_col=112
+PF column not covered: lane=4 nt=40 n_col=112
+PF column not covered: lane=4 nt=96 n_col=112
+PF column not covered: lane=4 nt=41 n_col=112
+PF column not covered: lane=4 nt=97 n_col=112
+PF column not covered: lane=4 nt=42 n_col=112
+PF column not covered: lane=4 nt=98 n_col=112
+PF column not covered: lane=4 nt=43 n_col=112
+PF column not covered: lane=4 nt=99 n_col=112
+PF column not covered: lane=4 nt=44 n_col=112
+PF column not covered: lane=4 nt=100 n_col=112
+PF column not covered: lane=4 nt=45 n_col=112
+PF column not covered: lane=4 nt=101 n_col=112
+PF column not covered: lane=5 nt=46 n_col=112
+PF column not covered: lane=5 nt=102 n_col=112
+PF column not covered: lane=5 nt=47 n_col=112
+PF column not covered: lane=5 nt=103 n_col=112
+PF column not covered: lane=5 nt=48 n_col=112
+PF column not covered: lane=5 nt=104 n_col=112
+PF column not covered: lane=5 nt=49 n_col=112
+PF column not covered: lane=5 nt=105 n_col=112
+PF column not covered: lane=5 nt=50 n_col=112
+PF column not covered: lane=5 nt=106 n_col=112
+PF column not covered: lane=5 nt=51 n_col=112
+PF column not covered: lane=5 nt=107 n_col=112
+PF column not covered: lane=5 nt=52 n_col=112
+PF column not covered: lane=5 nt=108 n_col=112
+PF column not covered: lane=5 nt=53 n_col=112
+PF column not covered: lane=5 nt=109 n_col=112
+PF column not covered: lane=5 nt=54 n_col=112
+PF column not covered: lane=5 nt=110 n_col=112
+PF column not covered: lane=5 nt=55 n_col=112
+PF column not covered: lane=5 nt=111 n_col=112
+PF column not covered: lane=0 nt=0 n_col=64
+PF column not covered: lane=0 nt=1 n_col=64
+PF column not covered: lane=0 nt=2 n_col=64
+PF column not covered: lane=0 nt=3 n_col=64
+PF column not covered: lane=0 nt=4 n_col=64
+PF column not covered: lane=0 nt=5 n_col=64
+PF column not covered: lane=0 nt=6 n_col=64
+PF column not covered: lane=0 nt=7 n_col=64
+PF column not covered: lane=0 nt=8 n_col=64
+PF column not covered: lane=0 nt=9 n_col=64
+PF column not covered: lane=1 nt=10 n_col=64
+PF column not covered: lane=1 nt=11 n_col=64
+PF column not covered: lane=1 nt=12 n_col=64
+PF column not covered: lane=1 nt=13 n_col=64
+PF column not covered: lane=1 nt=14 n_col=64
+PF column not covered: lane=1 nt=15 n_col=64
+PF column not covered: lane=1 nt=16 n_col=64
+PF column not covered: lane=1 nt=17 n_col=64
+PF column not covered: lane=1 nt=18 n_col=64
+PF column not covered: lane=1 nt=19 n_col=64
+PF column not covered: lane=1 nt=20 n_col=64
+PF column not covered: lane=2 nt=21 n_col=64
+PF column not covered: lane=2 nt=22 n_col=64
+PF column not covered: lane=2 nt=23 n_col=64
+PF column not covered: lane=2 nt=24 n_col=64
+PF column not covered: lane=2 nt=25 n_col=64
+PF column not covered: lane=2 nt=26 n_col=64
+PF column not covered: lane=2 nt=27 n_col=64
+PF column not covered: lane=2 nt=28 n_col=64
+PF column not covered: lane=2 nt=29 n_col=64
+PF column not covered: lane=2 nt=30 n_col=64
+PF column not covered: lane=2 nt=31 n_col=64
+PF column not covered: lane=3 nt=32 n_col=64
+PF column not covered: lane=3 nt=33 n_col=64
+PF column not covered: lane=3 nt=34 n_col=64
+PF column not covered: lane=3 nt=35 n_col=64
+PF column not covered: lane=3 nt=36 n_col=64
+PF column not covered: lane=3 nt=37 n_col=64
+PF column not covered: lane=3 nt=38 n_col=64
+PF column not covered: lane=3 nt=39 n_col=64
+PF column not covered: lane=3 nt=40 n_col=64
+PF column not covered: lane=3 nt=41 n_col=64
+PF column not covered: lane=4 nt=42 n_col=64
+PF column not covered: lane=4 nt=43 n_col=64
+PF column not covered: lane=4 nt=44 n_col=64
+PF column not covered: lane=4 nt=45 n_col=64
+PF column not covered: lane=4 nt=46 n_col=64
+PF column not covered: lane=4 nt=47 n_col=64
+PF column not covered: lane=4 nt=48 n_col=64
+PF column not covered: lane=4 nt=49 n_col=64
+PF column not covered: lane=4 nt=50 n_col=64
+PF column not covered: lane=4 nt=51 n_col=64
+PF column not covered: lane=4 nt=52 n_col=64
+PF column not covered: lane=5 nt=53 n_col=64
+PF column not covered: lane=5 nt=54 n_col=64
+PF column not covered: lane=5 nt=55 n_col=64
+PF column not covered: lane=5 nt=56 n_col=64
+PF column not covered: lane=5 nt=57 n_col=64
+PF column not covered: lane=5 nt=58 n_col=64
+PF column not covered: lane=5 nt=59 n_col=64
+PF column not covered: lane=5 nt=60 n_col=64
+PF column not covered: lane=5 nt=61 n_col=64
+PF column not covered: lane=5 nt=62 n_col=64
+PF column not covered: lane=5 nt=63 n_col=64
+PF column not covered: lane=0 nt=0 n_col=112
+PF column not covered: lane=0 nt=56 n_col=112
+PF column not covered: lane=0 nt=1 n_col=112
+PF column not covered: lane=0 nt=57 n_col=112
+PF column not covered: lane=0 nt=2 n_col=112
+PF column not covered: lane=0 nt=58 n_col=112
+PF column not covered: lane=0 nt=3 n_col=112
+PF column not covered: lane=0 nt=59 n_col=112
+PF column not covered: lane=0 nt=4 n_col=112
+PF column not covered: lane=0 nt=60 n_col=112
+PF column not covered: lane=0 nt=5 n_col=112
+PF column not covered: lane=0 nt=61 n_col=112
+PF column not covered: lane=0 nt=6 n_col=112
+PF column not covered: lane=0 nt=62 n_col=112
+PF column not covered: lane=0 nt=7 n_col=112
+PF column not covered: lane=0 nt=63 n_col=112
+PF column not covered: lane=0 nt=8 n_col=112
+PF column not covered: lane=0 nt=64 n_col=112
+PF column not covered: lane=1 nt=9 n_col=112
+PF column not covered: lane=1 nt=65 n_col=112
+PF column not covered: lane=1 nt=10 n_col=112
+PF column not covered: lane=1 nt=66 n_col=112
+PF column not covered: lane=1 nt=11 n_col=112
+PF column not covered: lane=1 nt=67 n_col=112
+PF column not covered: lane=1 nt=12 n_col=112
+PF column not covered: lane=1 nt=68 n_col=112
+PF column not covered: lane=1 nt=13 n_col=112
+PF column not covered: lane=1 nt=69 n_col=112
+PF column not covered: lane=1 nt=14 n_col=112
+PF column not covered: lane=1 nt=70 n_col=112
+PF column not covered: lane=1 nt=15 n_col=112
+PF column not covered: lane=1 nt=71 n_col=112
+PF column not covered: lane=1 nt=16 n_col=112
+PF column not covered: lane=1 nt=72 n_col=112
+PF column not covered: lane=1 nt=17 n_col=112
+PF column not covered: lane=1 nt=73 n_col=112
+PF column not covered: lane=2 nt=18 n_col=112
+PF column not covered: lane=2 nt=74 n_col=112
+PF column not covered: lane=2 nt=19 n_col=112
+PF column not covered: lane=2 nt=75 n_col=112
+PF column not covered: lane=2 nt=20 n_col=112
+PF column not covered: lane=2 nt=76 n_col=112
+PF column not covered: lane=2 nt=21 n_col=112
+PF column not covered: lane=2 nt=77 n_col=112
+PF column not covered: lane=2 nt=22 n_col=112
+PF column not covered: lane=2 nt=78 n_col=112
+PF column not covered: lane=2 nt=23 n_col=112
+PF column not covered: lane=2 nt=79 n_col=112
+PF column not covered: lane=2 nt=24 n_col=112
+PF column not covered: lane=2 nt=80 n_col=112
+PF column not covered: lane=2 nt=25 n_col=112
+PF column not covered: lane=2 nt=81 n_col=112
+PF column not covered: lane=2 nt=26 n_col=112
+PF column not covered: lane=2 nt=82 n_col=112
+PF column not covered: lane=2 nt=27 n_col=112
+PF column not covered: lane=2 nt=83 n_col=112
+PF column not covered: lane=3 nt=28 n_col=112
+PF column not covered: lane=3 nt=84 n_col=112
+PF column not covered: lane=3 nt=29 n_col=112
+PF column not covered: lane=3 nt=85 n_col=112
+PF column not covered: lane=3 nt=30 n_col=112
+PF column not covered: lane=3 nt=86 n_col=112
+PF column not covered: lane=3 nt=31 n_col=112
+PF column not covered: lane=3 nt=87 n_col=112
+PF column not covered: lane=3 nt=32 n_col=112
+PF column not covered: lane=3 nt=88 n_col=112
+PF column not covered: lane=3 nt=33 n_col=112
+PF column not covered: lane=3 nt=89 n_col=112
+PF column not covered: lane=3 nt=34 n_col=112
+PF column not covered: lane=3 nt=90 n_col=112
+PF column not covered: lane=3 nt=35 n_col=112
+PF column not covered: lane=3 nt=91 n_col=112
+PF column not covered: lane=3 nt=36 n_col=112
+PF column not covered: lane=3 nt=92 n_col=112
+PF column not covered: lane=4 nt=37 n_col=112
+PF column not covered: lane=4 nt=93 n_col=112
+PF column not covered: lane=4 nt=38 n_col=112
+PF column not covered: lane=4 nt=94 n_col=112
+PF column not covered: lane=4 nt=39 n_col=112
+PF column not covered: lane=4 nt=95 n_col=112
+PF column not covered: lane=4 nt=40 n_col=112
+PF column not covered: lane=4 nt=96 n_col=112
+PF column not covered: lane=4 nt=41 n_col=112
+PF column not covered: lane=4 nt=97 n_col=112
+PF column not covered: lane=4 nt=42 n_col=112
+PF column not covered: lane=4 nt=98 n_col=112
+PF column not covered: lane=4 nt=43 n_col=112
+PF column not covered: lane=4 nt=99 n_col=112
+PF column not covered: lane=4 nt=44 n_col=112
+PF column not covered: lane=4 nt=100 n_col=112
+PF column not covered: lane=4 nt=45 n_col=112
+PF column not covered: lane=4 nt=101 n_col=112
+PF column not covered: lane=5 nt=46 n_col=112
+PF column not covered: lane=5 nt=102 n_col=112
+PF column not covered: lane=5 nt=47 n_col=112
+PF column not covered: lane=5 nt=103 n_col=112
+PF column not covered: lane=5 nt=48 n_col=112
+PF column not covered: lane=5 nt=104 n_col=112
+PF column not covered: lane=5 nt=49 n_col=112
+PF column not covered: lane=5 nt=105 n_col=112
+PF column not covered: lane=5 nt=50 n_col=112
+PF column not covered: lane=5 nt=106 n_col=112
+PF column not covered: lane=5 nt=51 n_col=112
+PF column not covered: lane=5 nt=107 n_col=112
+PF column not covered: lane=5 nt=52 n_col=112
+PF column not covered: lane=5 nt=108 n_col=112
+PF column not covered: lane=5 nt=53 n_col=112
+PF column not covered: lane=5 nt=109 n_col=112
+PF column not covered: lane=5 nt=54 n_col=112
+PF column not covered: lane=5 nt=110 n_col=112
+PF column not covered: lane=5 nt=55 n_col=112
+PF column not covered: lane=5 nt=111 n_col=112
+PF column not covered: lane=0 nt=0 n_col=64
+PF column not covered: lane=0 nt=1 n_col=64
+PF column not covered: lane=0 nt=2 n_col=64
+PF column not covered: lane=0 nt=3 n_col=64
+PF column not covered: lane=0 nt=4 n_col=64
+PF column not covered: lane=0 nt=5 n_col=64
+PF column not covered: lane=0 nt=6 n_col=64
+PF column not covered: lane=0 nt=7 n_col=64
+PF column not covered: lane=0 nt=8 n_col=64
+PF column not covered: lane=0 nt=9 n_col=64
+PF column not covered: lane=1 nt=10 n_col=64
+PF column not covered: lane=1 nt=11 n_col=64
+PF column not covered: lane=1 nt=12 n_col=64
+PF column not covered: lane=1 nt=13 n_col=64
+PF column not covered: lane=1 nt=14 n_col=64
+PF column not covered: lane=1 nt=15 n_col=64
+PF column not covered: lane=1 nt=16 n_col=64
+PF column not covered: lane=1 nt=17 n_col=64
+PF column not covered: lane=1 nt=18 n_col=64
+PF column not covered: lane=1 nt=19 n_col=64
+PF column not covered: lane=1 nt=20 n_col=64
+PF column not covered: lane=2 nt=21 n_col=64
+PF column not covered: lane=2 nt=22 n_col=64
+PF column not covered: lane=2 nt=23 n_col=64
+PF column not covered: lane=2 nt=24 n_col=64
+PF column not covered: lane=2 nt=25 n_col=64
+PF column not covered: lane=2 nt=26 n_col=64
+PF column not covered: lane=2 nt=27 n_col=64
+PF column not covered: lane=2 nt=28 n_col=64
+PF column not covered: lane=2 nt=29 n_col=64
+PF column not covered: lane=2 nt=30 n_col=64
+PF column not covered: lane=2 nt=31 n_col=64
+PF column not covered: lane=3 nt=32 n_col=64
+PF column not covered: lane=3 nt=33 n_col=64
+PF column not covered: lane=3 nt=34 n_col=64
+PF column not covered: lane=3 nt=35 n_col=64
+PF column not covered: lane=3 nt=36 n_col=64
+PF column not covered: lane=3 nt=37 n_col=64
+PF column not covered: lane=3 nt=38 n_col=64
+PF column not covered: lane=3 nt=39 n_col=64
+PF column not covered: lane=3 nt=40 n_col=64
+PF column not covered: lane=3 nt=41 n_col=64
+PF column not covered: lane=4 nt=42 n_col=64
+PF column not covered: lane=4 nt=43 n_col=64
+PF column not covered: lane=4 nt=44 n_col=64
+PF column not covered: lane=4 nt=45 n_col=64
+PF column not covered: lane=4 nt=46 n_col=64
+PF column not covered: lane=4 nt=47 n_col=64
+PF column not covered: lane=4 nt=48 n_col=64
+PF column not covered: lane=4 nt=49 n_col=64
+PF column not covered: lane=4 nt=50 n_col=64
+PF column not covered: lane=4 nt=51 n_col=64
+PF column not covered: lane=4 nt=52 n_col=64
+PF column not covered: lane=5 nt=53 n_col=64
+PF column not covered: lane=5 nt=54 n_col=64
+PF column not covered: lane=5 nt=55 n_col=64
+PF column not covered: lane=5 nt=56 n_col=64
+PF column not covered: lane=5 nt=57 n_col=64
+PF column not covered: lane=5 nt=58 n_col=64
+PF column not covered: lane=5 nt=59 n_col=64
+PF column not covered: lane=5 nt=60 n_col=64
+PF column not covered: lane=5 nt=61 n_col=64
+PF column not covered: lane=5 nt=62 n_col=64
+PF column not covered: lane=5 nt=63 n_col=64
+PF column not covered: lane=0 nt=0 n_col=112
+PF column not covered: lane=0 nt=56 n_col=112
+PF column not covered: lane=0 nt=1 n_col=112
+PF column not covered: lane=0 nt=57 n_col=112
+PF column not covered: lane=0 nt=2 n_col=112
+PF column not covered: lane=0 nt=58 n_col=112
+PF column not covered: lane=0 nt=3 n_col=112
+PF column not covered: lane=0 nt=59 n_col=112
+PF column not covered: lane=0 nt=4 n_col=112
+PF column not covered: lane=0 nt=60 n_col=112
+PF column not covered: lane=0 nt=5 n_col=112
+PF column not covered: lane=0 nt=61 n_col=112
+PF column not covered: lane=0 nt=6 n_col=112
+PF column not covered: lane=0 nt=62 n_col=112
+PF column not covered: lane=0 nt=7 n_col=112
+PF column not covered: lane=0 nt=63 n_col=112
+PF column not covered: lane=0 nt=8 n_col=112
+PF column not covered: lane=0 nt=64 n_col=112
+PF column not covered: lane=1 nt=9 n_col=112
+PF column not covered: lane=1 nt=65 n_col=112
+PF column not covered: lane=1 nt=10 n_col=112
+PF column not covered: lane=1 nt=66 n_col=112
+PF column not covered: lane=1 nt=11 n_col=112
+PF column not covered: lane=1 nt=67 n_col=112
+PF column not covered: lane=1 nt=12 n_col=112
+PF column not covered: lane=1 nt=68 n_col=112
+PF column not covered: lane=1 nt=13 n_col=112
+PF column not covered: lane=1 nt=69 n_col=112
+PF column not covered: lane=1 nt=14 n_col=112
+PF column not covered: lane=1 nt=70 n_col=112
+PF column not covered: lane=1 nt=15 n_col=112
+PF column not covered: lane=1 nt=71 n_col=112
+PF column not covered: lane=1 nt=16 n_col=112
+PF column not covered: lane=1 nt=72 n_col=112
+PF column not covered: lane=1 nt=17 n_col=112
+PF column not covered: lane=1 nt=73 n_col=112
+PF column not covered: lane=2 nt=18 n_col=112
+PF column not covered: lane=2 nt=74 n_col=112
+PF column not covered: lane=2 nt=19 n_col=112
+PF column not covered: lane=2 nt=75 n_col=112
+PF column not covered: lane=2 nt=20 n_col=112
+PF column not covered: lane=2 nt=76 n_col=112
+PF column not covered: lane=2 nt=21 n_col=112
+PF column not covered: lane=2 nt=77 n_col=112
+PF column not covered: lane=2 nt=22 n_col=112
+PF column not covered: lane=2 nt=78 n_col=112
+PF column not covered: lane=2 nt=23 n_col=112
+PF column not covered: lane=2 nt=79 n_col=112
+PF column not covered: lane=2 nt=24 n_col=112
+PF column not covered: lane=2 nt=80 n_col=112
+PF column not covered: lane=2 nt=25 n_col=112
+PF column not covered: lane=2 nt=81 n_col=112
+PF column not covered: lane=2 nt=26 n_col=112
+PF column not covered: lane=2 nt=82 n_col=112
+PF column not covered: lane=2 nt=27 n_col=112
+PF column not covered: lane=2 nt=83 n_col=112
+PF column not covered: lane=3 nt=28 n_col=112
+PF column not covered: lane=3 nt=84 n_col=112
+PF column not covered: lane=3 nt=29 n_col=112
+PF column not covered: lane=3 nt=85 n_col=112
+PF column not covered: lane=3 nt=30 n_col=112
+PF column not covered: lane=3 nt=86 n_col=112
+PF column not covered: lane=3 nt=31 n_col=112
+PF column not covered: lane=3 nt=87 n_col=112
+PF column not covered: lane=3 nt=32 n_col=112
+PF column not covered: lane=3 nt=88 n_col=112
+PF column not covered: lane=3 nt=33 n_col=112
+PF column not covered: lane=3 nt=89 n_col=112
+PF column not covered: lane=3 nt=34 n_col=112
+PF column not covered: lane=3 nt=90 n_col=112
+PF column not covered: lane=3 nt=35 n_col=112
+PF column not covered: lane=3 nt=91 n_col=112
+PF column not covered: lane=3 nt=36 n_col=112
+PF column not covered: lane=3 nt=92 n_col=112
+PF column not covered: lane=4 nt=37 n_col=112
+PF column not covered: lane=4 nt=93 n_col=112
+PF column not covered: lane=4 nt=38 n_col=112
+PF column not covered: lane=4 nt=94 n_col=112
+PF column not covered: lane=4 nt=39 n_col=112
+PF column not covered: lane=4 nt=95 n_col=112
+PF column not covered: lane=4 nt=40 n_col=112
+PF column not covered: lane=4 nt=96 n_col=112
+PF column not covered: lane=4 nt=41 n_col=112
+PF column not covered: lane=4 nt=97 n_col=112
+PF column not covered: lane=4 nt=42 n_col=112
+PF column not covered: lane=4 nt=98 n_col=112
+PF column not covered: lane=4 nt=43 n_col=112
+PF column not covered: lane=4 nt=99 n_col=112
+PF column not covered: lane=4 nt=44 n_col=112
+PF column not covered: lane=4 nt=100 n_col=112
+PF column not covered: lane=4 nt=45 n_col=112
+PF column not covered: lane=4 nt=101 n_col=112
+PF column not covered: lane=5 nt=46 n_col=112
+PF column not covered: lane=5 nt=102 n_col=112
+PF column not covered: lane=5 nt=47 n_col=112
+PF column not covered: lane=5 nt=103 n_col=112
+PF column not covered: lane=5 nt=48 n_col=112
+PF column not covered: lane=5 nt=104 n_col=112
+PF column not covered: lane=5 nt=49 n_col=112
+PF column not covered: lane=5 nt=105 n_col=112
+PF column not covered: lane=5 nt=50 n_col=112
+PF column not covered: lane=5 nt=106 n_col=112
+PF column not covered: lane=5 nt=51 n_col=112
+PF column not covered: lane=5 nt=107 n_col=112
+PF column not covered: lane=5 nt=52 n_col=112
+PF column not covered: lane=5 nt=108 n_col=112
+PF column not covered: lane=5 nt=53 n_col=112
+PF column not covered: lane=5 nt=109 n_col=112
+PF column not covered: lane=5 nt=54 n_col=112
+PF column not covered: lane=5 nt=110 n_col=112
+PF column not covered: lane=5 nt=55 n_col=112
+PF column not covered: lane=5 nt=111 n_col=112
+PF column not covered: lane=0 nt=0 n_col=64
+PF column not covered: lane=0 nt=1 n_col=64
+PF column not covered: lane=0 nt=2 n_col=64
+PF column not covered: lane=0 nt=3 n_col=64
+PF column not covered: lane=0 nt=4 n_col=64
+PF column not covered: lane=0 nt=5 n_col=64
+PF column not covered: lane=0 nt=6 n_col=64
+PF column not covered: lane=0 nt=7 n_col=64
+PF column not covered: lane=0 nt=8 n_col=64
+PF column not covered: lane=0 nt=9 n_col=64
+PF column not covered: lane=1 nt=10 n_col=64
+PF column not covered: lane=1 nt=11 n_col=64
+PF column not covered: lane=1 nt=12 n_col=64
+PF column not covered: lane=1 nt=13 n_col=64
+PF column not covered: lane=1 nt=14 n_col=64
+PF column not covered: lane=1 nt=15 n_col=64
+PF column not covered: lane=1 nt=16 n_col=64
+PF column not covered: lane=1 nt=17 n_col=64
+PF column not covered: lane=1 nt=18 n_col=64
+PF column not covered: lane=1 nt=19 n_col=64
+PF column not covered: lane=1 nt=20 n_col=64
+PF column not covered: lane=2 nt=21 n_col=64
+PF column not covered: lane=2 nt=22 n_col=64
+PF column not covered: lane=2 nt=23 n_col=64
+PF column not covered: lane=2 nt=24 n_col=64
+PF column not covered: lane=2 nt=25 n_col=64
+PF column not covered: lane=2 nt=26 n_col=64
+PF column not covered: lane=2 nt=27 n_col=64
+PF column not covered: lane=2 nt=28 n_col=64
+PF column not covered: lane=2 nt=29 n_col=64
+PF column not covered: lane=2 nt=30 n_col=64
+PF column not covered: lane=2 nt=31 n_col=64
+PF column not covered: lane=3 nt=32 n_col=64
+PF column not covered: lane=3 nt=33 n_col=64
+PF column not covered: lane=3 nt=34 n_col=64
+PF column not covered: lane=3 nt=35 n_col=64
+PF column not covered: lane=3 nt=36 n_col=64
+PF column not covered: lane=3 nt=37 n_col=64
+PF column not covered: lane=3 nt=38 n_col=64
+PF column not covered: lane=3 nt=39 n_col=64
+PF column not covered: lane=3 nt=40 n_col=64
+PF column not covered: lane=3 nt=41 n_col=64
+PF column not covered: lane=4 nt=42 n_col=64
+PF column not covered: lane=4 nt=43 n_col=64
+PF column not covered: lane=4 nt=44 n_col=64
+PF column not covered: lane=4 nt=45 n_col=64
+PF column not covered: lane=4 nt=46 n_col=64
+PF column not covered: lane=4 nt=47 n_col=64
+PF column not covered: lane=4 nt=48 n_col=64
+PF column not covered: lane=4 nt=49 n_col=64
+PF column not covered: lane=4 nt=50 n_col=64
+PF column not covered: lane=4 nt=51 n_col=64
+PF column not covered: lane=4 nt=52 n_col=64
+PF column not covered: lane=5 nt=53 n_col=64
+PF column not covered: lane=5 nt=54 n_col=64
+PF column not covered: lane=5 nt=55 n_col=64
+PF column not covered: lane=5 nt=56 n_col=64
+PF column not covered: lane=5 nt=57 n_col=64
+PF column not covered: lane=5 nt=58 n_col=64
+PF column not covered: lane=5 nt=59 n_col=64
+PF column not covered: lane=5 nt=60 n_col=64
+PF column not covered: lane=5 nt=61 n_col=64
+PF column not covered: lane=5 nt=62 n_col=64
+PF column not covered: lane=5 nt=63 n_col=64
+M1 ROWS_OUT feed q=1 bypass: rc=0 audit=1 rows vs lone calls: 0 of 8192 bitwise mismatches; M=2 rc=20 (want 20) touched=0
+MOE M1 ROWS_OUT OK (one call, a row per expert, each bit-identical to its lone call; M > 1 refused)
+all-empty routing : zeroed, rc=0
+exactly 64 rows   : rc=0
+row_index >= M    : rc=14 (want 14)
+LFM2 shapes       : rc=0 total=7.53 MB (doc 47 section 11 says 6.92)
+4 MB arena        : rc=2 (want 2)
+profile on vs off : memcmp == 0 (19 descriptors traced when on)
+PROFILE ON/OFF BYTE-IDENTICAL
+PROFILE OFF: TRACE UNTOUCHED
+LFM2 M=1 trace    : 46 pushes 30 waits (plan 46/30, 76 items), depth max 1
+IN-SITU CHUNK PLAN MATCHES KERNEL (46 descriptors)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=192 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=0 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=0 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=192 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=192 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=384 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=384 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=768 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=768 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=1536 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=1536 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=0 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=0 rows1=0 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=0 rows1=0 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=0 rows1=0 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=0 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=0 rows1=1 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=0 rows1=1 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=0 rows1=1 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=192 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=192 rows1=0 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=192 rows1=0 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=192 rows1=0 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=192 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=192 rows1=1 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=192 rows1=1 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=192 rows1=1 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=384 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=384 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=768 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=768 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=1536 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=2 lead=1536 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=18 (path=1, hmx blocks=6, gate_up tiles=12, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=192 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=0 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=0 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=192 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=192 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=384 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=384 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=768 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=768 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=1536 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=1536 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=0 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=0 rows1=0 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=0 rows1=0 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=0 rows1=0 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=0 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=0 rows1=1 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=0 rows1=1 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=0 rows1=1 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=192 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=192 rows1=0 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=192 rows1=0 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=192 rows1=0 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=192 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=192 rows1=1 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=192 rows1=1 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=192 rows1=1 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=384 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=384 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=768 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=768 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=1536 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=4 lead=1536 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=30 (path=1, hmx blocks=10, gate_up tiles=20, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=9 (path=1, hmx blocks=3, gate_up tiles=6, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=15 (path=1, hmx blocks=5, gate_up tiles=10, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=3 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=3 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=3 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=3 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=3 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=3 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=3 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=3 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=3 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=3 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=3 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=3 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=3 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=3 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=3 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=3 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=3 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=3 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=3 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=3 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=3 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=3 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=3 (path=1, hmx blocks=1, gate_up tiles=2, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=6 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=6 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=6 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=6 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=0 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=6 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=6 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=6 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=6 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=0 rows1=1 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=6 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=6 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=6 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=6 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=0 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=6 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=6 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=6 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=6 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=6 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=6 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=384 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=6 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=6 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=768 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=6 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=6 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=tiny M=1 lead=1536 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=6 (path=1, hmx blocks=2, gate_up tiles=4, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=21504 (path=1, hmx blocks=4, gate_up tiles=448, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=192 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=0 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=0 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=192 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=192 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=384 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=384 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=768 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=768 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=1536 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=1536 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=0 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=0 rows1=0 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=0 rows1=0 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=0 rows1=0 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=0 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=0 rows1=1 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=0 rows1=1 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=0 rows1=1 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=192 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=192 rows1=0 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=192 rows1=0 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=192 rows1=0 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=192 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=192 rows1=1 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=192 rows1=1 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=192 rows1=1 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=384 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=384 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=768 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=768 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=1536 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=2 lead=1536 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=32256 (path=1, hmx blocks=6, gate_up tiles=672, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=192 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=0 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=0 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=192 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=192 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=384 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=384 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=768 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=768 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=1536 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=1536 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=0 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=0 rows1=0 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=0 rows1=0 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=0 rows1=0 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=0 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=0 rows1=1 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=0 rows1=1 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=0 rows1=1 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=192 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=192 rows1=0 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=192 rows1=0 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=192 rows1=0 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=192 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=192 rows1=1 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=192 rows1=1 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=192 rows1=1 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=384 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=384 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=768 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=768 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=1536 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=4 lead=1536 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=53760 (path=1, hmx blocks=10, gate_up tiles=1120, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=16128 (path=1, hmx blocks=3, gate_up tiles=336, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=26880 (path=1, hmx blocks=5, gate_up tiles=560, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=5376 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=5376 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=5376 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=5376 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=5376 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=5376 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=5376 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=5376 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=5376 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=5376 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=5376 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=5376 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=5376 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=5376 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=5376 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=5376 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=5376 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=5376 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=5376 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=5376 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=5376 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=5376 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=5376 (path=1, hmx blocks=1, gate_up tiles=112, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=10752 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=0 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=1 feed=0 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=0 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=1 feed=0 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=0 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=10752 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=10752 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=10752 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=0 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=10752 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=10752 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=1 q=2 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=10752 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=1 q=3 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=10752 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=0 rows1=1 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=10752 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=10752 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=10752 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=10752 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=0 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=10752 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=10752 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=2 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=10752 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=3 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=10752 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=192 rows1=1 feed=1 q=4 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=10752 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=10752 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=384 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=10752 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=0 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=10752 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=768 rows1=1 feed=1 q=1 bypass=1 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=10752 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=0 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=10752 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV shape=real M=1 lead=1536 rows1=1 feed=1 q=1 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=10752 (path=1, hmx blocks=2, gate_up tiles=224, ref mismatches=0 worst_rel=0)
+M1 GEMV PATH BIT-IDENTICAL TO HMX PATH (M=1,2,4, 1, 2, 3 and 5 experts; tiny+real; 21 lead x loop configurations, feed=arena,vtcm)
+M1 GEMV PREFETCH LEAD COVERS EVERY COLUMN (lanes=6; leads 0/192/384/768/1536 KB x rows4,rows1; build default 192 KB rows1=1)
+M1 GEMV DMA BYPASS OK (196 cells, 1707509760 B bypassed = the feed cells' weight bytes, 0 on the arena read and on heap copies; output bit-identical to the HMX path)
+-- injected lane timeout (the lines below are expected):
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 FEED QUEUES TIMEOUT OK (a lane wait past its guard fails the call: AEE_EFAILED)
+M1 GEMV shape=tiny M=1 lead=192 rows1=1 feed=1 q=4 bypass=0 f32 memcmp=0 i32 exact=yes blocks=0 dma_kb=12 (path=1, hmx blocks=4, gate_up tiles=8, ref mismatches=0 worst_rel=0)
+M1 FEED QUEUES 3-WORKER POOL OK (N=4, fed=4, bit-identical)
+M1 FEED OVERLAP OK (169 cells; GU(0) job beside QUANT; run B always)
+M1 FEED DATAFLOW OK (443801 buffer accesses in feed runs; no cross-lane RAW/WAR/WAW inside a run)
+M1 FEED QUEUES OK (n=2,3,4; 169 cells, 3360 slices, 2927 lane waits; each slice waited by its lane in its run, read in a later run; output bit-identical to N=1)
+M1 GEMV VTCM FEED SCHEDULE OK (1364 pushes, 1364 waits over the cases; whole-matrix descriptors, every read after its wait, 2 slabs <= arena, no l2fetch under the feed; build default feed=1)
+FC WH q|k|v K=2048 parts=3 N=3072 flags=0x20: rc=0 bit_identical=1 pushes=0 lane_waits=0 vtcm_reads=0 unread=0 bad=0
+FC WH q|k|v K=2048 parts=3 N=3072 flags=0x10060: rc=0 bit_identical=1 pushes=0 lane_waits=0 vtcm_reads=0 unread=0 bad=0
+FC WH q|k|v K=2048 parts=3 N=3072 flags=0x20020: rc=0 bit_identical=1 pushes=24 lane_waits=24 vtcm_reads=96 unread=0 bad=0
+FC WH q|k|v K=2048 parts=3 N=3072 flags=0x30060: rc=0 bit_identical=1 pushes=24 lane_waits=24 vtcm_reads=96 unread=0 bad=0
+FC WH q|k|v K=2048 parts=3 N=3072 flags=0x60020: rc=0 bit_identical=1 pushes=24 lane_waits=24 vtcm_reads=96 unread=0 bad=0
+FC WH in_proj K=2048 parts=3 N=6144 flags=0x20: rc=0 bit_identical=1 pushes=0 lane_waits=0 vtcm_reads=0 unread=0 bad=0
+FC WH in_proj K=2048 parts=3 N=6144 flags=0x10060: rc=0 bit_identical=1 pushes=0 lane_waits=0 vtcm_reads=0 unread=0 bad=0
+FC WH in_proj K=2048 parts=3 N=6144 flags=0x20020: rc=0 bit_identical=1 pushes=24 lane_waits=24 vtcm_reads=192 unread=0 bad=0
+FC WH in_proj K=2048 parts=3 N=6144 flags=0x30060: rc=0 bit_identical=1 pushes=24 lane_waits=24 vtcm_reads=192 unread=0 bad=0
+FC WH in_proj K=2048 parts=3 N=6144 flags=0x60020: rc=0 bit_identical=1 pushes=24 lane_waits=24 vtcm_reads=192 unread=0 bad=0
+FC WH out_proj K=2048 parts=1 N=2048 flags=0x20: rc=0 bit_identical=1 pushes=0 lane_waits=0 vtcm_reads=0 unread=0 bad=0
+FC WH out_proj K=2048 parts=1 N=2048 flags=0x10060: rc=0 bit_identical=1 pushes=0 lane_waits=0 vtcm_reads=0 unread=0 bad=0
+FC WH out_proj K=2048 parts=1 N=2048 flags=0x20020: rc=0 bit_identical=1 pushes=24 lane_waits=24 vtcm_reads=64 unread=0 bad=0
+FC WH out_proj K=2048 parts=1 N=2048 flags=0x30060: rc=0 bit_identical=1 pushes=24 lane_waits=24 vtcm_reads=64 unread=0 bad=0
+FC WH out_proj K=2048 parts=1 N=2048 flags=0x60020: rc=0 bit_identical=1 pushes=24 lane_waits=24 vtcm_reads=64 unread=0 bad=0
+FC WH tiny K=64 parts=2 N=128 flags=0x20: rc=0 bit_identical=1 pushes=0 lane_waits=0 vtcm_reads=0 unread=0 bad=0
+FC WH tiny K=64 parts=2 N=128 flags=0x10060: rc=0 bit_identical=1 pushes=0 lane_waits=0 vtcm_reads=0 unread=0 bad=0
+FC WH tiny K=64 parts=2 N=128 flags=0x20020: rc=0 bit_identical=1 pushes=4 lane_waits=4 vtcm_reads=4 unread=0 bad=0
+FC WH tiny K=64 parts=2 N=128 flags=0x30060: rc=0 bit_identical=1 pushes=4 lane_waits=4 vtcm_reads=4 unread=0 bad=0
+FC WH tiny K=64 parts=2 N=128 flags=0x60020: rc=0 bit_identical=1 pushes=4 lane_waits=4 vtcm_reads=4 unread=0 bad=0
+FC WH gemma-qkv K=2816 parts=3 N=8192 flags=0x20: rc=0 bit_identical=1 pushes=0 lane_waits=0 vtcm_reads=0 unread=0 bad=0
+FC WH gemma-qkv K=2816 parts=3 N=8192 flags=0x10060: rc=0 bit_identical=1 pushes=0 lane_waits=0 vtcm_reads=0 unread=0 bad=0
+FC WH gemma-qkv K=2816 parts=3 N=8192 flags=0x20020: rc=0 bit_identical=1 pushes=24 lane_waits=24 vtcm_reads=256 unread=0 bad=0
+FC WH gemma-qkv K=2816 parts=3 N=8192 flags=0x30060: rc=0 bit_identical=1 pushes=24 lane_waits=24 vtcm_reads=256 unread=0 bad=0
+FC WH gemma-qkv K=2816 parts=3 N=8192 flags=0x60020: rc=0 bit_identical=1 pushes=24 lane_waits=24 vtcm_reads=256 unread=0 bad=0
+FC WH gemma-qk K=2816 parts=2 N=9216 flags=0x20: rc=0 bit_identical=1 pushes=0 lane_waits=0 vtcm_reads=0 unread=0 bad=0
+FC WH gemma-qk K=2816 parts=2 N=9216 flags=0x10060: rc=0 bit_identical=1 pushes=0 lane_waits=0 vtcm_reads=0 unread=0 bad=0
+FC WH gemma-qk K=2816 parts=2 N=9216 flags=0x20020: rc=0 bit_identical=1 pushes=25 lane_waits=25 vtcm_reads=288 unread=0 bad=0
+FC WH gemma-qk K=2816 parts=2 N=9216 flags=0x30060: rc=0 bit_identical=1 pushes=25 lane_waits=25 vtcm_reads=288 unread=0 bad=0
+FC WH gemma-qk K=2816 parts=2 N=9216 flags=0x60020: rc=0 bit_identical=1 pushes=25 lane_waits=25 vtcm_reads=288 unread=0 bad=0
+FC WH gemma-o K=8192 parts=1 N=2816 flags=0x20: rc=0 bit_identical=1 pushes=0 lane_waits=0 vtcm_reads=0 unread=0 bad=0
+FC WH gemma-o K=8192 parts=1 N=2816 flags=0x10060: rc=0 bit_identical=1 pushes=0 lane_waits=0 vtcm_reads=0 unread=0 bad=0
+FC WH gemma-o K=8192 parts=1 N=2816 flags=0x20020: rc=0 bit_identical=1 pushes=24 lane_waits=24 vtcm_reads=88 unread=0 bad=0
+FC WH gemma-o K=8192 parts=1 N=2816 flags=0x30060: rc=0 bit_identical=1 pushes=24 lane_waits=24 vtcm_reads=88 unread=0 bad=0
+FC WH gemma-o K=8192 parts=1 N=2816 flags=0x60020: rc=0 bit_identical=1 pushes=24 lane_waits=24 vtcm_reads=88 unread=0 bad=0
+FC WH q|k|v small-vtcm K=2048 parts=3 N=3072 flags=0x20020: rc=0 bit_identical=1 pushes=0 lane_waits=0 vtcm_reads=0 unread=0 bad=0
+-- injected lane timeout (the line below is expected to fail):
+FC WH lane timeout: rc=1 (want AEE_EFAILED 1)
+FC WH refusals: other K rc=16, free handle rc=16, 2-bit rc=16 (want 16)
+FC WH BIT-IDENTICAL: hexkl_mm_u8i4_fc_m1_run vs fc_wh_det.h, 36 cells (q|k|v, in_proj thirds, out_proj, tiny, Gemma qkv/qk/o; arena x rows4/rows1, VTCM feed x rows4/rows1/bypass, a VTCM too small to feed); 21 fed cells, every block read after its lane's wait and read whole; lane timeout fails the call
+
+ALL CHECKS PASS

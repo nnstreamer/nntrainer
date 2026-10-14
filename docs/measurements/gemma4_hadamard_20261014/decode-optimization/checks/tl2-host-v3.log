@@ -1,0 +1,108 @@
+TL2 MoE experts=1 workers=0 queues=1 mode=0 rc=0
+TL2 MoE experts=1 workers=0 queues=1 mode=1 rc=0
+TL2 MoE experts=1 workers=0 queues=1 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=1 workers=0 queues=2 mode=0 rc=0
+TL2 MoE experts=1 workers=0 queues=2 mode=1 rc=0
+TL2 MoE experts=1 workers=0 queues=2 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=1 workers=0 queues=4 mode=0 rc=0
+TL2 MoE experts=1 workers=0 queues=4 mode=1 rc=0
+TL2 MoE experts=1 workers=0 queues=4 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=1 workers=3 queues=1 mode=0 rc=0
+TL2 MoE experts=1 workers=3 queues=1 mode=1 rc=0
+TL2 MoE experts=1 workers=3 queues=1 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=1 workers=3 queues=2 mode=0 rc=0
+TL2 MoE experts=1 workers=3 queues=2 mode=1 rc=0
+TL2 MoE experts=1 workers=3 queues=2 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=1 workers=3 queues=4 mode=0 rc=0
+TL2 MoE experts=1 workers=3 queues=4 mode=1 rc=0
+TL2 MoE experts=1 workers=3 queues=4 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=1 workers=7 queues=1 mode=0 rc=0
+TL2 MoE experts=1 workers=7 queues=1 mode=1 rc=0
+TL2 MoE experts=1 workers=7 queues=1 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=1 workers=7 queues=2 mode=0 rc=0
+TL2 MoE experts=1 workers=7 queues=2 mode=1 rc=0
+TL2 MoE experts=1 workers=7 queues=2 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=1 workers=7 queues=4 mode=0 rc=0
+TL2 MoE experts=1 workers=7 queues=4 mode=1 rc=0
+TL2 MoE experts=1 workers=7 queues=4 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=3 workers=0 queues=1 mode=0 rc=0
+TL2 MoE experts=3 workers=0 queues=1 mode=1 rc=0
+TL2 MoE experts=3 workers=0 queues=1 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=3 workers=0 queues=2 mode=0 rc=0
+TL2 MoE experts=3 workers=0 queues=2 mode=1 rc=0
+TL2 MoE experts=3 workers=0 queues=2 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=3 workers=0 queues=4 mode=0 rc=0
+TL2 MoE experts=3 workers=0 queues=4 mode=1 rc=0
+TL2 MoE experts=3 workers=0 queues=4 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=3 workers=3 queues=1 mode=0 rc=0
+TL2 MoE experts=3 workers=3 queues=1 mode=1 rc=0
+TL2 MoE experts=3 workers=3 queues=1 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=3 workers=3 queues=2 mode=0 rc=0
+TL2 MoE experts=3 workers=3 queues=2 mode=1 rc=0
+TL2 MoE experts=3 workers=3 queues=2 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=3 workers=3 queues=4 mode=0 rc=0
+TL2 MoE experts=3 workers=3 queues=4 mode=1 rc=0
+TL2 MoE experts=3 workers=3 queues=4 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=3 workers=7 queues=1 mode=0 rc=0
+TL2 MoE experts=3 workers=7 queues=1 mode=1 rc=0
+TL2 MoE experts=3 workers=7 queues=1 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=3 workers=7 queues=2 mode=0 rc=0
+TL2 MoE experts=3 workers=7 queues=2 mode=1 rc=0
+TL2 MoE experts=3 workers=7 queues=2 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=3 workers=7 queues=4 mode=0 rc=0
+TL2 MoE experts=3 workers=7 queues=4 mode=1 rc=0
+TL2 MoE experts=3 workers=7 queues=4 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=8 workers=0 queues=1 mode=0 rc=0
+TL2 MoE experts=8 workers=0 queues=1 mode=1 rc=0
+TL2 MoE experts=8 workers=0 queues=1 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=8 workers=0 queues=2 mode=0 rc=0
+TL2 MoE experts=8 workers=0 queues=2 mode=1 rc=0
+TL2 MoE experts=8 workers=0 queues=2 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=8 workers=0 queues=4 mode=0 rc=0
+TL2 MoE experts=8 workers=0 queues=4 mode=1 rc=0
+TL2 MoE experts=8 workers=0 queues=4 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=8 workers=3 queues=1 mode=0 rc=0
+TL2 MoE experts=8 workers=3 queues=1 mode=1 rc=0
+TL2 MoE experts=8 workers=3 queues=1 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=8 workers=3 queues=2 mode=0 rc=0
+TL2 MoE experts=8 workers=3 queues=2 mode=1 rc=0
+TL2 MoE experts=8 workers=3 queues=2 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=8 workers=3 queues=4 mode=0 rc=0
+TL2 MoE experts=8 workers=3 queues=4 mode=1 rc=0
+TL2 MoE experts=8 workers=3 queues=4 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=8 workers=7 queues=1 mode=0 rc=0
+TL2 MoE experts=8 workers=7 queues=1 mode=1 rc=0
+TL2 MoE experts=8 workers=7 queues=1 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=8 workers=7 queues=2 mode=0 rc=0
+TL2 MoE experts=8 workers=7 queues=2 mode=1 rc=0
+TL2 MoE experts=8 workers=7 queues=2 mode=2 rc=0
+TL2 MoE exact=1
+TL2 MoE experts=8 workers=7 queues=4 mode=0 rc=0
+TL2 MoE experts=8 workers=7 queues=4 mode=1 rc=0
+TL2 MoE experts=8 workers=7 queues=4 mode=2 rc=0
+TL2 MoE exact=1

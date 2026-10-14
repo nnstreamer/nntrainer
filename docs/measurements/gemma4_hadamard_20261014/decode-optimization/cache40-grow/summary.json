@@ -1,0 +1,26 @@
+{
+  "off": {
+    "runs": 2,
+    "prefill_ms": 1617.5,
+    "decode_ms": 7627.0,
+    "inference_ms": 9256.0,
+    "e2e_ms": 14946.0,
+    "prefill_tps": 633.0757341576507,
+    "decode_tps": 16.651370132424283
+  },
+  "both_hmx": {
+    "runs": 2,
+    "prefill_ms": 1600.0,
+    "decode_ms": 7969.0,
+    "inference_ms": 9583.5,
+    "e2e_ms": 15156.0,
+    "prefill_tps": 640.0,
+    "decode_tps": 15.936754925335675,
+    "time_delta_pct": {
+      "prefill_ms": -1.081916537867078,
+      "decode_ms": 4.4840697521961514,
+      "inference_ms": 3.538245462402756,
+      "e2e_ms": 1.4050582095543884
+    }
+  }
+}

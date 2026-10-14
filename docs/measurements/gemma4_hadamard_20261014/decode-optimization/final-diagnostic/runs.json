@@ -1,0 +1,24 @@
+[
+  {
+    "tag": "00-off",
+    "variant": "off",
+    "prefill_ms": 1637,
+    "decode_ms": 9572,
+    "e2e_ms": 16164,
+    "inference_ms": 11222,
+    "process_wall_ms": 16439.32858899643,
+    "thermal_zone0": "37600",
+    "output_ids_sha256": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8"
+  },
+  {
+    "tag": "01-both_hmx",
+    "variant": "both_hmx",
+    "prefill_ms": 1642,
+    "decode_ms": 10136,
+    "e2e_ms": 17283,
+    "inference_ms": 11789,
+    "process_wall_ms": 17540.44001600414,
+    "thermal_zone0": "55800",
+    "output_ids_sha256": "03ea2ff3f3fa08868ebd510d879e89f335531fdd0c1627740f30237c92f11129"
+  }
+]

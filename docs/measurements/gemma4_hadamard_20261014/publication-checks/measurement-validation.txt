@@ -1,0 +1,3 @@
+PASS final kernel summary reproduced from raw CSV; only the input-directory prefix differs from the original capture.
+PASS all 127 final measurement SHA256 entries.
+PASS all 31 source SHA256 entries before publication.

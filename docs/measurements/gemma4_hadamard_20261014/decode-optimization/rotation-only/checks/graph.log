@@ -1,0 +1,69 @@
+GRAPH VALIDATOR OK: LFM2.5-8B-A1B n_ops=228 moe=22 words=18295 resident=RMSNORM|CONV1D_GATE|QK_NORM|ROPE|ATTN_M1|ADD|ROUTER_TOPK|MOE
+  tiny fixture (head_dim 8), all kinds resident -> AEE_ESCHEMENOTSUPPORTED (0xf)
+  mutation                                  -> code
+  wrong shape (MoE K != hidden)             -> AEE_EINVALIDFORMAT (0x11)
+  unknown kind                              -> AEE_ENOTYPE (0x22)
+  attention op in a conv layer              -> AEE_EINVALIDITEM (0x2a)
+  next_mm points backwards                  -> AEE_EBADITEM (0x10)
+  next_mm names a non-weight op             -> AEE_EBADITEM (0x10)
+  resident bit on a kind with no kernel     -> AEE_ECLASSNOTSUPPORT (0x3)
+  truncated list                            -> AEE_EINCOMPLETEITEM (0x12)
+  bad magic                                 -> AEE_EINVALIDFORMAT (0x11)
+  wrong version                             -> AEE_EUNSUPPORTED (0x14)
+  lm_head not last                          -> AEE_EINVALIDITEM (0x2a)
+  RMSNORM eps_bits 0                        -> AEE_EINVALIDFORMAT (0x11)
+  ROPE before QK_NORM                       -> AEE_EINVALIDITEM (0x2a)
+  ROPE resident at head_dim 32              -> AEE_ESCHEMENOTSUPPORTED (0xf)
+  ATTN_M1 resident at head_dim 32           -> AEE_ESCHEMENOTSUPPORTED (0xf)
+  ATTN_M1 resident, its ROPE not            -> AEE_ENOTALLOWED (0x2b)
+  QK_NORM resident at head_dim 96           -> AEE_ESCHEMENOTSUPPORTED (0xf)
+  ATTN_M1 resident at head_dim 128, no scale -> AEE_ESCHEMENOTSUPPORTED (0xf)
+  ATTN_M1 scale 0.1 (not fp16)              -> AEE_ESCHEMENOTSUPPORTED (0xf)
+  RMSNORM resident at K 2072                -> AEE_ESCHEMENOTSUPPORTED (0xf)
+  RMSNORM feed 2 (only N1 is a norm bit)    -> AEE_EINVALIDFORMAT (0x11)
+  softmax ROUTER_TOPK in_slot == out_slot   -> AEE_EINVALIDFORMAT (0x11)
+  ADD resident, a RMSNORM not               -> AEE_ENOTALLOWED (0x2b)
+  ROUTER_TOPK resident, its MOE not         -> AEE_ENOTALLOWED (0x2b)
+  ADD out_slot == in_slot                   -> AEE_EINVALIDFORMAT (0x11)
+GRAPH FORWARD IDENTITY OK (22 start ops, no op resident)
+  MOE op with no EXPERTS table              -> AEE_EBADSTATE (0xd)
+  missing weight handle                     -> AEE_EINVHANDLE (0x2c)
+  weight handle of another shape            -> AEE_EINVHANDLE (0x2c)
+GRAPH FORWARD BIT-IDENTICAL: MoE op vs direct layer_run, flags 0x0 and 0x1, layers 0-1, resume_at = start + 1
+GRAPH FORWARD REFUSALS OK
+GRAPH MISS BATCH OK: misses at {1,3,5} {0} {2,5} {7} {all} x (ROWS_OUT taken | refused -> one call each): 10 cells bit-identical to the one-at-a-time form and the loaded table, <= 3 kernel calls a layer
+GRAPH LIMITS OK: 542 ops, 128 experts top-8, handles up to 4095, a pool of the even experts bit-identical to the direct call; a miss round (3 of 8 routed missing) bit-identical to the loaded table
+  RMSNORM forward with no gamma bound       -> AEE_EBADSTATE (0xd)
+  CONV1D_GATE forward with no conv_w bound  -> AEE_EBADSTATE (0xd)
+  ROPE forward with no table bound          -> AEE_EBADSTATE (0xd)
+  ATTN_M1 forward with no cache registered  -> AEE_EBADSTATE (0xd)
+  ATTN_M1 forward at a hole (pos > kv_len)  -> AEE_EBADSTATE (0xd)
+GRAPH STRETCH BIT-IDENTICAL: RMSNORM CONV1D_GATE QK_NORM+ROPE+ATTN_M1 (hd64 shape, pos 0/31/32/63, conv chain of 12 with a re-seed)
+  ROUTER_TOPK forward with no weights bound -> AEE_EBADSTATE (0xd)
+GRAPH STRETCH BIT-IDENTICAL: ADD+RMSNORM ADD+RMSNORM+ROUTER_TOPK+MOE+ADD+RMSNORM (hd64 shape, MOE on the stand-in, slot 0 carried across calls, resume_at the next FC; PREDICT on, its guess == router 1's spec)
+  ROUTER_TOPK forward with no weights bound -> AEE_EBADSTATE (0xd)
+ARM PREDICTION HINT: INPUT AND ROUTING BIT-IDENTICAL
+GRAPH STRETCH BIT-IDENTICAL (Gemma softmax router, N1 norm before it): ADD+RMSNORM ADD+RMSNORM+ROUTER_TOPK+MOE+ADD+RMSNORM (hd64 shape, MOE on the stand-in, slot 0 carried across calls, resume_at the next FC; PREDICT on, its guess == router 1's spec)
+GRAPH GEMMA ROPE BIT-IDENTICAL: hd256 default 1e4 (2 layers, one shared table) and hd512 proportional 0.25 1e6, own tables, 4 positions each, vs m1_rope_det
+  ATTN_M1 hd512 with only an hd256 cache    -> AEE_EBADSTATE (0xd)
+GRAPH GEMMA ATTN BIT-IDENTICAL: ROPE+ATTN_M1 on 3 layers (hd256 window 48 x 2 in one cache, hd512 full in a second), scale 1.0, 100 tokens, vs m1_rope_det -> attn_m1_det_forward_win
+  Q4M1 op: no parts / short / K / down / no table -> AEE_EINVHANDLE (0x2c)
+GRAPH Q4M1 NATIVE BIT-IDENTICAL: FC q|k|v DENSE_FFN RMSNORM+LM_HEAD with HTP_GRAPH_FEED_NATIVE vs q4_gemv_native_det (bit 18 refused)
+GRAPH Q4M1 BIT-IDENTICAL: FC q|k|v (3 parts, feed passed) DENSE_FFN (up gate swiglu down) RMSNORM+LM_HEAD (2 slices, argmax first of a tie, LM_BAN skips its ids) vs q4_gemv_cpu_det / m1_swiglu_cpu_det / m1_argmax_first (hd64 shape, the real HVX kernel on hvx_emu)
+GRAPH FC WH OK: FC q|k|v (3 WH parts, one call, L2 bit = arena read) and DENSE_FFN (2 chunks as experts of weight 1, M = 1) hand the kernels the prefill's handles; WH LM_HEAD refused; init refuses another K / short parts / a bad down / no chunk / a free handle / a 2-bit part; uses_handle sees WH ops, uses_q4m1 skips them
+  Gemma QK_NORM feed bit 0 (N1's, not taken) -> AEE_EINVALIDFORMAT
+  Gemma QK_NORM resident at head_dim 1024    -> AEE_ESCHEMENOTSUPPORTED
+  Gemma ADD in_slot == out_slot              -> AEE_EINVALIDFORMAT
+  Gemma ADD multiplier +inf                  -> AEE_EINVALIDFORMAT
+  Gemma LM_HEAD soft-cap -30                 -> AEE_EINVALIDFORMAT
+  Gemma ffn kind 3                           -> AEE_EINVALIDFORMAT
+  Gemma DENSE_FFN in a MoE-only layer        -> AEE_EINVALIDITEM
+  Gemma ROUTER_TOPK in a dense-only layer    -> AEE_EINVALIDITEM
+  Gemma head: vocab 262144 in 16 slices, max |raw logit| 5.71, lm_id 61995
+SOFTCAP SPEC vs f64: snr=141.3 dB over [-300,300] n=8199; max_abs_err=1.01e-05; nan=0
+SOFTCAP HVX == SPEC bit-exact 8199/8199
+DENSE GEGLU HVX == SPEC bit-exact 8199/8199
+GRAPH GEMMA BIT-IDENTICAL: QK_NORM hd 256 (v norm) and hd 512 (v norm, k = v), the FFN stretch (MoE branch, dense GeGLU branch, D + S, post norm, (h + F) * layer_scalar in 3 slots) and RMSNORM+LM_HEAD (262144 rows, 16 slices, soft-cap 30) vs m1_ops_det.h / geglu_det_one / q4_gemv_cpu_det
+GRAPH GEMMA-4-26B-A4B LIST OK: 542 ops (25 sliding layers hd 256 window 1024, 5 full hd 512 k = v, layer_scalar per layer, soft-cap 30), every kind resident, validates
+GRAPH NORM REUSE: gamma, slot writes, width, epsilon, N1, in-place partial writes and resumed forwards checked
+GRAPH CHECKS PASS

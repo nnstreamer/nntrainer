@@ -1,0 +1,2 @@
+f6bd08674f511d805afd1c1d7a456dca87ee2d5e03464bdde44dcd7c278e0b04  test/htp/build/libnntr_hvx_skel.so
+819ba5eff7f86b1d17a80180d7cb73f57c3ef9fdf727d729e6301e84c9f461f6  test/htp/build/libnntr_hvx_hadamard_shadow.so

@@ -1,0 +1,90 @@
+{
+  "batches": [
+    "rotation-only/final-e2e"
+  ],
+  "environment": {
+    "LD_LIBRARY_PATH": ".",
+    "ADSP_LIBRARY_PATH": ".",
+    "NNTR_NUM_THREADS": "8",
+    "NNTR_HTP_E2E": "1",
+    "NNTR_HTP_E2E_FREE_KVQ": "1",
+    "NNTR_HTP_KV_DROP_CPU": "1",
+    "NNTR_HTP_DROP_HOST_FC": "1",
+    "NNTR_HTP_ATTN_M1_Q8": "2",
+    "NNTR_HTP_FC_IN_ARENA": "1",
+    "NNTR_HTP_PAGE_CACHE": "0",
+    "NNTR_MOE_CACHE_EXPERTS": "16",
+    "NNTR_MOE_CACHE_GROW": "0",
+    "NNTR_MOE_MISS_READERS": "4",
+    "NNTR_MOE_DMA_QUEUES": "4",
+    "NNTR_MOE_HADAMARD_SCOPE": "2bit"
+  },
+  "measurement": "actual_rotation",
+  "runtime_sha256": {
+    "libnntr_hvx_skel.so": "f6bd08674f511d805afd1c1d7a456dca87ee2d5e03464bdde44dcd7c278e0b04",
+    "libnntrainer.so": "9c7160d1640cecb35bfeea47810fbbb763d14305909c45bdd34a5fdaa740210c",
+    "nntrainer_causallm": "34e41676bae199fe0a5aeced86942372567226093a8d4dc69d62a00cd046e935"
+  },
+  "off": {
+    "runs": 4,
+    "output_ids_sha256": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "prefill_ms": 1631.5,
+    "prefill_ms_range": [
+      1578,
+      1662
+    ],
+    "decode_ms": 9899.5,
+    "decode_ms_range": [
+      9865,
+      9942
+    ],
+    "inference_ms": 11545.0,
+    "inference_ms_range": [
+      11459,
+      11617
+    ],
+    "e2e_ms": 17364.0,
+    "e2e_ms_range": [
+      16277,
+      18144
+    ],
+    "prefill_tps": 627.6432730615998,
+    "decode_tps": 12.828930754078488
+  },
+  "both_hmx": {
+    "runs": 4,
+    "output_ids_sha256": "03ea2ff3f3fa08868ebd510d879e89f335531fdd0c1627740f30237c92f11129",
+    "prefill_ms": 1653.0,
+    "prefill_ms_range": [
+      1649,
+      1682
+    ],
+    "decode_ms": 10590.0,
+    "decode_ms_range": [
+      10580,
+      10599
+    ],
+    "inference_ms": 12260.0,
+    "inference_ms_range": [
+      12253,
+      12274
+    ],
+    "e2e_ms": 18353.5,
+    "e2e_ms_range": [
+      17229,
+      18716
+    ],
+    "prefill_tps": 619.4797338173018,
+    "decode_tps": 11.992445703493862
+  },
+  "time_delta_pct": {
+    "prefill_ms": 1.3178057002758203,
+    "decode_ms": 6.975099752512759,
+    "inference_ms": 6.193157210913824,
+    "e2e_ms": 5.698571757659532
+  },
+  "tps_delta_pct": {
+    "prefill_tps": -1.3006654567453202,
+    "decode_tps": -6.520302171860237
+  }
+}

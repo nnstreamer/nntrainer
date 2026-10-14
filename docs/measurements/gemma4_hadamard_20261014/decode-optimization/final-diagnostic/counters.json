@@ -1,0 +1,14 @@
+{
+  "00-off": {
+    "whole_run_cache_misses": 9098,
+    "whole_run_file_read_ms": 4442.8,
+    "decode_exposed_miss_wait_us_per_token": 24540.0,
+    "diagnostic_only": true
+  },
+  "01-both_hmx": {
+    "whole_run_cache_misses": 10475,
+    "whole_run_file_read_ms": 4956.9,
+    "decode_exposed_miss_wait_us_per_token": 26686.1,
+    "diagnostic_only": true
+  }
+}

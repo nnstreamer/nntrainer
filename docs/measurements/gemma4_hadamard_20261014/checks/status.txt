@@ -1,0 +1,14 @@
+Final pure-rotation optimization validation
+PASS DSP v81 build, undefined imports and ELF architecture checks
+PASS full MoE host suite (including split-input reuse and all existing cases)
+PASS graph host suite
+PASS token host suite (10000 tokens, miss/failure paths)
+PASS actual DSP M=1 (200 repetitions/variant), M=1024 (24 repetitions/variant)
+PASS actual app output-ID identity with prior same-variant runs
+PASS shadow control: all 3810 decode route rows and 128 generated IDs identical
+PASS clang-format 14 changed lines (empty format.patch)
+PASS git diff --check; Python syntax checks
+Normal runtime has the real rotation binary; shadow runs use a separate directory.
+Unchanged runtime: expert cache 16, grow 0, miss readers 4, threads 8, DMA queues 4.
+Not run: complete multi-platform CI. Not available: a correctly rotated checkpoint.
+Details: ../decode-optimization/rotation-only/checks/

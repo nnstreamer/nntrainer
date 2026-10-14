@@ -1,0 +1,90 @@
+{
+  "batches": [
+    "rotation-only/shadow-e2e"
+  ],
+  "environment": {
+    "LD_LIBRARY_PATH": ".",
+    "ADSP_LIBRARY_PATH": ".",
+    "NNTR_NUM_THREADS": "8",
+    "NNTR_HTP_E2E": "1",
+    "NNTR_HTP_E2E_FREE_KVQ": "1",
+    "NNTR_HTP_KV_DROP_CPU": "1",
+    "NNTR_HTP_DROP_HOST_FC": "1",
+    "NNTR_HTP_ATTN_M1_Q8": "2",
+    "NNTR_HTP_FC_IN_ARENA": "1",
+    "NNTR_HTP_PAGE_CACHE": "0",
+    "NNTR_MOE_CACHE_EXPERTS": "16",
+    "NNTR_MOE_CACHE_GROW": "0",
+    "NNTR_MOE_MISS_READERS": "4",
+    "NNTR_MOE_DMA_QUEUES": "4",
+    "NNTR_MOE_HADAMARD_SCOPE": "2bit"
+  },
+  "measurement": "shadow_decode_rotate_restore",
+  "runtime_sha256": {
+    "libnntr_hvx_skel.so": "819ba5eff7f86b1d17a80180d7cb73f57c3ef9fdf727d729e6301e84c9f461f6",
+    "libnntrainer.so": "9c7160d1640cecb35bfeea47810fbbb763d14305909c45bdd34a5fdaa740210c",
+    "nntrainer_causallm": "34e41676bae199fe0a5aeced86942372567226093a8d4dc69d62a00cd046e935"
+  },
+  "off": {
+    "runs": 4,
+    "output_ids_sha256": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "prefill_ms": 1620.5,
+    "prefill_ms_range": [
+      1593,
+      1647
+    ],
+    "decode_ms": 9899.0,
+    "decode_ms_range": [
+      9858,
+      9933
+    ],
+    "inference_ms": 11527.0,
+    "inference_ms_range": [
+      11479,
+      11597
+    ],
+    "e2e_ms": 17237.0,
+    "e2e_ms_range": [
+      16079,
+      17876
+    ],
+    "prefill_tps": 631.9037334156125,
+    "decode_tps": 12.829578745327812
+  },
+  "both_hmx": {
+    "runs": 4,
+    "output_ids_sha256": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "prefill_ms": 1602.5,
+    "prefill_ms_range": [
+      1574,
+      1636
+    ],
+    "decode_ms": 9962.0,
+    "decode_ms_range": [
+      9933,
+      9967
+    ],
+    "inference_ms": 11579.5,
+    "inference_ms_range": [
+      11520,
+      11619
+    ],
+    "e2e_ms": 16889.5,
+    "e2e_ms_range": [
+      16020,
+      17798
+    ],
+    "prefill_tps": 639.0015600624025,
+    "decode_tps": 12.748444087532624
+  },
+  "time_delta_pct": {
+    "prefill_ms": -1.1107682813946362,
+    "decode_ms": 0.6364279220123281,
+    "inference_ms": 0.45545241606661513,
+    "e2e_ms": -2.0160120670650317
+  },
+  "tps_delta_pct": {
+    "prefill_tps": 1.1232449297971847,
+    "decode_tps": -0.6324031319012269
+  }
+}

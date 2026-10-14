@@ -1,0 +1,78 @@
+{
+  "checked_at_utc": "2026-10-14T11:42:24.578740+00:00",
+  "base_sha": "8682e75a11792df1bc1353b3ec144c1a005b8426",
+  "implementation_commit": "7ed1a3ffd93201376b6743896cf45ce910d41458",
+  "source_hashes_match_measured_sources": 31,
+  "final_measurement_hashes_verified": 127,
+  "checks": {
+    "full_htp_host_suite": {
+      "command": "bash test/htp/host/run_host_checks.sh",
+      "exit_code": 0,
+      "log": "host-checks.log"
+    },
+    "dsp_v81_build": {
+      "command": "bash test/htp/build.sh",
+      "exit_code": 0,
+      "log": "dsp-build.log"
+    },
+    "android_benchmark_build": {
+      "command": "bash test/htp/build_hadamard_bench.sh",
+      "exit_code": 0,
+      "log": "arm-benchmark-build.log"
+    },
+    "android_htp_compute_ops_object": {
+      "command_file": "arm-ops-command.json",
+      "exit_code": 0,
+      "log": "arm-ops-build.log"
+    },
+    "client_stub_generation": {
+      "command": "bash nntrainer/tensor/htp_backend/generate_stub.sh",
+      "exit_code": 0,
+      "log": "client-stub.log"
+    },
+    "clang_format": {
+      "version": "14.0.6",
+      "scope": "changed lines and complete new C/C++ files",
+      "patch": "format.patch"
+    },
+    "generated_tables_reproducible": true,
+    "python_and_shell_syntax": "passed",
+    "kernel_summary_reproduced_from_csv": "exact after normalizing only input-directory prefixes"
+  },
+  "build_environment": {
+    "HEXAGON_SDK_ROOT": "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1",
+    "DEFAULT_HEXAGON_TOOLS_ROOT": "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04",
+    "HEXKL_ROOT": "/home/jungone-lee/workspace/nntrainer/Qualcomm/hexkl-1.0-beta.2/hexkl_addon",
+    "HEXKL_SDK_VER": "6.4.0.1",
+    "HEX_ARCH": "v81",
+    "ANDROID_NDK": "/home/jungone-lee/workspace/nntrainer/android-ndk-r30"
+  },
+  "host_suite_skips": [
+    "HVX GEMV NATIVE CHECK SKIPPED (no /Tools/libnative/lib/libnative.a; source tools/htp/env.sh)",
+    "abs_max: aarch64 g++ or qemu-aarch64 missing, NEON path not run"
+  ],
+  "not_repeated_for_publication": [
+    "device numerical/performance runs",
+    "complete Android application link/device execution"
+  ],
+  "not_validated": [
+    "language-model quality with matching rotated weights",
+    "complete platform CI matrix"
+  ],
+  "rebuilt_binary_sha256": {
+    "test/htp/build/libnntr_hvx_skel.so": "53015778c0c0790a43143f814bf2eb6c0eb60ff9dc5740bdda9091d67c7a1591",
+    "test/htp/build/hadamard_moe_bench": "b54c4b4d10a2d0579b875d64b08dcdfba96369e2cd164f6a42673a05ac8e85a3",
+    "test/htp/build/hadamard_check_device": "3795c49489ace22c8c843af8b46fddebeb696b1a7c2f83c621a75539d15d5416",
+    "test/htp/build/hadamard_hmx_check": "7aeea703ee6eb0e8e130d75064d103ddfd6d9f32c31414e1d61d1f21a2b10c4b"
+  },
+  "artifact_sha256": {
+    "host-checks.log": "bd76c581c241c59d0555ae5f45d64239a5fea082673574dcb37ac820b21de307",
+    "dsp-build.log": "bba6da4f7afa963dba5be4451487135bea452824948b9638bb733b7d7127850a",
+    "arm-benchmark-build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "arm-ops-build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "arm-ops-command.json": "bd7d6cd414ecfa9571fd899122b05c2423e1d845119bd089536ec22f3787dd02",
+    "client-stub.log": "08d4d594f5fb033cfae233521646f21ae90e81e29cd87e75b0b96126bfe14774",
+    "format.patch": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "measurement-validation.txt": "dc4d9901c14da10460e8ef0405e5401ea7f673de9efa5ff0560dca2b80e78b38"
+  }
+}

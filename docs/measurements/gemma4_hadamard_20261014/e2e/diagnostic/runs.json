@@ -1,0 +1,35 @@
+[
+  {
+    "tag": "00-off",
+    "variant": "off",
+    "prefill_ms": 1588,
+    "decode_ms": 10030,
+    "e2e_ms": 16404,
+    "process_wall_ms": 16658.208588007255,
+    "thermal_zone0": "41500",
+    "output_ids_sha256": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "inference_ms": 11632
+  },
+  {
+    "tag": "01-both_hmx",
+    "variant": "both_hmx",
+    "prefill_ms": 1667,
+    "decode_ms": 10685,
+    "e2e_ms": 18323,
+    "process_wall_ms": 18547.654965994298,
+    "thermal_zone0": "57000",
+    "output_ids_sha256": "03ea2ff3f3fa08868ebd510d879e89f335531fdd0c1627740f30237c92f11129",
+    "inference_ms": 12362
+  },
+  {
+    "tag": "02-both",
+    "variant": "both",
+    "prefill_ms": 1726,
+    "decode_ms": 10967,
+    "e2e_ms": 19211,
+    "process_wall_ms": 19443.209974997444,
+    "thermal_zone0": "56600",
+    "output_ids_sha256": "7a6ce4569987fa4a37490e0be31bd884be1d1d7aefeb89c3cf9b80291290d650",
+    "inference_ms": 12705
+  }
+]

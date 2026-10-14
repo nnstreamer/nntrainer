@@ -1,0 +1,4 @@
+MOE M1 GEMV OPTS: unset=on(0x303e1) 0=off 1=on
+MOE GEMV TUNE OPTS: per-knob tune bits, 64 KB units, round+clamp 127, feed unset/0/1, dma_bypass 0x703e1, geglu echoed
+MOE M1 GEMV OPTS dma_queues: unset=1(0x703e1) 2=0x4703e1 4=0xc703e1 invalid(0,5,x,'',...)=error
+MOE PROFILE ROW: gemv rest>=0 hmx unchanged

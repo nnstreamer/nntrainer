@@ -1,0 +1,90 @@
+[
+  {
+    "tag": "00-off",
+    "variant": "off",
+    "prefill_ms": 1607,
+    "decode_ms": 9517,
+    "e2e_ms": 16033,
+    "inference_ms": 11136,
+    "process_wall_ms": 16286.869870004011,
+    "thermal_zone0": "34100",
+    "output_ids_sha256": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8"
+  },
+  {
+    "tag": "01-both_hmx",
+    "variant": "both_hmx",
+    "prefill_ms": 1565,
+    "decode_ms": 10039,
+    "e2e_ms": 16132,
+    "inference_ms": 11617,
+    "process_wall_ms": 16306.201700004749,
+    "thermal_zone0": "57000",
+    "output_ids_sha256": "03ea2ff3f3fa08868ebd510d879e89f335531fdd0c1627740f30237c92f11129"
+  },
+  {
+    "tag": "02-both_hmx",
+    "variant": "both_hmx",
+    "prefill_ms": 1577,
+    "decode_ms": 10105,
+    "e2e_ms": 16602,
+    "inference_ms": 11696,
+    "process_wall_ms": 16811.853746999986,
+    "thermal_zone0": "59300",
+    "output_ids_sha256": "03ea2ff3f3fa08868ebd510d879e89f335531fdd0c1627740f30237c92f11129"
+  },
+  {
+    "tag": "03-off",
+    "variant": "off",
+    "prefill_ms": 1570,
+    "decode_ms": 9661,
+    "e2e_ms": 16720,
+    "inference_ms": 11246,
+    "process_wall_ms": 16941.790453987778,
+    "thermal_zone0": "59300",
+    "output_ids_sha256": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8"
+  },
+  {
+    "tag": "04-both_hmx",
+    "variant": "both_hmx",
+    "prefill_ms": 1629,
+    "decode_ms": 10181,
+    "e2e_ms": 17651,
+    "inference_ms": 11820,
+    "process_wall_ms": 17886.01082000241,
+    "thermal_zone0": "59300",
+    "output_ids_sha256": "03ea2ff3f3fa08868ebd510d879e89f335531fdd0c1627740f30237c92f11129"
+  },
+  {
+    "tag": "05-off",
+    "variant": "off",
+    "prefill_ms": 1627,
+    "decode_ms": 9771,
+    "e2e_ms": 17504,
+    "inference_ms": 11409,
+    "process_wall_ms": 17758.087850001175,
+    "thermal_zone0": "59300",
+    "output_ids_sha256": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8"
+  },
+  {
+    "tag": "06-off",
+    "variant": "off",
+    "prefill_ms": 1613,
+    "decode_ms": 9985,
+    "e2e_ms": 17855,
+    "inference_ms": 11615,
+    "process_wall_ms": 18085.994334993302,
+    "thermal_zone0": "58900",
+    "output_ids_sha256": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8"
+  },
+  {
+    "tag": "07-both_hmx",
+    "variant": "both_hmx",
+    "prefill_ms": 1631,
+    "decode_ms": 10464,
+    "e2e_ms": 18612,
+    "inference_ms": 12106,
+    "process_wall_ms": 18874.519858989515,
+    "thermal_zone0": "58900",
+    "output_ids_sha256": "03ea2ff3f3fa08868ebd510d879e89f335531fdd0c1627740f30237c92f11129"
+  }
+]

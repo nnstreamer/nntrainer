@@ -1,0 +1,28 @@
+{
+  "route.txt": {
+    "identical": true,
+    "lines": 30,
+    "bytes": 1266372,
+    "sha256": "61c8a707a72747b33d29691e38e249c1377ee108d4af4ac271844d16861095e2"
+  },
+  "decode-route.txt": {
+    "identical": true,
+    "lines": 3810,
+    "bytes": 128880,
+    "sha256": "45a94e38108f9f6b422d39f5b4f1de7211b25a64dca7f0a49ae8e08a52d1e61f"
+  },
+  "ids": {
+    "identical": true,
+    "lines": 128,
+    "bytes": 531,
+    "sha256": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8"
+  },
+  "00-both_hmx": {
+    "whole_run_cache_misses": 9098,
+    "miss_rounds": 3104
+  },
+  "01-off": {
+    "whole_run_cache_misses": 9098,
+    "miss_rounds": 3104
+  }
+}

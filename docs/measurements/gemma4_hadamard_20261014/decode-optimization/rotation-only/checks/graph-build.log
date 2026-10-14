@@ -1,0 +1,4 @@
+nntrainer/tensor/htp_backend/hvx/hvx_attn_m1_f32.c: In function ‘pv_walk’:
+nntrainer/tensor/htp_backend/hvx/hvx_attn_m1_f32.c:1095: warning: ignoring ‘#pragma clang loop’ [-Wunknown-pragmas]
+ 1095 | #pragma clang loop pipeline(disable)
+      | 

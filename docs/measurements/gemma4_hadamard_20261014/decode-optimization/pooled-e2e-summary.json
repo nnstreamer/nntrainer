@@ -1,0 +1,85 @@
+{
+  "batches": [
+    "final-e2e",
+    "confirmation-e2e"
+  ],
+  "environment": {
+    "LD_LIBRARY_PATH": ".",
+    "ADSP_LIBRARY_PATH": ".",
+    "NNTR_NUM_THREADS": "8",
+    "NNTR_HTP_E2E": "1",
+    "NNTR_HTP_E2E_FREE_KVQ": "1",
+    "NNTR_HTP_KV_DROP_CPU": "1",
+    "NNTR_HTP_DROP_HOST_FC": "1",
+    "NNTR_HTP_ATTN_M1_Q8": "2",
+    "NNTR_HTP_FC_IN_ARENA": "1",
+    "NNTR_HTP_PAGE_CACHE": "0",
+    "NNTR_MOE_CACHE_EXPERTS": "16",
+    "NNTR_MOE_CACHE_GROW": "0",
+    "NNTR_MOE_MISS_READERS": "8",
+    "NNTR_MOE_DMA_QUEUES": "4",
+    "NNTR_MOE_HADAMARD_SCOPE": "2bit"
+  },
+  "off": {
+    "runs": 8,
+    "output_ids_sha256": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "prefill_ms": 1602.5,
+    "prefill_ms_range": [
+      1564,
+      1627
+    ],
+    "decode_ms": 9716.0,
+    "decode_ms_range": [
+      9517,
+      9985
+    ],
+    "inference_ms": 11323.0,
+    "inference_ms_range": [
+      11136,
+      11615
+    ],
+    "e2e_ms": 16998.5,
+    "e2e_ms_range": [
+      15690,
+      18173
+    ],
+    "prefill_tps": 639.0015600624025,
+    "decode_tps": 13.0712227254014
+  },
+  "both_hmx": {
+    "runs": 8,
+    "output_ids_sha256": "03ea2ff3f3fa08868ebd510d879e89f335531fdd0c1627740f30237c92f11129",
+    "prefill_ms": 1624.5,
+    "prefill_ms_range": [
+      1565,
+      1634
+    ],
+    "decode_ms": 10186.5,
+    "decode_ms_range": [
+      9967,
+      10464
+    ],
+    "inference_ms": 11811.0,
+    "inference_ms_range": [
+      11604,
+      12109
+    ],
+    "e2e_ms": 17470.5,
+    "e2e_ms_range": [
+      16132,
+      18675
+    ],
+    "prefill_tps": 630.3477993228686,
+    "decode_tps": 12.467481470573798
+  },
+  "time_delta_pct": {
+    "prefill_ms": 1.372854914196564,
+    "decode_ms": 4.842527789213658,
+    "inference_ms": 4.309811887309012,
+    "e2e_ms": 2.7767155925522813
+  },
+  "tps_delta_pct": {
+    "prefill_tps": -1.3542628501077236,
+    "decode_tps": -4.618858292838568
+  }
+}

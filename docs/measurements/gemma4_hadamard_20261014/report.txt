@@ -1,0 +1,343 @@
+Gemma4-26B-A4B online Hadamard — S26 Ultra / PR #4416
+
+이 문서는 2026-10-14 후속 HMX 및 decode 최적화 결과다. 초기 FP32 결과는
+report-v8.txt 및 manifest-v8.json에 보존했다. 작업 기반은 PR #4416의
+8682e75a11792df1bc1353b3ec144c1a005b8426이며, 로컬 branch는
+codex/gemma4-spinquant-20261014다. 기기는 R5KL30G6MCX
+(SM-S948N, SM8850, Hexagon v81)만 사용했다. LH 기기는 사용하지 않았다.
+
+사용자가 최종 지정한 범위는 2bit expert의 Up/Gate와 Down 회전이다.
+앱은 NNTR_MOE_HADAMARD_SCOPE=2bit를 기본값으로 사용하고, 4bit shared
+FFN은 원래 경로를 유지한다. 기존 unrotated 7.54 GB 모델로 전체 앱을
+실행했으며 별도 E2E 기록을 추가했다. 회전에 맞춘 checkpoint가 없으므로
+언어 모델 품질은 검증하지 않았다. 아래의 초기 합성 커널 측정과 구분한다.
+
+정정: 초기 문서의 "PR #4416 shared FFN = 704 x 3"은 잘못된 설명이다.
+denseChunkCols(2112)는 1056을 반환하므로 실제 shared 경로는 1056 x 2다.
+4bit 벤치는 704 x 3의 합성 workload였고, 그 합산 4.48%는 실제 shared
+배치도 E2E 결과도 아니다. 실제 모델의 5% 목표 판정 근거로 사용하지 않는다.
+2bit expert의 2816/704 전체 폭 및 고정 routing 커널 결과는 유효하다.
+
+순수 Rotation 최적화 (cache/읽기 설정 고정)
+
+사용자 요청에 따라 cache 증설 및 reader 수 변경을 채택하지 않는다.
+NNTR_MOE_CACHE_EXPERTS=16, NNTR_MOE_CACHE_GROW=0,
+NNTR_MOE_MISS_READERS=4, NNTR_NUM_THREADS=8, DMA queues=4로 고정한다.
+과거 runtime tuning 기록은 decode-optimization/rejected-runtime-tuning.txt에
+분리 보존하며, 최종 성능 목표 달성 근거에서 제외한다.
+
+Decode는 전체 폭 FP32 HVX FWHT + H44를 유지한다. 704 단일 행 H44의
+레지스터 누산과 expert 간 동일 입력 AH 공유를 적용했다. 추가로 하나의
+MoE op가 cache miss로 여러 호출에 나뉠 때 Up/Gate 회전과 양자화 계수를
+재사용한다. 입력은 변경하지 않고, 매 token/논리 MoE op마다 무효화한다.
+이 재사용은 expert cache 용량과 무관하며, graph의 입력 작업 공간만
+2816 floats + 최대 124 bytes (약 11 KiB) 추가한다. 레이어 수만큼 늘지 않는다.
+Down은 expert마다 다른 입력을 가지므로 각 expert에서 회전한다.
+
+최종 고정-routing 2bit MoE 커널 (RMSNorm 포함, 같은 바이너리의 off/on):
+구간                     반복/variant    off             both_hmx       시간 증가
+decode M=1                    200        267 us           270 us          +1.12%
+prefill M=1024                  24      17136.5 us       17681.5 us        +3.18%
+
+두 회전을 모두 실제 출력에 적용한 수치다. decode의 both_hmx는 FP32 HVX
+경로이며 HMX FP16은 prefill에만 사용한다. 전체 폭, 2bit expert top8 및
+같은 input/weights/routing을 유지했다. 커널 기준으로 양쪽 모두 5% 미만이다.
+최적화 전 M=1의 별도 100회 측정은 272 -> 285 us (+4.78%)였고, 이번은
+267 -> 270 us (+1.12%)다. 실행 시점이 다르므로 절대 시간 감소를 특정
+코드 한 부분의 효과로 단정하지 않는다. 새 분할 호출 재사용은 이 단일
+커널 벤치에서는 활성화되지 않으며, 아래 전체 앱 graph 경로에 적용된다.
+
+최종 실제 앱 E2E (final-e2e, off/on 각 4회, 비계측, 새 프로세스):
+구간                  off                 both_hmx             시간 증가
+prefill 1024        1631.5 ms / 627.64 TPS  1653 ms / 619.48 TPS    +1.32%
+decode 127          9899.5 ms / 12.829 TPS 10590 ms / 11.992 TPS    +6.98%
+추론 total         11545 ms               12260 ms                +6.19%
+
+decode TPS 감소는 0.836 TPS (-6.52%)다. 실제 앱의 raw decode 차이는
+5% 이내가 아니다. 원본 checkpoint의 off/on은 생성 ID와 routing이 달라
+가중치 읽기 및 miss 분할 호출 수가 달라진다. 전체 실행 cache miss는
+9098 -> 10475다. 이 +6.98%를 순수 Rotation 연산 비용으로 주장하지 않는다.
+입력 재사용 추가 직전의 같은 cache=16/readers=4 실행(before-e2e)도
++6.53%였으며, 이 비교로 재사용의 E2E 개선량이 입증된 것은 아니다.
+재사용 자체는 같은 Up 변환의 반복을 없애고 출력은 bitwise 유지한다.
+
+동일 경로의 decode 비용 분리 실험 (shadow-e2e, 각 4회, 비계측):
+  off             9899 ms / 12.8296 TPS
+  rotate+restore  9962 ms / 12.7484 TPS
+  시간 +63 ms / 127 tokens = +0.496 ms/token (+0.636%)
+  TPS -0.0811 (-0.632%)
+
+이 값은 실제 rotated 모델의 E2E TPS가 아니라 진단용 대조 실험이다.
+prefill은 양쪽 모두 원본 경로를 쓰고, decode는 실제 전체 폭 FP32 HVX
+Hadamard를 Up/Gate·Down에서 실행한 후 회전 전 입력을 복원한다. 양자화와
+후속 연산에는 원본 입력이 들어가므로 checkpoint, 토큰, routing, cache
+읽기 작업이 같다. 추가 save/restore memcpy 비용도 포함한다. 컴파일러가
+회전을 제거하지 않았음을 disassembly에서 실제 Hadamard 호출과 두 memcpy로
+확인했다(checks/shadow-asm.txt). 최종 커널의 실제 회전 정확도/성능은 위의
+일반 바이너리 측정으로 별도 검증했다. 이 진단 결과를 actual-rotation
+표본과 합치거나 완성된 SpinQuant 모델의 속도/품질 보장으로 해석하지 않는다.
+
+별도 route 검증(shadow-route-check, 성능 집계 제외)에서 prefill 30줄,
+decode 3810줄(127 x 30), 출력 ID 128개가 bytewise 일치했다. 양쪽 모두
+cache miss=9098, miss rounds=3104였다. 미세한 시간 차이는 온도/주파수/
+스토리지 변동의 영향을 받으며, 0.636%는 이 입력의 관측 중앙값이다.
+진단 빌드는 별도 runtime 디렉터리에서만 사용했고, 일반 실행 디렉터리에는
+실제 회전 최종 바이너리(f6bd0867...)를 유지했다.
+
+검증:
+- DSP v81 빌드, runtime import 및 arch 검사 통과.
+- 전체 MoE host suite 통과: 2bit/4bit, M=1/여러 행, DMA, rotation placement,
+  분할 호출 재사용/일반 scratch 덮어쓰기/다음 token/정규화 우회 검사 포함.
+- Graph host suite 통과: miss 분할 및 fallback, 호출 사이 포인터 복원,
+  다음 논리 op의 결과 무효화를 검사했다.
+- Token host suite 통과: 10000-token 동일성, miss owner와의 상호작용,
+  timeout/stale/failure 경로를 확인했다.
+- 실제 DSP의 M=1/1024 numerical checks 통과. M=1 scalar/HVX NRMSE
+  1.392e-7. 각 실제 앱 variant의 최적화 전후 생성 ID는 동일하다.
+- clang-format 14 변경 줄 검사, git diff --check, Python 구문 검사 통과.
+전체 플랫폼 CI나 checkpoint 품질 검증을 완료했다는 의미는 아니다.
+
+일반 E2E 재현 (기존 배포된 앱/모델):
+  python3 test/htp/run_hadamard_e2e.py --serial R5KL30G6MCX \
+    --remote-root /data/local/tmp/nntr_gemma4_hadamard_e2e_20261014 \
+    --output /tmp/hadamard-rotation-only \
+    --order both_hmx,off,off,both_hmx,off,both_hmx,both_hmx,off
+
+진단 빌드 준비는 test/htp/prepare_hadamard_shadow.py <새 임시 디렉터리>다.
+출력된 build.sh를 일반 빌드와 같은 SDK/HEXKL 환경에서 실행한다. 일반
+소스를 수정하지 않고 별도 libnntr_hvx_hadamard_shadow.so를 생성한다.
+진단용 runtime에만 libnntr_hvx_skel.so라는 이름으로 배포하고, runner에
+--shadow-decode를 지정한다. trace 검증에는 --profile도 지정한다. 정확한
+명령/환경/바이너리 해시는 각 batch의 settings.json 및 command.txt에 있다.
+
+재측정 원본: decode-optimization/rotation-only/
+재현 명령은 cache/reader 변경 옵션 없이 run_hadamard_e2e.py를 실행한다.
+현재 체크포인트는 offline 회전이 없는 원본이므로 off/on의 출력·routing이
+달라진다. 따라서 실제 앱 E2E 차이와 고정 routing의 순수 회전 비용을
+구분한다. 아래 최초 E2E 기록도 이 제약을 가진다.
+
+전체 앱 최초 E2E (e2e/paired, 각 4회 중앙값):
+
+옵션              prefill ms/TPS       decode ms/TPS       추론 total ms
+off               1621.5 / 631.51      10018.5 / 12.677     11645.0
+both_hmx          1585.5 / 645.85      10669.0 / 11.904     12267.0
+both (FP32)       1670.0 / 613.17      10903.5 / 11.648     12590.0
+
+both_hmx 시간 증가는 prefill -2.22%, decode +6.49%, 추론 전체 +5.34%다.
+TPS 차이는 prefill +2.27%, decode -6.10%다. 로딩을 포함한 앱 e2e 중앙값은
+16745 -> 17029 ms (+1.70%)지만, 로딩 변동이 크므로 회전 비용으로 해석하지 않는다.
+아래 후속 decode 최적화 전 기록이며, 원본 로그와 ID 파일을 보존했다.
+
+1024 input + 첫 출력 1개(prefill) + decode 127회 = 생성 ID 128개다.
+prefill은 모델 초기화/로딩 이후의 입력 추론, generation은 첫 decode의
+graph/KV 준비를 포함한다. 앱의 total은 tokenization/KV 준비/prefill/decode를
+포함하고 모델 초기화/가중치 로딩을 제외한다. [e2e time]은 main 시작부터
+추론 완료까지로 초기화/로딩을 포함한다. 별도로 계산한 각 중앙값은 합산이
+정확히 일치하지 않을 수 있다. 각 실행은 새 프로세스이고 계측 옵션은 껐다.
+
+한계: unrotated checkpoint의 online 회전은 출력과 routing을 바꾼다.
+별도 진단 실행(e2e/diagnostic, 성능 표본에서 제외)에서 prefill top8 expert
+집합의 off/HMX 겹침은 22.97%였고, active layer-expert 수는 3383 -> 3116,
+64행 단위 padded rows는 386624 -> 375360이었다. 전체 실행 cache miss는
+9098 -> 10475, file read는 4493.5 -> 5008.4 ms로 늘었다. 이 cache 수치는
+decode에만 한정된 카운터가 아니다. 따라서 E2E의 prefill 감소나 decode
+증가를 순수 Hadamard 연산 비용으로 해석하지 않는다. 같은 variant의
+생성 ID는 반복 실행 간 동일했다. 언어 모델의 품질 평가는 수행하지 않았다.
+
+이하 decode 최적화 이전 HMX 커널 기록:
+RMSNorm 포함, 각 variant/bit format당 48회(24회 x 2)의 DSP 중앙값:
+
+경로                     off (ms)   FP32 both (ms)   HMX both (ms)   HMX overhead
+2bit expert MoE            17.2480          19.6000         17.7835         3.10%
+4bit 합성 704 x 3           4.5100           5.2665          4.9500         9.76%
+두 커널 중앙값 합            21.7580          24.8665         22.7335         4.48%
+
+합성 workload 합산 증가는 975.5 us, 4.48%다. 실제 FFN의 목표 판정이 아니다.
+관측 표본의 paired-bootstrap 95% 구간은 4.07~4.70%다.
+이는 고정 routing과 이 기기에서 관측한 실행에 대한 구간이며, 전체 모델 또는
+다른 조건의 보장은 아니다. 4bit 합성 경로 단독은 5% 미만이 아니다.
+
+독립된 두 실행의 합산 overhead:
+  hmx-final: 21.7935 -> 22.7650 ms, +4.46%
+  hmx-confirmation: 21.7480 -> 22.6655 ms, +4.22%
+
+RMSNorm 없는 기존 timed RPC와 다른 토큰 수 (최종 실행 24회):
+tokens / bits       off (us)   HMX both (us)    overhead
+   1 / 2                 270.5           284.0        4.99%
+   1 / 4                 194.0           192.0       -1.03%
+1024 / 2               17489.0         17483.0       -0.03%
+1024 / 4                4827.0          4727.0       -2.07%
+ 128 / 2                9331.5          9376.5        0.48%
+ 128 / 4                 697.0           781.0       12.05%
+
+RMSNorm 없는 경로에서는 원래의 입력 copy 제거가 회전 비용 일부를 상쇄한다.
+음수 overhead는 회전 자체의 시간이 음수라는 뜻이 아니다. 작은 batch와
+decode 수치는 작은 절대 시간 차이에 민감하며 1024 prefill 목표와 구분한다.
+raw/hmx-final, raw/hmx-confirmation에 원시 CSV와 stderr가 있다.
+raw/hmx-before-bounds*는 마지막 prefetch 범위 수정 이전 기록이며 최종 집계에 섞지 않았다.
+
+회전 폭은 Up/Gate 2816 = 44 x 64, expert Down 704 = 44 x 16 전체다.
+R2816 = (H44 x H64)/sqrt(2816), R704 = (H44 x H16)/sqrt(704)이며,
+각 출력은 해당 입력 행 전체의 영향을 받는다. HMX용 64행 타일의
+남는 20행을 0으로 채우는 것은 저장 형식이며, H44를 H64로 바꾼
+근사가 아니다. 704 두 토큰을 한 타일의 좌우에 넣어도 토큰끼리는 섞지
+않고 각각 H44를 적용한다.
+
+PR #4416의 4bit dense FFN은 2112차원을 1056 두 chunk로 처리한다.
+실제 앱에서는 여기에 회전을 적용하지 않는다. 합성 4bit 커널 벤치만
+독립적인 704 세 chunk를 사용하며, 이것은 full H2112가 아니다.
+
+prefill의 both_hmx 옵션은 H_p와 H44를 모두 FP16 HMX 행렬곱으로 처리한다.
+HVX가 FP32/FP16 타일 변환과 INT8 양자화를 맡는다. both 옵션은 FP32 입출력의
+HVX FWHT + H44 경로이고, both_scalar는 검증용 scalar다. HMX 옵션이라도
+M <= 4 및 별도 빌드 옵션으로 켠 4bit HVX expert tail은 FP32 HVX를 사용한다.
+이 fallback도 전체 폭을 유지하며, 회전을 생략하지 않는다. 기본 빌드의
+MOE_TAIL_MAX_ROWS는 0이라 expert tail도 HMX의 부분 block으로 처리한다.
+
+속도 개선의 핵심은 다음과 같다.
+
+- Up/Gate 회전은 expert gather 전에 토큰마다 한 번 수행한다. 같은 결과를
+  Up과 Gate 및 모든 선택 expert가 공유한다.
+- 입력을 전체 FP32 heap으로 복사하던 단계를 제거했다. RMSNorm이 필요하면
+  worker의 한 행 scratch에서 처리하고 곧바로 FP16 HMX 타일로 만든다.
+- 두 VTCM 입력/출력 bank를 번갈아 쓴다. HMX가 현재 batch를 계산할 때
+  HVX worker는 이전 batch를 양자화하고 다음 batch를 pack한다. bank를
+  다시 사용하기 전에 join하여 데이터 경합을 막는다.
+- Up 회전 결과는 전체 FP32 행렬에 저장하지 않고 worker scratch에서 바로
+  INT8로 pack한다. FP16을 FP32로 읽는 동안 min/max도 함께 계산한다.
+- Down은 기존 GeGLU epilogue에서 자신의 column pair를 FP16 타일로 pack한다.
+  마지막 epilogue 완료 후 caller가 HMX 회전을 수행하고, 기존 requant worker가
+  unpack/minmax/INT8 AH pack을 수행한다. 별도 전체 gate 재독해 pass를 없앴다.
+- H_p/sqrt(p)와 H44/8의 계수는 FP16에서 정확한 2의 거듭제곱이다.
+  마지막 8/sqrt(44)는 INT8 code를 만든 뒤 scale에 곱한다. 따라서 정규화
+  때문에 원소마다 별도 multiply를 하지 않는다. H44/8은 불필요하게 큰
+  FP16 중간값도 줄인다. 입력/중간값에는 여전히 FP16 범위 제한이 있다.
+- 추가 VTCM은 335872 bytes(328 KiB)다. 기존 GEMM arena와 겹치지 않도록
+  layout 계산 전에 예약한다. 다른 옵션의 baseline에는 이 예약을 하지 않는다.
+- 최종 HMX pack/store worker의 frame은 약 12.1/12.4 KiB, FP32 Hadamard
+  frame은 6.75 KiB다. 기존 32 KiB worker stack과 64 KiB RPC stack에서 검증했다.
+- FP32 H44도 22개 출력씩 register에 누산하도록 개선했다. QFloat 중간값은
+  하나의 asm block 안에서 유지하고 FP32로 변환한 뒤 저장한다. extended
+  register 상태를 일반 메모리에 spill하거나 shuffle하지 않는다.
+
+INT32 GEMM과 FP16 회전이 같은 HMX를 번갈아 사용한다. HexKL의 FP16
+acc_read 함수는 bias register를 복원하지 않으므로, 회전 batch 시작마다
+setup_acc_read_f16을 호출한다. SDK config 내부 byte offset에 의존하지 않는다.
+Up-only, Down-only, both의 통합 출력 검사가 이 전환 문제도 검출한다.
+
+수치 검증 결과는 다음과 같다.
+
+- 단독 FP16 회전 최대 NRMSE: 0.03697%.
+- 단독 FP16 회전 최대 energy 상대오차: 0.06941%.
+- 1024-token RMSNorm 포함 통합 출력 (FP32 회전 대비):
+  2bit CHECK_HMX_UP: NRMSE 0.20928%.
+  2bit CHECK_HMX_DOWN: NRMSE 0.11494%.
+  2bit CHECK_HMX: NRMSE 0.22546%.
+  4bit CHECK_HMX_UP: NRMSE 1.02853%.
+  4bit CHECK_HMX_DOWN: NRMSE 0.27140%.
+  4bit CHECK_HMX: NRMSE 0.89743%.
+- 최종 전체 matrix의 FP16 통합 최대 NRMSE: 1.07004%.
+
+NRMSE는 sqrt(sum((candidate-reference)^2)/sum(reference^2))다.
+통합 비교의 reference는 같은 합성 가중치에 FP32 online 회전을 적용한
+결과이며, 회전 없는 정상 checkpoint나 실제 언어 모델 품질과의 비교가 아니다.
+INT8 bin 경계를 넘는 작은 회전 오차가 다음 quantization에서 증폭될 수 있다.
+단독 FP16 회전 검사는 NRMSE <= 0.2%, energy 상대오차 <= 0.3%를 요구한다.
+통합 FP16 sanity guard는 2%로, 깨진 타일/상태/경합 등을 검출하기 위한 값이다.
+처음의 1% 통합 guard는 4bit Up-only의 약 1.07%에서 실패하여, 단독 회전과
+통합 오차를 분리해 기록했다. 이 기준을 모델의 허용 품질 저하로 해석하지 않는다.
+FP32 단독 검사의 3e-5*(1+abs(reference)), energy 3e-6 및 통합 0.1% 기준은
+바꾸지 않았다.
+
+검증 및 범위:
+
+- 실제 DSP에서 FP32 결과를 독립 O(n^2) double 행렬과 비교했다.
+- 실제 DSP FP16 회전: width 704/2816, rows 1/2/3/17/33/65/1024,
+  sin/cos, 서로 다른 위치 impulse, 상수, 크기 1000 outlier 및 상수, zero.
+  홀수 행, 두 bank의 경계, guard, 비지원 width/mode의 오류 반환을 확인했다.
+- 실제 DSP 통합: 두 bit format의 1/128/1024-token 전체 8 variant, RMSNorm
+  포함 1024-token, 추가 5-token 홀수 행 및 1057-token 부분 HMX block 검사.
+- host full MoE suite와 옵션 parser 검사 통과. Host는 MOE_TAIL_MAX_ROWS=16으로
+  빌드해 4bit HVX expert tail의 회전도 검사했다. Hadamard ASan/UBSan 통과.
+- Hexagon 전체 build(-Wall -Werror), ARM64 benchmark와 client stub 갱신,
+  htp_compute_ops.cpp의 Android ARM64 object compile 통과.
+- clang-format 14, git diff --check, shell syntax, 생성 파일 재현 및 측정
+  집계의 이전 5-variant 형식/현재 8-variant 형식/불완전 입력 거부 확인.
+- 전체 앱 ARM64 link와 MCX에서 실제 모델 실행을 완료했다. Scope 추가 후
+  full MoE host suite와 옵션 검사가 통과했다. 4bit prefill/decode의 출력은
+  scope를 켜도 bit-identical하고 2bit 회전은 유지되는지 확인했다.
+  원격 CI는 실행하지 않았다. 초기 검사 기록은 checks/, checks-hmx/에 있다.
+
+측정 조건:
+
+- Hexagon SDK 6.4.0.1, Tools 19.0.04, HexKL 1.0-beta.2, Android NDK r30.
+- K=2816, intermediate=704, output=2816, GeGLU.
+- expert: 합성 packed 2bit, 128 experts, top-8, 균등하게 분포한 고정 routing.
+  PR의 2bit palette {-7,0,7,0}와 실제 weight registration/DMA/expand 경로 사용.
+- 4bit 합성: packed 4bit, 704차원 chunk 3개 전부 활성화. 실제 shared가 아님.
+- 공통 flags 0x00cf03e1: GeGLU, GEMV/VTCM feed, DMA bypass, 4 DMA queues.
+  PR 기본 queue=1을 측정한 결과는 아니다. 모든 variant에 같은 설정을 썼다.
+- baseline은 같은 최종 바이너리의 rotation=off다.
+- 각 variant warmup 후 순서를 반복마다 회전/반전한다. weights/input/routing은
+  모든 variant에서 동일하다. 옵션 RPC, weight 등록, warmup은 timing에서 제외했다.
+- 기존 timed RPC 및 추가 norm_timed의 DSP wall을 사용한다. 단계별 worker
+  시간은 중첩되므로 stage 합을 전체 시간으로 취급하지 않는다.
+- Router/attention/KV cache/embedding/sampling은 포함하지 않는다.
+  다른 routing, token 수, 온도에서 같은 비율을 보장하는 결과는 아니다.
+
+재현 (저장소 루트, SDK/NDK/HexKL 환경변수 설정 후):
+
+  python3 test/htp/generate_hadamard_tables.py
+  bash test/htp/build.sh
+  bash test/htp/build_hadamard_bench.sh
+  HADAMARD_REPS=24 bash test/htp/run_hadamard_bench_on_device.sh R5KL30G6MCX /tmp/hadamard-result
+
+실행 스크립트는 LH로 끝나는 serial을 거부한다. 기존 앱과 분리된
+/data/local/tmp/nntr_hadamard_<timestamp>를 사용하고, vendor의 libcdsprpc.so를
+사용한다. SDK의 link-time stub은 기기로 보내지 않는다. 개별 실행은
+hadamard_moe_bench <tokens> <repeats> <weight_bits> [pre_norm=0|1]이며,
+CSV variant 0..7은 off/up/down/both/both_scalar/up_hmx/down_hmx/both_hmx다.
+
+  python3 test/htp/summarize_hadamard_bench.py /tmp/hadamard-result/moe-*.csv
+
+초기 합성 workload 합계를 재현할 때는 --pool-ffn 뒤에 1024-token w2/w4
+norm CSV들을 명시한다. 실제 shared FFN 또는 E2E를 나타내는 옵션이 아니다.
+
+앱에서 사용하려면 ARM client stub도 갱신하고 양쪽 코드를 재빌드한다.
+
+  bash nntrainer/tensor/htp_backend/generate_stub.sh
+  NNTR_MOE_HADAMARD=both_hmx NNTR_MOE_HADAMARD_SCOPE=2bit NNTR_MOE_DMA_QUEUES=4 <기존 앱 실행 명령>
+
+기본값은 off다. up/down/both는 FP32 HVX, *_hmx는 FP16 HMX 후보,
+both_scalar는 검증 reference다. 잘못된 값, 충돌하는 precision flag,
+FP16 HMX 미지원 하드웨어, HMX 미지원 shape는 오류로 처리한다.
+기본 scope는 2bit다. 활성 weight pair가 모두 2bit인 호출에만 회전한다.
+4bit shared 호출은 shape 검사/VTCM 예약 전에 회전 flag를 제거하므로
+1056 x 2 레이아웃과 출력이 유지된다. 서로 다른 bit format이 혼합된 호출은
+거부한다. scope=all은 지원 폭의 커널 실험용이며, 1056 shared 폭은 거부한다.
+CPU/Q4M1 및 attention 회전은 포함하지 않는다. HMX 반올림과 FP16 범위는
+회전에 맞춘 checkpoint로 별도 평가해야 한다.
+
+실제 모델 품질을 보존하려면 양자화 전에 대응 weight를 offline 변환해야 한다.
+x_rot=R*x, W[out,in] 표기에서는 W_rot=W*R^T다. H44는 대칭이 아니므로
+transpose를 생략하면 안 된다. 2bit expert의 Up/Gate 양쪽과 Down이 회전과
+일치해야 한다. Shared는 회전하지 않는다. 기존 unrotated checkpoint에
+activation 회전만 켜면 정상 모델 출력이 아니다. 이 작업은 속도 실험이다.
+
+주요 코드:
+  nntrainer/tensor/htp_backend/hmx/hexkl_hadamard_f16.h
+  nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c
+  nntrainer/tensor/htp_backend/hvx/hvx_hadamard_f32.c
+  nntrainer/tensor/htp_backend/htp_moe_opts.h
+  test/htp/generate_hadamard_tables.py
+  test/htp/hadamard_moe_bench.cpp
+  test/htp/hadamard_hmx_check.c
+
+근거:
+  https://github.com/nntrainer/nntrainer/pull/4416
+  https://github.com/facebookresearch/SpinQuant/blob/main/utils/hadamard_utils.py
+  로컬 HexKL 1.0-beta.2 hexkl_micro.h 및 해당 SDK library
+
+최종 source/binary SHA256, 빌드 조건 및 raw 경로는 manifest.json에 기록했다.
+위 측정은 commit/push/PR 발행 전 로컬 worktree에서 수행했다.
+게시 전 재검증 기록은 publication-checks/summary.json에 별도로 보관한다.

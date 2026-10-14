@@ -1,0 +1,62 @@
+/data/local/tmp/nntr_gemma4_hadamard_e2e_20261014/model
+/data/local/tmp/nntr_tl2_output_20261012/qs2/nntr_gemma4_26b_a4b_qs2cx_fcqs4cx.bin
+[HTP] ppl levers=0x0 L1=exact
+[HTP] graph: description n_ops=542 resident=RMSNORM|FC|QK_NORM|ROPE|ATTN_M1|ADD|ROUTER_TOPK|MOE|DENSE_FFN|LM_HEAD moe_ops=30
+[HTP] gemma: list n_ops=542 layers=30 params=60 by name
+[HTP] moe m1 gemv: on (applied=0xcf03e1) lead=192KB rows1=1 feed=vtcm dma_bypass=1 dma_q=4 source=default
+[HTP] LM head shares 16 DSP handles for prefill/decode; released 396 MiB host source
+[HTP] graph: q4m1 weights=206 handles=16 feed=vtcm wh_handles=570
+[HTP] e2e: fc arena weights=206 handles=16 attach_mib=396.0 chunks=2 mapped_mib=448 feed=vtcm load_ms=901.3 lanes=6,3 s1_arena_mib=1728 s1_heap_kib=110530
+<bos><|turn>user
+You are a summarization expert. Please read the provided <Text> carefully and summarize it in 3 sentences in English. The summary should comprehensively cover the entire content of the original text and be written with the same meaning as the source material.
+
+<Text>
+Introduction
+Municipal water networks in mid-sized cities are among the oldest pieces of infrastructure still in daily use, and in many of them the pipes that carry drinking water under the streets were laid before the invention of the devices now used to monitor them. The operators of such networks face a persistent and expensive problem: water leaves the treatment works in a known quantity, but a substantial fraction of it, often between a fifth and a third, never reaches a customer meter. Some of this loss is accounted for by firefighting, mains flushing and unmetered public use, but the larger share escapes through leaks that are too small to surface and too numerous to find by inspection. In this report we describe a three-year study, carried out in partnership with the water utility of a city of roughly four hundred thousand inhabitants, in which a dense network of low-cost acoustic and pressure sensors was installed across one supply district and used to locate leaks, to estimate the volume lost through them, and to test whether the information could be turned into a repair schedule that paid for itself. The district chosen for the study covers about eleven square kilometres, contains one hundred and ninety kilometres of mains of mixed age and material, and serves some thirty-one thousand connections, which makes it typical of the city as a whole and, we believe, of many other cities built up during the same period.
+The sensing approach rests on two complementary signals. The first is acoustic: a leak in a pressurised pipe produces a continuous broadband noise that travels along the pipe wall and through the water column, and a sensor clamped to a valve or hydrant can detect that noise at a distance of several tens of metres in metal pipe and somewhat less in plastic. The second is hydraulic: when the demand in a district is lowest, in the early hours of the morning, the flow entering the district should fall to a floor set by legitimate night-time use, and any excess above that floor is a measure of the leakage present. By combining night-flow analysis, which tells the operator how much is being lost in a district, with acoustic correlation, which tells the operator where along a pipe the loss is occurring, the study aimed to move the utility from a reactive posture, in which leaks are repaired when they become visible, to one in which hidden leaks are located and ranked by size before any water reaches the surface. The sensors were designed by the project team around a commodity microcontroller, a piezoelectric accelerometer, a pressure transducer and a low-power radio, and each unit cost about a sixth of the price of the commercial loggers the utility had previously used in small numbers. Three hundred and forty units were deployed, giving an average spacing of a little over five hundred metres along the mains, with closer spacing in the older parts of the district where the pipes are cast iron and the historical burst rate is highest.
+Installation took four months and was carried out by the utility's own field crews after a week of training. Each sensor was fixed to the spindle of a valve or the outlet of a hydrant inside its existing chamber, so that no excavation was needed, and each unit was configured to record a short acoustic sample every fifteen minutes during the night, to log pressure continuously at one reading per second, and to transmit a compressed summary to a gateway once an hour. The gateways, of which there were nineteen, were mounted on lamp posts and powered from the street lighting supply, and they forwarded the data over the cellular network to a server at the utility's headquarters. The first weeks of operation revealed several practical difficulties that we document in full in the body of the report. Chambers that flooded after heavy rain drowned the radios of a dozen units until a revised antenna mounting was introduced. Traffic noise from a trunk road produced a daily pattern of false positives in the acoustic channel that was removed only when the processing was restricted to the hours between two and four in the morning. And the batteries, which had been specified for a five-year life, proved sensitive to the low winter temperatures inside shallow chambers, so that the sampling schedule had to be thinned during the coldest months. None of these problems was fatal, but together they consumed most of the project's first year, and we recommend that any similar deployment budget at least as long for the shakedown period as for the installation itself.
+The analysis pipeline was built in three stages. In the first stage, each sensor's acoustic samples were reduced to a small set of spectral features and compared with that sensor's own long-term baseline, so that a sustained rise in noise at a single location raised a flag without any assumption about the pipe material or the surrounding ground. In the second stage, flagged sensors were paired with their neighbours and the arrival time difference of the correlated noise was used to estimate the position
+[HTP] mem t1 before graph init (= prefill end): s1_heap_mib=119 staging_pools_mib=155 rss_mib=281 mem_available_mib=4090
+[HTP] mem t1 after graph init: s1_heap_mib=165 staging_pools_mib=155 rss_mib=281 mem_available_mib=4043
+[HTP] graph: init n_ops=542 resident=RMSNORM|FC|QK_NORM|ROPE|ATTN_M1|ADD|ROUTER_TOPK|MOE|DENSE_FFN|LM_HEAD moe_ops=30
+[HTP] e2e: freed 0 quantized KV caches
+[HTP] attn_m1: registered layers=25 kv=8 gqa=2 head_dim=256 max_seq=1152 cache=115200 KiB int8
+[HTP] attn_m1: registered layers=5 kv=2 gqa=8 head_dim=512 max_seq=1152 cache=11520 KiB int8
+[HTP] dspq: on queue=0x450400000000 dsp_spin_us=0 arm_spin_us=5000 buffers=65536+1048576 ion=y domain=3
+[HTP] token driver: on mbox=65536 spin_us=0 moe_ops=30 logits_buf=1048576 fadvise=0
+[HTP] t1: graph_init_ms=138.3
+[HTP] t1: pool_sync_ms=2.2 (drop_host_fc+pin 0.0) kv_seed_rpc_ms=83.1 seeds=30 (dsp 0, kvq freed late 0) rss_mib=291.9 mem_available_mib=4118.7
+ing[HTP] staging: prefill classes released mib=72
+[HTP] pool: +32 experts a layer from the second token
+[HTP] token driver: first token pos=1024 id=522 us=192594 logits=0
+/ deinging deeing- deing deing deing de mostinging deing deing deing deing deing de
+
+ deing deing de deing de deing deing deinging deing de low- mosting- deing deing deing deinged deing de of aing de aing de of ofing of aing ofing ofing ofing mosting deing deing deing de
+
+ deing deing deing deing a true de de deing deing deinging deinging deinging deinginging deinginging
+
+=================[ LLM with NNTrainer ]===================
+prefill: 1024 tokens, 1622 ms, 631.319 TPS
+generation: 127 tokens, 7526 ms, 16.8748 TPS
+[TIMING] first_token_ms=446.878 rest_avg_ms=56.1891
+generation(last 64): 64 tokens, 3376 ms, 18.9573 TPS
+total: 9165 ms
+peak memory: 1692316 KB
+==========================================================
+[e2e time]: 15631 ms 
+Max Resident Set Size: 1692316 KB
+[HTP] dspq: close calls=127 served=127 bad=0 empty_polls=0 dsp_spin_us=0 stop_err=0x0
+[HTP] graph: tokens=127 pcyc/token=106400228 wait_us/token=0.0
+[HTP] graph per-kind pcyc/token: RMSNORM=3999036(2.021ms) FC=20280482(10.252ms) QK_NORM=558007(0.282ms) ROPE=460850(0.233ms) ATTN_M1=13998350(7.076ms) ADD=679205(0.343ms) ROUTER_TOPK=5981450(3.024ms) MOE=39682523(20.059ms) DENSE_FFN=7181999(3.630ms) LM_HEAD=13578325(6.864ms) | wall_ms/token=54.150 mhz=1978 spin_us=0
+[HTP] graph per-kind us/token: RMSNORM=1894 FC=9603 QK_NORM=264 ROPE=218 ATTN_M1=6628 ADD=321 ROUTER_TOPK=2832 MOE=22217(net of miss wait 13584) DENSE_FFN=3401 LM_HEAD=6429 | ops/wall=0.9936 compute_mhz=2112
+[HTP] graph moe pcyc/op=1322751 (0.669 ms) router pcyc/op=199382; fc+dense_ffn+lm_head ms/token=20.746; arm token_ms=55.691
+[HTP] token driver: L0 wake us/token disp=32.8 pkt=6.2 ret=1501.5 clk_resid=-0.1
+[HTP] token driver: L0 us/token rt=55690.5 dsp_wall=54150.1 wake=1540.4 hop_us=0.0 arm_fwd=56518.7 arm_us=771.6 arm_n=126
+[HTP] token driver: pool misses=2465 misses/token=19.41 miss_wait_us/token=8632.9 rounds=1320 arm_ms/round=1.290 pgpgin_mib=3599.6 rss_mib=128.2 mem_available_mib=3184.1
+[HTP] token driver: round us: notice=0 pre=80 read=1210 answer=1290 (arm total) | dsp overlap=476 wait=831 anslat=15 rebind=112
+[HTP] token driver: moe calls/token=47.12 (one-at-a-time 82.51)
+[HTP] token driver: close tokens=127 hops/token=0.00 served=127 timeouts=0 stale=0 id_checked=0 id_mismatch=0 stop_err=0x0
+[HTP] e2e: close mapped_mib=449.12 unmap_fail=0 detach_fail=0 heap_used_kib=348740 (info rc 0x0)
+[HTP] arena: chunks unmapped 12/12 mib=2880 (release rc=0x0 put=12)
+[HTP] graph: forward calls=127 tokens=127 calls/token=1.00
+[HTP] graph: cpu fc skipped=19080

@@ -1,0 +1,307 @@
+ninja: Entering directory `builddir'
+[1/10] Compiling C++ object subprojects/googletest/libgmock_main.a.p/googlemock_src_gmock_main.cc.o
+[2/10] Linking static target subprojects/googletest/libgmock_main.a
+[3/10] Compiling C++ object subprojects/googletest/libgtest_main.a.p/googletest_src_gtest_main.cc.o
+[4/10] Linking static target subprojects/googletest/libgtest_main.a
+[5/10] Compiling C++ object subprojects/googletest/libgmock.a.p/googlemock_src_gmock-all.cc.o
+[6/10] Linking static target subprojects/googletest/libgmock.a
+[7/10] Compiling C++ object subprojects/googletest/libgtest.a.p/googletest_src_gtest-all.cc.o
+[8/10] Linking static target subprojects/googletest/libgtest.a
+[9/10] Generating jni/ndk-build with a custom command
+[arm64-v8a] Compile++      : nntrainer <= hgemm_pack.cpp
+[arm64-v8a] Compile++      : nntrainer <= hgemm_util.cpp
+[arm64-v8a] Compile++      : nntrainer <= hgemm_transA.cpp
+[arm64-v8a] Compile++      : nntrainer <= hgemm_transB.cpp
+[arm64-v8a] Compile++      : nntrainer <= hgemm.cpp
+[arm64-v8a] Compile++      : nntrainer <= hgemm_transAB.cpp
+[arm64-v8a] Compile++      : nntrainer <= kleidiai_interface_f16_qai8dxp_qsi4cxp.cpp
+[arm64-v8a] Compile++      : nntrainer <= hgemm_noTrans.cpp
+[arm64-v8a] Compile++      : nntrainer <= kleidiai_interface_qsi8d32p_qsi4c32p.cpp
+[arm64-v8a] Compile++      : nntrainer <= kleidiai_interface_qai8dxp_qsi4cxp.cpp
+[arm64-v8a] Compile++      : nntrainer <= kleidiai_interface_qsi8d32p_qsi4c32p_omp.cpp
+[arm64-v8a] Compile++      : nntrainer <= arm_compute_backend_fp16.cpp
+[arm64-v8a] Compile++      : nntrainer <= kleidiai_interface_qai8dxp_qsi8cxp.cpp
+[arm64-v8a] Compile++      : nntrainer <= arm_compute_backend.cpp
+[arm64-v8a] Compile++      : nntrainer <= cache_elem.cpp
+[arm64-v8a] Compile++      : nntrainer <= neon_impl.cpp
+[arm64-v8a] Compile++      : nntrainer <= neon_impl_fp16.cpp
+[arm64-v8a] Compile++      : nntrainer <= tensor_base.cpp
+[arm64-v8a] Compile++      : nntrainer <= cache_pool.cpp
+[arm64-v8a] Compile++      : nntrainer <= lazy_tensor.cpp
+[arm64-v8a] Compile++      : nntrainer <= uint_tensor.cpp
+[arm64-v8a] Compile++      : nntrainer <= cache_loader.cpp
+[arm64-v8a] Compile++      : nntrainer <= int4_utils.cpp
+[arm64-v8a] Compile++      : nntrainer <= uint4_tensor.cpp
+[arm64-v8a] Compile++      : nntrainer <= char_tensor.cpp
+[arm64-v8a] Compile++      : nntrainer <= q4_k_tensor.cpp
+[arm64-v8a] Compile++      : nntrainer <= q6_k_tensor.cpp
+[arm64-v8a] Compile++      : nntrainer <= q4_0_utils.cpp
+[arm64-v8a] Compile++      : nntrainer <= q4_0_tensor.cpp
+[arm64-v8a] Compile++      : nntrainer <= htp_act_quant.cpp
+[arm64-v8a] Compile++      : nntrainer <= htp_q4_0_convert.cpp
+[arm64-v8a] Compile++      : nntrainer <= int4_tensor.cpp
+[arm64-v8a] Compile++      : nntrainer <= short_tensor.cpp
+[arm64-v8a] Compile++      : nntrainer <= var_grad.cpp
+[arm64-v8a] Compile++      : nntrainer <= tensor.cpp
+[arm64-v8a] Compile++      : nntrainer <= quantizer.cpp
+[arm64-v8a] Compile++      : nntrainer <= qs4cx_tensor.cpp
+[arm64-v8a] Compile++      : nntrainer <= manager.cpp
+[arm64-v8a] Compile++      : nntrainer <= basic_planner.cpp
+[arm64-v8a] Compile++      : nntrainer <= tensor_dim.cpp
+[arm64-v8a] Compile++      : nntrainer <= float_tensor.cpp
+[arm64-v8a] Compile++      : nntrainer <= weight.cpp
+[arm64-v8a] Compile++      : nntrainer <= swap_device.cpp
+[arm64-v8a] Compile++      : nntrainer <= optimized_v3_planner.cpp
+[arm64-v8a] Compile++      : nntrainer <= memory_pool.cpp
+[arm64-v8a] Compile++      : nntrainer <= optimized_v1_planner.cpp
+[arm64-v8a] Compile++      : nntrainer <= nntrainer_logger.cpp
+[arm64-v8a] Compile++      : nntrainer <= optimized_v2_planner.cpp
+[arm64-v8a] Prebuilt       : libsdkl.so <= /home/jungone-lee/workspace/nntrainer/Qualcomm/hexkl-1.0-beta.2/hexkl_addon/lib/6.4.0.2/armv8_android26/
+[arm64-v8a] Compile++      : nntrainer <= tensor_pool.cpp
+[arm64-v8a] Prebuilt       : libcdsprpc.so <= /local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/ipc/fastrpc/remote/ship/android_aarch64/
+[arm64-v8a] Install /home/jungone-lee/workspace/nntrainer-gemma4-spinquant/builddir/jni/arm64-v8a/libc++_shared.so:
+[arm64-v8a] Install        : libsdkl.so => /home/jungone-lee/workspace/nntrainer-gemma4-spinquant/builddir/jni/arm64-v8a/libsdkl.so
+[arm64-v8a] Compile++      : nntrainer <= mem_allocator.cpp
+[arm64-v8a] Compile++      : nntrainer <= task_executor.cpp
+[arm64-v8a] Compile++      : nntrainer <= half_tensor.cpp
+[arm64-v8a] Compile++      : ccapi-nntrainer <= tensor_api_lazy.cpp
+[arm64-v8a] Compile++      : ccapi-nntrainer <= tensor_api_ops.cpp
+[arm64-v8a] Compile++      : ccapi-nntrainer <= tensor_api.cpp
+[arm64-v8a] Compile++      : nntrainer <= htp_context.cpp
+[arm64-v8a] Compile++      : nntrainer <= engine.cpp
+[arm64-v8a] Compile++      : nntrainer <= activation_realizer.cpp
+[arm64-v8a] Compile++      : nntrainer <= ini_interpreter.cpp
+[arm64-v8a] Compile++      : ccapi-nntrainer <= tensor_api_graph.cpp
+[arm64-v8a] Compile++      : ccapi-nntrainer <= factory.cpp
+[arm64-v8a] Compile++      : nntrainer <= recurrent_realizer.cpp
+[arm64-v8a] Compile++      : nntrainer <= previous_input_realizer.cpp
+[arm64-v8a] Compile++      : nntrainer <= slice_realizer.cpp
+[arm64-v8a] Compile++      : nntrainer <= input_realizer.cpp
+[arm64-v8a] Compile++      : nntrainer <= flatten_realizer.cpp
+[arm64-v8a] Compile++      : nntrainer <= app_context.cpp
+In file included from /home/jungone-lee/workspace/nntrainer-gemma4-spinquant/nntrainer/app_context.cpp:94:
+/home/jungone-lee/workspace/nntrainer-gemma4-spinquant/nntrainer/layers/split_layer.h:72:3: warning: '/*' within block comment [-Wcomment]
+   72 |   /**
+      |   ^
+1 warning generated.
+[arm64-v8a] Compile++      : nntrainer <= data_iteration.cpp
+[arm64-v8a] Compile++      : nntrainer <= iteration_queue.cpp
+[arm64-v8a] Compile++      : nntrainer <= remap_realizer.cpp
+[arm64-v8a] Compile++      : nntrainer <= tflite_export_realizer.cpp
+[arm64-v8a] Compile++      : nntrainer <= databuffer.cpp
+[arm64-v8a] Compile++      : nntrainer <= bn_realizer.cpp
+[arm64-v8a] Compile++      : nntrainer <= random_data_producers.cpp
+[arm64-v8a] Compile++      : nntrainer <= func_data_producer.cpp
+[arm64-v8a] Compile++      : nntrainer <= multiout_realizer.cpp
+[arm64-v8a] Compile++      : nntrainer <= databuffer_factory.cpp
+[arm64-v8a] Compile++      : nntrainer <= dir_data_producers.cpp
+[arm64-v8a] Compile++      : nntrainer <= loss_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= cross_entropy_sigmoid_loss_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= raw_file_data_producer.cpp
+[arm64-v8a] Compile++      : nntrainer <= kld_loss_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= constant_derivative_loss_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= mse_loss_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= add_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= cross_entropy_softmax_loss_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= activation_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= multiply_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= divide_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= weight_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= subtract_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= cosine_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= sqrt_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= pow_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= tangent_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= matmul_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= sine_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= slice_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= negative_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= cast_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= gather_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= addition_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= attention_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= mol_attention_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= concat_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= bn_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= multi_head_attention_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= layer_normalization_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= conv2d_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= flatten_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= fc_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= conv2d_transpose_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= input_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= conv1d_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= multiout_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= preprocess_translate_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= preprocess_flip_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= pooling2d_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= embedding.cpp
+[arm64-v8a] Compile++      : nntrainer <= preprocess_l2norm_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= rnn.cpp
+[arm64-v8a] Compile++      : nntrainer <= lstmcell_core.cpp
+[arm64-v8a] Compile++      : nntrainer <= layer_node.cpp
+[arm64-v8a] Compile++      : nntrainer <= lstm.cpp
+[arm64-v8a] Compile++      : nntrainer <= time_dist.cpp
+[arm64-v8a] Compile++      : nntrainer <= rnncell.cpp
+[arm64-v8a] Compile++      : nntrainer <= common_properties.cpp
+[arm64-v8a] Compile++      : nntrainer <= zoneout_lstmcell.cpp
+[arm64-v8a] Compile++      : nntrainer <= lstmcell.cpp
+[arm64-v8a] Compile++      : nntrainer <= split_layer.cpp
+In file included from /home/jungone-lee/workspace/nntrainer-gemma4-spinquant/nntrainer/layers/split_layer.cpp:19:
+/home/jungone-lee/workspace/nntrainer-gemma4-spinquant/nntrainer/layers/split_layer.h:72:3: warning: '/*' within block comment [-Wcomment]
+   72 |   /**
+      |   ^
+1 warning generated.
+[arm64-v8a] Compile++      : nntrainer <= permute_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= layer_impl.cpp
+[arm64-v8a] Compile++      : nntrainer <= dropout.cpp
+[arm64-v8a] Compile++      : nntrainer <= reshape_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= gru.cpp
+[arm64-v8a] Compile++      : nntrainer <= layer_context.cpp
+[arm64-v8a] Compile++      : nntrainer <= centroid_knn.cpp
+[arm64-v8a] Compile++      : nntrainer <= reduce_mean_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= reduce_sum_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= grucell.cpp
+[arm64-v8a] Compile++      : nntrainer <= identity_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= positional_encoding_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= model_common_properties.cpp
+[arm64-v8a] Compile++      : nntrainer <= dynamic_training_optimization.cpp
+[arm64-v8a] Compile++      : nntrainer <= optimizer_devel.cpp
+[arm64-v8a] Compile++      : nntrainer <= upsample2d_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= sgd.cpp
+[arm64-v8a] Compile++      : nntrainer <= channel_shuffle.cpp
+[arm64-v8a] Compile++      : nntrainer <= adam.cpp
+[arm64-v8a] Compile++      : nntrainer <= model_loader.cpp
+[arm64-v8a] Compile++      : nntrainer <= optimizer_context.cpp
+[arm64-v8a] Compile++      : nntrainer <= lr_scheduler_exponential.cpp
+[arm64-v8a] Compile++      : nntrainer <= lr_scheduler_constant.cpp
+[arm64-v8a] Compile++      : nntrainer <= lr_scheduler_step.cpp
+[arm64-v8a] Compile++      : nntrainer <= lr_scheduler_cosine.cpp
+[arm64-v8a] Compile++      : nntrainer <= optimizer_wrapped.cpp
+[arm64-v8a] Compile++      : nntrainer <= compute_ops.cpp
+[arm64-v8a] Compile        : nntrainer <= hexkl_kv_q.c
+[arm64-v8a] Compile++      : nntrainer <= cpu_ops_table.cpp
+[arm64-v8a] Compile++      : nntrainer <= lr_scheduler_linear.cpp
+[arm64-v8a] Compile++      : nntrainer <= nntr_ggml_impl_fp16_fp32.cpp
+[arm64-v8a] Compile++      : nntrainer <= cpu_kv_q_attention.cpp
+[arm64-v8a] Compile++      : nntrainer <= fallback_internal.cpp
+[arm64-v8a] Compile++      : nntrainer <= nntr_ggml_impl_quant.cpp
+[arm64-v8a] Compile++      : nntrainer <= adamw.cpp
+[arm64-v8a] Compile++      : nntrainer <= lion.cpp
+[arm64-v8a] Compile++      : nntrainer <= cblas_interface.cpp
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f16_qai8dxp1x4_qsi4cxp4x4_1x4_neon_dotprod_asm.S
+[arm64-v8a] Compile++      : nntrainer <= fallback_internal_fp16.cpp
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f16_qai8dxp1x4_qsi4cxp4x4_1x4_neon_dotprod.c
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f16_qai8dxp1x8_qsi4cxp4x8_1x4_neon_dotprod_asm.S
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f16_qai8dxp1x8_qsi4cxp4x8_1x4_neon_dotprod.c
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f16_qai8dxp4x4_qsi4cxp4x4_16x4_neon_dotprod_asm.S
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f16_qai8dxp4x8_qsi4cxp4x8_16x4_neon_i8mm_asm.S
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f16_qai8dxp4x8_qsi4cxp4x8_16x4_neon_i8mm.c
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f16_qai8dxp4x4_qsi4cxp4x4_16x4_neon_dotprod.c
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f32_qai8dxp1x4_qsi4cxp4x4_1x4_neon_dotprod.c
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f32_qai8dxp1x8_qsi4cxp4x8_1x4x32_neon_dotprod.c
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f32_qai8dxp1x8_qsi4cxp8x8_1x8x32_neon_dotprod.c
+[arm64-v8a] Compile++      : nntrainer <= ggml_interface.cpp
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f32_qai8dxp4x4_qsi4cxp8x4_8x8x32_neon_dotprod.c
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f32_qai8dxp4x8_qsi4cxp4x4_16x4x32_neon_dotprod.c
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f32_qai8dxp4x8_qsi4cxp4x8_8x4x32_neon_i8mm.c
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f32_qai8dxp4x8_qsi4cxp8x8_4x8x32_neon_i8mm.c
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f32_qai8dxp4x8_qsi4cxp4x8_4x4x32_neon_i8mm.c
+[arm64-v8a] Compile++      : nntrainer <= neuralnet.cpp
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f32_qai8dxp4x8_qsi4cxp8x8_8x8x32_neon_i8mm.c
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f32_qai8dxp1x4_qsi8cxp4x4_1x4_neon_dotprod.c
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f32_qai8dxp1x8_qsi8cxp4x8_1x4_neon_dotprod.c
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f32_qai8dxp4x8_qsi8cxp4x8_16x4_neon_i8mm.c
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f32_qai8dxp4x4_qsi8cxp4x4_16x4_neon_dotprod.c
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f32_qsi8d32p1x8_qsi4c32p4x8_1x4x32_neon_dotprod.c
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f32_qsi8d32p4x4_qsi4c32p4x4_16x4_neon_dotprod.c
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f32_qsi8d32p1x4_qsi4c32p4x4_1x4_neon_dotprod.c
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f32_qsi8d32p4x8_qsi4c32p4x8_16x4_neon_i8mm.c
+[arm64-v8a] Compile        : nntrainer <= kai_lhs_quant_pack_qsi8d32p_f32_neon.c
+[arm64-v8a] Compile        : nntrainer <= kai_matmul_clamp_f32_qsi8d32p4x8_qsi4c32p4x8_8x4x32_neon_i8mm.c
+[arm64-v8a] Compile        : nntrainer <= kai_rhs_pack_nxk_qsi4c32pscalef16_qsu4c32s16s0.c
+[arm64-v8a] Compile        : nntrainer <= kai_lhs_quant_pack_qsi8d32p_f32.c
+[arm64-v8a] Compile        : nntrainer <= kai_lhs_quant_pack_qai8dxp_f32.c
+[arm64-v8a] Compile        : nntrainer <= kai_rhs_pack_kxn_qsi4cxp_qs4cxs1s0.c
+[arm64-v8a] Compile        : nntrainer <= kai_rhs_pack_nxk_qsi8cxp_qsi8cx_neon.c
+[arm64-v8a] Compile        : nntrainer <= kai_rhs_pack_nxk_qsi4cxp_qs4cxs1s0.c
+[arm64-v8a] Compile        : nntrainer <= kai_rhs_pack_nxk_qsi4cxp_qs4cxs1s0_neon.c
+[arm64-v8a] Compile++      : nntrainer <= matrix_transpose_neon.cpp
+[arm64-v8a] Compile++      : nntrainer <= nntr_ggml_impl_neon.cpp
+[arm64-v8a] Compile        : nntrainer <= kai_lhs_quant_pack_qai8dxp_f16_neon.c
+[arm64-v8a] Compile++      : nntrainer <= hgemm_kernel_1x4.cpp
+[arm64-v8a] Compile++      : nntrainer <= hgemm_kernel_1x8.cpp
+[arm64-v8a] Compile++      : nntrainer <= hgemm_kernel_4x4.cpp
+[arm64-v8a] Compile++      : nntrainer <= hgemm_kernel_4x8.cpp
+[arm64-v8a] Compile++      : nntrainer <= matrix_transpose_neon_f16.cpp
+[arm64-v8a] Compile++      : nntrainer <= hgemm_kernel_8x8.cpp
+[arm64-v8a] Compile++      : nntrainer <= hgemm_kernel_8x16.cpp
+[arm64-v8a] Compile++      : nntrainer <= hgemm_padding_b.cpp
+[arm64-v8a] Compile++      : nntrainer <= htp_backend.cpp
+[arm64-v8a] Compile++      : nntrainer <= hgemm_padding_a.cpp
+[arm64-v8a] Compile        : nntrainer <= nntr_hvx_stub.c
+[arm64-v8a] Compile++      : nntrainer <= ggml_interface_omp.cpp
+[arm64-v8a] Compile++      : nntrainer <= weight_file_reader.cpp
+[arm64-v8a] Compile++      : nntrainer <= ggml_interface_fp16.cpp
+[arm64-v8a] Compile++      : nntrainer <= fp16.cpp
+[arm64-v8a] Compile++      : nntrainer <= util_simd.cpp
+[arm64-v8a] Compile++      : nntrainer <= mman_windows.cpp
+[arm64-v8a] Compile++      : nntrainer <= base_properties.cpp
+[arm64-v8a] Compile++      : nntrainer <= thread_manager.cpp
+[arm64-v8a] Compile++      : nntrainer <= profiler.cpp
+[arm64-v8a] Compile++      : nntrainer <= nntr_threads.cpp
+[arm64-v8a] Compile++      : nntrainer <= thread_manager_util.cpp
+[arm64-v8a] Compile++      : nntrainer <= node_exporter.cpp
+[arm64-v8a] Compile++      : nntrainer <= util_simd_fp16.cpp
+[arm64-v8a] Compile++      : nntrainer <= ddtree_sampling.cpp
+[arm64-v8a] Compile++      : nntrainer <= safetensors_util.cpp
+[arm64-v8a] Compile++      : nntrainer <= ddtree_sliding.cpp
+[arm64-v8a] Compile++      : nntrainer <= ddtree_compact.cpp
+[arm64-v8a] Compile++      : nntrainer <= util_func.cpp
+[arm64-v8a] Compile        : iniparser <= dictionary.c
+[arm64-v8a] Install        : libcdsprpc.so => /home/jungone-lee/workspace/nntrainer-gemma4-spinquant/builddir/jni/arm64-v8a/libcdsprpc.so
+[arm64-v8a] Compile        : iniparser <= iniparser.c
+[arm64-v8a] StaticLibrary  : libiniparser.a
+[arm64-v8a] Compile++      : nntrainer <= ini_wrapper.cpp
+[arm64-v8a] Compile++      : nntrainer <= ddtree.cpp
+[arm64-v8a] Compile++      : nntrainer <= graph_core.cpp
+[arm64-v8a] Compile++      : nntrainer <= connection.cpp
+[arm64-v8a] Compile++      : nntrainer <= network_graph.cpp
+In file included from /home/jungone-lee/workspace/nntrainer-gemma4-spinquant/nntrainer/graph/network_graph.cpp:38:
+/home/jungone-lee/workspace/nntrainer-gemma4-spinquant/nntrainer/layers/split_layer.h:72:3: warning: '/*' within block comment [-Wcomment]
+   72 |   /**
+      |   ^
+1 warning generated.
+[arm64-v8a] Compile++      : nntrainer <= htp_compute_ops.cpp
+[arm64-v8a] SharedLibrary  : libnntrainer.so
+[arm64-v8a] SharedLibrary  : libccapi-nntrainer.so
+[arm64-v8a] Install        : libccapi-nntrainer.so => /home/jungone-lee/workspace/nntrainer-gemma4-spinquant/builddir/jni/arm64-v8a/libccapi-nntrainer.so
+[arm64-v8a] Install        : libnntrainer.so => /home/jungone-lee/workspace/nntrainer-gemma4-spinquant/builddir/jni/arm64-v8a/libnntrainer.so
+[9/10] Installing files.
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/mesonbuild/mesonmain.py", line 194, in run
+    return options.run_func(options)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/mesonbuild/minstall.py", line 873, in run
+    installer.do_install(datafilename)
+  File "/usr/lib/python3/dist-packages/mesonbuild/minstall.py", line 553, in do_install
+    self.install_targets(d, dm, destdir, fullprefix)
+  File "/usr/lib/python3/dist-packages/mesonbuild/minstall.py", line 750, in install_targets
+    file_copied = self.do_copyfile(fname, outname, makedirs=(dm, outdir))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/mesonbuild/minstall.py", line 430, in do_copyfile
+    self.copy2(from_file, to_file)
+  File "/usr/lib/python3/dist-packages/mesonbuild/minstall.py", line 327, in copy2
+    shutil.copy2(*args, **kwargs)
+  File "/usr/lib/python3.12/shutil.py", line 475, in copy2
+    copyfile(src, dst, follow_symlinks=follow_symlinks)
+  File "/usr/lib/python3.12/shutil.py", line 262, in copyfile
+    with open(dst, 'wb') as fdst:
+         ^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: '/usr/local/lib/libgmock.a'
+Installing subprojects/googletest/libgmock.a to /usr/local/lib
+
+ERROR: Unhandled python OSError. This is probably not a Meson bug, but an issue with your build environment.
+FAILED: meson-internal__install 
+/usr/bin/meson install --no-rebuild
+ninja: build stopped: subcommand failed.

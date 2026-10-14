@@ -1,0 +1,82 @@
+--- nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c
++++ hexkl_mm_u8i4_moe_shadow.c
+@@ -1189,6 +1189,8 @@
+ }
+ 
+ /** @brief Stage B. One expert per unit: moe_tail_requant_unit's body. */
++
++static void shadow_rotate_restore(float *row, uint32_t width, uint32_t mode);
+ static void moe_m1_requant_worker(uint32_t n_lanes, uint32_t i, void *v) {
+   const moe_m1_ctx *c = (const moe_m1_ctx *)v;
+   uint32_t lo, hi;
+@@ -1202,7 +1204,8 @@
+       memset(e->gate_f32 + (size_t)e->m * c->inter, 0,
+              sizeof(float) * (size_t)(m4 - e->m) * c->inter);
+     }
+-    moe_rotate_rows(e->gate_f32, e->m, c->inter, c->had_down);
++    if (c->had_down)
++      shadow_rotate_restore(e->gate_f32, c->inter, c->had_down);
+     hvx_quant_rows_u8_params(e->gate_f32, e->m, HEXKL_HMX_INT8_BLOCK_N_ROW,
+                              c->inter, e->rq_scale, e->rq_zp, NULL);
+     hvx_quant_pack_u8_ah_rows(e->gate_f32, NULL, 0u, m4, c->inter, e->rq_scale,
+@@ -1709,6 +1712,19 @@
+   float eps;
+ } moe_rotate_input_ctx;
+ 
++
++/* DIAGNOSTIC ONLY: actual full-width FP32 HVX rotation followed by restore.
++ * noinline keeps the preservation buffer's lifetime separate from the
++ * calling worker. Neither the call nor its side effects may be elided. */
++static __attribute__((noinline)) void shadow_rotate_restore(float *row,
++                                                            uint32_t width,
++                                                            uint32_t mode) {
++  float saved[2816] __attribute__((aligned(128)));
++  memcpy(saved, row, (size_t)width * sizeof(float));
++  (void)hvx_hadamard_f32(row, width, mode);
++  memcpy(row, saved, (size_t)width * sizeof(float));
++}
++
+ static void moe_rotate_input_worker(uint32_t threads, uint32_t id, void *v) {
+   const moe_rotate_input_ctx *c = v;
+   for (uint32_t m = c->M * id / threads; m < c->M * (id + 1u) / threads; ++m) {
+@@ -1720,7 +1736,7 @@
+     else if (row != src)
+       memcpy(row, src, (size_t)c->K * sizeof(float));
+     if (c->mode)
+-      (void)hvx_hadamard_f32(row, c->K, c->mode);
++      shadow_rotate_restore(row, c->K, c->mode);
+     hvx_quant_rows_u8_params_rm(row, 1u, 1u, c->K, c->scale + m, c->zp + m,
+                                 c->u8 ? c->u8 + (size_t)m * c->K : NULL, NULL,
+                                 0.0f, NULL, NULL);
+@@ -1739,6 +1755,11 @@
+       n_experts == 0u) {
+     return AEE_EBADPARM;
+   }
++
++  /* Decode-only control: the same prefill/KV seed as the off variant. */
++  if (M != 1u)
++    flags &= ~(HEXKL_MOE_FLAG_HAD_UP | HEXKL_MOE_FLAG_HAD_DOWN |
++               HEXKL_MOE_FLAG_HAD_SCALAR | HEXKL_MOE_FLAG_HAD_HMX);
+   const uint32_t act =
+     (flags & HEXKL_MOE_FLAG_GELU_TANH) != 0u ? HVX_GLU_GELU_TANH : HVX_GLU_SILU;
+ 
+@@ -1778,6 +1799,10 @@
+ 
+   if ((flags & HEXKL_MOE_FLAG_HAD_HMX) && (K != 2816u || inter != 704u))
+     return AEE_EUNSUPPORTED;
++
++  if ((flags & (HEXKL_MOE_FLAG_HAD_UP | HEXKL_MOE_FLAG_HAD_DOWN)) &&
++      (M != 1u || K != 2816u || inter != 704u))
++    return AEE_EUNSUPPORTED;
+   int use_had_hmx = 0;
+ #if defined(__hexagon__)
+   use_had_hmx =
+@@ -1880,6 +1905,8 @@
+      four-bit ones the i4 GEMV. A call that mixes the two widths takes the
+      HMX path, which expands the 2-bit chunks in VTCM first. */
+   const int use_m1 = m1_shape && (allow_tail || all_2bit);
++  if ((had_up || had_down) && (!use_m1 || widest != 1u))
++    return AEE_EUNSUPPORTED;
+   /* [#267 L3] one row per active expert: only the M = 1 GEMV scatter
+      below knows how; refused before anything is written. */
+   const int rows_out = (flags & HEXKL_MOE_FLAG_ROWS_OUT) != 0u;

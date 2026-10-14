@@ -1,0 +1,252 @@
+The Meson build system
+Version: 1.3.2
+Source dir: /home/jungone-lee/workspace/nntrainer-gemma4-spinquant
+Build dir: /home/jungone-lee/workspace/nntrainer-gemma4-spinquant/builddir
+Build type: native build
+Project name: nntrainer
+Project version: 0.6.0
+C compiler for the host machine: cc (gcc 13.3.0 "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0")
+C linker for the host machine: cc ld.bfd 2.42
+C++ compiler for the host machine: c++ (gcc 13.3.0 "c++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0")
+C++ linker for the host machine: c++ ld.bfd 2.42
+Host machine cpu family: x86_64
+Host machine cpu: x86_64
+Program powershell found: NO
+Program nproc found: YES (/usr/bin/nproc)
+Program cmd.exe found: NO
+Message: Build for ARM architecture
+Compiler for C++ supports arguments -mfp16-format=ieee: NO 
+Message: MMAP enabled
+Message: OpenCL kernel path set to: nntrainer_opencl_kernels
+Library sdkl found: YES
+Message: HTP/HexKL backend enabled, linking /home/jungone-lee/workspace/nntrainer/Qualcomm/hexkl-1.0-beta.2/hexkl_addon/lib/6.4.0.2/armv8_android26/libsdkl.so
+Compiler for C supports arguments -Wredundant-decls: YES 
+Compiler for C++ supports arguments -Wredundant-decls: YES 
+Compiler for C supports arguments -Wwrite-strings: YES 
+Compiler for C++ supports arguments -Wwrite-strings: YES 
+Compiler for C supports arguments -Wformat: YES 
+Compiler for C++ supports arguments -Wformat: YES 
+Compiler for C supports arguments -Wformat-nonliteral: YES 
+Compiler for C++ supports arguments -Wformat-nonliteral: YES 
+Compiler for C supports arguments -Wformat-security: YES 
+Compiler for C++ supports arguments -Wformat-security: YES 
+Compiler for C supports arguments -Winit-self: YES 
+Compiler for C++ supports arguments -Winit-self: YES 
+Compiler for C supports arguments -Waddress: YES 
+Compiler for C++ supports arguments -Waddress: YES 
+Compiler for C supports arguments -Wvla: YES 
+Compiler for C++ supports arguments -Wvla: YES 
+Compiler for C supports arguments -Wpointer-arith: YES 
+Compiler for C++ supports arguments -Wpointer-arith: YES 
+Compiler for C supports arguments -Wno-error=varargs: YES 
+Compiler for C++ supports arguments -Wno-error=varargs: YES 
+Compiler for C supports arguments -Wno-error=ignored-attributes: YES 
+Compiler for C++ supports arguments -Wno-error=ignored-attributes: YES 
+Compiler for C supports arguments -Wno-error=sign-compare: YES 
+Compiler for C++ supports arguments -Wno-error=sign-compare: YES 
+Compiler for C supports arguments -ftree-vectorize: YES 
+Compiler for C++ supports arguments -ftree-vectorize: YES 
+Compiler for C supports arguments -Wno-unused-variable: YES 
+Compiler for C++ supports arguments -Wno-unused-variable: YES 
+Compiler for C supports arguments -Wno-comment: YES 
+Compiler for C++ supports arguments -Wno-comment: YES 
+Compiler for C supports arguments -Wno-ignored-attributes: YES 
+Compiler for C++ supports arguments -Wno-ignored-attributes: YES 
+Compiler for C supports arguments -Wno-sign-compare: YES 
+Compiler for C++ supports arguments -Wno-sign-compare: YES 
+Compiler for C supports arguments -Wno-maybe-uninitialized: YES 
+Compiler for C++ supports arguments -Wno-maybe-uninitialized: YES 
+Compiler for C++ supports arguments -Wdefaulted-function-deleted: NO 
+Compiler for C supports arguments -Wmissing-declarations: YES 
+Compiler for C supports arguments -Wmissing-prototypes: YES 
+Compiler for C supports arguments -Wnested-externs: YES 
+Compiler for C supports arguments -Wold-style-definition: YES 
+Message: preparing blas
+Message: set openblas num threads=1
+Message: set nntrainer num threads=4
+Found pkg-config: YES (/usr/bin/pkg-config) 1.8.1
+Run-time dependency GMock found: NO (tried pkgconfig and system)
+Run-time dependency GTest found: NO (tried pkgconfig and system)
+Run-time dependency GTest found: NO (tried pkgconfig and system)
+
+Executing subproject googletest method cmake 
+
+googletest| Found CMake: /usr/bin/cmake (3.28.3)
+
+| Configuring the build directory with CMake version 3.28.3
+| Running CMake with: -G Ninja -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_POSITION_INDEPENDENT_CODE=True -DBUILD_SHARED_LIBS=False
+| - build directory:          /home/jungone-lee/workspace/nntrainer-gemma4-spinquant/builddir/subprojects/googletest/__CMake_build
+| - source directory:         /home/jungone-lee/workspace/nntrainer-gemma4-spinquant/subprojects/googletest
+| - toolchain file:           /home/jungone-lee/workspace/nntrainer-gemma4-spinquant/builddir/subprojects/googletest/__CMake_build/CMakeMesonToolchainFile.cmake
+| - preload file:             /usr/lib/python3/dist-packages/mesonbuild/cmake/data/preload.cmake
+| - trace args:               --trace-expand --trace-format=json-v1 --no-warn-unused-cli --trace-redirect=cmake_trace.txt
+| - disabled policy warnings: [CMP0025, CMP0047, CMP0056, CMP0060, CMP0065, CMP0066, CMP0067, CMP0082, CMP0089, CMP0102]
+
+| Put cmake in trace mode, but with variables expanded.
+| Put cmake in trace mode and sets the trace output format.
+| Not searching for unused variables given on the command line.
+| Put cmake in trace mode and redirect trace output to a file instead of stderr.
+| Trace will be written to cmake_trace.txt
+| -- The C compiler identification is GNU 13.3.0
+| -- The CXX compiler identification is GNU 13.3.0
+| CMake Warning (dev) at /usr/share/cmake-3.28/Modules/CMakeFindBinUtils.cmake:224 (find_program):
+| Policy CMP0126 is not set: set(CACHE) does not remove a normal variable of
+| the same name.  Run "cmake --help-policy CMP0126" for policy details.  Use
+| the cmake_policy command to set the policy and suppress this warning.
+
+| For compatibility with older versions of CMake, normal variable
+| "CMAKE_TAPI" will be removed from the current scope.
+| Call Stack (most recent call first):
+| /usr/share/cmake-3.28/Modules/CMakeDetermineCXXCompiler.cmake:202 (include)
+| CMakeLists.txt:6 (project)
+| This warning is for project developers.  Use -Wno-dev to suppress it.
+
+| -- Detecting C compiler ABI info
+| -- Detecting C compiler ABI info - done
+| -- Check for working C compiler: /usr/bin/cc - skipped
+| -- Detecting C compile features
+| -- Detecting C compile features - done
+| -- Detecting CXX compiler ABI info
+| -- Detecting CXX compiler ABI info - done
+| -- Check for working CXX compiler: /usr/bin/c++ - skipped
+| -- Detecting CXX compile features
+| -- Detecting CXX compile features - done
+| -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+| -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+| -- Found Threads: TRUE
+| -- Configuring done (0.3s)
+| CMake Warning (dev) in googlemock/CMakeLists.txt:
+| Policy CMP0128 is not set: Selection of language standard and extension
+| flags improved.  Run "cmake --help-policy CMP0128" for policy details.  Use
+| the cmake_policy command to set the policy and suppress this warning.
+
+| For compatibility with older versions of CMake, compiler extensions won't
+| be disabled.
+| This warning is for project developers.  Use -Wno-dev to suppress it.
+
+| CMake Warning (dev) in googlemock/CMakeLists.txt:
+| Policy CMP0128 is not set: Selection of language standard and extension
+| flags improved.  Run "cmake --help-policy CMP0128" for policy details.  Use
+| the cmake_policy command to set the policy and suppress this warning.
+
+| For compatibility with older versions of CMake, compiler extensions won't
+| be disabled.
+| This warning is for project developers.  Use -Wno-dev to suppress it.
+
+| CMake Warning (dev) in googletest/CMakeLists.txt:
+| Policy CMP0128 is not set: Selection of language standard and extension
+| flags improved.  Run "cmake --help-policy CMP0128" for policy details.  Use
+| the cmake_policy command to set the policy and suppress this warning.
+
+| For compatibility with older versions of CMake, compiler extensions won't
+| be disabled.
+| This warning is for project developers.  Use -Wno-dev to suppress it.
+
+| CMake Warning (dev) in googletest/CMakeLists.txt:
+| Policy CMP0128 is not set: Selection of language standard and extension
+| flags improved.  Run "cmake --help-policy CMP0128" for policy details.  Use
+| the cmake_policy command to set the policy and suppress this warning.
+
+| For compatibility with older versions of CMake, compiler extensions won't
+| be disabled.
+| This warning is for project developers.  Use -Wno-dev to suppress it.
+
+| -- Generating done (0.0s)
+| CMake Warning (dev) in googlemock/CMakeLists.txt:
+| Policy CMP0128 is not set: Selection of language standard and extension
+| flags improved.  Run "cmake --help-policy CMP0128" for policy details.  Use
+| the cmake_policy command to set the policy and suppress this warning.
+
+| For compatibility with older versions of CMake, compiler extensions won't
+| be disabled.
+| This warning is for project developers.  Use -Wno-dev to suppress it.
+
+| CMake Warning (dev) in googlemock/CMakeLists.txt:
+| Policy CMP0128 is not set: Selection of language standard and extension
+| flags improved.  Run "cmake --help-policy CMP0128" for policy details.  Use
+| the cmake_policy command to set the policy and suppress this warning.
+
+| For compatibility with older versions of CMake, compiler extensions won't
+| be disabled.
+| This warning is for project developers.  Use -Wno-dev to suppress it.
+
+| CMake Warning (dev) in googletest/CMakeLists.txt:
+| Policy CMP0128 is not set: Selection of language standard and extension
+| flags improved.  Run "cmake --help-policy CMP0128" for policy details.  Use
+| the cmake_policy command to set the policy and suppress this warning.
+
+| For compatibility with older versions of CMake, compiler extensions won't
+| be disabled.
+| This warning is for project developers.  Use -Wno-dev to suppress it.
+
+| CMake Warning (dev) in googletest/CMakeLists.txt:
+| Policy CMP0128 is not set: Selection of language standard and extension
+| flags improved.  Run "cmake --help-policy CMP0128" for policy details.  Use
+| the cmake_policy command to set the policy and suppress this warning.
+
+| For compatibility with older versions of CMake, compiler extensions won't
+| be disabled.
+| This warning is for project developers.  Use -Wno-dev to suppress it.
+
+| -- Build files have been written to: /home/jungone-lee/workspace/nntrainer-gemma4-spinquant/builddir/subprojects/googletest/__CMake_build
+
+googletest| CMake configuration: SUCCEEDED
+googletest| CMake project googletest-distribution has 4 build targets.
+googletest| Generated Meson AST: /home/jungone-lee/workspace/nntrainer-gemma4-spinquant/builddir/subprojects/googletest/meson.build
+googletest| Project name: googletest-distribution
+googletest| Project version: undefined
+googletest| C++ compiler for the host machine: c++ (gcc 13.3.0 "c++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0")
+googletest| C++ linker for the host machine: c++ ld.bfd 2.42
+googletest| Build targets in project: 4
+googletest| Subproject googletest finished.
+
+Library m found: YES
+Library dl found: YES
+Run-time dependency threads found: YES
+Message: capi is disabled; skipping ml-api preparation for android build
+Program flatc found: NO
+Configuring nntrainer.pc using configuration
+Configuring nntrainer.ini using configuration
+meson.build:777: WARNING: The variable(s) 'FLASH_STORAGE_UTILIZATION_LOOKAHEAD' in the input file 'nntrainer.ini.in' are not present in the given configuration data.
+Message: NNTRAINER_CONF_PATH=/home/jungone-lee/workspace/nntrainer-gemma4-spinquant/builddir/android_build_result/conf/nntrainer.ini
+Message: extra defines are:-DMIN_CPP_VERSION=201703L -DMMAP_READ=1 -DKERNEL_CACHE=0 -DENABLE_FP16=1 -DUSE__FP16=1 -DUSE_MMAP=1 -DOPENCL_KERNEL_PATH=nntrainer_opencl_kernels -DENABLE_HEXKL=1 -DML_API_COMMON=0 -DUSE_BLAS=1 -DBLAS_NUM_THREADS=1 -DHGEMM_EXPERIMENTAL_KERNEL=false -DNNTR_NUM_THREADS=4 -D__LOGGING__=1 -DENABLE_TEST=1 -DGTEST_BACKPORT=1 -DREDUCE_TOLERANCE=1
+Message: arm_arch_opt : armv8.2-a
+nntrainer/tensor/htp_backend/meson.build:27: WARNING: Project targets '>=0.55.0' but uses feature introduced in '0.56.0': meson.project_source_root.
+Configuring ccapi-ml-training.pc using configuration
+meson.build:805: WARNING: test is not supported in android build, test skipped
+meson.build:817: WARNING: android app is not supported for now, building app skipped
+meson.build:833: WARNING: android nnstreamer-filter and nnstreamer-trainer are not yet supported, building them is skipped
+Message: compile flags are:-march=armv8.2-a+fp16+dotprod+i8mm -O3
+Configuring Android.mk using configuration
+jni/meson.build:139: WARNING: The variable(s) 'MESON_TFLITE_ROOT' in the input file 'jni/Android.mk.in' are not present in the given configuration data.
+Configuring Android-prebuilt.mk using configuration
+Program ndk-build found: YES (/home/jungone-lee/workspace/nntrainer/android-ndk-r30/ndk-build)
+Message: building for android
+Build targets in project: 5
+WARNING: Project specifies a minimum meson_version '>=0.55.0' but uses features which were added in newer versions:
+ * 0.56.0: {'meson.project_source_root'}
+NOTICE: Future-deprecated features used:
+ * 0.56.0: {'meson.build_root', 'meson.source_root'}
+ * 0.64.0: {'copy arg in configure_file'}
+
+nntrainer 0.6.0
+
+  Subprojects
+    googletest               : YES
+
+  User defined options
+    arm-arch                 : armv8.2-a
+    arm-march                : -march=armv8.2-a+fp16+dotprod+i8mm
+    enable-fp16              : true
+    enable-htp               : true
+    enable-tflite-backbone   : false
+    enable-tflite-interpreter: false
+    hexagon-sdk-root         : /local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1
+    hexkl-lib-subdir         : 6.4.0.2/armv8_android26
+    hexkl-sdk-root           : /home/jungone-lee/workspace/nntrainer/Qualcomm/hexkl-1.0-beta.2/hexkl_addon
+    hgemm-experimental-kernel: false
+    nntr-num-threads         : 4
+    openblas-num-threads     : 1
+    platform                 : android
+
+Found ninja-1.11.1 at /usr/bin/ninja

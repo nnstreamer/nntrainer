@@ -1,0 +1,3 @@
+generated: /home/jungone-lee/workspace/nntrainer-gemma4-spinquant/nntrainer/tensor/htp_backend/generated/nntr_hvx.h, /home/jungone-lee/workspace/nntrainer-gemma4-spinquant/nntrainer/tensor/htp_backend/generated/nntr_hvx_stub.c
+NOTE: this is the ARM client stub only. The DSP skel is generated and
+      built separately by test/htp/build.sh -- an IDL change needs BOTH.

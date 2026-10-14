@@ -1,0 +1,21 @@
+All listed checks completed successfully (exit status 0).
+
+DSP: full test/htp/build.sh, v81, SDK 6.4.0.1 / Tools 19.0.04 / HexKL beta.2.
+ARM: build_hadamard_bench.sh, generate_stub.sh, htp_compute_ops.cpp object compile.
+Host: full moe_layer_host_check with MOE_TAIL_MAX_ROWS=16; moe_opts_host_check;
+      independent Hadamard reference under ASan/UBSan.
+Device R5KL30G6MCX only: strict FP32 reference; 84 FP16 standalone cases;
+      eight benchmark variants, M=1/128/1024, 2-bit and 4-bit;
+      M=1024 with RMSNorm repeated 24 times in each of two invocations;
+      M=5 (2-bit/4-bit) and M=1057 (2-bit) with RMSNorm.
+The device build keeps MOE_TAIL_MAX_ROWS=0; its M=1057 run tests partial HMX
+blocks. The optional 4-bit HVX expert-tail integration was checked on host.
+
+clang-format 14 on changed lines and complete new C/C++ files; diff --check;
+bash -n; Python byte compilation; table-generator byte reproducibility;
+summary compatibility with historical 5-variant runs and rejection of incomplete
+or unknown-variant runs. Raw data are in ../raw/hmx-final and hmx-confirmation.
+
+Not run: full Android application link, full-model inference/TTFT, checkpoint
+quality/perplexity, remote CI/build matrix. Earlier full host-suite logs are in
+../checks; the latest affected host MoE suite is host-moe-full.log here.

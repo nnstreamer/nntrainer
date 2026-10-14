@@ -1,0 +1,8 @@
+TOKEN ATTN PHASES OK: 3334 calls with words (every third token), logits unchanged; scores/softmax/pv = 0.06/0.39/0.06 of pool (host clock and hvx_emu: not a device split)
+TOKEN DRIVER BIT-IDENTICAL: tokens 10000/10000 (28 distinct ids) logits bit_identical=1 moe_calls 20000/20000 in+out bit_identical=1 timeouts=0 stale=0 kind_ns/wall=0.999 (hd64 C A C, one session, vs the one-session forward)
+TOKEN POOL BIT-IDENTICAL: tokens 10000/10000 logits bit_identical=1, a pool of 2 of 4 experts a layer, misses=8713 (0.87/token) in 8201 rounds, timeouts=0 stale=0 kind_ns/wall=0.999 MOE net of miss wait 1.3 us/token, moe calls/token 2.77 (one-at-a-time 2.82) (the miss rounds against an owner pthread; vs the one-session forward)
+  no owner                -> AEE_EEXPIRED after 1.00 s, timeouts=1
+  a stale answer          -> 0x12 (stale=1)
+  the owner fails         -> 0x2 after 704 us
+TOKEN DRIVER FAILURE PATHS OK: no owner -> AEE_EEXPIRED, stale answer refused, the owner's code reaches the token
+TOKEN CHECKS PASS
