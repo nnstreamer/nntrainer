@@ -1,0 +1,258 @@
+[
+  {
+    "file": "/tmp/gemma4-decode-opt/rotation-only/final-kernel/moe-m1-w2-norm.csv",
+    "tokens": 1,
+    "weight_bits": 2,
+    "check": "CHECK M=1 bits=2 nrmse=1.39163479e-07 max_abs=0.000244140625",
+    "hmx_checks": [
+      "CHECK_HMX_UP M=1 bits=2 nrmse=0 max_abs=0",
+      "CHECK_HMX_DOWN M=1 bits=2 nrmse=0 max_abs=0",
+      "CHECK_HMX M=1 bits=2 nrmse=1.39163479e-07 max_abs=0.000244140625"
+    ],
+    "config": [
+      "CONFIG pre_norm=1"
+    ],
+    "variants": {
+      "off": {
+        "n": 200,
+        "dsp_median_us": 267.0,
+        "dsp_min_us": 224.0,
+        "dsp_max_us": 302.0,
+        "dsp_p25_us": 265.0,
+        "dsp_p75_us": 272.0,
+        "delta_medians_us": 0.0,
+        "delta_medians_pct": 0.0,
+        "paired_median_delta_us": 0.0,
+        "paired_delta_p25_us": 0.0,
+        "paired_delta_p75_us": 0.0,
+        "paired_median_delta_pct": 0.0
+      },
+      "up": {
+        "n": 200,
+        "dsp_median_us": 267.0,
+        "dsp_min_us": 225.0,
+        "dsp_max_us": 299.0,
+        "dsp_p25_us": 265.0,
+        "dsp_p75_us": 272.0,
+        "delta_medians_us": 0.0,
+        "delta_medians_pct": 0.0,
+        "paired_median_delta_us": 0.0,
+        "paired_delta_p25_us": -3.25,
+        "paired_delta_p75_us": 4.0,
+        "paired_median_delta_pct": 0.0
+      },
+      "down": {
+        "n": 200,
+        "dsp_median_us": 270.0,
+        "dsp_min_us": 228.0,
+        "dsp_max_us": 299.0,
+        "dsp_p25_us": 268.0,
+        "dsp_p75_us": 274.0,
+        "delta_medians_us": 3.0,
+        "delta_medians_pct": 1.1235955056179803,
+        "paired_median_delta_us": 3.0,
+        "paired_delta_p25_us": -1.0,
+        "paired_delta_p75_us": 8.0,
+        "paired_median_delta_pct": 1.1278195488721776
+      },
+      "both": {
+        "n": 200,
+        "dsp_median_us": 271.0,
+        "dsp_min_us": 226.0,
+        "dsp_max_us": 304.0,
+        "dsp_p25_us": 268.0,
+        "dsp_p75_us": 275.0,
+        "delta_medians_us": 4.0,
+        "delta_medians_pct": 1.4981273408239737,
+        "paired_median_delta_us": 3.0,
+        "paired_delta_p25_us": -2.25,
+        "paired_delta_p75_us": 9.0,
+        "paired_median_delta_pct": 1.132075471698113
+      },
+      "both_scalar": {
+        "n": 200,
+        "dsp_median_us": 812.0,
+        "dsp_min_us": 772.0,
+        "dsp_max_us": 844.0,
+        "dsp_p25_us": 810.0,
+        "dsp_p75_us": 815.0,
+        "delta_medians_us": 545.0,
+        "delta_medians_pct": 204.1198501872659,
+        "paired_median_delta_us": 545.0,
+        "paired_delta_p25_us": 540.0,
+        "paired_delta_p75_us": 550.0,
+        "paired_median_delta_pct": 204.5197900411406
+      },
+      "up_hmx": {
+        "n": 200,
+        "dsp_median_us": 267.0,
+        "dsp_min_us": 225.0,
+        "dsp_max_us": 302.0,
+        "dsp_p25_us": 265.0,
+        "dsp_p75_us": 269.0,
+        "delta_medians_us": 0.0,
+        "delta_medians_pct": 0.0,
+        "paired_median_delta_us": 0.0,
+        "paired_delta_p25_us": -6.0,
+        "paired_delta_p75_us": 4.0,
+        "paired_median_delta_pct": 0.0
+      },
+      "down_hmx": {
+        "n": 200,
+        "dsp_median_us": 270.0,
+        "dsp_min_us": 226.0,
+        "dsp_max_us": 305.0,
+        "dsp_p25_us": 268.0,
+        "dsp_p75_us": 273.0,
+        "delta_medians_us": 3.0,
+        "delta_medians_pct": 1.1235955056179803,
+        "paired_median_delta_us": 2.5,
+        "paired_delta_p25_us": -2.25,
+        "paired_delta_p75_us": 8.0,
+        "paired_median_delta_pct": 1.0040493892724323
+      },
+      "both_hmx": {
+        "n": 200,
+        "dsp_median_us": 270.0,
+        "dsp_min_us": 227.0,
+        "dsp_max_us": 305.0,
+        "dsp_p25_us": 268.0,
+        "dsp_p75_us": 274.0,
+        "delta_medians_us": 3.0,
+        "delta_medians_pct": 1.1235955056179803,
+        "paired_median_delta_us": 3.5,
+        "paired_delta_p25_us": -1.0,
+        "paired_delta_p75_us": 8.0,
+        "paired_median_delta_pct": 1.4131372809346843
+      }
+    }
+  },
+  {
+    "file": "/tmp/gemma4-decode-opt/rotation-only/final-kernel/moe-m1024-w2-norm.csv",
+    "tokens": 1024,
+    "weight_bits": 2,
+    "check": "CHECK M=1024 bits=2 nrmse=8.79432721e-05 max_abs=2.2481842",
+    "hmx_checks": [
+      "CHECK_HMX_UP M=1024 bits=2 nrmse=0.00209275854 max_abs=42.8078613",
+      "CHECK_HMX_DOWN M=1024 bits=2 nrmse=0.00114943019 max_abs=1.32015991",
+      "CHECK_HMX M=1024 bits=2 nrmse=0.00225464858 max_abs=19.3653564"
+    ],
+    "config": [
+      "CONFIG pre_norm=1"
+    ],
+    "variants": {
+      "off": {
+        "n": 24,
+        "dsp_median_us": 17136.5,
+        "dsp_min_us": 16977.0,
+        "dsp_max_us": 17304.0,
+        "dsp_p25_us": 17073.25,
+        "dsp_p75_us": 17187.0,
+        "delta_medians_us": 0.0,
+        "delta_medians_pct": 0.0,
+        "paired_median_delta_us": 0.0,
+        "paired_delta_p25_us": 0.0,
+        "paired_delta_p75_us": 0.0,
+        "paired_median_delta_pct": 0.0
+      },
+      "up": {
+        "n": 24,
+        "dsp_median_us": 17652.0,
+        "dsp_min_us": 17414.0,
+        "dsp_max_us": 17851.0,
+        "dsp_p25_us": 17570.0,
+        "dsp_p75_us": 17720.5,
+        "delta_medians_us": 515.5,
+        "delta_medians_pct": 3.008198873749013,
+        "paired_median_delta_us": 498.0,
+        "paired_delta_p25_us": 437.75,
+        "paired_delta_p75_us": 574.75,
+        "paired_median_delta_pct": 2.902860688402842
+      },
+      "down": {
+        "n": 24,
+        "dsp_median_us": 19038.0,
+        "dsp_min_us": 18869.0,
+        "dsp_max_us": 19173.0,
+        "dsp_p25_us": 18968.5,
+        "dsp_p75_us": 19080.5,
+        "delta_medians_us": 1901.5,
+        "delta_medians_pct": 11.096198173489347,
+        "paired_median_delta_us": 1894.0,
+        "paired_delta_p25_us": 1827.75,
+        "paired_delta_p75_us": 2004.0,
+        "paired_median_delta_pct": 11.039122145418812
+      },
+      "both": {
+        "n": 24,
+        "dsp_median_us": 19503.5,
+        "dsp_min_us": 19334.0,
+        "dsp_max_us": 19713.0,
+        "dsp_p25_us": 19458.75,
+        "dsp_p75_us": 19561.0,
+        "delta_medians_us": 2367.0,
+        "delta_medians_pct": 13.812622180725342,
+        "paired_median_delta_us": 2377.0,
+        "paired_delta_p25_us": 2274.25,
+        "paired_delta_p75_us": 2475.75,
+        "paired_median_delta_pct": 13.902383492761839
+      },
+      "both_scalar": {
+        "n": 24,
+        "dsp_median_us": 557921.5,
+        "dsp_min_us": 540150.0,
+        "dsp_max_us": 589971.0,
+        "dsp_p25_us": 557085.25,
+        "dsp_p75_us": 567716.25,
+        "delta_medians_us": 540785.0,
+        "delta_medians_pct": 3155.7494237446385,
+        "paired_median_delta_us": 540869.0,
+        "paired_delta_p25_us": 540001.75,
+        "paired_delta_p75_us": 550582.0,
+        "paired_median_delta_pct": 3180.454834339282
+      },
+      "up_hmx": {
+        "n": 24,
+        "dsp_median_us": 17473.0,
+        "dsp_min_us": 17202.0,
+        "dsp_max_us": 17699.0,
+        "dsp_p25_us": 17376.75,
+        "dsp_p75_us": 17556.0,
+        "delta_medians_us": 336.5,
+        "delta_medians_pct": 1.9636448516324734,
+        "paired_median_delta_us": 353.0,
+        "paired_delta_p25_us": 185.0,
+        "paired_delta_p75_us": 454.75,
+        "paired_median_delta_pct": 2.059466368483842
+      },
+      "down_hmx": {
+        "n": 24,
+        "dsp_median_us": 17436.5,
+        "dsp_min_us": 17146.0,
+        "dsp_max_us": 17656.0,
+        "dsp_p25_us": 17388.5,
+        "dsp_p75_us": 17496.75,
+        "delta_medians_us": 300.0,
+        "delta_medians_pct": 1.7506491990779915,
+        "paired_median_delta_us": 297.5,
+        "paired_delta_p25_us": 233.0,
+        "paired_delta_p75_us": 356.5,
+        "paired_median_delta_pct": 1.7369354270544868
+      },
+      "both_hmx": {
+        "n": 24,
+        "dsp_median_us": 17681.5,
+        "dsp_min_us": 17399.0,
+        "dsp_max_us": 17965.0,
+        "dsp_p25_us": 17642.5,
+        "dsp_p75_us": 17828.75,
+        "delta_medians_us": 545.0,
+        "delta_medians_pct": 3.1803460449916887,
+        "paired_median_delta_us": 609.5,
+        "paired_delta_p25_us": 460.75,
+        "paired_delta_p75_us": 692.75,
+        "paired_median_delta_pct": 3.564626286080419
+      }
+    }
+  }
+]

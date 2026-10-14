@@ -1,0 +1,9 @@
+2026-10-14T09:06:26Z
+serial=R5KL30G6MCX
+remote=/data/local/tmp/nntr_hadamard_20261014_090626
+8682e75a11792df1bc1353b3ec144c1a005b8426
+SM-S948N
+SM8850
+samsung/m3qksx/m3q:16/BP4A.251205.006/S948NKSU4AZHJ_OKR4AZHJ:user/release-keys
+2bf8327cb87a06500e8a8c9789f02ccdea0b68ef4c3359340f3fa400f7814769  /home/jungone-lee/workspace/nntrainer-gemma4-spinquant/test/htp/build/libnntr_hvx_skel.so
+b54c4b4d10a2d0579b875d64b08dcdfba96369e2cd164f6a42673a05ac8e85a3  /home/jungone-lee/workspace/nntrainer-gemma4-spinquant/test/htp/build/hadamard_moe_bench

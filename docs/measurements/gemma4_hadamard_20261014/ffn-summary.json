@@ -1,0 +1,21 @@
+{
+  "files": [
+    "docs/measurements/gemma4_hadamard_20261014/raw/hmx-final/moe-m1024-w2-norm.csv",
+    "docs/measurements/gemma4_hadamard_20261014/raw/hmx-confirmation/moe-m1024-w2-norm.csv",
+    "docs/measurements/gemma4_hadamard_20261014/raw/hmx-final/moe-m1024-w4-norm.csv",
+    "docs/measurements/gemma4_hadamard_20261014/raw/hmx-confirmation/moe-m1024-w4-norm.csv"
+  ],
+  "n_per_weight_bits": {
+    "2": 48,
+    "4": 48
+  },
+  "baseline_sum_us": 21758.0,
+  "hmx_sum_us": 22733.5,
+  "overhead_pct": 4.483408401507494,
+  "paired_bootstrap_percentile_95": [
+    4.073674794137205,
+    4.701877070298122
+  ],
+  "bootstrap_note": "Observed runs only; does not model other routing, thermal conditions, full-model TTFT or model quality.",
+  "scope_correction": "Synthetic 2-bit expert plus synthetic 4-bit 704 x 3 only. Actual PR #4416 shared FFN is 1056 x 2, unrotated in the app. This sum is neither actual shared FFN nor E2E, and is not evidence for the model-level 5% target."
+}

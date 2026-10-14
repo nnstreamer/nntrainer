@@ -1,0 +1,110 @@
+/data/local/tmp/nntr_gemma4_hadamard_shadow_20261014/model
+/data/local/tmp/nntr_tl2_output_20261012/qs2/nntr_gemma4_26b_a4b_qs2cx_fcqs4cx.bin
+[HTP] ppl levers=0x0 L1=exact
+[HTP] graph: description n_ops=542 resident=RMSNORM|FC|QK_NORM|ROPE|ATTN_M1|ADD|ROUTER_TOPK|MOE|DENSE_FFN|LM_HEAD moe_ops=30
+[HTP] gemma: list n_ops=542 layers=30 params=60 by name
+[HTP] moe m1 gemv: on (applied=0x6ccf03e1) lead=192KB rows1=1 feed=vtcm dma_bypass=1 dma_q=4 source=default
+[HTP] online Hadamard=both_hmx scope=2bit applied=0x6c000000; matching offline weight rotation required for valid outputs
+[HTP] LM head shares 16 DSP handles for prefill/decode; released 396 MiB host source
+[HTP] graph: q4m1 weights=206 handles=16 feed=vtcm wh_handles=570
+[HTP] e2e: fc arena weights=206 handles=16 attach_mib=396.0 chunks=2 mapped_mib=448 feed=vtcm load_ms=758.2 lanes=6,3 s1_arena_mib=1728 s1_heap_kib=110530
+[HTP] arena chunk 0: 256 MiB, dsp_id=0, mapped total 256 MiB, RSS 1615 -> 1615 MB
+[HTP] arena chunk 1: 256 MiB, dsp_id=1, mapped total 512 MiB, RSS 1616 -> 1616 MB
+[HTP] arena chunk 2: 192 MiB, dsp_id=2, mapped total 704 MiB, RSS 1616 -> 1616 MB
+[HTP] arena chunk 3: 256 MiB, dsp_id=3, mapped total 960 MiB, RSS 1620 -> 1620 MB
+[HTP] arena chunk 4: 256 MiB, dsp_id=4, mapped total 1216 MiB, RSS 1370 -> 1370 MB
+[HTP] arena chunk 5: 256 MiB, dsp_id=5, mapped total 1472 MiB, RSS 1124 -> 1124 MB
+[HTP] arena chunk 6: 256 MiB, dsp_id=6, mapped total 1728 MiB, RSS 862 -> 862 MB
+[HTP] arena chunk 0: 256 MiB, dsp_id=7, mapped total 256 MiB, RSS 880 -> 880 MB
+[HTP] arena chunk 1: 192 MiB, dsp_id=8, mapped total 448 MiB, RSS 880 -> 880 MB
+<bos><|turn>user
+You are a summarization expert. Please read the provided <Text> carefully and summarize it in 3 sentences in English. The summary should comprehensively cover the entire content of the original text and be written with the same meaning as the source material.
+
+<Text>
+Introduction
+Municipal water networks in mid-sized cities are among the oldest pieces of infrastructure still in daily use, and in many of them the pipes that carry drinking water under the streets were laid before the invention of the devices now used to monitor them. The operators of such networks face a persistent and expensive problem: water leaves the treatment works in a known quantity, but a substantial fraction of it, often between a fifth and a third, never reaches a customer meter. Some of this loss is accounted for by firefighting, mains flushing and unmetered public use, but the larger share escapes through leaks that are too small to surface and too numerous to find by inspection. In this report we describe a three-year study, carried out in partnership with the water utility of a city of roughly four hundred thousand inhabitants, in which a dense network of low-cost acoustic and pressure sensors was installed across one supply district and used to locate leaks, to estimate the volume lost through them, and to test whether the information could be turned into a repair schedule that paid for itself. The district chosen for the study covers about eleven square kilometres, contains one hundred and ninety kilometres of mains of mixed age and material, and serves some thirty-one thousand connections, which makes it typical of the city as a whole and, we believe, of many other cities built up during the same period.
+The sensing approach rests on two complementary signals. The first is acoustic: a leak in a pressurised pipe produces a continuous broadband noise that travels along the pipe wall and through the water column, and a sensor clamped to a valve or hydrant can detect that noise at a distance of several tens of metres in metal pipe and somewhat less in plastic. The second is hydraulic: when the demand in a district is lowest, in the early hours of the morning, the flow entering the district should fall to a floor set by legitimate night-time use, and any excess above that floor is a measure of the leakage present. By combining night-flow analysis, which tells the operator how much is being lost in a district, with acoustic correlation, which tells the operator where along a pipe the loss is occurring, the study aimed to move the utility from a reactive posture, in which leaks are repaired when they become visible, to one in which hidden leaks are located and ranked by size before any water reaches the surface. The sensors were designed by the project team around a commodity microcontroller, a piezoelectric accelerometer, a pressure transducer and a low-power radio, and each unit cost about a sixth of the price of the commercial loggers the utility had previously used in small numbers. Three hundred and forty units were deployed, giving an average spacing of a little over five hundred metres along the mains, with closer spacing in the older parts of the district where the pipes are cast iron and the historical burst rate is highest.
+Installation took four months and was carried out by the utility's own field crews after a week of training. Each sensor was fixed to the spindle of a valve or the outlet of a hydrant inside its existing chamber, so that no excavation was needed, and each unit was configured to record a short acoustic sample every fifteen minutes during the night, to log pressure continuously at one reading per second, and to transmit a compressed summary to a gateway once an hour. The gateways, of which there were nineteen, were mounted on lamp posts and powered from the street lighting supply, and they forwarded the data over the cellular network to a server at the utility's headquarters. The first weeks of operation revealed several practical difficulties that we document in full in the body of the report. Chambers that flooded after heavy rain drowned the radios of a dozen units until a revised antenna mounting was introduced. Traffic noise from a trunk road produced a daily pattern of false positives in the acoustic channel that was removed only when the processing was restricted to the hours between two and four in the morning. And the batteries, which had been specified for a five-year life, proved sensitive to the low winter temperatures inside shallow chambers, so that the sampling schedule had to be thinned during the coldest months. None of these problems was fatal, but together they consumed most of the project's first year, and we recommend that any similar deployment budget at least as long for the shakedown period as for the installation itself.
+The analysis pipeline was built in three stages. In the first stage, each sensor's acoustic samples were reduced to a small set of spectral features and compared with that sensor's own long-term baseline, so that a sustained rise in noise at a single location raised a flag without any assumption about the pipe material or the surrounding ground. In the second stage, flagged sensors were paired with their neighbours and the arrival time difference of the correlated noise was used to estimate the position
+[HTP] mem t1 before graph init (= prefill end): s1_heap_mib=119 staging_pools_mib=155 rss_mib=282 mem_available_mib=4358
+[HTP] mem t1 after graph init: s1_heap_mib=165 staging_pools_mib=155 rss_mib=282 mem_available_mib=4309
+[HTP] graph: init n_ops=542 resident=RMSNORM|FC|QK_NORM|ROPE|ATTN_M1|ADD|ROUTER_TOPK|MOE|DENSE_FFN|LM_HEAD moe_ops=30
+[HTP] e2e: freed 0 quantized KV caches
+[HTP] attn_m1: registered layers=25 kv=8 gqa=2 head_dim=256 max_seq=1152 cache=115200 KiB int8
+[HTP] attn_m1: registered layers=5 kv=2 gqa=8 head_dim=512 max_seq=1152 cache=11520 KiB int8
+[HTP] dspq: on queue=0x558400000000 dsp_spin_us=0 arm_spin_us=5000 buffers=65536+1048576 ion=y domain=3
+[HTP] token driver: on mbox=65536 spin_us=0 moe_ops=30 logits_buf=1048576 fadvise=0
+[HTP] t1: graph_init_ms=142.1
+[HTP] t1: pool_sync_ms=2.2 (drop_host_fc+pin 0.0) kv_seed_rpc_ms=80.5 seeds=30 (dsp 0, kvq freed late 0) rss_mib=292.6 mem_available_mib=4383.5
+[HTP] staging: prefill classes released mib=72
+[HTP] token driver: first token pos=1024 id=522 us=204889 logits=0
+ing/ deinging deeing- deing deing deing de mostinging deing deing deing deing deing de
+
+ deing deing de deing de deing deing deinging deing de low- mosting- deing deing deing deinged deing de of aing de aing de of ofing of aing ofing ofing ofing mosting deing deing deing de
+
+ deing deing deing deing a true de de deing deing deinging deinging deinging deinginging deinginging
+
+=================[ LLM with NNTrainer ]===================
+prefill: 1024 tokens, 1661 ms, 616.496 TPS
+generation: 127 tokens, 9998 ms, 12.7025 TPS
+[TIMING] first_token_ms=458.224 rest_avg_ms=75.713
+generation(last 64): 64 tokens, 4840 ms, 13.2231 TPS
+total: 11673 ms
+peak memory: 1693164 KB
+==========================================================
+[e2e time]: 17389 ms 
+Max Resident Set Size: 1693164 KB
+
+[HTP-PROFILE] level=1 qos_mode=2 (2=poll 1=PM 0=interrupt-driven -- every transport number below is only comparable to 34_fc_measured.md's 326us/call at qos_mode=2)
+[HTP-PROFILE] weight registration (once per weight, so all of it lands in the first forward)
+[HTP-PROFILE]   weights registered : 1050
+[HTP-PROFILE]   convert to registry:      467.1 ms  (0.44 ms/weight)
+[HTP-PROFILE]   register FastRPC   :      156.8 ms  (0.15 ms/weight)
+[HTP-PROFILE]   alloc + other      :     2083.0 ms
+[HTP-PROFILE]   registration total :     2706.9 ms
+[HTP-PROFILE]   rpcmem/ION buffer  : 1050/1050 weights (the rest used plain heap -- pinned+mapped per call)
+[HTP-PROFILE] layer calls (M==1 is decode's shape)
+[HTP-PROFILE]   K=2816  N=128   M>1 FC     calls=30      rows=30720    host=    132.0 ms ( 4400.5 us/call)
+[HTP-PROFILE]   K=2816  N=1024  M>1 FC     calls=5       rows=320      host=      1.5 ms (  297.4 us/call)
+[HTP-PROFILE]   K=2816  N=2048  M>1 FC     calls=50      rows=3200     host=     12.8 ms (  256.9 us/call)
+[HTP-PROFILE]   K=2816  N=2816  M>1        calls=31      rows=31744    host=    622.1 ms (20067.5 us/call)
+[HTP-PROFILE]   K=2816  N=2816  M>1 dense  calls=31      rows=31232    host=    136.5 ms ( 4404.3 us/call)
+[HTP-PROFILE]   K=2816  N=4096  M>1 FC     calls=25      rows=2048     host=      9.6 ms (  384.0 us/call)
+[HTP-PROFILE]   K=2816  N=8192  M>1 FC     calls=30      rows=25920    host=    134.7 ms ( 4488.8 us/call)
+[HTP-PROFILE]   K=2816  N=10240 M>1 FC     calls=5       rows=5120     host=     36.2 ms ( 7241.0 us/call)
+[HTP-PROFILE]   K=2816  N=262144 M==1 FC    calls=1       rows=1        host=      7.9 ms ( 7930.0 us/call)
+[HTP-PROFILE]   K=4096  N=2816  M>1 FC     calls=50      rows=27200    host=    117.5 ms ( 2350.7 us/call)
+[HTP-PROFILE]   K=8192  N=2816  M>1 FC     calls=10      rows=5440     host=     36.6 ms ( 3658.0 us/call)
+[HTP-PROFILE]   graph: calls=127 ops/call=542.00 resident=RMSNORM|FC|QK_NORM|ROPE|ATTN_M1|ADD|ROUTER_TOPK|MOE|DENSE_FFN|LM_HEAD dsp=0.0 us/call op_pcyc=134932963/call pcyc/op:
+[HTP-PROFILE] layer calls total :     1247.5 ms
+[HTP-PROFILE] arm staging memcpy:       13.1 ms  (216.3 MB in+out, 17.3 GB/s) -- outside every host= above
+[HTP-PROFILE] HTP host time     :     3967.5 ms (registration + layer calls + staging)
+
+[HTP-PROFILE]   staging at htp_compute_ops.cpp:5132:      2.6 ms      61.4 MB  54 copies
+[HTP-PROFILE]   staging at htp_compute_ops.cpp:5238:      4.2 ms      88.9 MB  30277 copies
+[HTP-PROFILE]   staging at htp_compute_ops.cpp:6559:      1.6 ms      16.5 MB  2 copies
+[HTP-PROFILE]   staging at htp_compute_ops.cpp:6708:      2.9 ms      27.5 MB  3 copies
+[HTP-PROFILE] expert cache misses: 9098, file read 4503.8 ms (0.50 ms/miss), swap rpc 0.0 ms (0.00 ms/miss)
+
+[HTP-PROFILE] expert prefetch: 3360 experts read under the layer calls, exposed wait 0.0 ms (0.00 ms/expert), register rpc 27.2 ms (0.01 ms/expert)
+[HTP-PROFILE] expert prefetch progress: 3360 of 3360 read when their layer asked (100%), caller cpus {6}, reader cpus {0,1,2,3,4,5}
+
+[HTP-PROFILE] expert prefetch readers: 1.62 ms/expert on a reader, 3360 experts
+
+[HTP] dspq: close calls=127 served=127 bad=0 empty_polls=0 dsp_spin_us=0 stop_err=0x0
+[HTP] graph: tokens=127 pcyc/token=134932963 wait_us/token=0.0
+[HTP] graph per-kind pcyc/token: RMSNORM=3730443(2.021ms) FC=22021191(11.928ms) QK_NORM=601844(0.326ms) ROPE=476670(0.258ms) ATTN_M1=14748035(7.988ms) ADD=748704(0.406ms) ROUTER_TOPK=6219976(3.369ms) MOE=68955015(37.349ms) DENSE_FFN=2101368(1.138ms) LM_HEAD=15329718(8.303ms) | wall_ms/token=73.496 mhz=1846 spin_us=0
+[HTP] graph per-kind us/token: RMSNORM=1767 FC=10426 QK_NORM=285 ROPE=225 ATTN_M1=6983 ADD=354 ROUTER_TOPK=2945 MOE=41897(net of miss wait 18807) DENSE_FFN=995 LM_HEAD=7258 | ops/wall=0.9951 compute_mhz=2112
+[HTP] graph attn_m1 cache=0 calls/token=25.00 kpcyc/token: append=1697.6 scores=30413.8 softmax=10813.3 (exp=4501.4 et=2200.6 max=287.5 sum=244.1 div=2358.3) pv=31016.0 pool=9781.6 busy_max=9024.9 lanes=8.00 call_us/token=5502.8
+[HTP] graph attn_m1 cache=1 calls/token=5.00 kpcyc/token: append=248.7 scores=9012.2 softmax=1798.0 (exp=872.8 et=309.3 max=58.8 sum=64.1 div=314.5) pv=7399.5 pool=2596.1 busy_max=2412.8 lanes=8.00 call_us/token=1360.4
+[HTP] graph moe pcyc/op=2298500 (1.245 ms) router pcyc/op=207333; fc+dense_ffn+lm_head ms/token=21.369; arm token_ms=75.257
+[HTP] token driver: L0 wake us/token disp=34.3 pkt=5.5 ret=1721.1 clk_resid=-0.1
+[HTP] token driver: L0 us/token rt=75256.6 dsp_wall=73495.8 wake=1760.8 hop_us=0.0 arm_fwd=76013.7 arm_us=742.7 arm_n=126
+[HTP] token driver: pool misses=9098 misses/token=71.64 miss_wait_us/token=23090.1 rounds=3104 arm_ms/round=1.451 pgpgin_mib=13265.9 rss_mib=128.4 mem_available_mib=4632.2
+[HTP] token driver: round us: notice=0 pre=18 read=1432 answer=1451 (arm total) | dsp overlap=524 wait=945 anslat=17 rebind=24
+[HTP] token driver: moe calls/token=68.59 (one-at-a-time 171.83)
+[HTP] token driver: close tokens=127 hops/token=0.00 served=127 timeouts=0 stale=0 id_checked=0 id_mismatch=0 stop_err=0x0
+[HTP] e2e: close mapped_mib=449.12 unmap_fail=0 detach_fail=0 heap_used_kib=300992 (info rc 0x0)
+[HTP] arena: chunks unmapped 7/7 mib=1728 (release rc=0x0 put=7)
+[HTP] graph: forward calls=127 tokens=127 calls/token=1.00
+[HTP] graph: cpu fc skipped=19080

@@ -1,0 +1,50 @@
+{
+  "date_utc": "2026-10-14T07:48:24.494783+00:00",
+  "base_pr": "https://github.com/nntrainer/nntrainer/pull/4416",
+  "base_sha": "8682e75a11792df1bc1353b3ec144c1a005b8426",
+  "branch": "codex/gemma4-spinquant-20261014",
+  "device": "R5KL30G6MCX",
+  "model": "SM-S948N",
+  "soc": "SM8850",
+  "dsp": "v81",
+  "sdk": "6.4.0.1",
+  "tools": "19.0.04",
+  "hexkl": "1.0-beta.2 / SDK 6.4.0.1",
+  "common_flags": "0x00cf03e1",
+  "variants": {
+    "0": "off",
+    "1": "up",
+    "2": "down",
+    "3": "both",
+    "4": "both_scalar"
+  },
+  "rpc_timing_excludes_opts": true,
+  "weights": "synthetic packed 2-bit, 128 experts top8; synthetic 4-bit, 3 dense chunks",
+  "source_sha256": {
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "196101aaeee39596bcb772f5d176944aec78a3a6992c0db52d5636f9ab180ed9",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.h": "7c86d47ed95d816b06d9f2dd141ff0b153324a1cb5a1bd0f83ec01c23eee9578",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "04afd4d4e6db916bae647fa55ecb6a37ba64817e5c278011f1c397e86ae6ab4a",
+    "nntrainer/tensor/htp_backend/htp_moe_opts.h": "0d1abcea35d63b923d3a508b558e6ca78a5b9f411ba7018502dee7088a8f0539",
+    "nntrainer/tensor/htp_backend/meson.build": "226cb1aac018e5ad3504a8397ddda818987c0c9270e713dd1eb121cdaed06c72",
+    "test/htp/build.sh": "3378869eff6700f65b1d656e9a83032a1ab1d24c6324accd95af4bd637d85d9a",
+    "test/htp/host/moe_layer_host_check.c": "6bb85e68c2b66e64337c129777b29a26a7f9c2c611723301bae558625a7b4ff7",
+    "test/htp/host/moe_opts_host_check.c": "207802bfbae47465c0680290b704076bfdd009f6da01e5630e44548dc627b55b",
+    "test/htp/host/run_host_checks.sh": "1385fe7edea2d39cb87c9590e75c8b722ebe2864005a8b81c5aa304cc45b4c43",
+    "test/htp/nntr_hvx.idl": "90c80e3f45a41789f37bc2eb5dc6259f269892151097daafa69fbcac3617a298",
+    "nntrainer/tensor/htp_backend/hvx/hvx_hadamard_f32.c": "e6d62e8eb368f55629e306bc86f5555778a06093625171833137831466d99ef8",
+    "nntrainer/tensor/htp_backend/hvx/hvx_hadamard_f32.h": "d6f04b35eb0f7c093c378267e2411b056663e23efcf1e626ac2828dc699ced84",
+    "test/htp/build_hadamard_bench.sh": "5bcdcdefa16f14c91f5aac843ed8b0c9029207d0e490cf2eb254f3b149fd9cd3",
+    "test/htp/hadamard_moe_bench.cpp": "b58720ef607f699d82b0d63ad436cbf52630117a727acc474a079095827a1d2b",
+    "test/htp/host/hadamard_check.c": "dea0a1387fbb3d90e1f1490219ad64a4106240ae8f41c196ef050071d2208c0f",
+    "test/htp/nntr_hvx_hadamard_probe.c": "3ff1dd29265df9e95fa6d8bcd5494c18be95457fc009426d1356ca55e2eef2b0",
+    "test/htp/run_hadamard_bench_on_device.sh": "a662b36fb0948783d526de0784598b96b9e3a1c33061bd0b6fd2854b08e66da4",
+    "test/htp/summarize_hadamard_bench.py": "afc785226afcdc03474def1e777884e4823ea74495053ad5b9c302e3eced3eed"
+  },
+  "binary_sha256": {
+    "libnntr_hvx_skel.so": "563073ec7dfb28620543d64cb7812e2b2dbe8180ee2a14f1cfdd316e10a176a0",
+    "hadamard_moe_bench": "c2513df555b64cc34d2788bc1862b95f167ef621fec5bc8165556dc8395bedfe",
+    "hadamard_check_device": "519a1a4bc90bafaec32c967b58a54655e330a3811d57403d729b08c0360034fc"
+  },
+  "host_full_suite_exit": 0,
+  "final_full_moe_suite_exit": 0
+}

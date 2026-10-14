@@ -1,0 +1,106 @@
+아래 내용은 cache 크기/reader 수를 조정했던 중간 실험 기록이다.
+사용자 요청에 따라 모두 채택하지 않으며 최종 목표 달성 근거에서 제외한다.
+현재 설정은 cache=16, grow=0, readers=4다.
+
+선택한 E2E 설정: decode cache 48 (decode-optimization/cache48-final)
+
+cache 16에서 시작하고, 첫 decode 이후 32 experts/layer를 추가한다.
+NNTR_MOE_CACHE_EXPERTS=16, NNTR_MOE_CACHE_GROW=32,
+NNTR_MOE_MISS_READERS=8, NNTR_NUM_THREADS=8을 사용한다.
+off/on 모두 같은 설정이다. prefill은 cache 16을 사용하므로 load/prefill
+시점에 큰 cache를 미리 예약하는 것보다 DSP 주소 공간 여유를 유지한다.
+이 cache 증설은 PR #4416에 있던 옵션이며 새로운 수치 근사를 도입하지 않는다.
+
+독립 확인 실행, 각 4회 중앙값 (프로파일링 없음):
+구간               off             both_hmx        시간 증가    TPS 차이
+prefill 1024       1607.0 ms        1628.5 ms         +1.34%      -1.32%
+                   637.21 TPS       628.80 TPS
+decode 127        7518.5 ms        7841.0 ms         +4.29%      -4.11%
+                    16.892 TPS       16.197 TPS
+추론 total        9141.5 ms        9491.0 ms         +3.82%
+
+이 설정에서 prefill/decode 중앙값 모두 시간 overhead 5% 이내다.
+앞선 별도 2회/variant 실행(cache48-grow)도 decode +4.43%였다. 두 batch를
+모두 합친 6회/variant 중앙값은 +4.45%이며, 최종 표는 선택 후 진행한 독립
+확인 실행만 사용한다. 단회/다른 입력/장시간/다른 온도에서의 5% 보장은 아니다.
+양쪽 variant 모두 각자의 이전 생성 ID와 동일하며, cache 증설이 출력 ID를
+바꾸지 않았다. off/on 사이 routing 차이에 대한 아래 한계는 그대로 적용된다.
+
+추가 메모리 비용이 있다. 실행 종료 시 DSP weight arena 로그는
+1728 -> 2880 MiB (+1152 MiB), HMX 실행의 DSP heap used는
+289716 -> 337476 KiB다. 이는 해당 구성요소의 기록이며 프로세스 peak
+전체와 동일하지 않다. 별도 메모리 계측 결과는 decode-optimization/memory에
+보존한다. 이 증설을 허용하지 않는 cache 16 구성은 아래처럼 5%를 안정적으로
+만족하지 못했다. 속도만 보고 메모리 비용을 생략해서는 안 된다.
+
+선택한 설정 재현:
+  python3 test/htp/run_hadamard_e2e.py --serial R5KL30G6MCX \
+    --remote-root /data/local/tmp/nntr_gemma4_hadamard_e2e_20261014 \
+    --output /tmp/hadamard-decode-cache48 --miss-readers 8 --cache-grow 32 \
+    --order both_hmx,off,off,both_hmx,off,both_hmx,both_hmx,off
+
+최종 코드, cache 16의 첫 E2E batch (decode-optimization/final-e2e):
+
+같은 최종 바이너리와 설정에서 off/both_hmx를 각 4회 교차 실행했다.
+NNTR_NUM_THREADS=8, NNTR_MOE_MISS_READERS=8, cache=16 experts/layer,
+cache grow=0, page cache=0, DMA queues=4, scope=2bit다. 기존 대비 변경한
+실행 설정은 miss reader 4 -> 8뿐이며, expert cache 크기는 늘리지 않았다.
+
+구간             off              both_hmx         시간 증가    TPS 차이
+prefill 1024     1610 ms          1603 ms            -0.43%      +0.44%
+                636.02 TPS       638.80 TPS
+decode 127      9716 ms         10143 ms            +4.39%      -4.21%
+                 13.071 TPS       12.521 TPS
+추론 total     11327.5 ms       11758 ms            +3.80%
+
+첫 batch의 중앙값은 prefill/decode 모두 시간 overhead 5% 미만이다.
+그러나 역순 확인 batch(confirmation-e2e)는 decode +6.27%였고,
+두 batch 8회/variant를 모두 합친 중앙값은 +4.84%다. 따라서 cache=16
+설정에서 안정적인 5% 이내를 달성했다고 판단하지 않는다. 별도 계측 실행도
++5.89%였으며, 이 계측 표본은 위 두 unprofiled batch 집계에서 제외했다.
+이는 이 입력/기기/실행 조건에서 관측한 값이며, 체크포인트 품질이나 다른
+routing의 보장이 아니다. 최종 각 variant의 생성 ID는 최초 E2E와 같았고,
+모든 반복 실행 간에도 같았다. off와 both_hmx 사이의 ID는 서로 다르다.
+off decode 범위 9517~9985 ms, both_hmx 10039~10464 ms로 실행 간 변동이
+있다. 첫 decode의 준비 비용을 포함한 127회 전체를 측정했다. 짧은 실행의
+온도/주파수/스토리지 변동을 피하기 위해 순서를 뒤집어 측정했지만, 5%를
+모든 환경에서 보장하는 결과는 아니다. profile/trace 실행은 이 표에서 뺐다.
+
+새 구현은 decode에서도 전체 폭의 FP32 HVX FWHT + H44를 유지한다.
+HMX는 prefill에서 사용하며, decode 회전의 정밀도를 FP16으로 바꾸지 않았다.
+704 단일 행의 H44를 레지스터에 누산하도록 확장하여 중간 메모리 왕복을
+줄였다. QFloat 상태는 asm 내부에만 유지하고 FP32로 변환한 뒤 저장한다.
+M=1에서 모든 active expert가 같은 입력 AH를 읽도록 양자화/pack을 공유했다.
+M>1 또는 한 expert에 반복 행이 있는 경우 기존 gather를 유지한다. 이는
+회전 off에도 적용되어, 표의 baseline도 같은 최적화 혜택을 받는다.
+이 수정은 추가 persistent buffer나 expert cache 증설을 필요로 하지 않는다.
+읽기 스레드 수는 기존 CPU thread pool 8개 범위 내에서만 늘렸다.
+
+최종 고정-routing 2bit 커널 (RMSNorm 포함, final-kernel):
+  decode M=1: 200회/variant, off 264 -> both_hmx 268 us, +1.52%.
+  paired median 증가도 4 us(+1.52%)다.
+  prefill M=1024: 24회/variant, 17285.5 -> 17770 us, +2.80%.
+  M=4: 12회/variant, 2226.5 -> 2281.5 us, +2.47%.
+실제 MoE의 cache-miss 분할 실행/파일 읽기를 포함하는 E2E와 구분한다.
+캐시 크기 24를 비교한 중간 실험은 +7.21%로 목표를 만족하지 않아 채택하지
+않았다. 중간 실험 데이터도 decode-optimization에 보존했다.
+
+최종 검증: DSP v81 빌드 및 import/arch 검사, 단독 회전의 독립 double
+reference 검사, 실제 DSP 통합 M=1/4/1024, 4bit M=1, 전체 MoE host suite,
+TL2 MoE host suite를 통과했다. 마지막 두 suite는 입력 AH 공유가 기존
+4bit/2bit/TL2 경로와 다중 행/다중 DMA queue 출력에 미치는 영향을 검사한다.
+단독/통합 수치 허용 기준은 낮추지 않았다. kernel 최적화 후에도 생성 ID는
+이전과 같았다. 최종 binary SHA는 decode-optimization/runtime-final-sha256.txt다.
+
+최종 E2E 재현 (앱/모델이 이미 배포된 MCX):
+  python3 test/htp/run_hadamard_e2e.py --serial R5KL30G6MCX \
+    --remote-root /data/local/tmp/nntr_gemma4_hadamard_e2e_20261014 \
+    --output /tmp/hadamard-decode-e2e --miss-readers 8 \
+    --order off,both_hmx,both_hmx,off,both_hmx,off,off,both_hmx
+
+일반 앱 실행에도 NNTR_MOE_MISS_READERS=8을 명시해야 이 설정이 된다.
+다른 SoC의 기본값은 변경하지 않았다. 실행 명령/환경/토큰 ID/로그/시간은
+final-e2e에 보존되어 있다. 모델 config와 1024-token 입력은 e2e/model과
+e2e/input-1024.txt에 있다. LD_LIBRARY_PATH=.를 사용하고 실제 vendor의
+libcdsprpc.so를 runtime에 둔다. /vendor/lib64 전체를 앱의 라이브러리 경로에
+넣으면 이 기기의 libandroidfw/libbase 충돌이 발생했다.

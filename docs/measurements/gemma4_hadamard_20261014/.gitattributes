@@ -1,0 +1,5 @@
+# Keep captured logs and diagnostic output byte-for-byte for hash verification.
+* -text
+*.log -whitespace
+decode-optimization/rotation-only/shadow-build/shadow.patch -whitespace
+decode-optimization/rotation-only/checks/shadow-asm.txt -whitespace

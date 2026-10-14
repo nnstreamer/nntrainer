@@ -1,0 +1,216 @@
+Gemma4-26B-A4B Hadamard online rotation: S26 Ultra 측정 및 구현 검토
+2026-10-14
+
+PR #4416의 8682e75a11792df1bc1353b3ec144c1a005b8426 위에 구현했다.
+작업 브랜치는 codex/gemma4-spinquant-20261014이며, 기존 작업 디렉터리와
+분리한 nntrainer-gemma4-spinquant worktree에 변경 사항을 보관했다.
+이 보고서의 성능 근거는 R5KL30G6MCX(SM-S948N, SM8850) 측정만 사용한다.
+
+회전은 DSP의 HVX FP32 연산으로 수행한다. Up/Gate와 Down의 양자화 GEMM은
+PR의 기존 HMX/HVX 경로를 사용한다. 회전 자체를 HMX로 수행하는 구현은
+이번 결과에 포함되지 않는다. SpinQuant 체크포인트가 없으므로 합성 가중치와
+고정 routing으로 커널 비용을 비교했다. 모델 품질, TTFT, tokens/s 또는
+전체 모델의 prefill 감소율을 측정한 결과가 아니다.
+
+최종 결과는 raw/final/summary.json과 같은 디렉터리의 CSV에 있다.
+단위는 모두 microseconds(us), 값은 DSP 전체 커널 실행 시간의 중앙값이다.
+Decode는 각 variant 100회, 나머지는 각 variant 20회 측정했다.
+
+경로 / 토큰       회전 없음    Up만       Down만     둘 다      증가율
+2bit MoE / 1        269.5       278.0       273.0       280.0       3.90%
+2bit MoE / 128     9316.5      9452.5     10151.0     10392.5      11.55%
+2bit MoE / 1024   17165.5     18315.0     19612.5     20836.5      21.39%
+4bit dense / 1      182.0       183.0       182.0       182.0       0.00%
+4bit dense / 128    704.0       814.5       719.0       868.5      23.37%
+4bit dense / 1024  4801.0      5986.5      5088.0      6346.0      32.18%
+
+4bit dense는 PR의 2112차원 FFN을 704차원 세 chunk로 나눈 실행 경로다.
+Down 회전도 각 chunk의 H704이며, 2112 전체를 섞는 H2112가 아니다.
+따라서 dense 결과를 full-width SpinQuant Down rotation의 결과로 읽으면
+안 된다. 실제 체크포인트도 같은 chunk 회전을 사용해야 한다.
+
+같은 반복 안의 both - off 차이를 계산한 중앙값과 사분위 구간은 다음과 같다.
+이 구간은 반복 측정 분포이며 신뢰구간이 아니다.
+
+경로 / 토큰       paired 중앙값       25% ~ 75%
+2bit MoE / 1             9.5             4.0 ~ 14.0 us
+2bit MoE / 128        1074.5          1012.5 ~ 1138.25 us
+2bit MoE / 1024       3629.0          3576.5 ~ 3740.25 us
+4bit dense / 1           0.0            -2.25 ~ 2.0 us
+4bit dense / 128       170.0           127.5 ~ 215.75 us
+4bit dense / 1024     1525.5          1479.25 ~ 1623.5 us
+
+Dense decode의 0%는 추가 비용이 없는 연산이라는 의미가 아니다. 이 작은
+증가분은 이번 통합 측정의 변동과 겹친다. MoE의 이전 독립 실행도 decode
+3.98%, 1024-token prefill 21.08%였으며 raw/confirmation에 보관했다.
+
+Prefill에서 비율이 큰 이유는 분모와 회전 횟수에 있다. 최종 MoE baseline은
+decode 269.5 us/token인 반면, 1024-token prefill은 약 16.76 us/token이다.
+회전 추가 비용은 각각 10.5 us/token과 약 3.585 us/token이므로 prefill의
+토큰당 추가 시간이 더 작아도 상대 증가율은 더 크다.
+
+Up/Gate는 토큰당 한 번이므로 1024행을 회전한다. Down은 top-8의 서로 다른
+expert GeGLU 결과를 회전하므로 8192행이다. 이 결과는 expert 간에 공유할
+수 없다. 단독 활성화 시 증가분은 Up 약 1.150 ms, Down 약 2.447 ms다.
+스케줄링과 겹치는 연산 때문에 두 단독 증가분의 합이 both 증가분과 정확히
+일치하지는 않는다. 1024-token의 균등 routing은 expert당 64행으로 HMX
+블록에 잘 맞는다. 128-token에서는 expert당 8행이어서 HVX tail 경로의
+비중이 높다. 실제 routing의 편향과 tail 분포에 따라 결과가 달라진다.
+
+실제 회전의 정의는 R_n = (H44 tensor-product H_p) / sqrt(n)이다.
+Up/Gate: n=2816, p=64. Down expert: n=704, p=16.
+H_p는 Sylvester Fast Walsh-Hadamard butterfly이며, H44는 F_43 위의
+Paley 구성이다. H44[0,0]=1, 첫 행의 나머지는 -1, 첫 열은 1, 대각은 1,
+나머지는 Legendre(i-j,43)로 생성했다. SpinQuant get_had44 테이블과 대조했다.
+이는 zero padding이나 작은 block만 회전하는 근사가 아니라, MoE의 해당
+차원 전체를 섞는 정규화 회전이다. H44 단계는 FWHT만으로 대체할 수 없다.
+
+구현에서 반영한 최적화는 다음과 같다.
+
+- Up/Gate 입력은 expert gather 이전에 회전해 선택 expert들이 공유한다.
+  회전한 한 입력을 Up과 Gate 양쪽에 사용한다.
+- 기존 RMSNorm/activation quantization worker 안에서 회전한다.
+  원래 입력 버퍼를 보존하고, 기존 DMA copy 및 worker scratch를 재사용한다.
+- Down은 GeGLU 다음, min/max와 zero-point 계산 이전에 회전한다.
+  M=1 GEMV, HMX block 및 HVX tail 모두 같은 위치에 적용한다.
+- FWHT의 1/2/4/8/16 butterfly 단계를 펼쳐 shuffle 제어와 부호 mask를
+  반복문 밖으로 이동시켰다. Vdelta shuffle과 FP32 덧셈으로 계산한다.
+- H44는 네 입력의 여덟 signed sum을 미리 만들고 재사용한다.
+  출력별로 44개의 입력을 다시 누산하는 대신 11개의 부분합을 선택한다.
+  선택 테이블을 상수로 펼쳐 동적 인덱싱과 부호 분기를 줄였다.
+- 704차원 배치에서는 두 행의 16개 lane을 한 32-lane HVX 벡터에 담는다.
+  두 행은 독립적으로 계산하며 홀수 행은 단일 행 경로로 마무리한다.
+- 회전 추가를 위한 RPC, heap 할당, 별도 thread-pool dispatch는 없다.
+  기존 worker 안에서 연산한다. H44 부분합과 compiler spill은 worker stack에
+  놓이며 최종 Hexagon assembly의 해당 frame은 0x4700(18176) bytes다.
+  기존 worker stack 32 KiB와 benchmark RPC stack 64 KiB에서 검증했다.
+
+초기 HVX 구현의 단일 2816행 회전은 약 21.4 us였고, 최종 후보는 약 3.26 us다.
+최종 단일 704행은 약 1.37 us다. 1024행 배치의 단독 probe는 2816차원 약
+1.32 ms, 704차원 약 0.25 ms였다. probe는 worker dispatch를 포함하지만
+입력 복원과 RPC 전송은 timed region에서 제외한다. 통합 커널의 추가 비용은
+이 probe와 메모리 위치/스케줄링 조건이 다르므로 별도로 측정했다.
+
+중간 구현(v3)은 동일 MCX에서 MoE decode 263 -> 291 us(+10.65%),
+1024-token prefill 17023 -> 23664.5 us(+39.01%)였다. 최종 결과는 각각
+269.5 -> 280 us(+3.90%), 17165.5 -> 20836.5 us(+21.39%)다.
+실행 시점이 다르므로 절대 baseline 차이를 최적화 효과로 해석하지 않고,
+각 실행 내부의 off/both 차이로 평가했다. scalar Hadamard는 최종 MoE
+1024-token에서 약 570 ms로, 해당 baseline 대비 약 33.2배의 전체 커널
+시간이었다. scalar 경로는 성능 비교와 검증용이다.
+
+QFloat 형식에서 변환 없이 signed sum을 연속 누산하는 후보도 시도했으나
+기기의 독립 행렬 기준 검사에서 큰 오차가 나와 제외했다. 최종 구현은
+FP32 연산마다 SF 결과를 유지한다. 검증 허용 오차를 늘려 이 후보를
+채택하지 않았다. 통합 양자화 파이프라인의 tolerance와 단독 회전의
+tolerance는 목적이 달라 별도로 관리한다.
+
+HMX 회전은 아직 구현/측정하지 않았다. 검토하려면 FP16 입력/출력 변환,
+HMX layout packing, H44 또는 전체 회전 행렬 표현, VTCM 사용량과 기존
+GEMM과의 HMX 사용 경합을 함께 측정해야 한다. 현재 회전은 양자화 전에
+FP32 입력에 적용된다. 회전 이전에 INT8로 양자화해서 HMX에 넣는 방법은
+동일한 수치 연산이 아니며 SpinQuant가 줄이려는 outlier 손실에 영향을
+줄 수 있다. 실제 품질 비교 없이 같은 구현으로 취급할 수 없다.
+
+측정 조건은 다음과 같다.
+
+- Hexagon SDK 6.4.0.1, Tools 19.0.04, HexKL 1.0-beta.2, target v81.
+- 고정 K=2816, intermediate=704, output=2816, GeGLU.
+- MoE: packed 2bit 가중치, 128 experts, top-8, 동일 입력/가중치/routing.
+  2bit code palette는 {-7,0,7,0}; 가중치는 합성 난수이며 모델 양자화
+  정확도를 재현하려는 데이터가 아니다.
+- Dense: packed 4bit 가중치, 704차원 세 chunk를 모두 활성화.
+- 공통 옵션 0x00cf03e1: 기존 GEMV/VTCM feed, DMA bypass, 4 DMA queues.
+  PR의 DMA queue 기본값 1을 그대로 측정한 표는 아니다.
+- off/up/down/both/both_scalar 다섯 variant를 한 프로세스에서 준비하고
+  각각 warmup 후 실행 순서를 반복마다 회전/반전했다.
+- 기존 timed RPC의 DSP wall 값을 사용했다. weight 생성/등록과 warmup은
+  제외했다. 옵션 설정 RPC는 rpc_us 측정에서도 제외했다.
+- timed endpoint의 기존 계측 비용은 포함된다. stage 값은 worker 중첩과
+  lane-time 특성이 있으므로 stage 합으로 전체 시간을 계산하지 않았다.
+- Router, attention, KV cache, embedding, CPU fallback과 토큰 sampling은
+  측정하지 않았다. 속도 비교용 RPC는 pre_gamma 없이 실행했다.
+  RMSNorm 결합 경로의 정확도는 별도의 host integration test로 확인했다.
+
+검증 결과는 checks/와 raw/final/rotation-check.log에 있다.
+
+- 독립 O(n^2) double 행렬 기준: 다양한 power-of-two 및 44*p 차원,
+  sinusoidal/impulse/상수/outlier 입력. 단독 회전의 원소 오차 제한은
+  3e-5 * (1 + abs(reference)), 에너지 상대 오차 제한은 3e-6이다.
+  MoE 대상 차원에서 관측한 최대 절대 오차는 약 1.9e-6이었다.
+- 별도 입력을 가진 1/2/3/7/17행 및 1024행 배치 검사, 홀수 행 처리,
+  guard 값 보존, 잘못된 width/mode의 write 이전 거부.
+- Host ASan/UBSan 검사 통과.
+- Host HMX+tail / GEMV arena / GEMV VTCM 각 경로에서 Up/Down/both,
+  RMSNorm 유무, 입력 버퍼 보존 검사 통과.
+- 전체 기존 host check suite 종료 코드 0. 이후 최종 변경 기준 full MoE
+  suite와 option parser 검사를 다시 실행해 통과했다. 원래 suite에서
+  aarch64 g++/qemu가 없어 NEON abs-max 검사는 실행되지 않았음이 로그에 있다.
+- 실제 DSP 단독 회전 및 합성 2bit/4bit 통합 검사 통과. 통합 결과의
+  scalar/HVX NRMSE 최대값은 약 4.66e-4(0.0466%)였다. 덧셈 순서의 작은
+  차이가 다음 INT8 quantization의 bin 경계를 넘을 수 있어 통합 sanity
+  기준은 1e-3이다. 단독 회전은 위의 더 엄격한 행렬/에너지 기준을 적용한다.
+  이 수치는 체크포인트 품질 변화나 baseline 모델과의 출력 오차가 아니다.
+- 최종 DSP build(-Wall -Werror), Android benchmark build,
+  수정된 htp_compute_ops.cpp의 Android ARM64 object compile 통과.
+  clang-format 14와 git diff --check, shell syntax 검사 통과.
+- 전체 Android 앱 link/기기 end-to-end 모델 실행 및 원격 CI는 실행하지 않았다.
+
+재현은 저장소 루트에서 SDK/NDK/HexKL 경로를 설정한 뒤 다음 순서로 한다.
+
+  export HEXAGON_SDK_ROOT=/path/to/Hexagon_SDK/6.4.0.1
+  export DEFAULT_HEXAGON_TOOLS_ROOT=$HEXAGON_SDK_ROOT/tools/HEXAGON_Tools/19.0.04
+  export HEXKL_ROOT=/path/to/hexkl_addon
+  export HEXKL_SDK_VER=6.4.0.1
+  export HEX_ARCH=v81
+  export ANDROID_NDK=/path/to/android-ndk-r30
+  bash test/htp/build.sh
+  bash test/htp/build_hadamard_bench.sh
+  bash test/htp/run_hadamard_bench_on_device.sh R5KL30G6MCX /tmp/hadamard-result
+
+실행 스크립트는 명시한 serial만 사용하며 LH로 끝나는 기기는 거부한다.
+앱 설치 디렉터리와 분리된 /data/local/tmp/nntr_hadamard_<timestamp>에 배포한다.
+기기의 /vendor/lib64/libcdsprpc.so를 사용하며 SDK의 link-time stub을 기기에
+배포하지 않는다. 기본 반복은 20회이며 HADAMARD_REPS로 변경할 수 있다.
+개별 실행 인자는 hadamard_moe_bench <tokens> <repeats> <weight_bits>다.
+CSV의 variant 0/1/2/3/4는 off/up/down/both/both_scalar다.
+
+모델 앱에서 실험할 수 있도록 NNTR_MOE_HADAMARD 옵션도 추가했다.
+unset/off가 기본값이며 up, down, both, both_scalar를 지원한다.
+잘못된 옵션이나 회전 flag를 이해하지 못하는 DSP skel은 오류로 처리한다.
+모델 앱을 재빌드할 때는 ARM client stub도 다음 명령으로 갱신해야 한다.
+
+  bash nntrainer/tensor/htp_backend/generate_stub.sh
+  NNTR_MOE_HADAMARD=both <기존 모델 실행 명령>
+
+이 옵션은 HTP MoE 및 해당 커널을 재사용하는 WH dense chunk에 적용된다.
+CPU/Q4M1 fallback, attention의 추가 회전, learned dense rotation 행렬은
+구현 대상이 아니다. 체크포인트 없이 모델 앱에서 활성화하면 출력이 달라지고
+이후 routing도 달라질 수 있어, 위 고정 routing 표와 동일한 비교가 아니다.
+
+실제 모델 품질을 유지하려면 weight를 양자화하기 전에 동일 회전을 반영해야
+한다. 열 벡터 x와 W[out,in] 표기에서 x_rot=R*x이면 W_rot=W*R^T이다.
+Packed GEMM의 W[in,out] 표기에서는 W_rot=R*W다. H44는 대칭 행렬이
+아니므로 transpose를 생략하거나 H를 다시 적용해 역변환한다고 가정하면
+안 된다. Up/Gate 양쪽과 expert별 Down weight에 일치하는 변환이 필요하다.
+기존 양자화 weight를 그대로 두고 activation만 회전한 출력은 정상 모델의
+출력이 아니다. Dense Down은 앞서 설명한 세 H704 block과 일치해야 한다.
+
+Up/Gate의 online 회전이 항상 필수인 것은 아니다. 모델 전역의 회전을
+embedding, residual 경로와 인접 weight에 흡수할 수 있는 구성이라면 이
+실행 비용을 줄일 여지가 있다. Gemma4의 dense/MoE 병렬 경로와 norm을
+포함한 변환, 실제 재양자화 및 품질 검증이 필요해 이번 속도 실험에서는
+흡수했다고 가정하지 않고 두 위치의 비용을 명시적으로 측정했다.
+
+근거 코드와 참고 자료:
+  https://github.com/nntrainer/nntrainer/pull/4416
+  https://github.com/facebookresearch/SpinQuant
+  https://github.com/facebookresearch/SpinQuant/blob/main/utils/hadamard_utils.py
+  nntrainer/tensor/htp_backend/hvx/hvx_hadamard_f32.c
+  nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c
+  nntrainer/tensor/htp_backend/htp_moe_opts.h
+  test/htp/hadamard_moe_bench.cpp
+  test/htp/host/hadamard_check.c
+
+manifest.json에 최종 source/binary SHA256과 빌드 조건을 기록했다.
+변경은 로컬 worktree에 있으며 commit/push/PR 발행은 하지 않았다.

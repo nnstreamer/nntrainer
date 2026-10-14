@@ -1,0 +1,41 @@
+{
+  "off": {
+    "runs": 4,
+    "prefill_ms": 1621.5,
+    "decode_ms": 10018.5,
+    "inference_ms": 11645.0,
+    "e2e_ms": 16745.0,
+    "prefill_tps": 631.514030218933,
+    "decode_tps": 12.67654838548685
+  },
+  "both_hmx": {
+    "runs": 4,
+    "prefill_ms": 1585.5,
+    "decode_ms": 10669.0,
+    "inference_ms": 12267.0,
+    "e2e_ms": 17029.0,
+    "prefill_tps": 645.8530432040366,
+    "decode_tps": 11.903646077420564,
+    "time_delta_pct": {
+      "prefill_ms": -2.2201665124884418,
+      "decode_ms": 6.4929879722513295,
+      "inference_ms": 5.341348218119357,
+      "e2e_ms": 1.6960286652732082
+    }
+  },
+  "both": {
+    "runs": 4,
+    "prefill_ms": 1670.0,
+    "decode_ms": 10903.5,
+    "inference_ms": 12590.0,
+    "e2e_ms": 17746.5,
+    "prefill_tps": 613.1736526946107,
+    "decode_tps": 11.647636080157747,
+    "time_delta_pct": {
+      "prefill_ms": 2.9910576626580365,
+      "decode_ms": 8.8336577331936,
+      "inference_ms": 8.115070845856586,
+      "e2e_ms": 5.980889817856072
+    }
+  }
+}

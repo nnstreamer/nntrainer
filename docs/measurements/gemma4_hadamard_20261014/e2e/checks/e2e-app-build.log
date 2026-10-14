@@ -1,0 +1,133 @@
+[arm64-v8a] Compile++      : causallm_core <= huggingface_tokenizer.cpp
+[arm64-v8a] Compile++      : causallm_core <= conv_block_layer.cpp
+[arm64-v8a] Compile++      : causallm_core <= llm_util.cpp
+[arm64-v8a] Compile++      : causallm_core <= residual_add.cpp
+[arm64-v8a] Compile++      : causallm_core <= qwen_moe_layer_cached.cpp
+[arm64-v8a] Compile++      : causallm_core <= qwen_moe_layer_fsu.cpp
+[arm64-v8a] Compile++      : causallm_core <= qwen_moe_layer.cpp
+[arm64-v8a] Prebuilt       : libnntrainer.so <= /home/jungone-lee/workspace/nntrainer-gemma4-spinquant/builddir/android_build_result/lib/arm64-v8a/
+[arm64-v8a] Prebuilt       : libccapi-nntrainer.so <= /home/jungone-lee/workspace/nntrainer-gemma4-spinquant/builddir/android_build_result/lib/arm64-v8a/
+[arm64-v8a] Compile++      : causallm_core <= dense_ffn_layer.cpp
+[arm64-v8a] Compile++      : causallm_core <= gpt_oss_moe_layer.cpp
+[arm64-v8a] Compile++      : causallm_core <= function.cpp
+[arm64-v8a] Compile++      : causallm_core <= qkv_layer.cpp
+[arm64-v8a] Compile++      : causallm_core <= shared_fully_connected_layer.cpp
+[arm64-v8a] Compile++      : causallm_core <= deberta_attention_layer.cpp
+[arm64-v8a] Compile++      : causallm_core <= kv_cache_manager.cpp
+[arm64-v8a] Compile++      : causallm_core <= qwen2_embedding.cpp
+[arm64-v8a] Compile++      : causallm_core <= gpt_oss_moe_layer_cached.cpp
+[arm64-v8a] Compile++      : causallm_core <= qwen3_embedding.cpp
+[arm64-v8a] Compile++      : causallm_core <= qwen2_causallm.cpp
+[arm64-v8a] Compile++      : causallm_core <= transformer.cpp
+[arm64-v8a] Compile++      : causallm_core <= qwen3_moe_causallm.cpp
+[arm64-v8a] Compile++      : causallm_core <= qwen3_slim_moe_causallm.cpp
+[arm64-v8a] Compile++      : causallm_core <= qwen3_causallm.cpp
+[arm64-v8a] Compile++      : causallm_core <= sentence_transformer.cpp
+[arm64-v8a] Compile++      : causallm_core <= qwen3_cached_slim_moe_causallm.cpp
+[arm64-v8a] Compile++      : causallm_core <= causal_lm.cpp
+[arm64-v8a] Compile++      : causallm_core <= gptoss_cached_slim_causallm.cpp
+[arm64-v8a] Compile++      : causallm_core <= embedding_pooling_layer.cpp
+[arm64-v8a] Compile++      : causallm_core <= per_layer_slice.cpp
+[arm64-v8a] Compile++      : causallm_core <= embedding_normalize_layer.cpp
+[arm64-v8a] Compile++      : causallm_core <= gptoss_causallm.cpp
+[arm64-v8a] Compile++      : causallm_core <= scalar_multiply.cpp
+[arm64-v8a] Compile++      : causallm_core <= lm_head.cpp
+[arm64-v8a] Compile++      : causallm_core <= reshaped_rms_norm.cpp
+[arm64-v8a] Compile++      : causallm_core <= custom_multiply.cpp
+[arm64-v8a] Compile++      : causallm_core <= causal_conv1d_layer.cpp
+[arm64-v8a] Compile++      : causallm_core <= embedding_layer.cpp
+[arm64-v8a] Compile++      : causallm_core <= swiglu.cpp
+[arm64-v8a] Compile++      : causallm_core <= rms_norm.cpp
+[arm64-v8a] Compile++      : causallm_core <= tie_word_embedding.cpp
+[arm64-v8a] Compile++      : causallm_core <= logit_softcapping.cpp
+[arm64-v8a] Compile++      : causallm_core <= embedding_gemma.cpp
+[arm64-v8a] Compile++      : causallm_core <= gemma3_causallm.cpp
+[arm64-v8a] Compile++      : causallm_core <= chat_template.cpp
+[arm64-v8a] Compile++      : causallm_core <= mha_core.cpp
+[arm64-v8a] Compile++      : causallm_core <= lfm2_moe_causallm.cpp
+In file included from ./../models/lfm2_moe/lfm2_moe_causallm.cpp:12:
+In file included from ./../models/lfm2_moe/lfm2_moe_causallm.h:19:
+./../models/lfm2/lfm2_causallm.h:140:8: warning: 'run_with_embeddings' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+  140 |   void run_with_embeddings(const void *inputs_embeds, size_t n_tokens,
+      |        ^
+./../models/transformer.h:207:16: note: overridden virtual function is here
+  207 |   virtual void run_with_embeddings(const void *prefill_embeds, size_t n_tokens,
+      |                ^
+1 warning generated.
+[arm64-v8a] Compile++      : causallm_core <= gemma4_moe_causallm.cpp
+[arm64-v8a] Compile++      : causallm_core <= lfm2_slim_moe_causallm.cpp
+In file included from ./../models/lfm2_moe/lfm2_slim_moe_causallm.cpp:13:
+In file included from ./../models/lfm2_moe/lfm2_slim_moe_causallm.h:15:
+In file included from ./../models/lfm2_moe/lfm2_moe_causallm.h:19:
+./../models/lfm2/lfm2_causallm.h:140:8: warning: 'run_with_embeddings' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+  140 |   void run_with_embeddings(const void *inputs_embeds, size_t n_tokens,
+      |        ^
+./../models/transformer.h:207:16: note: overridden virtual function is here
+  207 |   virtual void run_with_embeddings(const void *prefill_embeds, size_t n_tokens,
+      |                ^
+1 warning generated.
+[arm64-v8a] Compile++      : causallm_core <= lfm2_cached_slim_moe_causallm.cpp
+In file included from ./../models/lfm2_moe/lfm2_cached_slim_moe_causallm.cpp:12:
+In file included from ./../models/lfm2_moe/lfm2_cached_slim_moe_causallm.h:15:
+In file included from ./../models/lfm2_moe/lfm2_moe_causallm.h:19:
+./../models/lfm2/lfm2_causallm.h:140:8: warning: 'run_with_embeddings' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+  140 |   void run_with_embeddings(const void *inputs_embeds, size_t n_tokens,
+      |        ^
+./../models/transformer.h:207:16: note: overridden virtual function is here
+  207 |   virtual void run_with_embeddings(const void *prefill_embeds, size_t n_tokens,
+      |                ^
+1 warning generated.
+[arm64-v8a] Compile++      : causallm_core <= gemma4_moe_layer.cpp
+[arm64-v8a] Compile++      : causallm_core <= lfm2_causallm.cpp
+In file included from ./../models/lfm2/lfm2_causallm.cpp:14:
+./../models/lfm2/lfm2_causallm.h:140:8: warning: 'run_with_embeddings' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+  140 |   void run_with_embeddings(const void *inputs_embeds, size_t n_tokens,
+      |        ^
+./../models/transformer.h:207:16: note: overridden virtual function is here
+  207 |   virtual void run_with_embeddings(const void *prefill_embeds, size_t n_tokens,
+      |                ^
+1 warning generated.
+[arm64-v8a] Compile++      : causallm_core <= gemma4_causallm.cpp
+In file included from ./../models/gemma4/gemma4_causallm.cpp:21:
+./../models/lfm2/lfm2_causallm.h:140:8: warning: 'run_with_embeddings' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+  140 |   void run_with_embeddings(const void *inputs_embeds, size_t n_tokens,
+      |        ^
+./../models/transformer.h:207:16: note: overridden virtual function is here
+  207 |   virtual void run_with_embeddings(const void *prefill_embeds, size_t n_tokens,
+      |                ^
+1 warning generated.
+[arm64-v8a] Compile++      : causallm_core <= lfm2_moe_layer_fsu.cpp
+[arm64-v8a] Compile++      : causallm_core <= streamer.cpp
+[arm64-v8a] Compile++      : causallm_core <= lfm2_moe_layer_cached.cpp
+[arm64-v8a] Compile++      : causallm_core <= lfm2_moe_pool_layer.cpp
+[arm64-v8a] Compile++      : causallm_core <= bert_transformer.cpp
+[arm64-v8a] Compile++      : causallm_core <= xlm_roberta.cpp
+In file included from ./../models/xlm_roberta/xlm_roberta.cpp:14:
+./../models/xlm_roberta/xlm_roberta.h:73:24: warning: 'encode' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+   73 |   std::vector<float *> encode(const WSTR prompt, const WSTR system_prompt = "",
+      |                        ^
+./../models/xlm_roberta/../bert/bert_transformer.h:95:32: note: overridden virtual function is here
+   95 |   virtual std::vector<float *> encode(const WSTR prompt,
+      |                                ^
+1 warning generated.
+[arm64-v8a] Compile++      : causallm_core <= timm_vit_transformer.cpp
+[arm64-v8a] Compile++      : causallm_core <= lfm2_moe_layer.cpp
+[arm64-v8a] Compile++      : causallm_core <= deberta_v2.cpp
+[arm64-v8a] SharedLibrary  : libcausallm_core.so
+[arm64-v8a] Compile++      : nntrainer_causallm <= main.cpp
+In file included from ./../main.cpp:54:
+./../models/xlm_roberta/xlm_roberta.h:73:24: warning: 'encode' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+   73 |   std::vector<float *> encode(const WSTR prompt, const WSTR system_prompt = "",
+      |                        ^
+./../models/xlm_roberta/../bert/bert_transformer.h:95:32: note: overridden virtual function is here
+   95 |   virtual std::vector<float *> encode(const WSTR prompt,
+      |                                ^
+In file included from ./../main.cpp:58:
+./../models/lfm2/lfm2_causallm.h:140:8: warning: 'run_with_embeddings' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+  140 |   void run_with_embeddings(const void *inputs_embeds, size_t n_tokens,
+      |        ^
+./../models/transformer.h:207:16: note: overridden virtual function is here
+  207 |   virtual void run_with_embeddings(const void *prefill_embeds, size_t n_tokens,
+      |                ^
+2 warnings generated.
+[arm64-v8a] Executable     : nntrainer_causallm

@@ -1,0 +1,74 @@
+HADAMARD width=1 pattern=0 mode=1 max_abs=0 us=0.208333
+HADAMARD width=1 pattern=0 mode=2 max_abs=0 us=0.208333
+HADAMARD width=1 pattern=1 mode=1 max_abs=0 us=0.208333
+HADAMARD width=1 pattern=1 mode=2 max_abs=0 us=0.156250
+HADAMARD width=1 pattern=2 mode=1 max_abs=0 us=0.195312
+HADAMARD width=1 pattern=2 mode=2 max_abs=0 us=0.182292
+HADAMARD width=1 pattern=3 mode=1 max_abs=0 us=0.182292
+HADAMARD width=1 pattern=3 mode=2 max_abs=0 us=0.203125
+HADAMARD width=16 pattern=0 mode=1 max_abs=6.14672899e-08 us=0.421875
+HADAMARD width=16 pattern=0 mode=2 max_abs=6.14672899e-08 us=0.416667
+HADAMARD width=16 pattern=1 mode=1 max_abs=0 us=0.421875
+HADAMARD width=16 pattern=1 mode=2 max_abs=0 us=0.421875
+HADAMARD width=16 pattern=2 mode=1 max_abs=0 us=0.416667
+HADAMARD width=16 pattern=2 mode=2 max_abs=0 us=0.416667
+HADAMARD width=16 pattern=3 mode=1 max_abs=1.22073106e-06 us=0.419271
+HADAMARD width=16 pattern=3 mode=2 max_abs=1.22073106e-06 us=0.419271
+HADAMARD width=32 pattern=0 mode=1 max_abs=3.34980008e-07 us=0.721354
+HADAMARD width=32 pattern=0 mode=2 max_abs=3.34980008e-07 us=0.218750
+HADAMARD width=32 pattern=1 mode=1 max_abs=3.02540426e-09 us=0.726562
+HADAMARD width=32 pattern=1 mode=2 max_abs=3.02540426e-09 us=0.221354
+HADAMARD width=32 pattern=2 mode=1 max_abs=9.68129363e-08 us=0.726562
+HADAMARD width=32 pattern=2 mode=2 max_abs=9.68129363e-08 us=0.218750
+HADAMARD width=32 pattern=3 mode=1 max_abs=2.16992326e-06 us=0.721354
+HADAMARD width=32 pattern=3 mode=2 max_abs=2.16992326e-06 us=0.213542
+HADAMARD width=64 pattern=0 mode=1 max_abs=1.5925616e-07 us=1.411458
+HADAMARD width=64 pattern=0 mode=2 max_abs=1.5925616e-07 us=0.250000
+HADAMARD width=64 pattern=1 mode=1 max_abs=0 us=1.414062
+HADAMARD width=64 pattern=1 mode=2 max_abs=0 us=0.244792
+HADAMARD width=64 pattern=2 mode=1 max_abs=0 us=1.414062
+HADAMARD width=64 pattern=2 mode=2 max_abs=0 us=0.247396
+HADAMARD width=64 pattern=3 mode=1 max_abs=5.64716174e-07 us=1.414062
+HADAMARD width=64 pattern=3 mode=2 max_abs=5.64716174e-07 us=0.250000
+HADAMARD width=128 pattern=0 mode=1 max_abs=2.46996244e-07 us=2.945312
+HADAMARD width=128 pattern=0 mode=2 max_abs=2.46996244e-07 us=0.307292
+HADAMARD width=128 pattern=1 mode=1 max_abs=1.51270213e-09 us=2.942708
+HADAMARD width=128 pattern=1 mode=2 max_abs=1.51270213e-09 us=0.307292
+HADAMARD width=128 pattern=2 mode=1 max_abs=1.93625873e-07 us=2.947917
+HADAMARD width=128 pattern=2 mode=2 max_abs=1.93625873e-07 us=0.309896
+HADAMARD width=128 pattern=3 mode=1 max_abs=1.68452522e-06 us=2.942708
+HADAMARD width=128 pattern=3 mode=2 max_abs=1.68452522e-06 us=0.302083
+HADAMARD width=176 pattern=0 mode=1 max_abs=3.42764246e-07 us=25.111979
+HADAMARD width=176 pattern=0 mode=2 max_abs=3.42764246e-07 us=25.114583
+HADAMARD width=176 pattern=1 mode=1 max_abs=6.79022533e-10 us=25.117188
+HADAMARD width=176 pattern=1 mode=2 max_abs=6.79022533e-10 us=25.114583
+HADAMARD width=176 pattern=2 mode=1 max_abs=4.71703654e-07 us=25.114583
+HADAMARD width=176 pattern=2 mode=2 max_abs=4.71703654e-07 us=25.111979
+HADAMARD width=176 pattern=3 mode=1 max_abs=2.27769952e-06 us=25.114583
+HADAMARD width=176 pattern=3 mode=2 max_abs=2.27769952e-06 us=25.114583
+HADAMARD width=704 pattern=0 mode=1 max_abs=9.3737221e-07 us=103.174479
+HADAMARD width=704 pattern=0 mode=2 max_abs=6.74343266e-07 us=1.369792
+HADAMARD width=704 pattern=1 mode=1 max_abs=3.39511266e-10 us=102.989583
+HADAMARD width=704 pattern=1 mode=2 max_abs=3.39511266e-10 us=1.367188
+HADAMARD width=704 pattern=2 mode=1 max_abs=9.43407308e-07 us=103.174479
+HADAMARD width=704 pattern=2 mode=2 max_abs=9.43407308e-07 us=1.367188
+HADAMARD width=704 pattern=3 mode=1 max_abs=1.77478896e-06 us=103.018229
+HADAMARD width=704 pattern=3 mode=2 max_abs=9.39051919e-07 us=1.364583
+HADAMARD width=2816 pattern=0 mode=1 max_abs=1.11244112e-06 us=426.197917
+HADAMARD width=2816 pattern=0 mode=2 max_abs=6.21640367e-07 us=3.265625
+HADAMARD width=2816 pattern=1 mode=1 max_abs=1.69755633e-10 us=426.841146
+HADAMARD width=2816 pattern=1 mode=2 max_abs=1.69755633e-10 us=3.255208
+HADAMARD width=2816 pattern=2 mode=1 max_abs=1.88681462e-06 us=426.203125
+HADAMARD width=2816 pattern=2 mode=2 max_abs=1.88681462e-06 us=3.257812
+HADAMARD width=2816 pattern=3 mode=1 max_abs=8.95761856e-07 us=426.080729
+HADAMARD width=2816 pattern=3 mode=2 max_abs=4.19020793e-07 us=3.255208
+HADAMARD ROWS OK rows=1
+HADAMARD ROWS OK rows=2
+HADAMARD ROWS OK rows=3
+HADAMARD ROWS OK rows=7
+HADAMARD ROWS OK rows=17
+HADAMARD_BATCH rows=1024 width=704 mode=1 us=16714.802083
+HADAMARD_BATCH rows=1024 width=704 mode=2 us=254.609375
+HADAMARD_BATCH rows=1024 width=2816 mode=1 us=71293.432292
+HADAMARD_BATCH rows=1024 width=2816 mode=2 us=1319.307292
+HADAMARD CHECK OK

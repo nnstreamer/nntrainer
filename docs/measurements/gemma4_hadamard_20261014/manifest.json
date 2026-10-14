@@ -1,0 +1,755 @@
+{
+  "date_utc": "2026-10-14T10:31:07.674221+00:00",
+  "base_pr": "https://github.com/nntrainer/nntrainer/pull/4416",
+  "base_sha": "8682e75a11792df1bc1353b3ec144c1a005b8426",
+  "branch": "codex/gemma4-spinquant-20261014",
+  "uncommitted": true,
+  "device": "R5KL30G6MCX",
+  "model": "SM-S948N",
+  "soc": "SM8850",
+  "dsp": "v81",
+  "sdk": "6.4.0.1",
+  "tools": "19.0.04",
+  "hexkl": "1.0-beta.2 / SDK 6.4.0.1",
+  "ndk": "r30",
+  "common_flags": "0x00cf03e1",
+  "variants": {
+    "0": "off",
+    "1": "up",
+    "2": "down",
+    "3": "both",
+    "4": "both_scalar",
+    "5": "up_hmx",
+    "6": "down_hmx",
+    "7": "both_hmx"
+  },
+  "hmx_precision": "FP16 input and intermediate; FP32 quantization parameters; final normalization folded into scale.",
+  "workspace_bytes": 335872,
+  "historical_data": "Initial FP32: report-v8.txt/manifest-v8.json. Prior HMX: prior_kernel_measurement. Prior E2E: e2e/paired. Cache growth/readers=8 experiments rejected; see decode-optimization/rejected-runtime-tuning.txt.",
+  "prior_kernel_measurement": {
+    "rotation": "Full H44 x H64 at 2816 and H44 x H16 at 704; three independent H704 dense chunks, not H2112.",
+    "baseline": "rotation off in the same final DSP binary",
+    "primary_measurement": "1024 tokens, RMSNorm included, fixed synthetic routing, 48 samples per variant and weight format",
+    "aggregate": "Sum of separately measured kernel medians, not full-model TTFT.",
+    "weights": "Synthetic packed 2-bit 128 experts top8; synthetic 4-bit three dense chunks.",
+    "rpc_timing_excludes_opts": true,
+    "pooled_result": {
+      "files": [
+        "docs/measurements/gemma4_hadamard_20261014/raw/hmx-final/moe-m1024-w2-norm.csv",
+        "docs/measurements/gemma4_hadamard_20261014/raw/hmx-confirmation/moe-m1024-w2-norm.csv",
+        "docs/measurements/gemma4_hadamard_20261014/raw/hmx-final/moe-m1024-w4-norm.csv",
+        "docs/measurements/gemma4_hadamard_20261014/raw/hmx-confirmation/moe-m1024-w4-norm.csv"
+      ],
+      "n_per_weight_bits": {
+        "2": 48,
+        "4": 48
+      },
+      "baseline_sum_us": 21758.0,
+      "hmx_sum_us": 22733.5,
+      "overhead_pct": 4.483408401507494,
+      "paired_bootstrap_percentile_95": [
+        4.073674794137205,
+        4.701877070298122
+      ],
+      "bootstrap_note": "Observed runs only; does not model other routing, thermal conditions, full-model TTFT or model quality."
+    },
+    "source_sha256": {
+      "nntrainer/tensor/htp_backend/hmx/hexkl_hadamard_coeffs.inc": "6285b996f3facbd54c3a99e1cdeda35873ed8a287f74d4424d2a0256dcfb5068",
+      "nntrainer/tensor/htp_backend/hmx/hexkl_hadamard_f16.h": "a637867beee3409c5067393b839efb2ee30f5ac31f235bdf6d722c3e81dc9be5",
+      "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "96483009089ae6a09536a187fca6da9970ffc0c3524a5b87fc9f3045028a824c",
+      "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.h": "a19d167627688a0dcba6dae47b3b08377ea6e653acaa21f861b3f329041999af",
+      "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "9a4af92fa84a5e9157dac1925c06b323744f402ec120c932f9155feb590a5346",
+      "nntrainer/tensor/htp_backend/htp_moe_opts.h": "6da981c46b3a404067a7f6015b10ee925299290b5ac9660a86ae55b85aba2d42",
+      "nntrainer/tensor/htp_backend/hvx/hvx_hadamard_f32.c": "4899a999ecb52c2f1c3dc20c2e4fee555dde26ade904bb08b23a552040307d43",
+      "nntrainer/tensor/htp_backend/hvx/hvx_hadamard_f32.h": "d6f04b35eb0f7c093c378267e2411b056663e23efcf1e626ac2828dc699ced84",
+      "nntrainer/tensor/htp_backend/hvx/hvx_hadamard_h44.inc": "639688d5be92e76b6408182ea6e9f0a094bd089db2dc74eecca5a515f9bd76d3",
+      "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c": "d9b7dd95000958aca5a1016e185ba8f1ae8c04787f7104aeac94c8bf37af133a",
+      "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.h": "876f2843bfde928837c810d2374aeed96a74bfc8712b114550840fcf717b8e7a",
+      "nntrainer/tensor/htp_backend/meson.build": "226cb1aac018e5ad3504a8397ddda818987c0c9270e713dd1eb121cdaed06c72",
+      "test/htp/build.sh": "3378869eff6700f65b1d656e9a83032a1ab1d24c6324accd95af4bd637d85d9a",
+      "test/htp/build_hadamard_bench.sh": "c79ccc5d47d7d5767017df193b0a66c2d89a70dee31d94b779b772d6b7222c9e",
+      "test/htp/generate_hadamard_tables.py": "fb025b91516ea18cd82674b7e5a6baa1797ff077e5821d39f2fa3e7fe42e0c9a",
+      "test/htp/hadamard_hmx_check.c": "cf8a79e4a04f562b9b4c29ec5d18d2a9bcabe383f4c7f6871c2b9f455fc3db3c",
+      "test/htp/hadamard_moe_bench.cpp": "832f090efb5a787dc34f7db0482c1f7f99372bff1f705741462a121ef2947a1c",
+      "test/htp/host/hadamard_check.c": "dea0a1387fbb3d90e1f1490219ad64a4106240ae8f41c196ef050071d2208c0f",
+      "test/htp/host/moe_layer_host_check.c": "6bb85e68c2b66e64337c129777b29a26a7f9c2c611723301bae558625a7b4ff7",
+      "test/htp/host/moe_opts_host_check.c": "59e16de592d4071bcf714e4b211662fc30e02b95d2e312f33718f9e5c800b98c",
+      "test/htp/host/run_host_checks.sh": "1385fe7edea2d39cb87c9590e75c8b722ebe2864005a8b81c5aa304cc45b4c43",
+      "test/htp/nntr_hvx.idl": "591f014194510c1b8cbd3f873bd1cc20c5279718d6308cf6799a3a1d0cae465b",
+      "test/htp/nntr_hvx_hadamard_probe.c": "696ecab05e52f9769cc6025f5789d151635ba1249078b2b0875e105a3ec3ef43",
+      "test/htp/nntr_hvx_mm_u8i4.c": "f949f317e793c07bb421866a059d835469b5275201115c05681128c0ad716139",
+      "test/htp/run_hadamard_bench_on_device.sh": "cfddbc6522792a58c0d71f6c19db625cec6af96cba75d5b147c0f5c66e74b1fc",
+      "test/htp/summarize_hadamard_bench.py": "33fc7b5d16b05701bd97c6af716593c48c0b919cb1cb251e768b82c8b49004d4"
+    },
+    "binary_sha256": {
+      "test/htp/build/libnntr_hvx_skel.so": "2bf8327cb87a06500e8a8c9789f02ccdea0b68ef4c3359340f3fa400f7814769",
+      "test/htp/build/hadamard_moe_bench": "b54c4b4d10a2d0579b875d64b08dcdfba96369e2cd164f6a42673a05ac8e85a3",
+      "test/htp/build/hadamard_check_device": "3795c49489ace22c8c843af8b46fddebeb696b1a7c2f83c621a75539d15d5416",
+      "test/htp/build/hadamard_hmx_check": "7aeea703ee6eb0e8e130d75064d103ddfd6d9f32c31414e1d61d1f21a2b10c4b"
+    },
+    "raw_sha256": {
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-confirmation/edge-m1057-w2.csv": "e14cee57616ddd08c5e263209be6c0ba87f787137494b619ad84181f0335ab8e",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-confirmation/edge-m1057-w2.stderr": "bd51e436bc2ead461b62d470c187637a48a29ba9e10ba6ff46569b9f27a9328e",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-confirmation/edge-m5-w2.csv": "8d35f348a273e57536dd8c6f89bf897a185c5e1b594f6020cf88d8cf1ff86fde",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-confirmation/edge-m5-w2.stderr": "84684c2740121eae6909869bcfcaeeb2144875f5d16e48ad8ac20d6cea98379b",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-confirmation/edge-m5-w4.csv": "18914e80248ea367ef92537657e67629c11527f3cc1a37bf65b7588258fceadf",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-confirmation/edge-m5-w4.stderr": "53157e71db2980829742ae7bca4173a1088e278e6fd43e468fdf0b383dd7d333",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-confirmation/manifest.txt": "85940f820e737e75264bbbcd22e84ba65823bd96d5d8db4886440a0e750b6109",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-confirmation/moe-m1024-w2-norm.csv": "7b6f53b56ee28b2ebe3eb16811d9bc868c7affc41d094a8e408855cb4c920e77",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-confirmation/moe-m1024-w2-norm.stderr": "8a3d0b41d64590e48602a250017e917b0f1bfc26d711746de88b405d7eb78674",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-confirmation/moe-m1024-w4-norm.csv": "2995bd31bd50c237b6deeccfce6a8cf7d5224560f023248a71f3bbd5a4e56b95",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-confirmation/moe-m1024-w4-norm.stderr": "7c5caf269134c1d9d9dad97fd37cdd919a7998b981a4f3e06a992bbe20b216dd",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-confirmation/summary.json": "2dcdb7b3dc7a5aef1996022590dd54c8936e6881aef49f0b807fc28d9236e36c",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-final/manifest.txt": "85940f820e737e75264bbbcd22e84ba65823bd96d5d8db4886440a0e750b6109",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-final/moe-m1-w2.csv": "6f34b08f319ced852c254c132abe51b6804da627402c20710cd49ba5b9c7a04b",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-final/moe-m1-w2.stderr": "58bb52b9c749b8b9523375d2e1fc53c87644e59c8887c21b90efa34de4527deb",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-final/moe-m1-w4.csv": "131379dff6ed0fec2450263958aa628c2db60ae1ea61b33c94a3d6c2d6e724af",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-final/moe-m1-w4.stderr": "046618e9651d3a8d05a48e2bde57400cc05bf8435888a66848ec08d64e41ab41",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-final/moe-m1024-w2-norm.csv": "1bd5a6670cc2447861416228207c8af14b1c86511a20d062aa512f9566b847c0",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-final/moe-m1024-w2-norm.stderr": "8a3d0b41d64590e48602a250017e917b0f1bfc26d711746de88b405d7eb78674",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-final/moe-m1024-w2.csv": "17fe2ec928709cb1e8462f6f2fdbcf47b3e9470dd346d17657a7f9a20cb25210",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-final/moe-m1024-w2.stderr": "8a3d0b41d64590e48602a250017e917b0f1bfc26d711746de88b405d7eb78674",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-final/moe-m1024-w4-norm.csv": "06f03d24dda7a308ad55add4f5a34088085ea593f446f5a30b5938d9e1231fff",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-final/moe-m1024-w4-norm.stderr": "7c5caf269134c1d9d9dad97fd37cdd919a7998b981a4f3e06a992bbe20b216dd",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-final/moe-m1024-w4.csv": "b978cdfc217ecbfe3eeb60c66d99cc7801f53b8e8cfe95bdbebb7f0c9f124d28",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-final/moe-m1024-w4.stderr": "7c5caf269134c1d9d9dad97fd37cdd919a7998b981a4f3e06a992bbe20b216dd",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-final/moe-m128-w2.csv": "32677d37b30a06bf1213d9c08f8c7b3b08e4157a58f57e4f956756ccc7425944",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-final/moe-m128-w2.stderr": "2248a8c905ca120947d484774ee4c77ca88a8fac81fe5a91577ffcfc36cef202",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-final/moe-m128-w4.csv": "2f06e48f607ad168cac84b3cec96bd0c1f79641f8b2ec07f3ce11e4ab574a9bb",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-final/moe-m128-w4.stderr": "63b4168e10a06af1105aea09d5127ea9d3a2c44a07bafa618ac573f74ae429c7",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-final/rotation-check.log": "6dd684c30138413fd7b59420197097275cb31a85767c946cf8fd9af7d6a561f6",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-final/rotation-hmx-check.log": "8c0bbc52dcb92fe6de3ed49f71a92ac4d3a4e2c9eb6e66693f7acf7ab8f588b4",
+      "docs/measurements/gemma4_hadamard_20261014/raw/hmx-final/summary.json": "27dfa8389e9507ae0aabe14c52f954a92a2dea0e23efb0646a35ee2c079ae84f"
+    },
+    "report_sha256": "608df9e58dec9acee6b5679f2730d081c3ca90f3387c4fce5ceb2b3f033a0fed",
+    "verification_status": "checks-hmx/status.txt",
+    "scope_correction": "The synthetic 4-bit benchmark uses 704 x 3, whereas actual PR #4416 shared FFN uses 1056 x 2. The 4.48% synthetic sum is NOT actual shared FFN or E2E overhead and is not model-level target evidence."
+  },
+  "rotation": "2-bit experts only: normalized H44 x H64 at Up/Gate 2816, H44 x H16 at Down 704. Actual shared 4-bit FFN 1056 x 2 remains unrotated.",
+  "decode_precision": "FP32 HVX, including both_hmx at M <= 4; H44 QFloat accumulators remain inside asm before FP32 stores.",
+  "baseline": "Rotation off in the SAME final normal DSP binary; expert cache=16, grow=0, readers=4, CPU threads=8, DMA queues=4. KV configuration unchanged.",
+  "primary_measurement": "Pure rotation: fixed-routing real-rotation MoE kernel; actual whole-app E2E and a separate decode rotate/restore control. Do not pool the normal and diagnostic binaries.",
+  "weights": "Existing unrotated 7.54 GB Gemma4-26B-A4B, QS2CX_WH experts and QS4CX rest; embedding/LM head Q4_0. Speed experiment, no model-quality validation.",
+  "routing_caveat": "Online rotations on an unrotated checkpoint change routing and generated IDs. E2E differences include different expert work/cache misses, not only the arithmetic cost of rotation.",
+  "prior_e2e": {
+    "summary": {
+      "off": {
+        "runs": 4,
+        "prefill_ms": 1621.5,
+        "decode_ms": 10018.5,
+        "inference_ms": 11645.0,
+        "e2e_ms": 16745.0,
+        "prefill_tps": 631.514030218933,
+        "decode_tps": 12.67654838548685
+      },
+      "both_hmx": {
+        "runs": 4,
+        "prefill_ms": 1585.5,
+        "decode_ms": 10669.0,
+        "inference_ms": 12267.0,
+        "e2e_ms": 17029.0,
+        "prefill_tps": 645.8530432040366,
+        "decode_tps": 11.903646077420564,
+        "time_delta_pct": {
+          "prefill_ms": -2.2201665124884418,
+          "decode_ms": 6.4929879722513295,
+          "inference_ms": 5.341348218119357,
+          "e2e_ms": 1.6960286652732082
+        }
+      },
+      "both": {
+        "runs": 4,
+        "prefill_ms": 1670.0,
+        "decode_ms": 10903.5,
+        "inference_ms": 12590.0,
+        "e2e_ms": 17746.5,
+        "prefill_tps": 613.1736526946107,
+        "decode_tps": 11.647636080157747,
+        "time_delta_pct": {
+          "prefill_ms": 2.9910576626580365,
+          "decode_ms": 8.8336577331936,
+          "inference_ms": 8.115070845856586,
+          "e2e_ms": 5.980889817856072
+        }
+      }
+    },
+    "runtime_hashes_file": "e2e/runtime-device-sha256-final.txt",
+    "scope": "2bit",
+    "miss_readers": 4
+  },
+  "fixed_routing_final_kernel": {
+    "1": {
+      "samples_per_variant": 200,
+      "off_us": 267.0,
+      "both_hmx_us": 270.0,
+      "time_delta_pct": 1.1235955056179803,
+      "source": "docs/measurements/gemma4_hadamard_20261014/decode-optimization/rotation-only/final-kernel/moe-m1-w2-norm.csv"
+    },
+    "1024": {
+      "samples_per_variant": 24,
+      "off_us": 17136.5,
+      "both_hmx_us": 17681.5,
+      "time_delta_pct": 3.1803460449916887,
+      "source": "docs/measurements/gemma4_hadamard_20261014/decode-optimization/rotation-only/final-kernel/moe-m1024-w2-norm.csv"
+    }
+  },
+  "source_sha256": {
+    "nntrainer/tensor/htp_backend/hmx/hexkl_graph.c": "d74ead7a2369759cd9574bafc4f6b6e2dd61e595f1edb03ec6402ce28e1d5585",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_graph.h": "5e4648fe99a9935517c6e225835d7b86084c4f52b9b70725762cbc48f8cea8bd",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_hadamard_coeffs.inc": "6285b996f3facbd54c3a99e1cdeda35873ed8a287f74d4424d2a0256dcfb5068",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_hadamard_f16.h": "a637867beee3409c5067393b839efb2ee30f5ac31f235bdf6d722c3e81dc9be5",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "85a9e2279da81628b36e291da0bc546fc141da37e56584af79a6284477fc4fe7",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.h": "a91991fd43a630e7133527ddf929f59ed5cbf653ad96deebd7316cef4a719da5",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "2f4a63d09996e6224519f5d3c958d547dd4392e37a6ad226457bcde416fc7e7f",
+    "nntrainer/tensor/htp_backend/htp_moe_opts.h": "57774c05ad993cf3a9a1c469f64fb0aee79b72bad098a63a65acdd3e144bc75d",
+    "nntrainer/tensor/htp_backend/hvx/hvx_hadamard_f32.c": "22b19c3facf444611eac8305abbea0c31181a857a9e5a2bc71e85e3251eef87b",
+    "nntrainer/tensor/htp_backend/hvx/hvx_hadamard_f32.h": "d6f04b35eb0f7c093c378267e2411b056663e23efcf1e626ac2828dc699ced84",
+    "nntrainer/tensor/htp_backend/hvx/hvx_hadamard_h44.inc": "505f56390798bbdc625a80d6996bc4b780404c32151c92dfb6a55bffd4586f1c",
+    "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c": "d9b7dd95000958aca5a1016e185ba8f1ae8c04787f7104aeac94c8bf37af133a",
+    "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.h": "876f2843bfde928837c810d2374aeed96a74bfc8712b114550840fcf717b8e7a",
+    "nntrainer/tensor/htp_backend/meson.build": "226cb1aac018e5ad3504a8397ddda818987c0c9270e713dd1eb121cdaed06c72",
+    "test/htp/build.sh": "3378869eff6700f65b1d656e9a83032a1ab1d24c6324accd95af4bd637d85d9a",
+    "test/htp/build_hadamard_bench.sh": "c79ccc5d47d7d5767017df193b0a66c2d89a70dee31d94b779b772d6b7222c9e",
+    "test/htp/generate_hadamard_tables.py": "4e9efe9bd2a16ae9359d48c19832609cae50f142b6640bce0cd5f319065bf495",
+    "test/htp/hadamard_hmx_check.c": "cf8a79e4a04f562b9b4c29ec5d18d2a9bcabe383f4c7f6871c2b9f455fc3db3c",
+    "test/htp/hadamard_moe_bench.cpp": "c201d527eacebcbab84bbe1d41b5ac3451e9772c50cd8ec2c8dbaefe201e53f1",
+    "test/htp/host/graph_host_check.c": "cc740e57bc349dee11d04dd08e79f6284dcdac06c7aa4f247f36a8a6dd751f68",
+    "test/htp/host/hadamard_check.c": "dea0a1387fbb3d90e1f1490219ad64a4106240ae8f41c196ef050071d2208c0f",
+    "test/htp/host/moe_layer_host_check.c": "d8be7631fbfeedc300844f110c4488e9b21bfacbda890d7e38efeee045dbb815",
+    "test/htp/host/moe_opts_host_check.c": "ca98ebebee03d9fe5635205c7db6aec65800b84289b65ccc361d5c0611d6952d",
+    "test/htp/host/run_host_checks.sh": "1385fe7edea2d39cb87c9590e75c8b722ebe2864005a8b81c5aa304cc45b4c43",
+    "test/htp/nntr_hvx.idl": "591f014194510c1b8cbd3f873bd1cc20c5279718d6308cf6799a3a1d0cae465b",
+    "test/htp/nntr_hvx_hadamard_probe.c": "696ecab05e52f9769cc6025f5789d151635ba1249078b2b0875e105a3ec3ef43",
+    "test/htp/nntr_hvx_mm_u8i4.c": "f949f317e793c07bb421866a059d835469b5275201115c05681128c0ad716139",
+    "test/htp/prepare_hadamard_shadow.py": "cca055a5c334263bc22d4805ef69bdca39ff490a1be8198b7b93316e35fa166c",
+    "test/htp/run_hadamard_bench_on_device.sh": "cfddbc6522792a58c0d71f6c19db625cec6af96cba75d5b147c0f5c66e74b1fc",
+    "test/htp/run_hadamard_e2e.py": "e0d8e2a04b2b1b4dcc4dc967ccc952a326c7f1b22736a2b09434a2ba3b03a2c1",
+    "test/htp/summarize_hadamard_bench.py": "33fc7b5d16b05701bd97c6af716593c48c0b919cb1cb251e768b82c8b49004d4"
+  },
+  "binary_sha256": {
+    "test/htp/build/libnntr_hvx_skel.so": "f6bd08674f511d805afd1c1d7a456dca87ee2d5e03464bdde44dcd7c278e0b04",
+    "test/htp/build/hadamard_moe_bench": "b54c4b4d10a2d0579b875d64b08dcdfba96369e2cd164f6a42673a05ac8e85a3",
+    "test/htp/build/hadamard_check_device": "3795c49489ace22c8c843af8b46fddebeb696b1a7c2f83c621a75539d15d5416",
+    "test/htp/build/hadamard_hmx_check": "7aeea703ee6eb0e8e130d75064d103ddfd6d9f32c31414e1d61d1f21a2b10c4b"
+  },
+  "runtime_sha256": {
+    "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+    "libcausallm_core.so": "0e7d654cd278df44d02b8674d7e420919c5c4c5db0360a7faea687c45125ca30",
+    "libccapi-nntrainer.so": "cd255e35775d9e8c457a0ab7c6650060e4c9ec46531a4e77c7b537ca622cc72b",
+    "libcdsprpc.so": "45ab1aff66b6e9a18a9cbd790420b5348075a2472c4fb3aab8ebd6a8f0517a8a",
+    "libnntr_hvx_skel.so": "f6bd08674f511d805afd1c1d7a456dca87ee2d5e03464bdde44dcd7c278e0b04",
+    "libnntrainer.so": "9c7160d1640cecb35bfeea47810fbbb763d14305909c45bdd34a5fdaa740210c",
+    "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+    "nntrainer_causallm": "34e41676bae199fe0a5aeced86942372567226093a8d4dc69d62a00cd046e935"
+  },
+  "model_sha256_file": "e2e/model-device-sha256.txt",
+  "verification_status": "docs/measurements/gemma4_hadamard_20261014/decode-optimization/rotation-only/checks/status.txt",
+  "prior_decode_tuning": {
+    "fixed_routing_final_kernel": {
+      "summary_file": "decode-optimization/final-kernel/summary.json",
+      "decode_samples_per_variant": 200,
+      "prefill_samples_per_variant": 24,
+      "decode_overhead_pct": 1.5151515151515138,
+      "prefill_overhead_pct": 2.8029273090162343
+    },
+    "source_sha256": {
+      "nntrainer/tensor/htp_backend/hmx/hexkl_hadamard_coeffs.inc": "6285b996f3facbd54c3a99e1cdeda35873ed8a287f74d4424d2a0256dcfb5068",
+      "nntrainer/tensor/htp_backend/hmx/hexkl_hadamard_f16.h": "a637867beee3409c5067393b839efb2ee30f5ac31f235bdf6d722c3e81dc9be5",
+      "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "e442c8f6ca41a86020fec4f55028baa4bbdb71f46d397fda66f961756a2ac191",
+      "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.h": "f0686c60f569ca6ccb3ba2ffc1b7060a2921c06d4fba1bfca23aaba8570f1581",
+      "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "2f4a63d09996e6224519f5d3c958d547dd4392e37a6ad226457bcde416fc7e7f",
+      "nntrainer/tensor/htp_backend/htp_moe_opts.h": "57774c05ad993cf3a9a1c469f64fb0aee79b72bad098a63a65acdd3e144bc75d",
+      "nntrainer/tensor/htp_backend/hvx/hvx_hadamard_f32.c": "22b19c3facf444611eac8305abbea0c31181a857a9e5a2bc71e85e3251eef87b",
+      "nntrainer/tensor/htp_backend/hvx/hvx_hadamard_f32.h": "d6f04b35eb0f7c093c378267e2411b056663e23efcf1e626ac2828dc699ced84",
+      "nntrainer/tensor/htp_backend/hvx/hvx_hadamard_h44.inc": "505f56390798bbdc625a80d6996bc4b780404c32151c92dfb6a55bffd4586f1c",
+      "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c": "d9b7dd95000958aca5a1016e185ba8f1ae8c04787f7104aeac94c8bf37af133a",
+      "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.h": "876f2843bfde928837c810d2374aeed96a74bfc8712b114550840fcf717b8e7a",
+      "nntrainer/tensor/htp_backend/meson.build": "226cb1aac018e5ad3504a8397ddda818987c0c9270e713dd1eb121cdaed06c72",
+      "test/htp/build.sh": "3378869eff6700f65b1d656e9a83032a1ab1d24c6324accd95af4bd637d85d9a",
+      "test/htp/build_hadamard_bench.sh": "c79ccc5d47d7d5767017df193b0a66c2d89a70dee31d94b779b772d6b7222c9e",
+      "test/htp/generate_hadamard_tables.py": "4e9efe9bd2a16ae9359d48c19832609cae50f142b6640bce0cd5f319065bf495",
+      "test/htp/hadamard_hmx_check.c": "cf8a79e4a04f562b9b4c29ec5d18d2a9bcabe383f4c7f6871c2b9f455fc3db3c",
+      "test/htp/hadamard_moe_bench.cpp": "c201d527eacebcbab84bbe1d41b5ac3451e9772c50cd8ec2c8dbaefe201e53f1",
+      "test/htp/host/hadamard_check.c": "dea0a1387fbb3d90e1f1490219ad64a4106240ae8f41c196ef050071d2208c0f",
+      "test/htp/host/moe_layer_host_check.c": "7996b3642d97923ce3b66d59722c3302f188705a0baf005f098de23e416a2b3d",
+      "test/htp/host/moe_opts_host_check.c": "ca98ebebee03d9fe5635205c7db6aec65800b84289b65ccc361d5c0611d6952d",
+      "test/htp/host/run_host_checks.sh": "1385fe7edea2d39cb87c9590e75c8b722ebe2864005a8b81c5aa304cc45b4c43",
+      "test/htp/nntr_hvx.idl": "591f014194510c1b8cbd3f873bd1cc20c5279718d6308cf6799a3a1d0cae465b",
+      "test/htp/nntr_hvx_hadamard_probe.c": "696ecab05e52f9769cc6025f5789d151635ba1249078b2b0875e105a3ec3ef43",
+      "test/htp/nntr_hvx_mm_u8i4.c": "f949f317e793c07bb421866a059d835469b5275201115c05681128c0ad716139",
+      "test/htp/run_hadamard_bench_on_device.sh": "cfddbc6522792a58c0d71f6c19db625cec6af96cba75d5b147c0f5c66e74b1fc",
+      "test/htp/run_hadamard_e2e.py": "0e1c35aa24aa5958ed59b7a7d0cc9f1b0583242246f10e74bf38c8e6a191a884",
+      "test/htp/summarize_hadamard_bench.py": "33fc7b5d16b05701bd97c6af716593c48c0b919cb1cb251e768b82c8b49004d4"
+    },
+    "binary_sha256": {
+      "test/htp/build/libnntr_hvx_skel.so": "a96c10348a8e21e5442bba7faf680842cf5a8b695f5cb96a1912497a9b820f13",
+      "test/htp/build/hadamard_moe_bench": "b54c4b4d10a2d0579b875d64b08dcdfba96369e2cd164f6a42673a05ac8e85a3",
+      "test/htp/build/hadamard_check_device": "3795c49489ace22c8c843af8b46fddebeb696b1a7c2f83c621a75539d15d5416",
+      "test/htp/build/hadamard_hmx_check": "7aeea703ee6eb0e8e130d75064d103ddfd6d9f32c31414e1d61d1f21a2b10c4b"
+    },
+    "runtime_sha256": {
+      "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+      "libcausallm_core.so": "0e7d654cd278df44d02b8674d7e420919c5c4c5db0360a7faea687c45125ca30",
+      "libccapi-nntrainer.so": "cd255e35775d9e8c457a0ab7c6650060e4c9ec46531a4e77c7b537ca622cc72b",
+      "libcdsprpc.so": "45ab1aff66b6e9a18a9cbd790420b5348075a2472c4fb3aab8ebd6a8f0517a8a",
+      "libnntr_hvx_skel.so": "f6bd08674f511d805afd1c1d7a456dca87ee2d5e03464bdde44dcd7c278e0b04",
+      "libnntrainer.so": "9c7160d1640cecb35bfeea47810fbbb763d14305909c45bdd34a5fdaa740210c",
+      "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+      "nntrainer_causallm": "34e41676bae199fe0a5aeced86942372567226093a8d4dc69d62a00cd046e935"
+    },
+    "decode_cache16_final": {
+      "summary": {
+        "batches": [
+          "final-e2e",
+          "confirmation-e2e"
+        ],
+        "environment": {
+          "LD_LIBRARY_PATH": ".",
+          "ADSP_LIBRARY_PATH": ".",
+          "NNTR_NUM_THREADS": "8",
+          "NNTR_HTP_E2E": "1",
+          "NNTR_HTP_E2E_FREE_KVQ": "1",
+          "NNTR_HTP_KV_DROP_CPU": "1",
+          "NNTR_HTP_DROP_HOST_FC": "1",
+          "NNTR_HTP_ATTN_M1_Q8": "2",
+          "NNTR_HTP_FC_IN_ARENA": "1",
+          "NNTR_HTP_PAGE_CACHE": "0",
+          "NNTR_MOE_CACHE_EXPERTS": "16",
+          "NNTR_MOE_CACHE_GROW": "0",
+          "NNTR_MOE_MISS_READERS": "8",
+          "NNTR_MOE_DMA_QUEUES": "4",
+          "NNTR_MOE_HADAMARD_SCOPE": "2bit"
+        },
+        "off": {
+          "runs": 8,
+          "output_ids_sha256": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+          "prefill_ms": 1602.5,
+          "prefill_ms_range": [
+            1564,
+            1627
+          ],
+          "decode_ms": 9716.0,
+          "decode_ms_range": [
+            9517,
+            9985
+          ],
+          "inference_ms": 11323.0,
+          "inference_ms_range": [
+            11136,
+            11615
+          ],
+          "e2e_ms": 16998.5,
+          "e2e_ms_range": [
+            15690,
+            18173
+          ],
+          "prefill_tps": 639.0015600624025,
+          "decode_tps": 13.0712227254014
+        },
+        "both_hmx": {
+          "runs": 8,
+          "output_ids_sha256": "03ea2ff3f3fa08868ebd510d879e89f335531fdd0c1627740f30237c92f11129",
+          "prefill_ms": 1624.5,
+          "prefill_ms_range": [
+            1565,
+            1634
+          ],
+          "decode_ms": 10186.5,
+          "decode_ms_range": [
+            9967,
+            10464
+          ],
+          "inference_ms": 11811.0,
+          "inference_ms_range": [
+            11604,
+            12109
+          ],
+          "e2e_ms": 17470.5,
+          "e2e_ms_range": [
+            16132,
+            18675
+          ],
+          "prefill_tps": 630.3477993228686,
+          "decode_tps": 12.467481470573798
+        },
+        "time_delta_pct": {
+          "prefill_ms": 1.372854914196564,
+          "decode_ms": 4.842527789213658,
+          "inference_ms": 4.309811887309012,
+          "e2e_ms": 2.7767155925522813
+        },
+        "tps_delta_pct": {
+          "prefill_tps": -1.3542628501077236,
+          "decode_tps": -4.618858292838568
+        }
+      },
+      "status": "8-run pooled median +4.84%, but confirmation batch +6.27%; not a stable below-5% claim."
+    },
+    "status": "Superseded. Reader/cache tuning is rejected by user; only cache=16, grow=0, readers=4 may be used for final evaluation."
+  },
+  "runtime_constraints": {
+    "NNTR_MOE_CACHE_EXPERTS": 16,
+    "NNTR_MOE_CACHE_GROW": 0,
+    "NNTR_MOE_MISS_READERS": 4,
+    "NNTR_NUM_THREADS": 8,
+    "NNTR_MOE_DMA_QUEUES": 4,
+    "device": "R5KL30G6MCX",
+    "scope": "2bit expert only"
+  },
+  "input_reuse_workspace": {
+    "float_capacity": 2816,
+    "allocation_extra_bytes": 11388,
+    "lifetime": "one shared row per graph; invalidated per logical MoE op/token, independent of expert cache"
+  },
+  "actual_e2e_final": {
+    "batches": [
+      "rotation-only/final-e2e"
+    ],
+    "environment": {
+      "LD_LIBRARY_PATH": ".",
+      "ADSP_LIBRARY_PATH": ".",
+      "NNTR_NUM_THREADS": "8",
+      "NNTR_HTP_E2E": "1",
+      "NNTR_HTP_E2E_FREE_KVQ": "1",
+      "NNTR_HTP_KV_DROP_CPU": "1",
+      "NNTR_HTP_DROP_HOST_FC": "1",
+      "NNTR_HTP_ATTN_M1_Q8": "2",
+      "NNTR_HTP_FC_IN_ARENA": "1",
+      "NNTR_HTP_PAGE_CACHE": "0",
+      "NNTR_MOE_CACHE_EXPERTS": "16",
+      "NNTR_MOE_CACHE_GROW": "0",
+      "NNTR_MOE_MISS_READERS": "4",
+      "NNTR_MOE_DMA_QUEUES": "4",
+      "NNTR_MOE_HADAMARD_SCOPE": "2bit"
+    },
+    "measurement": "actual_rotation",
+    "runtime_sha256": {
+      "libnntr_hvx_skel.so": "f6bd08674f511d805afd1c1d7a456dca87ee2d5e03464bdde44dcd7c278e0b04",
+      "libnntrainer.so": "9c7160d1640cecb35bfeea47810fbbb763d14305909c45bdd34a5fdaa740210c",
+      "nntrainer_causallm": "34e41676bae199fe0a5aeced86942372567226093a8d4dc69d62a00cd046e935"
+    },
+    "off": {
+      "runs": 4,
+      "output_ids_sha256": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+      "prefill_ms": 1631.5,
+      "prefill_ms_range": [
+        1578,
+        1662
+      ],
+      "decode_ms": 9899.5,
+      "decode_ms_range": [
+        9865,
+        9942
+      ],
+      "inference_ms": 11545.0,
+      "inference_ms_range": [
+        11459,
+        11617
+      ],
+      "e2e_ms": 17364.0,
+      "e2e_ms_range": [
+        16277,
+        18144
+      ],
+      "prefill_tps": 627.6432730615998,
+      "decode_tps": 12.828930754078488
+    },
+    "both_hmx": {
+      "runs": 4,
+      "output_ids_sha256": "03ea2ff3f3fa08868ebd510d879e89f335531fdd0c1627740f30237c92f11129",
+      "prefill_ms": 1653.0,
+      "prefill_ms_range": [
+        1649,
+        1682
+      ],
+      "decode_ms": 10590.0,
+      "decode_ms_range": [
+        10580,
+        10599
+      ],
+      "inference_ms": 12260.0,
+      "inference_ms_range": [
+        12253,
+        12274
+      ],
+      "e2e_ms": 18353.5,
+      "e2e_ms_range": [
+        17229,
+        18716
+      ],
+      "prefill_tps": 619.4797338173018,
+      "decode_tps": 11.992445703493862
+    },
+    "time_delta_pct": {
+      "prefill_ms": 1.3178057002758203,
+      "decode_ms": 6.975099752512759,
+      "inference_ms": 6.193157210913824,
+      "e2e_ms": 5.698571757659532
+    },
+    "tps_delta_pct": {
+      "prefill_tps": -1.3006654567453202,
+      "decode_tps": -6.520302171860237
+    },
+    "status": "Prefill +1.32%; raw decode +6.98%, NOT below 5%. Unrotated checkpoint changes routing and cache misses; not pure rotation cost."
+  },
+  "shadow_decode_control": {
+    "batches": [
+      "rotation-only/shadow-e2e"
+    ],
+    "environment": {
+      "LD_LIBRARY_PATH": ".",
+      "ADSP_LIBRARY_PATH": ".",
+      "NNTR_NUM_THREADS": "8",
+      "NNTR_HTP_E2E": "1",
+      "NNTR_HTP_E2E_FREE_KVQ": "1",
+      "NNTR_HTP_KV_DROP_CPU": "1",
+      "NNTR_HTP_DROP_HOST_FC": "1",
+      "NNTR_HTP_ATTN_M1_Q8": "2",
+      "NNTR_HTP_FC_IN_ARENA": "1",
+      "NNTR_HTP_PAGE_CACHE": "0",
+      "NNTR_MOE_CACHE_EXPERTS": "16",
+      "NNTR_MOE_CACHE_GROW": "0",
+      "NNTR_MOE_MISS_READERS": "4",
+      "NNTR_MOE_DMA_QUEUES": "4",
+      "NNTR_MOE_HADAMARD_SCOPE": "2bit"
+    },
+    "measurement": "shadow_decode_rotate_restore",
+    "runtime_sha256": {
+      "libnntr_hvx_skel.so": "819ba5eff7f86b1d17a80180d7cb73f57c3ef9fdf727d729e6301e84c9f461f6",
+      "libnntrainer.so": "9c7160d1640cecb35bfeea47810fbbb763d14305909c45bdd34a5fdaa740210c",
+      "nntrainer_causallm": "34e41676bae199fe0a5aeced86942372567226093a8d4dc69d62a00cd046e935"
+    },
+    "off": {
+      "runs": 4,
+      "output_ids_sha256": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+      "prefill_ms": 1620.5,
+      "prefill_ms_range": [
+        1593,
+        1647
+      ],
+      "decode_ms": 9899.0,
+      "decode_ms_range": [
+        9858,
+        9933
+      ],
+      "inference_ms": 11527.0,
+      "inference_ms_range": [
+        11479,
+        11597
+      ],
+      "e2e_ms": 17237.0,
+      "e2e_ms_range": [
+        16079,
+        17876
+      ],
+      "prefill_tps": 631.9037334156125,
+      "decode_tps": 12.829578745327812
+    },
+    "both_hmx": {
+      "runs": 4,
+      "output_ids_sha256": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+      "prefill_ms": 1602.5,
+      "prefill_ms_range": [
+        1574,
+        1636
+      ],
+      "decode_ms": 9962.0,
+      "decode_ms_range": [
+        9933,
+        9967
+      ],
+      "inference_ms": 11579.5,
+      "inference_ms_range": [
+        11520,
+        11619
+      ],
+      "e2e_ms": 16889.5,
+      "e2e_ms_range": [
+        16020,
+        17798
+      ],
+      "prefill_tps": 639.0015600624025,
+      "decode_tps": 12.748444087532624
+    },
+    "time_delta_pct": {
+      "prefill_ms": -1.1107682813946362,
+      "decode_ms": 0.6364279220123281,
+      "inference_ms": 0.45545241606661513,
+      "e2e_ms": -2.0160120670650317
+    },
+    "tps_delta_pct": {
+      "prefill_tps": 1.1232449297971847,
+      "decode_tps": -0.6324031319012269
+    },
+    "status": "Diagnostic-only rotate/restore control: +0.636% decode including save/restore copies; not a real rotated-model E2E claim.",
+    "identity_verification": {
+      "route.txt": {
+        "identical": true,
+        "lines": 30,
+        "bytes": 1266372,
+        "sha256": "61c8a707a72747b33d29691e38e249c1377ee108d4af4ac271844d16861095e2"
+      },
+      "decode-route.txt": {
+        "identical": true,
+        "lines": 3810,
+        "bytes": 128880,
+        "sha256": "45a94e38108f9f6b422d39f5b4f1de7211b25a64dca7f0a49ae8e08a52d1e61f"
+      },
+      "ids": {
+        "identical": true,
+        "lines": 128,
+        "bytes": 531,
+        "sha256": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8"
+      },
+      "00-both_hmx": {
+        "whole_run_cache_misses": 9098,
+        "miss_rounds": 3104
+      },
+      "01-off": {
+        "whole_run_cache_misses": 9098,
+        "miss_rounds": 3104
+      }
+    },
+    "provenance": {
+      "purpose": "diagnostic decode rotation + preserve/restore copies",
+      "normal_source_sha256": "85a9e2279da81628b36e291da0bc546fc141da37e56584af79a6284477fc4fe7",
+      "shadow_source_sha256": "9477bda096a7c50581e792db75350574661ab530d0b96ff94355723aab56b9cb",
+      "prefill": "rotation disabled",
+      "decode": "rotate then restore",
+      "output_binary": "/home/jungone-lee/workspace/nntrainer-gemma4-spinquant/test/htp/build/libnntr_hvx_hadamard_shadow.so",
+      "not_for_inference": true
+    },
+    "binary_sha256": "819ba5eff7f86b1d17a80180d7cb73f57c3ef9fdf727d729e6301e84c9f461f6"
+  },
+  "report_sha256": "cf2219b62f5d885a9b6fc0bfeea9ad0940356bd2a5225d4b0fbd7e2b9655da3b",
+  "final_measurement_sha256": {
+    "decode-optimization/rotation-only/actual-summary.json": "0c4618064eadd26a599ccfee80127a43994cd1779a2264e44e34620dc3913b8a",
+    "decode-optimization/rotation-only/before-e2e/00-off.command.txt": "50df7aebcfff5be153776a6c737deadf842287e7bcdd0c9f4d748df4f9b6a335",
+    "decode-optimization/rotation-only/before-e2e/00-off.ids": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "decode-optimization/rotation-only/before-e2e/00-off.log": "63c68bd9ff249ba1547872b8f169a9a2a2037665120ec0c5dfba39005d4dca52",
+    "decode-optimization/rotation-only/before-e2e/01-both_hmx.command.txt": "8dea83679d07d134e52c1304cdcb12545860078043514a891e0d8380e483dc67",
+    "decode-optimization/rotation-only/before-e2e/01-both_hmx.ids": "03ea2ff3f3fa08868ebd510d879e89f335531fdd0c1627740f30237c92f11129",
+    "decode-optimization/rotation-only/before-e2e/01-both_hmx.log": "b396980cab16914aea6a26b311e6c0cb8e7894dcda9d9bacf31fba4b162a6a49",
+    "decode-optimization/rotation-only/before-e2e/02-both_hmx.command.txt": "be377e65ad425b08d15f3a6a75d09f9b539b30980eb2b36240496f7814a3a29c",
+    "decode-optimization/rotation-only/before-e2e/02-both_hmx.ids": "03ea2ff3f3fa08868ebd510d879e89f335531fdd0c1627740f30237c92f11129",
+    "decode-optimization/rotation-only/before-e2e/02-both_hmx.log": "4b3f342ce5dd4e96c20f8eee460b2080adf55a6c2a286de7912dbd7d184cf5eb",
+    "decode-optimization/rotation-only/before-e2e/03-off.command.txt": "07a14fda74811a686923b4639a706f93d4ca4217e1e2ff1b27fa598951adc562",
+    "decode-optimization/rotation-only/before-e2e/03-off.ids": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "decode-optimization/rotation-only/before-e2e/03-off.log": "7c29e157fce2b4425de7fe5d389f6d79b7cbe0560df61aa48889aa4677e0099d",
+    "decode-optimization/rotation-only/before-e2e/04-both_hmx.command.txt": "cc27f9079a9cfe2790cc506d9e8c307a679c49f0b860c54cdf926045093868d3",
+    "decode-optimization/rotation-only/before-e2e/04-both_hmx.ids": "03ea2ff3f3fa08868ebd510d879e89f335531fdd0c1627740f30237c92f11129",
+    "decode-optimization/rotation-only/before-e2e/04-both_hmx.log": "62f9041bc6a89b1130063a43dd639b844a2a9c981dac163bfa7b594988f35901",
+    "decode-optimization/rotation-only/before-e2e/05-off.command.txt": "43e23836edd335098be75992b398d4805046f5486ab15d09af291ab02a0d6a61",
+    "decode-optimization/rotation-only/before-e2e/05-off.ids": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "decode-optimization/rotation-only/before-e2e/05-off.log": "49e316200b35dceb4266b800d798bb8ffee30c7218417e646e243c8c66ec60fb",
+    "decode-optimization/rotation-only/before-e2e/06-off.command.txt": "5a3eab88fa712d15e702c87b2bf492d22089a9373031adf73f14f0460f418d0d",
+    "decode-optimization/rotation-only/before-e2e/06-off.ids": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "decode-optimization/rotation-only/before-e2e/06-off.log": "8f072095af827c91a7f423d847a17fc02ea6e187efc07189d489edd9938a1214",
+    "decode-optimization/rotation-only/before-e2e/07-both_hmx.command.txt": "03aca28257038025bb151e63a71831092f183511038aef9aea7cb19ad0837537",
+    "decode-optimization/rotation-only/before-e2e/07-both_hmx.ids": "03ea2ff3f3fa08868ebd510d879e89f335531fdd0c1627740f30237c92f11129",
+    "decode-optimization/rotation-only/before-e2e/07-both_hmx.log": "7fa4e74a82fe54bac425649b3e288f2d0b71f9ad47814c2fa2417b64cb69c6c4",
+    "decode-optimization/rotation-only/before-e2e/runs.json": "027dc7accccd572008b176eff19900d2476280823802ecceeeb574893125cedc",
+    "decode-optimization/rotation-only/before-e2e/settings.json": "afaea282c054357637d7f0a7e9a67e763c10b092e2d276eb7755d344676196ee",
+    "decode-optimization/rotation-only/before-e2e/summary.json": "be29341ce032c082264e83052f4e9191a85e5acab458ca9711145b0575885339",
+    "decode-optimization/rotation-only/binaries-sha256.txt": "d982f33a7b6850310ab21170185c1dd655346bc94b1ebed5ad5eb88f17160c77",
+    "decode-optimization/rotation-only/checks/build-shadow.log": "0914f435ae39165c8620429e748a673b3cc8d940ea7f3523ff1eefb03aa636eb",
+    "decode-optimization/rotation-only/checks/build-v4.log": "bba6da4f7afa963dba5be4451487135bea452824948b9638bb733b7d7127850a",
+    "decode-optimization/rotation-only/checks/format.patch": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "decode-optimization/rotation-only/checks/graph-build.log": "841f47f640f36da1accab7942ff26af30c4d61bb08f00bf54a2856303e2ef165",
+    "decode-optimization/rotation-only/checks/graph.log": "4249263829c4c42e787c2043f4d28c4d01d935d380df49d2dbde3eeab404c0bb",
+    "decode-optimization/rotation-only/checks/moe-build.log": "65e74b5fc63053608908092336955c762bf7090f73959f528996c53344227241",
+    "decode-optimization/rotation-only/checks/moe.log": "320aa76bec7b70e48b872ad7344aa05d470fd9fbfed1cced69e53cbf422b796e",
+    "decode-optimization/rotation-only/checks/shadow-asm.txt": "bca9e4af3830e741f18c09016e8ae99adc23fda6d309a9f09f0b026caedbccc3",
+    "decode-optimization/rotation-only/checks/status.txt": "bb5f6419a46745798ef7c72bd8578e64d5ab0037843db05861795352d87a7cfb",
+    "decode-optimization/rotation-only/checks/token-build.log": "841f47f640f36da1accab7942ff26af30c4d61bb08f00bf54a2856303e2ef165",
+    "decode-optimization/rotation-only/checks/token.log": "fa834bf2adbe54bcf046417f27483ece5ca6d98a3b524dc77874c6a7199bbbfb",
+    "decode-optimization/rotation-only/final-e2e/00-both_hmx.command.txt": "224d617843cf13f8f50f27ba6c45448e0332597677f7e537bbb3ab6d9f3e9d9a",
+    "decode-optimization/rotation-only/final-e2e/00-both_hmx.ids": "03ea2ff3f3fa08868ebd510d879e89f335531fdd0c1627740f30237c92f11129",
+    "decode-optimization/rotation-only/final-e2e/00-both_hmx.log": "0758e4895936a73a0b24075738b5711effd8e1f0230d65755f1777fb9ef7492c",
+    "decode-optimization/rotation-only/final-e2e/01-off.command.txt": "b2e33bcd1441e3792a57d0ebc8ef908aac2f358b51763d857ba0ab34a0466cc1",
+    "decode-optimization/rotation-only/final-e2e/01-off.ids": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "decode-optimization/rotation-only/final-e2e/01-off.log": "22bfa45e19ae32dc83272e81aab462fd019f8772e2f7eb5e74e6c835882a193a",
+    "decode-optimization/rotation-only/final-e2e/02-off.command.txt": "84a82aa4fd8630bedb7ed84455179704f3d98ad811a34a69f79a70935316cfe8",
+    "decode-optimization/rotation-only/final-e2e/02-off.ids": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "decode-optimization/rotation-only/final-e2e/02-off.log": "68087e5597fa03ecefc3766f64e6cd7bfcf305dad2fc11f14e6836a67a4e9b1a",
+    "decode-optimization/rotation-only/final-e2e/03-both_hmx.command.txt": "67bef78395dcf02d27b36ec34d3238de816c3bb8f922eaf930bef545a4bffa1c",
+    "decode-optimization/rotation-only/final-e2e/03-both_hmx.ids": "03ea2ff3f3fa08868ebd510d879e89f335531fdd0c1627740f30237c92f11129",
+    "decode-optimization/rotation-only/final-e2e/03-both_hmx.log": "eb1bd4bdef0cf16391a5b779b29576b7306fe6a28e49e2bf370107083855ed94",
+    "decode-optimization/rotation-only/final-e2e/04-off.command.txt": "28c5e5341c26ed6381c49ce72a48bd4f02be39d99b59940466f95caa240df563",
+    "decode-optimization/rotation-only/final-e2e/04-off.ids": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "decode-optimization/rotation-only/final-e2e/04-off.log": "d8ccd047a21803c664cf665e7896cad31679649c9f972ec19dc020c88b764be8",
+    "decode-optimization/rotation-only/final-e2e/05-both_hmx.command.txt": "bf3c15952a556b4942f6f1ac76b987325a76fb827435d122ab6a9de37e6e3ba2",
+    "decode-optimization/rotation-only/final-e2e/05-both_hmx.ids": "03ea2ff3f3fa08868ebd510d879e89f335531fdd0c1627740f30237c92f11129",
+    "decode-optimization/rotation-only/final-e2e/05-both_hmx.log": "a4d55c6af0d686bf1c00c34cf7acf6023552a5f85c530bd0b0cf1006634a9bce",
+    "decode-optimization/rotation-only/final-e2e/06-both_hmx.command.txt": "7392eae942297b171b90776c2fe82d5d3c01f403e7d6bb4fe5b8507fd558ff56",
+    "decode-optimization/rotation-only/final-e2e/06-both_hmx.ids": "03ea2ff3f3fa08868ebd510d879e89f335531fdd0c1627740f30237c92f11129",
+    "decode-optimization/rotation-only/final-e2e/06-both_hmx.log": "d6f7aa0da246b96aeeb14dd07295c802d96e703ad18b98e13c53443e2de64359",
+    "decode-optimization/rotation-only/final-e2e/07-off.command.txt": "bfa672b5e27ab72488af7e04bdfc79eb73c124c7beae5209cc73062fdaa5b545",
+    "decode-optimization/rotation-only/final-e2e/07-off.ids": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "decode-optimization/rotation-only/final-e2e/07-off.log": "4da12ad2d5df08d17102e46b20d385b558f956698505e2bebb8ebf6ff604a2a8",
+    "decode-optimization/rotation-only/final-e2e/runs.json": "14db30ccbb1fae644318a54e410213aba07c5f866391b9c445a8c5fb97581f7f",
+    "decode-optimization/rotation-only/final-e2e/settings.json": "0ec9b4642057a9e315a21af12194a021ed253ed30fff5362e88cc8f347137232",
+    "decode-optimization/rotation-only/final-e2e/summary.json": "a8fd4bdeae7d9db24a287d3ff18cabd69b6afd058290865bce99541c0f91fb33",
+    "decode-optimization/rotation-only/final-kernel/moe-m1-w2-norm.csv": "cefe5f94349db6000080caa426bea42da2357c510f38c72e12047c2dbb6bc141",
+    "decode-optimization/rotation-only/final-kernel/moe-m1-w2-norm.stderr": "58bb52b9c749b8b9523375d2e1fc53c87644e59c8887c21b90efa34de4527deb",
+    "decode-optimization/rotation-only/final-kernel/moe-m1024-w2-norm.csv": "93d37df687a82945cf4e05edde63d8c344e8de349532ca7b75d3823c5ac3063f",
+    "decode-optimization/rotation-only/final-kernel/moe-m1024-w2-norm.stderr": "8a3d0b41d64590e48602a250017e917b0f1bfc26d711746de88b405d7eb78674",
+    "decode-optimization/rotation-only/final-kernel/summary.json": "8344929cbfad6daee9025695a4a58f81f2ba6594fbdc9439da895f8cd95de2fa",
+    "decode-optimization/rotation-only/shadow-build/provenance.json": "86c305a76ffca2b1f2de89367b4d8dfeb17b36b086ada816f9f94134c4ad510f",
+    "decode-optimization/rotation-only/shadow-build/shadow.patch": "97fc8b431b0a6c4a3f79e4e20a8663ad9343433e8c128084b6feafd9c3f13de2",
+    "decode-optimization/rotation-only/shadow-diagnostic/00-off.command.txt": "e31e25baafeb26e0398c6448d87de4d38f0bd1c1e063b8536c4104263364ada6",
+    "decode-optimization/rotation-only/shadow-diagnostic/00-off.ids": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "decode-optimization/rotation-only/shadow-diagnostic/00-off.log": "ffc285865980ccf64185a88de589507102674e77b618d2c6b0a8abf2f4dcc214",
+    "decode-optimization/rotation-only/shadow-diagnostic/00-off.route.txt.gz": "2808072deee743f28e84fca2a0877b56cd628bf49f451a2f24a20dd506c0d1b8",
+    "decode-optimization/rotation-only/shadow-diagnostic/01-both_hmx.command.txt": "4d7270ebaec049c4e65bc77d7a5b2a3384c01eb47e8e8be2d2a9f6eb4b2ad341",
+    "decode-optimization/rotation-only/shadow-diagnostic/01-both_hmx.ids": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "decode-optimization/rotation-only/shadow-diagnostic/01-both_hmx.log": "c510c39389062f5eb55f9d5771ef86db5407cb9419673c7b44cbabed3b58c875",
+    "decode-optimization/rotation-only/shadow-diagnostic/01-both_hmx.route.txt.gz": "c0d5c05265fb8a3f270d5b0eda5edcc20d96a8c3302ca344867872dd4429f3d3",
+    "decode-optimization/rotation-only/shadow-diagnostic/runs.json": "e6ce9726f1a24b6133c383ac1e6b3e7adc0ed6fc49a2289711666715f9ac6979",
+    "decode-optimization/rotation-only/shadow-diagnostic/settings.json": "d74bbaa4094075692ebce494c62142dd206df45304da7973c45ba2a418094e07",
+    "decode-optimization/rotation-only/shadow-diagnostic/summary.json": "67046c54fa82a2008b3dbe75a1d773e58de3bbd8ed03c7a440a8741db2710456",
+    "decode-optimization/rotation-only/shadow-e2e/00-off.command.txt": "c9a6843811188fd5fac318003da2faafdf87754794872782ceb296d530318f69",
+    "decode-optimization/rotation-only/shadow-e2e/00-off.ids": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "decode-optimization/rotation-only/shadow-e2e/00-off.log": "ca2ba0beb811eb7859cbf52bd31134f8c24c6b31f12ef981a73d0059252e438b",
+    "decode-optimization/rotation-only/shadow-e2e/01-both_hmx.command.txt": "4b3134a1d253163990e381f6b690034bbcfdc0e0cdeaa841d2d566178fc7f54d",
+    "decode-optimization/rotation-only/shadow-e2e/01-both_hmx.ids": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "decode-optimization/rotation-only/shadow-e2e/01-both_hmx.log": "11b20069cef0941eb98016ccd94b3c6629434dab9cabe614a63a9df88d70502b",
+    "decode-optimization/rotation-only/shadow-e2e/02-both_hmx.command.txt": "07366ceb25d0339b9db481ca1cacfc3f64433cf65df2fc9d739fd05289baa0ae",
+    "decode-optimization/rotation-only/shadow-e2e/02-both_hmx.ids": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "decode-optimization/rotation-only/shadow-e2e/02-both_hmx.log": "bb0aa4dc4c45235de05ccf2d46a0a1ca8959ffd983a285f5f70371e6c6e18172",
+    "decode-optimization/rotation-only/shadow-e2e/03-off.command.txt": "f4c44293145bd7c1593209b932f13e664392c34608032c9e8af41624bcdacc72",
+    "decode-optimization/rotation-only/shadow-e2e/03-off.ids": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "decode-optimization/rotation-only/shadow-e2e/03-off.log": "f62f28661aa8fea103e74c0f144697ef9994838aba974165abe48dfb4b23091f",
+    "decode-optimization/rotation-only/shadow-e2e/04-both_hmx.command.txt": "890b0526dde53d155b6edcc1bd8c5ec96086cb6b986f1744c8677f63ca59588c",
+    "decode-optimization/rotation-only/shadow-e2e/04-both_hmx.ids": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "decode-optimization/rotation-only/shadow-e2e/04-both_hmx.log": "7dbe92e3b9147d41b7e25793ed2a5bb375df5362295d4516ab89a58775d605c2",
+    "decode-optimization/rotation-only/shadow-e2e/05-off.command.txt": "e232f490e9c234e2cd09fb31418b269c1b2ddb05416b8ce7a8fb474dd824ec0d",
+    "decode-optimization/rotation-only/shadow-e2e/05-off.ids": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "decode-optimization/rotation-only/shadow-e2e/05-off.log": "ef8867760b2a35fadbc9f6bbc28d934d3b9e1e3d17adf7410d06e44efeb02f22",
+    "decode-optimization/rotation-only/shadow-e2e/06-off.command.txt": "7d2f0f404b987200685e5baa686cf36f94d0228b9788fadf5bcf6d1ea1cdcd1e",
+    "decode-optimization/rotation-only/shadow-e2e/06-off.ids": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "decode-optimization/rotation-only/shadow-e2e/06-off.log": "89eab1ae0526bd563f5adafd6855f3188c1839748452bfa7fcfd66f4491ce43f",
+    "decode-optimization/rotation-only/shadow-e2e/07-both_hmx.command.txt": "c86aa1752b12790cb59a621c8f6a50ef10f60c60cba89263fae200c3caa05b2c",
+    "decode-optimization/rotation-only/shadow-e2e/07-both_hmx.ids": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "decode-optimization/rotation-only/shadow-e2e/07-both_hmx.log": "dc7d6e080f31f46eb007aec1f616e9f950cc5829b923eb8250d50c3d2bdcd5e0",
+    "decode-optimization/rotation-only/shadow-e2e/runs.json": "9542edd548c3906c6ae5883f81442af5b656c1482758d0f56123d7a367f51b88",
+    "decode-optimization/rotation-only/shadow-e2e/settings.json": "cba5824cf71adab3af0e69d4f686391d8fe67987dabc7a203bf2dc17071afa33",
+    "decode-optimization/rotation-only/shadow-e2e/summary.json": "0e48f517f8c7ccc8f01593818e768dbde634a1bff57535a6d29e34704251a304",
+    "decode-optimization/rotation-only/shadow-route-check/00-both_hmx.command.txt": "8843a1088111e454f8b5b329ff99c38cce9c55ae681ff4f6b88d6b3abb7e34c2",
+    "decode-optimization/rotation-only/shadow-route-check/00-both_hmx.decode-route.txt.gz": "57e36d1881fde7e8045691094c08a7a31eae610bd60203dcd1a2c2503eb1846f",
+    "decode-optimization/rotation-only/shadow-route-check/00-both_hmx.ids": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "decode-optimization/rotation-only/shadow-route-check/00-both_hmx.log": "49e816fd1e3ef9a43c840a1330799d6616ae415ba4d356f1cbc25ecd1edd4a4b",
+    "decode-optimization/rotation-only/shadow-route-check/00-both_hmx.route.txt.gz": "8d63606ee74cf80ecd5ccd13d451c85c09687fea1929e993bb0271a64b274036",
+    "decode-optimization/rotation-only/shadow-route-check/01-off.command.txt": "ccc9cbb6ab9bca0e3308cbc22383e25a996b5ed7b99191506df21783a4917417",
+    "decode-optimization/rotation-only/shadow-route-check/01-off.decode-route.txt.gz": "931a54a1040da2106a89d78f6ad753d09342b1a6064887d291be111ee1c7e406",
+    "decode-optimization/rotation-only/shadow-route-check/01-off.ids": "e13fa16b60759ff714259fbcdfa701db8499a6c7fb6b2577e14d03bed62e17e8",
+    "decode-optimization/rotation-only/shadow-route-check/01-off.log": "39ce342bbf4ecaf4af62c11c5f525e3bff6af2bca2491f495c597fb19c4ed14a",
+    "decode-optimization/rotation-only/shadow-route-check/01-off.route.txt.gz": "3d138b6fc6768cdd54adf80e8b2fa0e8b0b10d024ef0c41233085e10e84feda9",
+    "decode-optimization/rotation-only/shadow-route-check/identity-check.json": "0622db2978698bb1968d414b69aaaf83a303392c8c01b0bd9f22687eb8bdab67",
+    "decode-optimization/rotation-only/shadow-route-check/runs.json": "798620e9702efdfc1efe955a17c99813a5731cee2352a5dbcfdcc46717a53574",
+    "decode-optimization/rotation-only/shadow-route-check/settings.json": "faa5258f480badd10bee3e7234fd210bc8af9fa169cd709a70f4104f6b97f4b6",
+    "decode-optimization/rotation-only/shadow-route-check/summary.json": "b6826f4b04e0d049df1574faa4c24ffe8f4a23b35080b389ed08cf9acf53f4b2",
+    "decode-optimization/rotation-only/shadow-summary.json": "c9c51322e3c5785e02c87b7a720007be91a30fe5306b8aeb2b82edbf64c28aff"
+  },
+  "publication_note": "The uncommitted flag describes the original measurement snapshot. Publication checks are recorded separately in publication-checks/summary.json; original source and measurement hashes are retained."
+}

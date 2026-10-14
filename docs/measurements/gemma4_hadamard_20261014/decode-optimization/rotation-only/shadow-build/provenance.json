@@ -1,0 +1,9 @@
+{
+  "purpose": "diagnostic decode rotation + preserve/restore copies",
+  "normal_source_sha256": "85a9e2279da81628b36e291da0bc546fc141da37e56584af79a6284477fc4fe7",
+  "shadow_source_sha256": "9477bda096a7c50581e792db75350574661ab530d0b96ff94355723aab56b9cb",
+  "prefill": "rotation disabled",
+  "decode": "rotate then restore",
+  "output_binary": "/home/jungone-lee/workspace/nntrainer-gemma4-spinquant/test/htp/build/libnntr_hvx_hadamard_shadow.so",
+  "not_for_inference": true
+}

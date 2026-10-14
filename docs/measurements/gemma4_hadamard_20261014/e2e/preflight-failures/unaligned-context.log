@@ -1,0 +1,4 @@
+/data/local/tmp/nntr_gemma4_hadamard_e2e_20261014/model
+/data/local/tmp/nntr_tl2_output_20261012/qs2/nntr_gemma4_26b_a4b_qs2cx_fcqs4cx.bin
+
+[!] FATAL ERROR: set_decode_graph_desc: AEE_ESCHEMENOTSUPPORTED

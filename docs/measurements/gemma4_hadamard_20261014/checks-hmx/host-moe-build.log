@@ -1,0 +1,32 @@
+test/htp/host/moe_layer_host_check.c: In function ‘main’:
+test/htp/host/moe_layer_host_check.c:1471:5: warning: missing initializer for field ‘pre_gamma’ of ‘hexkl_moe_scratch’ [-Wmissing-field-initializers]
+ 1471 |     hexkl_moe_scratch fs = {NULL, NULL, 0};
+      |     ^~~~~~~~~~~~~~~~~
+In file included from test/htp/host/moe_layer_host_check.c:11:
+nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.h:99:16: note: ‘pre_gamma’ declared here
+   99 |   const float *pre_gamma; /**< K floats: act_f32 is RMS-normed (whole row,
+      |                ^~~~~~~~~
+test/htp/host/moe_layer_host_check.c:1526:3: warning: missing initializer for field ‘pre_gamma’ of ‘hexkl_moe_scratch’ [-Wmissing-field-initializers]
+ 1526 |   hexkl_moe_scratch scratch = {NULL, NULL, 0};
+      |   ^~~~~~~~~~~~~~~~~
+nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.h:99:16: note: ‘pre_gamma’ declared here
+   99 |   const float *pre_gamma; /**< K floats: act_f32 is RMS-normed (whole row,
+      |                ^~~~~~~~~
+test/htp/host/moe_layer_host_check.c:1912:5: warning: missing initializer for field ‘pre_gamma’ of ‘hexkl_moe_scratch’ [-Wmissing-field-initializers]
+ 1912 |     hexkl_moe_scratch sc2 = {NULL, NULL, 0};
+      |     ^~~~~~~~~~~~~~~~~
+nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.h:99:16: note: ‘pre_gamma’ declared here
+   99 |   const float *pre_gamma; /**< K floats: act_f32 is RMS-normed (whole row,
+      |                ^~~~~~~~~
+test/htp/host/moe_layer_host_check.c:1993:5: warning: missing initializer for field ‘pre_gamma’ of ‘hexkl_moe_scratch’ [-Wmissing-field-initializers]
+ 1993 |     hexkl_moe_scratch sc3 = {NULL, NULL, 0};
+      |     ^~~~~~~~~~~~~~~~~
+nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.h:99:16: note: ‘pre_gamma’ declared here
+   99 |   const float *pre_gamma; /**< K floats: act_f32 is RMS-normed (whole row,
+      |                ^~~~~~~~~
+test/htp/host/moe_layer_host_check.c:2058:5: warning: missing initializer for field ‘pre_gamma’ of ‘hexkl_moe_scratch’ [-Wmissing-field-initializers]
+ 2058 |     hexkl_moe_scratch sc4 = {NULL, NULL, 0};
+      |     ^~~~~~~~~~~~~~~~~
+nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.h:99:16: note: ‘pre_gamma’ declared here
+   99 |   const float *pre_gamma; /**< K floats: act_f32 is RMS-normed (whole row,
+      |                ^~~~~~~~~
