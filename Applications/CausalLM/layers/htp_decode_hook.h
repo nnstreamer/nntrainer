@@ -22,6 +22,8 @@
 #ifndef __CAUSALLM_HTP_DECODE_HOOK_H__
 #define __CAUSALLM_HTP_DECODE_HOOK_H__
 
+#include <cstdint>
+
 #ifdef ENABLE_HEXKL
 #include <compute_ops.h>
 #include <htp_graph_desc.h>
