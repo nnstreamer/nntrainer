@@ -1008,6 +1008,19 @@ public:
   std::string getComputeEngineType() { return compute_engine; }
 
   /**
+   * @brief Whether the `engine` property was EXPLICITLY set (to a name that
+   *        resolves to the CPU plane) on this node.
+   *
+   * A node without the property defaults to "cpu" in getComputeEngineType()
+   * but is not a pure host consumer: the hybrid layers models build without
+   * an engine tag (the mha_core) run device arms and follow the operand
+   * bind/unmap protocol themselves. Only an explicit cpu tag says "this
+   * layer's forward reads its inputs on the host" -- the distinction the
+   * graph executor's device->host drain hangs on.
+   */
+  bool isExplicitCpuEngine() const;
+
+  /**
    * @brief Which residency plane this node's tensors live on, resolved from
    *        its `engine` property.
    *

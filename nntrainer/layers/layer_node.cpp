@@ -378,6 +378,15 @@ bool LayerNode::isComputeEngineGPU() const {
   return residencyEngine() == ml::train::LayerComputeEngine::GPU;
 }
 
+bool LayerNode::isExplicitCpuEngine() const {
+  if (!layer_node_props)
+    return false;
+  auto &ce = std::get<props::ComputeEngine>(*layer_node_props);
+  if (ce.empty())
+    return false;
+  return residencyEngine() == ml::train::LayerComputeEngine::CPU;
+}
+
 bool LayerNode::isComputeEngineCUDA() const {
   return residencyEngine() == ml::train::LayerComputeEngine::CUDA;
 }
