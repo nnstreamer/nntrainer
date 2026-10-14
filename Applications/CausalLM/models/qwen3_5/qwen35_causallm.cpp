@@ -290,12 +290,14 @@ Tensor Qwen35Transformer::createLinearAttnBlock(const int layer_id,
 
   // Depthwise causal conv (kernel 4, frozen FP32 weight) — HF fuses silu
   // into the conv op; here it is a separate node so the conv core stays a
-  // pure linear op for backwarding.
+  // pure linear op for backwarding. The conv weight itself never trains
+  // (the layer only propagates input gradients).
   LayerHandle conv(createLayer(
     "causal_conv1d",
     {withKey("name", prefix + "_linattn_conv"),
      withKey("weight_dtype", "FP32"), withKey("engine", "cpu"),
-     withKey("kernel_size", std::to_string(CONV_KERNEL_SIZE))}));
+     withKey("kernel_size", std::to_string(CONV_KERNEL_SIZE)),
+     withKey("trainable", "false")}));
   Tensor conv_out = conv(qkv);
 
   LayerHandle conv_act(createLayer(

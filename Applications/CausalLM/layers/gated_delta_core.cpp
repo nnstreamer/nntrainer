@@ -385,6 +385,18 @@ void GatedDeltaCoreLayer::calcDerivative(nntrainer::RunLayerContext &context) {
   nntrainer::Tensor &db = context.getOutgoingDerivative(B_IDX);
   nntrainer::Tensor &da = context.getOutgoingDerivative(A_IDX);
 
+  // The per-head loops below ACCUMULATE (+=) into these buffers, so they
+  // must start from zero. The framework does not guarantee zeroed
+  // activation-derivative buffers between iterations, and a stale left-over
+  // from a previous step poisons every later optimizer step (observed as a
+  // NaN loss from the second training iteration on).
+  dq.setZero();
+  dk.setZero();
+  dv.setZero();
+  dz.setZero();
+  db.setZero();
+  da.setZero();
+
   const float *A_log = context.getWeight(weight_idx[w_A_log]).getData<float>();
   const float *dt_bias =
     context.getWeight(weight_idx[w_dt_bias]).getData<float>();

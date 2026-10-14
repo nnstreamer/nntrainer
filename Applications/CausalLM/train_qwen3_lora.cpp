@@ -221,6 +221,15 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
 
   try {
     causallm::json cfg = causallm::LoadJsonFile(model_path + "/config.json");
+    // Multimodal wrappers (Qwen3.5) nest the text fields under text_config;
+    // flatten them before the driver's direct cfg reads (vocab_size) and
+    // before the model's own sanitizeConfig (which skips existing keys).
+    if (cfg.contains("text_config") && cfg["text_config"].is_object()) {
+      const auto &text_cfg = cfg["text_config"];
+      for (auto it = text_cfg.begin(); it != text_cfg.end(); ++it)
+        if (!cfg.contains(it.key()))
+          cfg[it.key()] = it.value();
+    }
     causallm::json generation_cfg = causallm::json::object();
     const std::string gen_cfg_path = model_path + "/generation_config.json";
     if (std::filesystem::exists(gen_cfg_path))
