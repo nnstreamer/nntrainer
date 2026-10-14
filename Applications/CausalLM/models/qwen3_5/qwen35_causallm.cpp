@@ -328,19 +328,25 @@ Tensor Qwen35Transformer::createLinearAttnBlock(const int layer_id,
 
   // b / a: 16-unit scalar projections, frozen by design (they feed
   // sigmoid/softplus where 16-bit precision is not enough) and never
-  // quantized (absent from the quantize dtype map).
+  // quantized (absent from the quantize dtype map). weight_dtype=FP32 is
+  // REQUIRED here: without it the runtime graph derives these FC weights'
+  // dtype from the pack's fc_layer_dtype (QS4CX) while the quantizer saved
+  // them FP32 (unmapped), and every record after them in the positional file
+  // is then read at a shifted offset.
   LayerHandle in_b(createLayer(
     "fully_connected",
     {withKey("name", prefix + "_linattn_in_b"), withKey("unit", NH),
      withKey("disable_bias", "true"), withKey("weight_initializer", "ones"),
-     withKey("engine", "cpu"), withKey("trainable", "false")}));
+     withKey("engine", "cpu"), withKey("trainable", "false"),
+     withKey("weight_dtype", "FP32")}));
   Tensor b = in_b(normed);
 
   LayerHandle in_a(createLayer(
     "fully_connected",
     {withKey("name", prefix + "_linattn_in_a"), withKey("unit", NH),
      withKey("disable_bias", "true"), withKey("weight_initializer", "ones"),
-     withKey("engine", "cpu"), withKey("trainable", "false")}));
+     withKey("engine", "cpu"), withKey("trainable", "false"),
+     withKey("weight_dtype", "FP32")}));
   Tensor a = in_a(normed);
 
   // Gated delta rule core (frozen A_log / dt_bias / gated-norm weight).
