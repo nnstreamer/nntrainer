@@ -7,6 +7,7 @@ causallm_layer_inc = [include_directories('.'), include_directories('..')]
 causallm_rms_norm_src_abs = [meson.current_source_dir() / 'rms_norm.cpp']
 causallm_rms_norm_gpu_src_abs = [meson.current_source_dir() / 'rms_norm_gpu.cpp']
 causallm_causal_conv1d_src_abs = [meson.current_source_dir() / 'causal_conv1d_layer.cpp']
+causallm_gated_delta_core_src_abs = [meson.current_source_dir() / 'gated_delta_core.cpp']
 causallm_mha_core_abs = [meson.current_source_dir()/ 'mha_core.cpp']
 causallm_embedding_src_abs = [meson.current_source_dir() / 'embedding_layer.cpp']
 causallm_reshaped_rms_norm_src_abs = [meson.current_source_dir() / 'reshaped_rms_norm.cpp']
@@ -59,6 +60,19 @@ causallm_causal_conv1d = shared_library(
 )
 causallm_causal_conv1d_dep = declare_dependency(
     link_with: causallm_causal_conv1d,
+    include_directories: causallm_layer_inc
+)
+
+causallm_gated_delta_core = shared_library(
+    'gated_delta_core_layer',
+    causallm_gated_delta_core_src_abs,
+    include_directories: causallm_layer_inc,
+    dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
+    install: true,
+    install_dir: application_install_dir
+)
+causallm_gated_delta_core_dep = declare_dependency(
+    link_with: causallm_gated_delta_core,
     include_directories: causallm_layer_inc
 )
 

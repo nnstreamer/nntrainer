@@ -5474,7 +5474,8 @@ void MHACoreLayer::precompute_freqs(int head_dim, unsigned int seq_len,
     std::string(is_fp16 ? "fp16:" : "fp32:") + std::to_string(head_dim) + ":" +
     std::to_string(seq_len) + ":" + std::to_string(theta) + ":" +
     rope_scaling_type + ":" + std::to_string(scale) + ":" +
-    std::to_string(original_max_position_embeddings);
+    std::to_string(original_max_position_embeddings) + ":" +
+    std::to_string(rope_partial_rotary_factor);
 
   auto cache_iter = rope_freq_cache.find(cache_key);
   if (cache_iter != rope_freq_cache.end()) {
@@ -5588,13 +5589,25 @@ void MHACoreLayer::_compute_proportional_parameters(int head_dim, float theta) {
   // i.e. those channels pass through unrotated. With
   // rope_partial_rotary_factor == 1.0 this reduces to default RoPE scaled by
   // 1/scale.
+  //
+  // The frequency exponent denominator must match the reference each rope
+  // family uses. Gemma's "proportional" scaling divides by the FULL head_dim
+  // (transformers _compute_proportional_rope_parameters,
+  // modeling_rope_utils.py), while models with a plain partial_rotary_factor
+  // < 1 (e.g. Qwen3.5) divide by the PARTIAL dim factor*head_dim
+  // (transformers compute_default_rope_parameters with dim = head_dim *
+  // partial_rotary_factor). For factor == 1.0 both denominators coincide, so
+  // the discriminator below is a numerical no-op for the existing user
+  // (gemma4) and only changes factor < 1 runs.
   const int half_dim = static_cast<int>(head_dim / 2);
   const int rope_angles =
     static_cast<int>((rope_partial_rotary_factor * head_dim) / 2.0f);
+  const float denom = (rope_scaling_type == "proportional")
+                        ? static_cast<float>(head_dim)
+                        : static_cast<float>(rope_angles * 2);
   thetas.reserve(half_dim);
   for (int i = 0; i < rope_angles; ++i)
-    thetas.push_back(1.0f /
-                     (std::pow(theta, (2 * i) / static_cast<float>(head_dim))));
+    thetas.push_back(1.0f / (std::pow(theta, (2 * i) / denom)));
   for (int i = rope_angles; i < half_dim; ++i)
     thetas.push_back(0.0f);
   for (auto &val : thetas)

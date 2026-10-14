@@ -599,6 +599,14 @@ buildLayerDtypeMap(int num_layers, DataType fc_dtype, DataType embd_dtype,
       dtype_map[prefix + "_conv_in_proj"] = fc_dtype;
       dtype_map[prefix + "_conv_out_proj"] = fc_dtype;
 
+      // Qwen3.5: attention output gate (the gate half of the wide q_proj
+      // split) and the linear-attention block projections. linattn_in_b /
+      // linattn_in_a stay FP32 by design (16-unit sigmoid/softplus precision).
+      dtype_map[prefix + "_wgate"] = fc_dtype;
+      dtype_map[prefix + "_linattn_in_qkv"] = fc_dtype;
+      dtype_map[prefix + "_linattn_in_z"] = fc_dtype;
+      dtype_map[prefix + "_linattn_out"] = fc_dtype;
+
       // FFN FC layers - BERT (BertTransformer)
       dtype_map[prefix + "_ffn_fc1"] = fc_dtype;
 

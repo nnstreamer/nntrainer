@@ -353,14 +353,36 @@ void CausalLM::setupParameters(json &cfg, json &generation_cfg,
           .get<unsigned int>();
   }
 
-  if (generation_cfg["eos_token_id"].is_array()) {
-    EOS_TOKEN_ID =
-      generation_cfg["eos_token_id"].empty()
-        ? cfg["eos_token_id"].get<std::vector<unsigned int>>()
-        : generation_cfg["eos_token_id"].get<std::vector<unsigned int>>();
+  // A pack without generation_config.json (or with a missing / null
+  // eos_token_id) falls back to the model config's eos_token_id, scalar or
+  // array; with neither, EOS stays empty (the WARNING below covers it)
+  // instead of throwing on a null numeric read.
+  if (generation_cfg.contains("eos_token_id") &&
+      !generation_cfg["eos_token_id"].is_null()) {
+    if (generation_cfg["eos_token_id"].is_array()) {
+      EOS_TOKEN_ID =
+        generation_cfg["eos_token_id"].empty()
+          ? (cfg.contains("eos_token_id") && !cfg["eos_token_id"].is_null()
+               ? (cfg["eos_token_id"].is_array()
+                    ? cfg["eos_token_id"].get<std::vector<unsigned int>>()
+                    : std::vector<unsigned int>{cfg["eos_token_id"]
+                                                  .get<unsigned int>()})
+               : std::vector<unsigned int>())
+          : generation_cfg["eos_token_id"].get<std::vector<unsigned int>>();
+    } else {
+      EOS_TOKEN_ID.clear();
+      EOS_TOKEN_ID.push_back(
+        generation_cfg["eos_token_id"].get<unsigned int>());
+    }
+  } else if (cfg.contains("eos_token_id") && !cfg["eos_token_id"].is_null()) {
+    if (cfg["eos_token_id"].is_array())
+      EOS_TOKEN_ID = cfg["eos_token_id"].get<std::vector<unsigned int>>();
+    else {
+      EOS_TOKEN_ID.clear();
+      EOS_TOKEN_ID.push_back(cfg["eos_token_id"].get<unsigned int>());
+    }
   } else {
     EOS_TOKEN_ID.clear();
-    EOS_TOKEN_ID.push_back(generation_cfg["eos_token_id"].get<unsigned int>());
   }
   if (EOS_TOKEN_ID.empty()) {
     // Without an EOS id nothing can break the decode loop early, so a config
@@ -370,9 +392,14 @@ void CausalLM::setupParameters(json &cfg, json &generation_cfg,
                  "the context window."
               << std::endl;
   }
-  BOS_TOKEN_ID = generation_cfg["bos_token_id"].empty()
-                   ? cfg["bos_token_id"].get<unsigned int>()
-                   : generation_cfg["bos_token_id"].get<unsigned int>();
+  // bos_token_id is optional in both configs; 0 (no BOS forced) when absent.
+  BOS_TOKEN_ID = 0;
+  if (generation_cfg.contains("bos_token_id") &&
+      !generation_cfg["bos_token_id"].is_null() &&
+      !generation_cfg["bos_token_id"].empty())
+    BOS_TOKEN_ID = generation_cfg["bos_token_id"].get<unsigned int>();
+  else if (cfg.contains("bos_token_id") && !cfg["bos_token_id"].is_null())
+    BOS_TOKEN_ID = cfg["bos_token_id"].get<unsigned int>();
   // Decoding follows generation_config.json. A missing key takes the Hugging
   // Face default: do_sample false (greedy), and -- consulted only when
   // do_sample is true -- temperature 1.0, top_k 50, top_p 1.0.
@@ -1030,10 +1057,14 @@ void CausalLM::registerOutputs(
   const std::vector<bool> &eos_list, bool log_output) {
 
   static const std::vector<char> puncts{',', '!', ':', ';', '?'};
+  static const bool _dump_tokens =
+    std::getenv("NNTR_DUMP_GEN_TOKENS") != nullptr;
   for (size_t b = 0; b < ids.size(); ++b) {
     if (!eos_list[b]) {
       pending_ids_.push_back(static_cast<int>(ids[b]));
       ids_history[b * MAX_SEQ_LEN + pos] = ids[b];
+      if (_dump_tokens)
+        std::cout << "[gen-token] " << ids[b] << std::endl;
       std::string decoded_str = tokenizer->Decode(pending_ids_);
 
       if (decoded_str.empty()) {
@@ -1158,6 +1189,29 @@ std::vector<unsigned int> CausalLM::generate(float *logits, bool do_sample,
 #endif
 
   std::vector<unsigned int> outputs;
+  // [port-debug] Env-gated logits stats: NaN count + top-10 (id, logit).
+  // Step 1 is the prefill logits; later calls are decode steps.
+  static const bool _dump_logits = std::getenv("NNTR_DUMP_LOGITS") != nullptr;
+  if (_dump_logits) {
+    unsigned int nans = 0;
+    std::vector<std::pair<float, unsigned int>> top;
+    top.reserve(NUM_VOCAB);
+    for (unsigned int i = 0; i < NUM_VOCAB; ++i) {
+      const float v = logits[i];
+      if (std::isnan(v)) {
+        ++nans;
+        continue;
+      }
+      top.emplace_back(v, i);
+    }
+    std::partial_sort(
+      top.begin(), top.begin() + 10, top.end(),
+      [](const auto &a, const auto &b) { return a.first > b.first; });
+    std::cout << "[logits] NaN=" << nans << " top10=";
+    for (int i = 0; i < 10; ++i)
+      std::cout << (i ? "," : "") << top[i].second << ":" << top[i].first;
+    std::cout << std::endl;
+  }
   // Sampled decoding whose top-k fits the device selection: the token depends
   // only on the TOP_K best logits, so the GPU lanes select candidates on the
   // device and the host samples from those. More candidates than TOP_K are

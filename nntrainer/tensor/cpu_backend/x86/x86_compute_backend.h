@@ -1552,6 +1552,43 @@ void causal_depthwise_conv1d_k3_decode(const float *x_cur,
                                        const float *packed_weight, float *state,
                                        float *y_cur, unsigned int W);
 
+/**
+ * @brief fp32 causal depthwise Conv1D prefill for kernel size 4.
+ *
+ * Input and output are contiguous [B, H, W]. For each channel c, the kernel
+ * uses packed_weight [w0 | w1 | w2 | w3] and computes the causal recurrence
+ * over H: y_t = w0*x_t + w1*x_{t-1} + w2*x_{t-2} + w3*x_{t-3} (+ bias).
+ *
+ * @param input input tensor, B * H * W floats
+ * @param packed_weight packed weights [w0 | w1 | w2 | w3], each W floats
+ * @param bias optional per-channel bias, W floats (nullptr to disable)
+ * @param output output tensor, B * H * W floats
+ * @param B batch size
+ * @param H sequence length
+ * @param W feature width / channel count
+ */
+void causal_depthwise_conv1d_k4(const float *input, const float *packed_weight,
+                                const float *bias, float *output,
+                                unsigned int B, unsigned int H, unsigned int W);
+
+/**
+ * @brief Single-token decode step for causal depthwise Conv1D kernel size 4.
+ *
+ * Uses state[0..W-1] as x_{t-3}, state[W..2W-1] as x_{t-2} and
+ * state[2W..3W-1] as x_{t-1}, computes
+ * y_cur = w0*x_cur + w1*x_{t-1} + w2*x_{t-2} + w3*x_{t-3}, then updates
+ * the state in-place to [x_{t-2} | x_{t-1} | x_t].
+ *
+ * @param x_cur current token features, W floats
+ * @param packed_weight packed weights [w0 | w1 | w2 | w3], each W floats
+ * @param state rolling causal state, 3 * W floats, updated in-place
+ * @param y_cur output for the current token, W floats
+ * @param W feature width / channel count
+ */
+void causal_depthwise_conv1d_k4_decode(const float *x_cur,
+                                       const float *packed_weight, float *state,
+                                       float *y_cur, unsigned int W);
+
 } /* namespace nntrainer */
 #endif /* __cplusplus */
 #endif /* __x86_COMPUTE_BACKEND_H__ */

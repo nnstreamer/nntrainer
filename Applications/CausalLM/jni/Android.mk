@@ -56,6 +56,7 @@ CAUSALLM_COMMON_INCLUDES := \
     $(LOCAL_PATH)/../models/gemma4 \
     $(LOCAL_PATH)/../models/xlm_roberta \
     $(LOCAL_PATH)/../models/lfm2 \
+    $(LOCAL_PATH)/../models/qwen3_5 \
     $(LOCAL_PATH)/../api \
     $(LOCAL_PATH)/../xgrammar/include \
     $(LOCAL_PATH)/../xgrammar/3rdparty/picojson \

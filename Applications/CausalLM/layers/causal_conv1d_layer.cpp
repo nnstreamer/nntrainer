@@ -21,8 +21,29 @@
 #include <cpu_backend.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <node_exporter.h>
+#include <tensor.h>
 
 namespace causallm {
+
+namespace {
+
+/**
+ * @brief Reverse the rows of a [B, T, W] contiguous buffer along T, in-place.
+ */
+void flip_rows_along_time(float *data, unsigned int B, unsigned int T,
+                          unsigned int W) {
+  for (unsigned int b = 0; b < B; ++b) {
+    float *base = data + static_cast<size_t>(b) * T * W;
+    for (unsigned int t = 0; t < T / 2; ++t) {
+      float *front = base + static_cast<size_t>(t) * W;
+      float *back = base + static_cast<size_t>(T - 1 - t) * W;
+      std::swap_ranges(front, front + W, back);
+    }
+  }
+}
+
+} // namespace
 
 // ===========================================================================
 
@@ -52,24 +73,24 @@ void CausalConv1DLayer::finalize(nntrainer::InitLayerContext &context) {
   const unsigned int B = in_dim.batch();
   const unsigned int W = in_dim.width(); // number of features/channels
 
-  // Weight: [1, 1, KERNEL_SIZE, W] FP32
+  // Weight: [1, 1, K, W] FP32
   //   Row k  (offset k*W) = kernel weights for position k:
   //     k=0 → w0: applied to current token x_t
   //     k=1 → w1: applied to x_{t-1}
-  //     k=2 → w2: applied to x_{t-2}
+  //     ...
   nntrainer::TensorDim weight_dim(
-    {1, 1, KERNEL_SIZE, W},
+    {1, 1, kernel_size, W},
     {context.getFormat(), ml::train::TensorDim::DataType::FP32});
   weight_idx[weight] =
     context.requestWeight(weight_dim, nntrainer::Initializer::NONE,
                           nntrainer::WeightRegularizer::NONE, 0.0f, 0.0f,
                           "causal_conv1d_weight", false);
 
-  // Conv-state cache: [B, 1, KERNEL_SIZE-1, W] FP32
-  //   state[b, 0, 0, f] = x_{t-2}
-  //   state[b, 0, 1, f] = x_{t-1}
+  // Conv-state cache: [B, 1, K-1, W] FP32
+  //   state[b, 0, 0, f] = oldest cached token
+  //   state[b, 0, K-2, f] = x_{t-1} (newest)
   nntrainer::TensorDim state_dim(
-    {B, 1, KERNEL_SIZE - 1, W},
+    {B, 1, kernel_size - 1, W},
     {context.getFormat(), ml::train::TensorDim::DataType::FP32});
   tensor_idx[conv_state] = context.requestTensor(
     state_dim, "conv_state", nntrainer::Initializer::ZEROS, false,
@@ -81,9 +102,26 @@ void CausalConv1DLayer::finalize(nntrainer::InitLayerContext &context) {
 
 void CausalConv1DLayer::forwarding(nntrainer::RunLayerContext &context,
                                    bool training) {
-  throw std::runtime_error(
-    "[CausalConv1DLayer] forwarding() is not used – call "
-    "incremental_forwarding() instead.");
+  (void)training;
+  // Full-sequence forward, used by training. The decode-time conv state is
+  // not touched here; a later incremental prefill rewrites it from scratch
+  // before any decode step runs.
+  nntrainer::Tensor &input = context.getInput(SINGLE_INOUT_IDX);
+  nntrainer::Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
+  nntrainer::Tensor &w_tensor = context.getWeight(weight_idx[weight]);
+
+  const unsigned int B = input.batch();
+  const unsigned int T = input.height(); // sequence length
+  const unsigned int W = input.width();  // feature dimension
+
+  const float *x = input.getData<float>();
+  const float *w_ptr = w_tensor.getData<float>();
+  float *y = output.getData<float>();
+
+  if (kernel_size == 4)
+    nntrainer::causal_depthwise_conv1d_k4(x, w_ptr, nullptr, y, B, T, W);
+  else
+    nntrainer::causal_depthwise_conv1d_k3(x, w_ptr, nullptr, y, B, T, W);
 }
 
 void CausalConv1DLayer::incremental_forwarding(
@@ -91,7 +129,7 @@ void CausalConv1DLayer::incremental_forwarding(
   bool training) {
 
   NNTR_THROW_IF(training, std::invalid_argument)
-    << "[CausalConv1DLayer] training/backward is not supported.";
+    << "[CausalConv1DLayer] training/backward must use forwarding().";
   NNTR_THROW_IF(to == 0 || to <= from, std::invalid_argument)
     << "[CausalConv1DLayer] invalid range: from=" << from << ", to=" << to;
 
@@ -105,7 +143,7 @@ void CausalConv1DLayer::incremental_forwarding(
   const unsigned int W = input.width();  // feature dimension
 
   const float *w_ptr = w_tensor.getData<float>();
-  float *state_data = state.getData<float>(); // [B, 1, KERNEL_SIZE-1, W]
+  float *state_data = state.getData<float>(); // [B, 1, K-1, W]
 
   if (to - from == 1) {
     // ----------------------------------------------------------------
@@ -116,10 +154,14 @@ void CausalConv1DLayer::incremental_forwarding(
     for (unsigned int b = 0; b < B; ++b) {
       const float *x_cur = input.getData<float>() + b * H * W;
       float *y_cur = output.getData<float>() + b * H * W;
-      float *s = state_data + b * (KERNEL_SIZE - 1) * W;
+      float *s = state_data + b * (kernel_size - 1) * W;
 
-      // y = w0*x + w1*s1 + w2*s0; state updated in-place by kernel
-      nntrainer::causal_depthwise_conv1d_k3_decode(x_cur, w_ptr, s, y_cur, W);
+      // y = w0*x + w1*x_{t-1} + ... + w_{K-1}*x_{t-K+1}; the state is
+      // updated in-place by the kernel.
+      if (kernel_size == 4)
+        nntrainer::causal_depthwise_conv1d_k4_decode(x_cur, w_ptr, s, y_cur, W);
+      else
+        nntrainer::causal_depthwise_conv1d_k3_decode(x_cur, w_ptr, s, y_cur, W);
     }
 
   } else {
@@ -130,29 +172,69 @@ void CausalConv1DLayer::incremental_forwarding(
       const float *x = input.getData<float>() + b * H * W;
       float *y = output.getData<float>() + b * H * W;
 
-      nntrainer::causal_depthwise_conv1d_k3(x, w_ptr, nullptr, y, 1, to, W);
-
-      // Save last KERNEL_SIZE-1 tokens to state for decode steps
-      float *s = state_data + b * (KERNEL_SIZE - 1) * W;
-
-      if (to >= 2)
-        std::memcpy(s, x + (to - 2) * W, W * sizeof(float)); // x_{to-2}
+      if (kernel_size == 4)
+        nntrainer::causal_depthwise_conv1d_k4(x, w_ptr, nullptr, y, 1, to, W);
       else
-        std::memset(s, 0, W * sizeof(float));
+        nntrainer::causal_depthwise_conv1d_k3(x, w_ptr, nullptr, y, 1, to, W);
 
-      std::memcpy(s + W, x + (to - 1) * W, W * sizeof(float)); // x_{to-1}
+      // Save last K-1 tokens to state for the decode steps.
+      // Row k holds the token at position to - (K-1) + k, oldest first;
+      // positions before the sequence start (short prefill) stay zero.
+      float *s = state_data + b * (kernel_size - 1) * W;
+      for (unsigned int k = 0; k < kernel_size - 1; ++k) {
+        const int pos = static_cast<int>(to) -
+                        static_cast<int>(kernel_size - 1) + static_cast<int>(k);
+        if (pos >= 0)
+          std::memcpy(s + k * W, x + static_cast<unsigned int>(pos) * W,
+                      W * sizeof(float));
+        else
+          std::memset(s + k * W, 0, W * sizeof(float));
+      }
     }
   }
 }
 
 void CausalConv1DLayer::calcDerivative(nntrainer::RunLayerContext &context) {
-  throw std::runtime_error(
-    "[CausalConv1DLayer] calcDerivative() not implemented (inference only).");
+  const nntrainer::Tensor &dy = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  nntrainer::Tensor &dx = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
+  nntrainer::Tensor &w_tensor = context.getWeight(weight_idx[weight]);
+
+  const unsigned int B = dy.batch();
+  const unsigned int T = dy.height();
+  const unsigned int W = dy.width();
+  const float *w_ptr = w_tensor.getData<float>();
+
+  // Forward: y[t] = sum_j w_j * x[t-j]  (x[<0] = 0).
+  // Adjoint: dx[t] = sum_j w_j * dy[t+j] (dy[>=T] = 0), an anti-causal conv.
+  // With r = flip(dy) and o = flip(dx) this becomes a causal conv of r with
+  // the same kernel, so the prefill kernels are reused as-is.
+  nntrainer::Tensor dy_flipped(dy.getDim());
+  for (unsigned int b = 0; b < B; ++b) {
+    const float *src = dy.getData<float>() + static_cast<size_t>(b) * T * W;
+    float *dst = dy_flipped.getData<float>() + static_cast<size_t>(b) * T * W;
+    for (unsigned int t = 0; t < T; ++t)
+      std::memcpy(dst + static_cast<size_t>(T - 1 - t) * W,
+                  src + static_cast<size_t>(t) * W, W * sizeof(float));
+  }
+
+  float *dx_ptr = dx.getData<float>();
+  if (kernel_size == 4)
+    nntrainer::causal_depthwise_conv1d_k4(dy_flipped.getData<float>(), w_ptr,
+                                          nullptr, dx_ptr, B, T, W);
+  else
+    nntrainer::causal_depthwise_conv1d_k3(dy_flipped.getData<float>(), w_ptr,
+                                          nullptr, dx_ptr, B, T, W);
+
+  flip_rows_along_time(dx_ptr, B, T, W);
 }
 
 void CausalConv1DLayer::calcGradient(nntrainer::RunLayerContext &context) {
-  throw std::runtime_error(
-    "[CausalConv1DLayer] calcGradient() not implemented (inference only).");
+  // The conv weight is requested trainable=false, so the node-level trainable
+  // gate normally skips this call. Only dX flows through this layer.
+  (void)context;
+  throw std::invalid_argument(
+    "[CausalConv1DLayer] trainable conv weight is not supported; only "
+    "input gradients flow through this layer.");
 }
 
 void CausalConv1DLayer::updateTensorsByInputDimensions(
@@ -167,7 +249,16 @@ void CausalConv1DLayer::exportTo(nntrainer::Exporter &exporter,
 }
 
 void CausalConv1DLayer::setProperty(const std::vector<std::string> &values) {
-  LayerImpl::setProperty(values);
+  auto remain_props = nntrainer::loadProperties(values, conv_props);
+  LayerImpl::setProperty(remain_props);
+
+  auto &k = std::get<nntrainer::props::KernelSize>(conv_props);
+  if (!k.empty()) {
+    NNTR_THROW_IF(k.get() != 3 && k.get() != 4, std::invalid_argument)
+      << "[CausalConv1DLayer] supported kernel sizes are 3 and 4, got "
+      << k.get();
+    kernel_size = k.get();
+  }
 }
 
 } // namespace causallm

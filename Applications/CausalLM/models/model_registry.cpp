@@ -38,6 +38,7 @@
 #include "gemma2_causallm.h"
 #include "gemma3_causallm.h"
 #include "gemma4_causallm.h"
+#include "qwen35_causallm.h"
 #if !defined(_WIN32)
 #include "gptoss_cached_slim_causallm.h"
 #endif
@@ -137,6 +138,12 @@ void registerAllModels() {
     causallm::Factory::Instance().registerModel(
       "Qwen3Embedding", [](json cfg, json generation_cfg, json nntr_cfg) {
         return std::make_unique<causallm::Qwen3Embedding>(cfg, generation_cfg,
+                                                          nntr_cfg);
+      });
+    causallm::Factory::Instance().registerModel(
+      "Qwen3_5ForConditionalGeneration",
+      [](json cfg, json generation_cfg, json nntr_cfg) {
+        return std::make_unique<causallm::Qwen35CausalLM>(cfg, generation_cfg,
                                                           nntr_cfg);
       });
     causallm::Factory::Instance().registerModel(
