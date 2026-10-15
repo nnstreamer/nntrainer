@@ -295,7 +295,6 @@ class MainActivity : AppCompatActivity() {
     private var trainBestLoss: String = "—"
     private val trainLossPoints = mutableListOf<Float>()  // per-iteration train loss
     private val trainEpochBoundaries = mutableListOf<Int>()  // iteration index where each epoch ends
-    private val trainValidLosses = mutableListOf<Float>()  // mean train loss per epoch
     private var lossChartView: LossChartView? = null
     /** One-line training status shown under the loss chart (not the top
      *  hero card, which stays reserved for load / TEST messages). */
@@ -1242,12 +1241,12 @@ class MainActivity : AppCompatActivity() {
             bgColor = t.surfaceContainer,
             gridColor = t.outlineVariant,
             lineColor = t.primary,
-            validColor = t.tertiary,
+            bandColor = t.primary,
             textColor = t.onSurface,
             epochLineColor = t.outline,
         ).apply {
             layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, dp(200))
-            setData(trainLossPoints, trainEpochBoundaries, trainValidLosses)
+            setData(trainLossPoints, trainEpochBoundaries)
         }
         card.addView(lossChartView!!)
         spacer(card, 6)
@@ -2959,7 +2958,6 @@ class MainActivity : AppCompatActivity() {
         trainRunning = true; trainLog = ""; trainBestLoss = "—"
         trainLossPoints.clear()
         trainEpochBoundaries.clear()
-        trainValidLosses.clear()
         lossChartView?.clear()
         setTrainStatus("Training started…"); rebuildUi()
         val modelPath = trainModelPath.trim()
@@ -3029,10 +3027,7 @@ class MainActivity : AppCompatActivity() {
                             trainSavedQ4Path = q4OutputPath
                         }
                         trainEpochBoundaries.add(trainLossPoints.size - 1)
-                        // No validation pass: the epoch marker is the mean
-                        // training loss of the epoch.
-                        trainValidLosses.add(trainLoss)
-                        lossChartView?.addEpochBoundary(trainLossPoints.size - 1, trainLoss)
+                        lossChartView?.addEpochBoundary(trainLossPoints.size - 1)
                         appendTrainLog(String.format(
                             "[epoch %d] avg_loss=%.4f%s | best=%.4f | %d samples | %s",
                             epoch, trainLoss,
@@ -3740,7 +3735,8 @@ private class LossChartView(
     var bgColor: Int,
     var gridColor: Int,
     var lineColor: Int,
-    var validColor: Int,
+    /** tint of every other epoch's background band */
+    var bandColor: Int,
     var textColor: Int,
     var epochLineColor: Int,
 ) : View(context) {
@@ -3751,8 +3747,8 @@ private class LossChartView(
      * the raw per-iteration line, which spikes too much to read; raw values
      * stay for epoch-boundary indexing and a possible raw overlay later.
      */
+    /** iteration index where each finished epoch ends */
     private val epochBoundaries = mutableListOf<Int>()
-    private val validLosses = mutableListOf<Float>()
     private val emaPoints = mutableListOf<Float>()
     private var emaValue = Float.NaN
     /** EMA weight of the previous value (higher = smoother). */
@@ -3778,9 +3774,9 @@ private class LossChartView(
         color = epochLineColor
         pathEffect = android.graphics.DashPathEffect(floatArrayOf(8f, 6f), 0f)
     }
-    private val paintValid = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+    private val paintBand = android.graphics.Paint().apply {
         style = android.graphics.Paint.Style.FILL
-        color = validColor
+        color = (bandColor and 0x00FFFFFF) or 0x14000000
     }
     private val paintText = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
         color = textColor
@@ -3799,14 +3795,12 @@ private class LossChartView(
     private val padT = 40f
     private val padB = 56f
 
-    fun setData(points: List<Float>, epochs: List<Int>, valid: List<Float>) {
+    fun setData(points: List<Float>, epochs: List<Int>) {
         lossPoints.clear()
         lossPoints.addAll(points)
         rebuildEma()
         epochBoundaries.clear()
         epochBoundaries.addAll(epochs)
-        validLosses.clear()
-        validLosses.addAll(valid)
         postInvalidate()
     }
 
@@ -3817,9 +3811,8 @@ private class LossChartView(
         postInvalidate()
     }
 
-    fun addEpochBoundary(iterIndex: Int, validLoss: Float) {
+    fun addEpochBoundary(iterIndex: Int) {
         epochBoundaries.add(iterIndex)
-        validLosses.add(validLoss)
         postInvalidate()
     }
 
@@ -3828,7 +3821,6 @@ private class LossChartView(
         emaPoints.clear()
         emaValue = Float.NaN
         epochBoundaries.clear()
-        validLosses.clear()
         postInvalidate()
     }
 
@@ -3856,12 +3848,8 @@ private class LossChartView(
         val chartW = w - padL - padR
         val chartH = h - padT - padB
 
-        var minLoss = emaPoints.min()
+        val minLoss = emaPoints.min()
         var maxLoss = emaPoints.max()
-        if (validLosses.isNotEmpty()) {
-            minLoss = minOf(minLoss, validLosses.min())
-            maxLoss = maxOf(maxLoss, validLosses.max())
-        }
         if (minLoss == maxLoss) maxLoss = minLoss + 1f
         val yPad = (maxLoss - minLoss) * 0.1f
         // Loss is non-negative — keep the axis floor at 0 instead of
@@ -3887,9 +3875,19 @@ private class LossChartView(
         canvas.save()
         canvas.clipRect(padL, padT, w - padR, padT + chartH)
 
+        // Epochs: every other epoch on a tinted band, a dashed line where
+        // one ends, so a multi-epoch run reads as epochs, not one long run.
+        val epochRanges = epochRanges(n)
+        for ((e, r) in epochRanges.withIndex()) {
+            if (e % 2 == 1) {
+                val x0 = padL + (r.first - 0.5f).coerceAtLeast(0f) * xStep
+                val x1 = padL + (r.last + 0.5f).coerceAtMost((n - 1).toFloat()) * xStep
+                canvas.drawRect(x0, padT, x1, padT + chartH, paintBand)
+            }
+        }
         for (idx in epochBoundaries) {
-            if (idx in 0 until n) {
-                val x = padL + idx * xStep
+            if (idx in 0 until n - 1) {
+                val x = padL + (idx + 0.5f) * xStep
                 canvas.drawLine(x, padT, x, padT + chartH, paintEpoch)
             }
         }
@@ -3921,26 +3919,33 @@ private class LossChartView(
             canvas.drawCircle(x, y, 6f, paintLine)
         }
 
-        for (i in epochBoundaries.indices) {
-            val idx = epochBoundaries[i]
-            if (idx in 0 until n && i < validLosses.size) {
-                val x = padL + idx * xStep
-                val y = padT + chartH * (1f - (validLosses[i] - yMin) / yRangePadded)
-                canvas.drawCircle(x, y, 8f, paintValid)
-                canvas.drawCircle(x, y, 8f, paintLine)
-            }
-        }
-
         canvas.restore()
 
         val currentLoss = emaPoints.last()
         paintText.textAlign = android.graphics.Paint.Align.LEFT
         canvas.drawText(
-            "iter $n  loss=${String.format("%.4f", currentLoss)}",
+            "epoch ${epochRanges.size}  iter $n  loss=${String.format("%.4f", currentLoss)}",
             padL, padT - 12, paintText
         )
 
+        // x axis: each epoch's label under its span
         paintTextSmall.textAlign = android.graphics.Paint.Align.CENTER
-        canvas.drawText("iteration", w / 2, h - 12, paintTextSmall)
+        for ((e, r) in epochRanges.withIndex()) {
+            val x = padL + (r.first + r.last) / 2f * xStep
+            canvas.drawText("E${e + 1}", x, padT + chartH + 30, paintTextSmall)
+        }
+    }
+
+    /** Iteration index ranges of the epochs so far (the last may be open). */
+    private fun epochRanges(n: Int): List<IntRange> {
+        val out = mutableListOf<IntRange>()
+        var start = 0
+        for (b in epochBoundaries) {
+            if (b < start || b >= n) continue
+            out.add(start..b)
+            start = b + 1
+        }
+        if (start < n) out.add(start until n)
+        return out
     }
 }
