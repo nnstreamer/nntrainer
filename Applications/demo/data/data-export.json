@@ -1,0 +1,38 @@
+{
+  "dataset_manifest_sha256": "4923fe11868ca989a8733235f6816a0163dda05c45bc35a501fcad9c0464dcff",
+  "tokenizer_sha256": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+  "decision_sha256": "27602b53d0d389fac9129a9ed95b1efbb98d6f4af3a202d78d0d1c6004995489",
+  "files": {
+    "device/u02/train.jsonl": {
+      "sha256": "64bc61a82b88dbdf3dc2b3d87b8cfbef69a773f8f1f3e4c0eb2fb9a7a8d2f93e",
+      "rows": 200,
+      "source_sha256": "e5fe812107ad136844cb5b5e6a67711fa12b43f1e16df04ef1e1498b4922cc82"
+    },
+    "device/u02/validation.jsonl": {
+      "sha256": "e7cacdce9d9ff97f6b399cafaab8c6b5afa8bc935db0fd3c4d6c5ba56a3b0e58",
+      "rows": 80,
+      "source_sha256": "60939d976267cf4f60465ef7627446b17a619e3c0e1712a344b29a589f7c0c0e"
+    },
+    "device/u02/test.jsonl": {
+      "sha256": "5789ed331bb32a87eea14e7510d5e2df017ed89b17a1c70b20d6b8c7d0e27b65",
+      "rows": 80,
+      "source_sha256": "e41b851ed948d5f15eb075dd716a3c36fead9a28d02e9d89546918449229dd9d"
+    },
+    "device/u03/train.jsonl": {
+      "sha256": "6ec7ec342b062f18c5ea4d433f23c9a10358ed043e2a6d9ba0c669f2abd4b136",
+      "rows": 200,
+      "source_sha256": "c66192714f5f244100cc57f686bf34498050704c4ab887be9136f0813b0ddbfa"
+    },
+    "device/u03/validation.jsonl": {
+      "sha256": "1ecee5594b7c50897cb8bed18adfee99d6b6d54f23901d4ceb1527b21b4ef18f",
+      "rows": 80,
+      "source_sha256": "fee27f3cb3330de355adcc45f2b1431f40001f1c805860aa33c87c315835c40f"
+    },
+    "device/u03/test.jsonl": {
+      "sha256": "9bf56d614000062a2154d078edc62de268e42c8a39968aef69fb7e295c4f89a9",
+      "rows": 80,
+      "source_sha256": "077fd4daeda4054e29adefde2a6bdb26428000ad6881984823e6b2df04880231"
+    }
+  },
+  "scenario_source": "least-used older-three-app history per fixed validation variant; event_id tie-break; shared B/C events; no native results used"
+}

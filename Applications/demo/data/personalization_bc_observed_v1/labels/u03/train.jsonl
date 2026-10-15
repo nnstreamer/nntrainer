@@ -1,0 +1,200 @@
+{"id": "bc-train-later-004-u03-0", "event_id": "bc-train-later-004", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-moving_video-003-u03-2", "event_id": "bc-train-moving_video-003", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-received-000-u03-0", "event_id": "bc-train-received-000", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-meeting_ended-000-u03-0", "event_id": "bc-train-meeting_ended-000", "answer": 11, "answer_app": "notes", "required_top4_app_ids": ["notes"]}
+{"id": "bc-train-moving_map-000-u03-2", "event_id": "bc-train-moving_map-000", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube", "kakao_map"]}
+{"id": "bc-train-birthday_future-005-u03-0", "event_id": "bc-train-birthday_future-005", "answer": 7, "answer_app": "calendar_app", "required_top4_app_ids": ["calendar_app"]}
+{"id": "bc-train-reply-004-u03-0", "event_id": "bc-train-reply-004", "answer": 3, "answer_app": "kakaotalk", "required_top4_app_ids": ["kakaotalk"]}
+{"id": "bc-train-stopped-001-u03-0", "event_id": "bc-train-stopped-001", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-moving_map-002-u03-1", "event_id": "bc-train-moving_map-002", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube", "kakao_map"]}
+{"id": "bc-train-received-007-u03-0", "event_id": "bc-train-received-007", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-personal_meal-004-u03-0", "event_id": "bc-train-personal_meal-004", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-later-005-u03-0", "event_id": "bc-train-later-005", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-moving_video-001-u03-1", "event_id": "bc-train-moving_video-001", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-moving_video-000-u03-0", "event_id": "bc-train-moving_video-000", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-study-007-u03-0", "event_id": "bc-train-study-007", "answer": 10, "answer_app": "anki", "required_top4_app_ids": ["anki"]}
+{"id": "bc-train-received-001-u03-0", "event_id": "bc-train-received-001", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-later-006-u03-0", "event_id": "bc-train-later-006", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-reply-000-u03-0", "event_id": "bc-train-reply-000", "answer": 3, "answer_app": "kakaotalk", "required_top4_app_ids": ["kakaotalk"]}
+{"id": "bc-train-moving_map-002-u03-3", "event_id": "bc-train-moving_map-002", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["youtube", "kakao_map"]}
+{"id": "bc-train-later-001-u03-0", "event_id": "bc-train-later-001", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-meeting_future-000-u03-0", "event_id": "bc-train-meeting_future-000", "answer": 7, "answer_app": "calendar_app", "required_top4_app_ids": ["calendar_app"]}
+{"id": "bc-train-moving_chat-003-u03-1", "event_id": "bc-train-moving_chat-003", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-birthday_now-005-u03-0", "event_id": "bc-train-birthday_now-005", "answer": 3, "answer_app": "kakaotalk", "required_top4_app_ids": ["kakaotalk"]}
+{"id": "bc-train-stopped-000-u03-0", "event_id": "bc-train-stopped-000", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-business_service-003-u03-0", "event_id": "bc-train-business_service-003", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-personal_meal-007-u03-0", "event_id": "bc-train-personal_meal-007", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-birthday_future-007-u03-0", "event_id": "bc-train-birthday_future-007", "answer": 7, "answer_app": "calendar_app", "required_top4_app_ids": ["calendar_app"]}
+{"id": "bc-train-moving_map-001-u03-1", "event_id": "bc-train-moving_map-001", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube", "kakao_map"]}
+{"id": "bc-train-thanks-001-u03-0", "event_id": "bc-train-thanks-001", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-reply-002-u03-0", "event_id": "bc-train-reply-002", "answer": 3, "answer_app": "kakaotalk", "required_top4_app_ids": ["kakaotalk"]}
+{"id": "bc-train-birthday_now-007-u03-0", "event_id": "bc-train-birthday_now-007", "answer": 3, "answer_app": "kakaotalk", "required_top4_app_ids": ["kakaotalk"]}
+{"id": "bc-train-departure-000-u03-0", "event_id": "bc-train-departure-000", "answer": 2, "answer_app": "kakao_t", "required_top4_app_ids": ["kakao_t"]}
+{"id": "bc-train-moving_chat-003-u03-3", "event_id": "bc-train-moving_chat-003", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-business_goods-007-u03-0", "event_id": "bc-train-business_goods-007", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-business_goods-005-u03-0", "event_id": "bc-train-business_goods-005", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-birthday_now-006-u03-0", "event_id": "bc-train-birthday_now-006", "answer": 3, "answer_app": "kakaotalk", "required_top4_app_ids": ["kakaotalk"]}
+{"id": "bc-train-birthday_future-004-u03-0", "event_id": "bc-train-birthday_future-004", "answer": 7, "answer_app": "calendar_app", "required_top4_app_ids": ["calendar_app"]}
+{"id": "bc-train-birthday_future-006-u03-0", "event_id": "bc-train-birthday_future-006", "answer": 7, "answer_app": "calendar_app", "required_top4_app_ids": ["calendar_app"]}
+{"id": "bc-train-moving_video-002-u03-1", "event_id": "bc-train-moving_video-002", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-thanks-000-u03-0", "event_id": "bc-train-thanks-000", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-personal_gift-009-u03-0", "event_id": "bc-train-personal_gift-009", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-moving_map-000-u03-1", "event_id": "bc-train-moving_map-000", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube", "kakao_map"]}
+{"id": "bc-train-reply-001-u03-0", "event_id": "bc-train-reply-001", "answer": 3, "answer_app": "kakaotalk", "required_top4_app_ids": ["kakaotalk"]}
+{"id": "bc-train-thanks-003-u03-0", "event_id": "bc-train-thanks-003", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-personal_meal-003-u03-0", "event_id": "bc-train-personal_meal-003", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-personal_meal-002-u03-0", "event_id": "bc-train-personal_meal-002", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-moving_video-003-u03-1", "event_id": "bc-train-moving_video-003", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-business_service-011-u03-0", "event_id": "bc-train-business_service-011", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-free_evening-002-u03-0", "event_id": "bc-train-free_evening-002", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-meeting_future-002-u03-0", "event_id": "bc-train-meeting_future-002", "answer": 7, "answer_app": "calendar_app", "required_top4_app_ids": ["calendar_app"]}
+{"id": "bc-train-moving_chat-000-u03-3", "event_id": "bc-train-moving_chat-000", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-later-000-u03-0", "event_id": "bc-train-later-000", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-business_service-001-u03-0", "event_id": "bc-train-business_service-001", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-reply-006-u03-0", "event_id": "bc-train-reply-006", "answer": 3, "answer_app": "kakaotalk", "required_top4_app_ids": ["kakaotalk"]}
+{"id": "bc-train-study-001-u03-0", "event_id": "bc-train-study-001", "answer": 10, "answer_app": "anki", "required_top4_app_ids": ["anki"]}
+{"id": "bc-train-meeting_start-005-u03-0", "event_id": "bc-train-meeting_start-005", "answer": 8, "answer_app": "meet", "required_top4_app_ids": ["meet"]}
+{"id": "bc-train-business_goods-010-u03-0", "event_id": "bc-train-business_goods-010", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-moving_video-000-u03-1", "event_id": "bc-train-moving_video-000", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-meeting_ended-004-u03-0", "event_id": "bc-train-meeting_ended-004", "answer": 11, "answer_app": "notes", "required_top4_app_ids": ["notes"]}
+{"id": "bc-train-moving_chat-000-u03-2", "event_id": "bc-train-moving_chat-000", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-departure-006-u03-0", "event_id": "bc-train-departure-006", "answer": 2, "answer_app": "kakao_t", "required_top4_app_ids": ["kakao_t"]}
+{"id": "bc-train-meeting_start-004-u03-0", "event_id": "bc-train-meeting_start-004", "answer": 8, "answer_app": "meet", "required_top4_app_ids": ["meet"]}
+{"id": "bc-train-stopped-006-u03-0", "event_id": "bc-train-stopped-006", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-business_service-006-u03-0", "event_id": "bc-train-business_service-006", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-business_goods-000-u03-0", "event_id": "bc-train-business_goods-000", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-later-003-u03-0", "event_id": "bc-train-later-003", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-business_service-010-u03-0", "event_id": "bc-train-business_service-010", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-departure-004-u03-0", "event_id": "bc-train-departure-004", "answer": 2, "answer_app": "kakao_t", "required_top4_app_ids": ["kakao_t"]}
+{"id": "bc-train-birthday_future-001-u03-0", "event_id": "bc-train-birthday_future-001", "answer": 7, "answer_app": "calendar_app", "required_top4_app_ids": ["calendar_app"]}
+{"id": "bc-train-stopped-003-u03-0", "event_id": "bc-train-stopped-003", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-personal_gift-003-u03-0", "event_id": "bc-train-personal_gift-003", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-birthday_now-004-u03-0", "event_id": "bc-train-birthday_now-004", "answer": 3, "answer_app": "kakaotalk", "required_top4_app_ids": ["kakaotalk"]}
+{"id": "bc-train-stopped-004-u03-0", "event_id": "bc-train-stopped-004", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-personal_gift-008-u03-0", "event_id": "bc-train-personal_gift-008", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-business_service-007-u03-0", "event_id": "bc-train-business_service-007", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-meeting_start-002-u03-0", "event_id": "bc-train-meeting_start-002", "answer": 8, "answer_app": "meet", "required_top4_app_ids": ["meet"]}
+{"id": "bc-train-moving_map-003-u03-2", "event_id": "bc-train-moving_map-003", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube", "kakao_map"]}
+{"id": "bc-train-personal_gift-011-u03-0", "event_id": "bc-train-personal_gift-011", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-business_service-005-u03-0", "event_id": "bc-train-business_service-005", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-meeting_ended-005-u03-0", "event_id": "bc-train-meeting_ended-005", "answer": 11, "answer_app": "notes", "required_top4_app_ids": ["notes"]}
+{"id": "bc-train-moving_map-003-u03-0", "event_id": "bc-train-moving_map-003", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube", "kakao_map"]}
+{"id": "bc-train-business_goods-009-u03-0", "event_id": "bc-train-business_goods-009", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-personal_meal-006-u03-0", "event_id": "bc-train-personal_meal-006", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-moving_video-002-u03-0", "event_id": "bc-train-moving_video-002", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-free_evening-000-u03-0", "event_id": "bc-train-free_evening-000", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-personal_meal-008-u03-0", "event_id": "bc-train-personal_meal-008", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-meeting_future-004-u03-0", "event_id": "bc-train-meeting_future-004", "answer": 7, "answer_app": "calendar_app", "required_top4_app_ids": ["calendar_app"]}
+{"id": "bc-train-personal_meal-009-u03-0", "event_id": "bc-train-personal_meal-009", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-business_service-002-u03-0", "event_id": "bc-train-business_service-002", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-received-005-u03-0", "event_id": "bc-train-received-005", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-moving_video-002-u03-2", "event_id": "bc-train-moving_video-002", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-received-003-u03-0", "event_id": "bc-train-received-003", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-moving_chat-003-u03-2", "event_id": "bc-train-moving_chat-003", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-business_goods-001-u03-0", "event_id": "bc-train-business_goods-001", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-birthday_future-002-u03-0", "event_id": "bc-train-birthday_future-002", "answer": 7, "answer_app": "calendar_app", "required_top4_app_ids": ["calendar_app"]}
+{"id": "bc-train-meeting_ended-001-u03-0", "event_id": "bc-train-meeting_ended-001", "answer": 11, "answer_app": "notes", "required_top4_app_ids": ["notes"]}
+{"id": "bc-train-personal_meal-005-u03-0", "event_id": "bc-train-personal_meal-005", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-birthday_future-003-u03-0", "event_id": "bc-train-birthday_future-003", "answer": 7, "answer_app": "calendar_app", "required_top4_app_ids": ["calendar_app"]}
+{"id": "bc-train-received-006-u03-0", "event_id": "bc-train-received-006", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-moving_map-002-u03-2", "event_id": "bc-train-moving_map-002", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube", "kakao_map"]}
+{"id": "bc-train-later-002-u03-0", "event_id": "bc-train-later-002", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-thanks-006-u03-0", "event_id": "bc-train-thanks-006", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-departure-005-u03-0", "event_id": "bc-train-departure-005", "answer": 2, "answer_app": "kakao_t", "required_top4_app_ids": ["kakao_t"]}
+{"id": "bc-train-business_goods-004-u03-0", "event_id": "bc-train-business_goods-004", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-received-004-u03-0", "event_id": "bc-train-received-004", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-meeting_ended-006-u03-0", "event_id": "bc-train-meeting_ended-006", "answer": 11, "answer_app": "notes", "required_top4_app_ids": ["notes"]}
+{"id": "bc-train-personal_gift-001-u03-0", "event_id": "bc-train-personal_gift-001", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-moving_chat-002-u03-1", "event_id": "bc-train-moving_chat-002", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-moving_chat-002-u03-0", "event_id": "bc-train-moving_chat-002", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-business_service-004-u03-0", "event_id": "bc-train-business_service-004", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-reply-007-u03-0", "event_id": "bc-train-reply-007", "answer": 3, "answer_app": "kakaotalk", "required_top4_app_ids": ["kakaotalk"]}
+{"id": "bc-train-moving_chat-001-u03-2", "event_id": "bc-train-moving_chat-001", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-moving_map-003-u03-1", "event_id": "bc-train-moving_map-003", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube", "kakao_map"]}
+{"id": "bc-train-moving_video-003-u03-0", "event_id": "bc-train-moving_video-003", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-moving_chat-000-u03-0", "event_id": "bc-train-moving_chat-000", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-business_service-008-u03-0", "event_id": "bc-train-business_service-008", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-departure-002-u03-0", "event_id": "bc-train-departure-002", "answer": 2, "answer_app": "kakao_t", "required_top4_app_ids": ["kakao_t"]}
+{"id": "bc-train-meeting_future-001-u03-0", "event_id": "bc-train-meeting_future-001", "answer": 7, "answer_app": "calendar_app", "required_top4_app_ids": ["calendar_app"]}
+{"id": "bc-train-personal_gift-007-u03-0", "event_id": "bc-train-personal_gift-007", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-moving_video-003-u03-3", "event_id": "bc-train-moving_video-003", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-moving_map-000-u03-3", "event_id": "bc-train-moving_map-000", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["youtube", "kakao_map"]}
+{"id": "bc-train-business_service-009-u03-0", "event_id": "bc-train-business_service-009", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-personal_meal-001-u03-0", "event_id": "bc-train-personal_meal-001", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-reply-003-u03-0", "event_id": "bc-train-reply-003", "answer": 3, "answer_app": "kakaotalk", "required_top4_app_ids": ["kakaotalk"]}
+{"id": "bc-train-moving_video-001-u03-0", "event_id": "bc-train-moving_video-001", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-received-002-u03-0", "event_id": "bc-train-received-002", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-thanks-004-u03-0", "event_id": "bc-train-thanks-004", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-business_goods-008-u03-0", "event_id": "bc-train-business_goods-008", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-birthday_now-002-u03-0", "event_id": "bc-train-birthday_now-002", "answer": 3, "answer_app": "kakaotalk", "required_top4_app_ids": ["kakaotalk"]}
+{"id": "bc-train-meeting_ended-007-u03-0", "event_id": "bc-train-meeting_ended-007", "answer": 11, "answer_app": "notes", "required_top4_app_ids": ["notes"]}
+{"id": "bc-train-moving_chat-000-u03-1", "event_id": "bc-train-moving_chat-000", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-thanks-007-u03-0", "event_id": "bc-train-thanks-007", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-personal_gift-005-u03-0", "event_id": "bc-train-personal_gift-005", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-personal_gift-006-u03-0", "event_id": "bc-train-personal_gift-006", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-study-004-u03-0", "event_id": "bc-train-study-004", "answer": 10, "answer_app": "anki", "required_top4_app_ids": ["anki"]}
+{"id": "bc-train-study-005-u03-0", "event_id": "bc-train-study-005", "answer": 10, "answer_app": "anki", "required_top4_app_ids": ["anki"]}
+{"id": "bc-train-moving_video-001-u03-2", "event_id": "bc-train-moving_video-001", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-moving_map-001-u03-2", "event_id": "bc-train-moving_map-001", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube", "kakao_map"]}
+{"id": "bc-train-moving_video-000-u03-2", "event_id": "bc-train-moving_video-000", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-departure-003-u03-0", "event_id": "bc-train-departure-003", "answer": 2, "answer_app": "kakao_t", "required_top4_app_ids": ["kakao_t"]}
+{"id": "bc-train-birthday_future-000-u03-0", "event_id": "bc-train-birthday_future-000", "answer": 7, "answer_app": "calendar_app", "required_top4_app_ids": ["calendar_app"]}
+{"id": "bc-train-reply-005-u03-0", "event_id": "bc-train-reply-005", "answer": 3, "answer_app": "kakaotalk", "required_top4_app_ids": ["kakaotalk"]}
+{"id": "bc-train-meeting_start-001-u03-0", "event_id": "bc-train-meeting_start-001", "answer": 8, "answer_app": "meet", "required_top4_app_ids": ["meet"]}
+{"id": "bc-train-free_evening-003-u03-0", "event_id": "bc-train-free_evening-003", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-later-007-u03-0", "event_id": "bc-train-later-007", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-meeting_future-005-u03-0", "event_id": "bc-train-meeting_future-005", "answer": 7, "answer_app": "calendar_app", "required_top4_app_ids": ["calendar_app"]}
+{"id": "bc-train-meeting_future-007-u03-0", "event_id": "bc-train-meeting_future-007", "answer": 7, "answer_app": "calendar_app", "required_top4_app_ids": ["calendar_app"]}
+{"id": "bc-train-business_service-000-u03-0", "event_id": "bc-train-business_service-000", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-personal_gift-010-u03-0", "event_id": "bc-train-personal_gift-010", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-personal_meal-000-u03-0", "event_id": "bc-train-personal_meal-000", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-free_evening-007-u03-0", "event_id": "bc-train-free_evening-007", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-business_goods-002-u03-0", "event_id": "bc-train-business_goods-002", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-moving_chat-003-u03-0", "event_id": "bc-train-moving_chat-003", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-meeting_start-006-u03-0", "event_id": "bc-train-meeting_start-006", "answer": 8, "answer_app": "meet", "required_top4_app_ids": ["meet"]}
+{"id": "bc-train-departure-007-u03-0", "event_id": "bc-train-departure-007", "answer": 2, "answer_app": "kakao_t", "required_top4_app_ids": ["kakao_t"]}
+{"id": "bc-train-birthday_now-001-u03-0", "event_id": "bc-train-birthday_now-001", "answer": 3, "answer_app": "kakaotalk", "required_top4_app_ids": ["kakaotalk"]}
+{"id": "bc-train-meeting_start-000-u03-0", "event_id": "bc-train-meeting_start-000", "answer": 8, "answer_app": "meet", "required_top4_app_ids": ["meet"]}
+{"id": "bc-train-moving_video-002-u03-3", "event_id": "bc-train-moving_video-002", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-meeting_ended-003-u03-0", "event_id": "bc-train-meeting_ended-003", "answer": 11, "answer_app": "notes", "required_top4_app_ids": ["notes"]}
+{"id": "bc-train-moving_map-000-u03-0", "event_id": "bc-train-moving_map-000", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube", "kakao_map"]}
+{"id": "bc-train-stopped-005-u03-0", "event_id": "bc-train-stopped-005", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-personal_meal-010-u03-0", "event_id": "bc-train-personal_meal-010", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-personal_gift-002-u03-0", "event_id": "bc-train-personal_gift-002", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-free_evening-001-u03-0", "event_id": "bc-train-free_evening-001", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-study-000-u03-0", "event_id": "bc-train-study-000", "answer": 10, "answer_app": "anki", "required_top4_app_ids": ["anki"]}
+{"id": "bc-train-moving_chat-002-u03-3", "event_id": "bc-train-moving_chat-002", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-meeting_future-003-u03-0", "event_id": "bc-train-meeting_future-003", "answer": 7, "answer_app": "calendar_app", "required_top4_app_ids": ["calendar_app"]}
+{"id": "bc-train-personal_gift-000-u03-0", "event_id": "bc-train-personal_gift-000", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-birthday_now-000-u03-0", "event_id": "bc-train-birthday_now-000", "answer": 3, "answer_app": "kakaotalk", "required_top4_app_ids": ["kakaotalk"]}
+{"id": "bc-train-personal_gift-004-u03-0", "event_id": "bc-train-personal_gift-004", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-moving_map-003-u03-3", "event_id": "bc-train-moving_map-003", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["youtube", "kakao_map"]}
+{"id": "bc-train-thanks-005-u03-0", "event_id": "bc-train-thanks-005", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-moving_chat-002-u03-2", "event_id": "bc-train-moving_chat-002", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-business_goods-011-u03-0", "event_id": "bc-train-business_goods-011", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-meeting_ended-002-u03-0", "event_id": "bc-train-meeting_ended-002", "answer": 11, "answer_app": "notes", "required_top4_app_ids": ["notes"]}
+{"id": "bc-train-personal_meal-011-u03-0", "event_id": "bc-train-personal_meal-011", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-free_evening-006-u03-0", "event_id": "bc-train-free_evening-006", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-moving_video-001-u03-3", "event_id": "bc-train-moving_video-001", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-study-006-u03-0", "event_id": "bc-train-study-006", "answer": 10, "answer_app": "anki", "required_top4_app_ids": ["anki"]}
+{"id": "bc-train-study-002-u03-0", "event_id": "bc-train-study-002", "answer": 10, "answer_app": "anki", "required_top4_app_ids": ["anki"]}
+{"id": "bc-train-meeting_future-006-u03-0", "event_id": "bc-train-meeting_future-006", "answer": 7, "answer_app": "calendar_app", "required_top4_app_ids": ["calendar_app"]}
+{"id": "bc-train-thanks-002-u03-0", "event_id": "bc-train-thanks-002", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-departure-001-u03-0", "event_id": "bc-train-departure-001", "answer": 2, "answer_app": "kakao_t", "required_top4_app_ids": ["kakao_t"]}
+{"id": "bc-train-study-003-u03-0", "event_id": "bc-train-study-003", "answer": 10, "answer_app": "anki", "required_top4_app_ids": ["anki"]}
+{"id": "bc-train-stopped-002-u03-0", "event_id": "bc-train-stopped-002", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-meeting_start-007-u03-0", "event_id": "bc-train-meeting_start-007", "answer": 8, "answer_app": "meet", "required_top4_app_ids": ["meet"]}
+{"id": "bc-train-moving_chat-001-u03-1", "event_id": "bc-train-moving_chat-001", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-business_goods-003-u03-0", "event_id": "bc-train-business_goods-003", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-stopped-007-u03-0", "event_id": "bc-train-stopped-007", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-moving_map-001-u03-3", "event_id": "bc-train-moving_map-001", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["youtube", "kakao_map"]}
+{"id": "bc-train-moving_chat-001-u03-3", "event_id": "bc-train-moving_chat-001", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-moving_map-001-u03-0", "event_id": "bc-train-moving_map-001", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube", "kakao_map"]}
+{"id": "bc-train-meeting_start-003-u03-0", "event_id": "bc-train-meeting_start-003", "answer": 8, "answer_app": "meet", "required_top4_app_ids": ["meet"]}
+{"id": "bc-train-moving_map-002-u03-0", "event_id": "bc-train-moving_map-002", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube", "kakao_map"]}
+{"id": "bc-train-free_evening-004-u03-0", "event_id": "bc-train-free_evening-004", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-moving_video-000-u03-3", "event_id": "bc-train-moving_video-000", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-business_goods-006-u03-0", "event_id": "bc-train-business_goods-006", "answer": 4, "answer_app": "toss", "required_top4_app_ids": ["toss"]}
+{"id": "bc-train-free_evening-005-u03-0", "event_id": "bc-train-free_evening-005", "answer": 6, "answer_app": "youtube", "required_top4_app_ids": ["youtube"]}
+{"id": "bc-train-moving_chat-001-u03-0", "event_id": "bc-train-moving_chat-001", "answer": 1, "answer_app": "kakao_map", "required_top4_app_ids": ["kakao_map", "youtube"]}
+{"id": "bc-train-birthday_now-003-u03-0", "event_id": "bc-train-birthday_now-003", "answer": 3, "answer_app": "kakaotalk", "required_top4_app_ids": ["kakaotalk"]}

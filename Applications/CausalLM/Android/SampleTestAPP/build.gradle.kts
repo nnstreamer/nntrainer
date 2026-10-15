@@ -10,6 +10,7 @@ android {
 
     packaging {
         jniLibs.useLegacyPackaging = true
+        if (providers.gradleProperty("quickaiNativeSnapshot").isPresent) jniLibs.keepDebugSymbols += "**/*.so"
     }
     defaultConfig {
         applicationId = "com.example.sampletestapp"
@@ -50,6 +51,11 @@ android {
         // artifacts. See libs.versions.toml for the full story.
         freeCompilerArgs += "-Xskip-metadata-version-check"
     }
+}
+
+// IDE backups are intentionally kept next to the source, but are not a second Activity definition.
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    exclude("**/MainActivity_backup.kt")
 }
 
 dependencies {

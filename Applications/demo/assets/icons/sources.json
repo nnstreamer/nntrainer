@@ -1,0 +1,123 @@
+{
+  "retrieved_at": "2026-10-15T12:53:52.257398+00:00",
+  "icons": {
+    "naver_map": {
+      "package": "com.nhn.android.nmap",
+      "listing": "https://play.google.com/store/apps/details?id=com.nhn.android.nmap&hl=ko&gl=KR",
+      "image_url": "https://play-lh.googleusercontent.com/FZCOcEqapjBkvBmv2RkIMlJ1mteGJh8eq4239jAm-4QgpzvCa9sBj4msNlUBsWvf3hX69-fJoTnFZR2pFdZdwxY=s0-br30",
+      "asset": "assets/icons/naver_map.png",
+      "sha256": "a0448484e6252216d2986fb3073a1b370f5fd80d99a45af9844feaaeac939fe9",
+      "bytes": 55286,
+      "content_type": "image/png"
+    },
+    "kakao_map": {
+      "package": "net.daum.android.map",
+      "listing": "https://play.google.com/store/apps/details?id=net.daum.android.map&hl=ko&gl=KR",
+      "image_url": "https://play-lh.googleusercontent.com/X_lsQWulxVVAZlmOHW3NiffVwXh7yNVUQrAMv_mk1k6IBN5lYynxKGH4urz-DeOHQQnOlEID9NJg0fBCP7uqww=s0-br30",
+      "asset": "assets/icons/kakao_map.png",
+      "sha256": "65c261634385a39165e8b5a4d136375905b417b02903592beaa9625640d81fa1",
+      "bytes": 12735,
+      "content_type": "image/png"
+    },
+    "kakao_t": {
+      "package": "com.kakao.taxi",
+      "listing": "https://play.google.com/store/apps/details?id=com.kakao.taxi&hl=ko&gl=KR",
+      "image_url": "https://play-lh.googleusercontent.com/5X2OLNovx1Bf1NndZyPq6m0U2lPoopybo2vO56zjB_6fpNAzHWY0Sw0qjB28_G9Eb8rX0AMJbuE2aQEd5O1O7A=s0-br30",
+      "asset": "assets/icons/kakao_t.png",
+      "sha256": "ac2e163469ce69dd29c5e3536c293ee3862814e5517d9054d50c2b938f7b1f69",
+      "bytes": 6273,
+      "content_type": "image/png"
+    },
+    "kakaotalk": {
+      "package": "com.kakao.talk",
+      "listing": "https://play.google.com/store/apps/details?id=com.kakao.talk&hl=ko&gl=KR",
+      "image_url": "https://play-lh.googleusercontent.com/VaxoIL0V83FKXsQ5fOR0XJ3CQ7Q_eOt_WXuKFtnuK3nWUH_SOll1_LRK5AlXE7b8sUg4iHNKBVof1zV1haQRyw=s0-br30",
+      "asset": "assets/icons/kakaotalk.png",
+      "sha256": "46ca7a67472a6984050153a1a6621762bf5cd02f7a426c18a8dded78e8c4fdee",
+      "bytes": 36759,
+      "content_type": "image/png"
+    },
+    "toss": {
+      "package": "viva.republica.toss",
+      "listing": "https://play.google.com/store/apps/details?id=viva.republica.toss&hl=ko&gl=KR",
+      "image_url": "https://play-lh.googleusercontent.com/0UWkqvnwbmgyuho59qN9LQDT-w5CN-Jj3R2oK-Vh9ZIJwhzjrjtAcYxYIuSvl-mlZwmntoGemfVkGoRYLK9G=s0-br30",
+      "asset": "assets/icons/toss.png",
+      "sha256": "b7da0a396c9b584adf503b5d005e8cb05116e2d277cd1df835ee4a318cfcc353",
+      "bytes": 65810,
+      "content_type": "image/png"
+    },
+    "kakaopay": {
+      "package": "com.kakaopay.app",
+      "listing": "https://play.google.com/store/apps/details?id=com.kakaopay.app&hl=ko&gl=KR",
+      "image_url": "https://play-lh.googleusercontent.com/hOXXHuezGl0ur3l7EWTdwEAyybjZQn6ayMokEL_XMV3UJuvLfUrefgovyrngh2UTsT4TvdniwYkqDTkVaBqywv4=s0-br30",
+      "asset": "assets/icons/kakaopay.png",
+      "sha256": "4c40e7959a964d6a8308236f9f0f31a52f1111060347c92120bba04d70c41c00",
+      "bytes": 15211,
+      "content_type": "image/png"
+    },
+    "youtube": {
+      "package": "com.google.android.youtube",
+      "listing": "https://play.google.com/store/apps/details?id=com.google.android.youtube&hl=ko&gl=KR",
+      "image_url": "https://play-lh.googleusercontent.com/QNmuZQc9I6Zbe3mWnSr0hycnENqGFCI5p3yE29Hkxtf22T0IWS6zTrpxULLyyjWpB7ONAXDsDQXnXcVWokl3eg=s0-br30",
+      "asset": "assets/icons/youtube.png",
+      "sha256": "d0fbc20779870930d1ae062d418771d67901a1f9bfea641cf1d71742445691d4",
+      "bytes": 9486,
+      "content_type": "image/png"
+    },
+    "calendar_app": {
+      "package": "com.samsung.android.calendar",
+      "listing": "https://play.google.com/store/apps/details?id=com.samsung.android.calendar&hl=ko&gl=KR",
+      "image_url": "https://play-lh.googleusercontent.com/svYPOxOnLB4GNn0mEtyukPJxKbAyc3PthMo7x12BlMv-OjRhxUY8L2SK4tQYd7HwpfZ6K0XqEkIEiLWZzTW2_Zk=s0-br30",
+      "asset": "assets/icons/calendar_app.png",
+      "sha256": "142d59d2d0917a805ceddb9a417a4afcd4b6235cd3d9aad7927c651861b6fa19",
+      "bytes": 24628,
+      "content_type": "image/png"
+    },
+    "meet": {
+      "package": "com.google.android.apps.tachyon",
+      "listing": "https://play.google.com/store/apps/details?id=com.google.android.apps.tachyon&hl=ko&gl=KR",
+      "image_url": "https://play-lh.googleusercontent.com/G7KKIhzS9ZKa5iCVAkt1P8vXvVWPbaV9JjkMsgb4BcEjqov0TysngtuJ4jE17DYhi4wblu4UXJDWjr7SYgnZ6A=s0-br30",
+      "asset": "assets/icons/meet.png",
+      "sha256": "d7ccf71d15124a21d5f46e4cab3ae52ca81d76c8e747a9f58bd8e081a8591690",
+      "bytes": 74921,
+      "content_type": "image/png"
+    },
+    "clock": {
+      "package": "com.sec.android.app.clockpackage",
+      "listing": "https://play.google.com/store/apps/details?id=com.sec.android.app.clockpackage&hl=ko&gl=KR",
+      "image_url": "https://play-lh.googleusercontent.com/v82mOq12GpRscsMyVlu9Rou4b1qf0FZdmRFqHpjYN_yaXgYiL8RdAPHsonZcCbZ6q5KXmvSJeNKPlDmnmun9OQ=s0-br30",
+      "asset": "assets/icons/clock.png",
+      "sha256": "46bf874eefa096ad8aba8f101039c5e33bf3a3c5c865a667fa7dec9f438a05fd",
+      "bytes": 57039,
+      "content_type": "image/png"
+    },
+    "anki": {
+      "package": "com.ichi2.anki",
+      "listing": "https://play.google.com/store/apps/details?id=com.ichi2.anki&hl=ko&gl=KR",
+      "image_url": "https://play-lh.googleusercontent.com/P0vG3wxzsS8UxJgIMEKEAcqdGfrgNrK4tJAA5-Tp3SPn3_fSdiTYjTJIkDzlGPmU7YtPIYSndmd_zf_Askafpw=s0-br30",
+      "asset": "assets/icons/anki.png",
+      "sha256": "7fba46a66e05cdec0c5da3a41563edb77effbdbb1d9172d797401fe90a75a1c6",
+      "bytes": 56730,
+      "content_type": "image/png"
+    },
+    "notes": {
+      "package": "com.samsung.android.app.notes",
+      "listing": "https://play.google.com/store/apps/details?id=com.samsung.android.app.notes&hl=ko&gl=KR",
+      "image_url": "https://play-lh.googleusercontent.com/z_o9Zbkp-r2ZU6_Erc2zNnrJDaD0rSa2mxX90Ucg77VzdTaCJvPj_RWywsT1NcRwBNAZffOM66PYkuOhBqwRlg=s0-br30",
+      "asset": "assets/icons/notes.png",
+      "sha256": "998b801f8f9c553577eb097d6d20575a2e4e17bdf3c19177127b392914b4d0c6",
+      "bytes": 22522,
+      "content_type": "image/png"
+    },
+    "ibk_bank": {
+      "package": "com.ibk.android.kiup",
+      "listing": "https://play.google.com/store/apps/details?id=com.ibk.android.kiup&hl=ko&gl=KR",
+      "image_url": "https://play-lh.googleusercontent.com/YdCMG9lz4ekYk81KHFmasqsWW-y7T-RvVpf-ZjURY2069DYlYE4znjvCvzGtSEwxd-mFpn7fOpfBoszsmwsJ=s0-br30",
+      "asset": "assets/icons/ibk_bank.png",
+      "sha256": "8fae4bb667527aa72b387816af5df8041c39462904477353cfe68931db6b2a5a",
+      "bytes": 15450,
+      "content_type": "image/png"
+    }
+  },
+  "ibk_retrieved_at": "2026-10-15T15:47:08.365540+00:00"
+}

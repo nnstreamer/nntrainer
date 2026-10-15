@@ -1,0 +1,148 @@
+{
+  "schema": "mobile_context_bc_v1",
+  "seed": 42,
+  "users": [
+    "u02",
+    "u03"
+  ],
+  "split_counts": {
+    "train": {
+      "u02": {
+        "count": 200,
+        "unique_inputs": 164,
+        "notification_role": {
+          "hint": 64,
+          "non_actionable": 16,
+          "absent": 59,
+          "incidental": 61
+        }
+      },
+      "u03": {
+        "count": 200,
+        "unique_inputs": 164,
+        "notification_role": {
+          "hint": 64,
+          "absent": 59,
+          "non_actionable": 16,
+          "incidental": 61
+        }
+      }
+    },
+    "validation": {
+      "u02": {
+        "count": 80,
+        "unique_inputs": 80,
+        "notification_role": {
+          "absent": 24,
+          "hint": 24,
+          "incidental": 24,
+          "non_actionable": 8
+        }
+      },
+      "u03": {
+        "count": 80,
+        "unique_inputs": 80,
+        "notification_role": {
+          "hint": 24,
+          "non_actionable": 8,
+          "incidental": 24,
+          "absent": 24
+        }
+      }
+    },
+    "test": {
+      "u02": {
+        "count": 80,
+        "unique_inputs": 80,
+        "notification_role": {
+          "absent": 24,
+          "hint": 24,
+          "incidental": 24,
+          "non_actionable": 8
+        }
+      },
+      "u03": {
+        "count": 80,
+        "unique_inputs": 80,
+        "notification_role": {
+          "hint": 24,
+          "non_actionable": 8,
+          "incidental": 24,
+          "absent": 24
+        }
+      }
+    }
+  },
+  "tokens": {
+    "min": 153,
+    "max": 180,
+    "mean": 172.20277777777778
+  },
+  "notification_shared_across_labels": {
+    "None": [
+      "anki",
+      "calendar_app",
+      "kakao_map",
+      "kakao_t",
+      "kakaotalk",
+      "meet",
+      "notes",
+      "youtube"
+    ],
+    "오늘도 좋은 하루 보내": [
+      "anki",
+      "calendar_app",
+      "kakao_map",
+      "kakao_t",
+      "kakaotalk",
+      "meet",
+      "notes",
+      "youtube"
+    ],
+    "업데이트 소식이 있어요": [
+      "kakao_map",
+      "youtube"
+    ],
+    "주간 소식이 도착했어요": [
+      "anki",
+      "calendar_app",
+      "kakao_t",
+      "kakaotalk",
+      "meet",
+      "notes",
+      "youtube"
+    ]
+  },
+  "schema_sha256": "a01f0c2d71408b84a5f7829c957ff7d111a188bdde8bffa9055a23ed6e88a21c",
+  "source_sha256": {
+    "bc_observed_common.py": "6580b85a08018a44aafce97f10b95e30af8a5f382c849d8bb7b4e8936f588106",
+    "make_bc_observed_data.py": "a0aa9dad61a0cff7e397bf55298660b0fe97516bd56364476667451315423e32"
+  },
+  "files_sha256": {
+    "README.md": "f267a1e70aeb306260c1deab910eb678d03e226ac82fc7e0e6188d14373078b0",
+    "app_catalog.json": "04450d4822f9ac8e821a1e5d006ae9d8b28fdeef3bdf8bd759faa4a99f7a54a9",
+    "by_user/u02/test.jsonl": "e41b851ed948d5f15eb075dd716a3c36fead9a28d02e9d89546918449229dd9d",
+    "by_user/u02/train.jsonl": "e5fe812107ad136844cb5b5e6a67711fa12b43f1e16df04ef1e1498b4922cc82",
+    "by_user/u02/validation.jsonl": "60939d976267cf4f60465ef7627446b17a619e3c0e1712a344b29a589f7c0c0e",
+    "by_user/u03/test.jsonl": "077fd4daeda4054e29adefde2a6bdb26428000ad6881984823e6b2df04880231",
+    "by_user/u03/train.jsonl": "c66192714f5f244100cc57f686bf34498050704c4ab887be9136f0813b0ddbfa",
+    "by_user/u03/validation.jsonl": "fee27f3cb3330de355adcc45f2b1431f40001f1c805860aa33c87c315835c40f",
+    "input.schema.json": "a01f0c2d71408b84a5f7829c957ff7d111a188bdde8bffa9055a23ed6e88a21c",
+    "labels/u02/test.jsonl": "62e997399ccb88bb158a67d8fa33a8ada30955da85df62e62f4e214f6b5721e7",
+    "labels/u02/train.jsonl": "a2d3b3ba4f9b5ae533977c8b7b06d1871deee79e43523af020a68e8c73bc2634",
+    "labels/u02/validation.jsonl": "4fe0d0fef5a8d070e24df597fae23f7d51b627ba02dcceca788a95dbf838ebb3",
+    "labels/u03/test.jsonl": "442ff035df49f9486878bf7c65462d5ec2de3ccf65cf4d292d1662018b99f58b",
+    "labels/u03/train.jsonl": "f22cd45355bffeeafdc5479ae70e80b77e67d351bf3a7c4ab437917bad110597",
+    "labels/u03/validation.jsonl": "71aed180905172a0eb4607c791348cf5738153bfb7272a86d493003b29fbbb30",
+    "native_questions/u02/test.jsonl": "6a6a254b6dce9db5d390a74f2bd1c898955e6fade7fd3fd3ddd7aaa75a4e17b2",
+    "native_questions/u02/train.jsonl": "22f6e45f958cd3073fb60bda4943b6df849e3462fca9867fe6287e0585fd74f1",
+    "native_questions/u02/validation.jsonl": "d5cb1aae6a845f9d9bc5245ead7266aef5ee81f2da3da75daa0265d65c37642d",
+    "native_questions/u03/test.jsonl": "f7a3810e4e558f68961bffc39ed1388fc0af97cc38c91a7b032d4912ef9edf69",
+    "native_questions/u03/train.jsonl": "c831132fece071e255e48ff8b1efb8ef1e7225fb209139672cf4fe256b62784e",
+    "native_questions/u03/validation.jsonl": "3bd7d177126d2d02a5b8819906fc96bdf6f4150fe9354714800de2f196156106",
+    "samples.md": "6e60abb0d98a430564b02cd72dc8e4f53f4e782a27707fda1509a9587d8fb497",
+    "test.jsonl": "721cc78439aeb93fd186c54e82de0af6dc1f149a7539d5627368b4aea5a84ce0",
+    "train.jsonl": "a57ca96e51322b219663e047580ff6ef6b1bfa1a0eeda1901477314d20dc0761",
+    "validation.jsonl": "7cc48594950b36323fd0b230226f6deb2ac2899c78b34fbf09c45cb7a0359e89"
+  }
+}

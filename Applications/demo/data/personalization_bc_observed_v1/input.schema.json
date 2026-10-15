@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "mobile_context_bc_v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "time",
+    "moving",
+    "calendar",
+    "notification",
+    "recent_apps"
+  ],
+  "properties": {
+    "time": {
+      "type": "string",
+      "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+    },
+    "moving": {
+      "type": "boolean"
+    },
+    "calendar": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "start",
+            "end",
+            "title"
+          ],
+          "properties": {
+            "start": {
+              "type": "string",
+              "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+            },
+            "end": {
+              "type": "string",
+              "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20
+            }
+          }
+        }
+      ]
+    },
+    "notification": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 48
+        }
+      ]
+    },
+    "recent_apps": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "string",
+        "enum": [
+          "naver_map",
+          "kakao_map",
+          "kakao_t",
+          "kakaotalk",
+          "toss",
+          "kakaopay",
+          "youtube",
+          "calendar_app",
+          "meet",
+          "ibk_bank",
+          "anki",
+          "notes"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "rule": "least-used older-three-app history per fixed validation variant; event_id tie-break; shared B/C events; no native results used",
+  "scenarios": [
+    {
+      "variant": "moving_map",
+      "title": "이동 · 직전 지도",
+      "event_id": "bc-validation-moving_map-000",
+      "older_apps": [
+        "kakao_map",
+        "notes",
+        "kakaotalk"
+      ],
+      "recent_apps": [
+        "kakao_map",
+        "notes",
+        "kakaotalk",
+        "kakao_map"
+      ],
+      "featured": true
+    },
+    {
+      "variant": "moving_video",
+      "title": "이동 · 직전 영상",
+      "event_id": "bc-validation-moving_video-001",
+      "older_apps": [
+        "kakao_map",
+        "notes",
+        "youtube"
+      ],
+      "recent_apps": [
+        "kakao_map",
+        "notes",
+        "youtube",
+        "youtube"
+      ],
+      "featured": true
+    },
+    {
+      "variant": "business_goods",
+      "title": "사업 이체",
+      "event_id": "bc-validation-business_goods-002",
+      "older_apps": [
+        "youtube",
+        "kakao_map",
+        "naver_map"
+      ],
+      "recent_apps": [
+        "youtube",
+        "kakao_map",
+        "naver_map",
+        "kakaotalk"
+      ],
+      "featured": true
+    },
+    {
+      "variant": "personal_meal",
+      "title": "개인 송금",
+      "event_id": "bc-validation-personal_meal-003",
+      "older_apps": [
+        "kakao_map",
+        "anki",
+        "naver_map"
+      ],
+      "recent_apps": [
+        "kakao_map",
+        "anki",
+        "naver_map",
+        "kakaotalk"
+      ],
+      "featured": true
+    }
+  ],
+  "history_counts": [
+    {
+      "older_apps": [
+        "kakao_map",
+        "notes",
+        "kakaotalk"
+      ],
+      "count": 1
+    },
+    {
+      "older_apps": [
+        "kakao_map",
+        "notes",
+        "youtube"
+      ],
+      "count": 1
+    },
+    {
+      "older_apps": [
+        "youtube",
+        "kakao_map",
+        "naver_map"
+      ],
+      "count": 1
+    },
+    {
+      "older_apps": [
+        "kakao_map",
+        "anki",
+        "naver_map"
+      ],
+      "count": 1
+    }
+  ]
+}

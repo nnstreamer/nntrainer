@@ -32,6 +32,9 @@ if (!requestedNdkDirectory.isAbsolute) {
     throw GradleException("nntrainerNdkPath must be absolute: $nntrainerNdkPath")
 }
 val nntrainerNdkDirectory = requestedNdkDirectory.canonicalFile
+// An explicit snapshot keeps every native binary identical to an already verified device app.
+// Omit this property for the regular native/CMake build.
+val quickaiNativeSnapshot = providers.gradleProperty("quickaiNativeSnapshot").orNull?.let { File(it) }
 val ndkSourcePropertiesFile = nntrainerNdkDirectory.resolve("source.properties")
 if (!ndkSourcePropertiesFile.isFile) {
     throw GradleException(
@@ -70,6 +73,7 @@ android {
 
     packaging {
         jniLibs.useLegacyPackaging = true
+        if (quickaiNativeSnapshot != null) jniLibs.keepDebugSymbols += "**/*.so"
     }
 
 
@@ -81,7 +85,7 @@ android {
             abiFilters += listOf("arm64-v8a")
         }
 
-        externalNativeBuild {
+        if (quickaiNativeSnapshot == null) externalNativeBuild {
             cmake {
                 cppFlags += "-std=c++17 -frtti -fexceptions"
                 // Match prebuilts and package one shared C++ runtime.
@@ -92,7 +96,7 @@ android {
         consumerProguardFiles("consumer-rules.pro")
     }
 
-    externalNativeBuild {
+    if (quickaiNativeSnapshot == null) externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
             version = "3.22.1"
@@ -109,7 +113,8 @@ android {
             // Gradle 9; use the Provider-based layout.buildDirectory API
             // so this file is forward-compatible with Gradle 9 if we
             // ever roll the wrapper back up.
-            jniLibs.srcDirs(
+            if (quickaiNativeSnapshot != null) jniLibs.setSrcDirs(listOf(quickaiNativeSnapshot))
+            else jniLibs.srcDirs(
                 "src/main/jniLibs",
                 layout.buildDirectory.dir("generated/jniLibs").get().asFile
             )
@@ -147,7 +152,7 @@ android {
 tasks.matching {
     it.name.startsWith("merge") && it.name.endsWith("JniLibFolders")
 }.configureEach {
-    dependsOn(copyPrebuiltNativeLibs)
+    if (quickaiNativeSnapshot == null) dependsOn(copyPrebuiltNativeLibs)
 }
 tasks.matching { it.name.startsWith("externalNativeBuild") }.configureEach {
     dependsOn(copyPrebuiltNativeLibs)

@@ -1,0 +1,7 @@
+{
+  "runGoogTracker": true,
+  "runApplTracker": false,
+  "server": [
+    { "secure": false, "port": 8002 }
+  ]
+}

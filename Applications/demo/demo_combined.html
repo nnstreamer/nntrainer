@@ -1,104 +1,240 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>
-<meta charset="UTF-8">
-<title>NNTrainer On-Device LoRA Training — Demo</title>
-<style>
-  :root {
-    --bg: #0f1117; --panel: #171a23; --accent: #6c9cff;
-    --text: #e8eaf0; --dim: #9aa0b0;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { height: 100%; }
-  body {
-    background: var(--bg); color: var(--text);
-    font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
-    display: grid; grid-template-columns: 26vw 1fr; height: 100vh; overflow: hidden;
-  }
-  /* ── Left: live device mirror ─────────────────────────── */
-  #mirrorPane {
-    border-right: 1px solid #262b3a; background: #000;
-    display: flex; flex-direction: column;
-  }
-  #mirrorPane iframe { flex: 1; border: 0; width: 100%; height: 100%; }
-  #mirrorPane .caption {
-    padding: 1vh 1vw; font-size: 1.6vh; color: var(--dim);
-    border-top: 1px solid #262b3a; text-align: center; flex: none;
-  }
-  /* ── Right: top = tech explainer / bottom = demo scenario ── */
-  #infoPane {
-    display: grid; grid-template-rows: 1.2fr 1fr; gap: 2vh;
-    padding: 3vh 2.5vw 3vh 2.5vw; height: 100vh; overflow: hidden;
-  }
-  .box {
-    background: var(--panel); border: 1px dashed #2c3346;
-    border-radius: 12px; padding: 2vh 1.8vw; overflow-y: auto;
-  }
-  .box h2 {
-    font-size: 2.2vh; color: var(--accent); margin-bottom: 1.2vh;
-    display: flex; align-items: center; gap: 1vh;
-  }
-  .box h2 .n {
-    background: var(--accent); color: #fff; width: 3.2vh; height: 3.2vh;
-    border-radius: 50%; display: inline-flex; align-items: center;
-    justify-content: center; font-size: 1.9vh; flex: none;
-  }
-  .box h2 em { font-style: normal; }
-  /* The slot you fill in later */
-  .slot { min-height: 5vh; }
-  .slot p { font-size: 1.8vh; line-height: 1.6; color: var(--dim); }
-  .slot ol, .slot ul { margin-left: 2.2vw; }
-  .slot li { font-size: 1.8vh; line-height: 1.7; color: var(--dim); }
-  .slot .kv { display: grid; grid-template-columns: max-content 1fr; gap: 0.5vh 1.5vw; margin-top: 1vh; }
-  .slot .kv dt { color: var(--dim); font-size: 1.8vh; }
-  .slot .kv dd { font-size: 1.8vh; }
-  .metric { color: #4cc38a; font-weight: 600; }
-  .warn { color: #e2b93b; }
-</style>
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Quick.AI · On-device Personalization</title>
+    <link rel="stylesheet" href="demo.css" />
+    <script src="device_demo.js" defer></script>
+  </head>
+  <body data-layout="1">
+    <aside id="mirrorPane">
+      <div class="mirror-heading">
+        <span class="live-dot"></span> DEVICE LIVE <span>Quick.AI</span>
+      </div>
+      <iframe
+        id="mirror"
+        title="Android 기기 실시간 미러링"
+        allow="autoplay; clipboard-read; clipboard-write"
+      ></iframe>
+      <div class="mirror-caption">휴대폰을 직접 클릭해 조작할 수 있습니다.</div>
+    </aside>
+    <main id="infoPane">
+      <section class="box" id="techBox" aria-labelledby="techTitle">
+        <div class="section-heading">
+          <h2 id="techTitle">
+            <span class="section-number">01</span> 구현 기술 요약
+          </h2>
+          <span class="eyebrow">QUICK.AI × NNTRAINER</span>
+        </div>
+        <div class="tech-layout">
+          <dl class="tech-points">
+            <div>
+              <dt>LoRA 학습</dt>
+              <dd>
+                <p>기본 가중치 고정 · 마지막 4개 block의 LoRA A·B만 갱신</p>
+                <p>rank 8 · alpha 16 · 고정된 앞단 block의 역전파 생략</p>
+              </dd>
+            </div>
+            <div>
+              <dt>GPU·CPU<br />하이브리드</dt>
+              <dd>
+                <p>GPU: 고정된 앞단 block의 순전파</p>
+                <p>CPU: 마지막 4개 block의 순전파·역전파와 LoRA 갱신</p>
+              </dd>
+            </div>
+            <div>
+              <dt>저정밀 연산</dt>
+              <dd>
+                <p>기본 FC 연산에 INT4 가중치 사용</p>
+                <p>CPU: INT8 activation · GPU 앞단: FP16 activation</p>
+              </dd>
+            </div>
+            <div>
+              <dt>LoRA QAT</dt>
+              <dd>
+                <p>채널별 INT4 fake quantization · EMA scale · STE</p>
+                <p>갱신용 원본 가중치(master)는 FP32로 유지</p>
+              </dd>
+            </div>
+          </dl>
+          <figure>
+            <button
+              id="expandDiagram"
+              class="diagram-button"
+              aria-label="LoRA QAT 학습 구조 크게 보기"
+            >
+              <img
+                src="assets/quick_ai_lora_training.png"
+                alt="Quick.AI LoRA QAT 학습 구조"
+              /><span>그림 확대 ↗</span>
+            </button>
+            <figcaption>Quick.AI LoRA QAT 학습 구조</figcaption>
+          </figure>
+        </div>
+        <p class="tech-scope">
+          B·C 각200개 학습 · 시연4조건 · 관측5개와 알림 원문 · 사용자별 LoRA · 결과·통계는 실제 기기에서 수신
+        </p>
+      </section>
+      <section class="box" id="scenarioBox" aria-labelledby="scenarioTitle">
+        <div class="section-heading">
+          <h2 id="scenarioTitle">
+            <span class="section-number">02</span> 데모 시나리오
+          </h2>
+          <div class="heading-actions">
+            <button id="showDetails">입력·통계 상세</button>
+            <span id="sourceBadge" class="source-badge">기기 연결 대기</span>
+          </div>
+        </div>
+        <div class="device-workflow">
+          <div class="actions workflow-shortcuts">
+            <span id="deviceConnection" class="subtle"></span>
+          </div>
+          <p id="deviceProgress" role="status" aria-live="polite">
+            기기의 모델·데이터·출력을 확인하고 있습니다.
+          </p>
+        </div>
+        <div
+          id="variants"
+          class="state-tabs"
+          role="group"
+          aria-label="상황 전환"
+        ></div>
+        <div id="travelControls" class="travel-controls">
+          <div id="travelLastApps" role="group" aria-label="직전 앱 선택"></div>
+          <div
+            id="travelTimes"
+            role="group"
+            aria-label="약속까지 남은 시간"
+          ></div>
+        </div>
+        <div class="flow-grid">
+          <div class="workspace-panel">
+            <nav class="selection-panel" aria-label="사용자와 시나리오 선택">
+              <div class="selection-users">
+                <div class="panel-label">사용자 선택</div>
+                <div
+                  id="profiles"
+                  class="segmented"
+                  role="group"
+                  aria-label="개인 adapter 비교"
+                ></div>
+                <p id="profileDescription" class="subtle"></p>
+              </div>
+              <div class="selection-scenarios">
+                <div class="panel-label">시나리오 선택</div>
+                <div id="scenarios" class="scenario-tabs" role="group" aria-label="시나리오 선택"></div>
+                <button id="chooseScenario">시나리오 더 보기</button>
+              </div>
+            </nav>
+            <div class="context-panel">
+              <div class="panel-label">INPUT <span>주어진 상황 · B/C 동일 입력</span></div>
+              <div class="context-layout">
+                <div class="context-observation">
+                  <h3 id="contextHeadline"></h3>
+                  <dl id="contextFacts" class="context-facts"></dl>
+                </div>
+                <div class="context-apps">
+                  <div class="recent-label">최근 사용 앱 <span>과거 → 최근 · 마지막이 직전 앱</span></div>
+                  <div id="recentApps" class="recent-apps"></div>
+                  <div class="frequency-baseline">
+                    <div class="recent-label">사용 빈도 기준 추천 <span>사용자별 고정</span></div>
+                    <p id="frequencySource" class="frequency-source"></p>
+                    <div id="frequencyApps" class="frequency-apps"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="prediction-panel">
+            <div class="panel-label">
+              OUTPUT
+              <span id="outputDescription">동일 입력 · 학습 전후 비교</span>
+            </div>
+            <div
+              id="resultModes"
+              class="result-modes"
+              role="group"
+              aria-label="AFTER 표시 방식"
+            ></div>
+            <div id="predictionResults" class="prediction-results"></div>
+            <p id="targetNote" class="target-note"></p>
+          </div>
+          <aside class="story-panel" aria-labelledby="userStoryTitle">
+            <div class="panel-label" id="userStoryTitle">사용자 소개 <span>데모의 이용 성향</span></div>
+            <div id="userPreferences" class="overview-grid"></div>
+            <p id="preferenceStatus" class="preference-status"></p>
+          </aside>
+        </div>
+        <p id="actionStatus" role="status" aria-live="polite">
+          휴대폰에서 학습·실행하면 결과가 자동으로 갱신됩니다.
+        </p>
+        <p id="sourceNote" class="source-note">
+          기기에서 아직 받지 않은 결과는 대기 상태로 표시합니다.
+        </p>
+      </section>
+    </main>
+    <dialog id="scenarioDialog" aria-labelledby="scenarioDialogTitle">
+      <div class="section-heading">
+        <h2 id="scenarioDialogTitle">전체 시나리오 선택</h2>
+        <button id="closeScenarios" autofocus>닫기 ×</button>
+      </div>
+      <p class="subtle">선택한 시나리오를 기본 화면의 네 번째 버튼에 표시합니다.</p>
+      <div id="scenarioChoices" class="scenario-choices"></div>
+      <div class="actions">
+        <button id="resetScenarios">대표 4개로 돌아가기</button>
+      </div>
+    </dialog>
+    <dialog id="detailsDialog" aria-label="기기 입력과 학습 통계 상세">
+      <div class="section-heading">
+        <h2>입력·통계 상세</h2>
+        <button id="closeDetails" autofocus>닫기 ×</button>
+      </div>
+      <div class="actions"><button id="runUser">선택 사용자 추론 실행</button></div>
+      <details id="trainingDetails" class="training-details" open>
+        <summary>학습 loss · epoch 통계</summary>
+        <div id="lossChart"></div>
+        <p id="trainingConfig" class="subtle"></p>
+      </details>
+      <details id="inputDetails" class="box" open>
+            <div id="pairFocus" class="pair-focus">
+              <div>
+                <strong>카카오맵 + YouTube</strong
+                ><span>이동 중 두 앱을 함께 추천</span>
+              </div>
+              <span id="pairStatus" role="status"></span>
+            </div>
 
-<div id="mirrorPane">
-  <iframe id="mirror" src=""></iframe>
-  <div class="caption">실시간 기기 미러링 (ws-scrcpy) — 마우스/키보드로 직접 조작 가능</div>
-</div>
-
-<div id="infoPane">
-
-  <!-- ═══ 상단: 기술 설명 — 내용만 교체하면 됩니다 ═══ -->
-  <section class="box" id="techBox">
-    <h2><span class="n">T</span><em contenteditable>구현 기술 요약</em></h2>
-    <div class="slot">
-      <p>…</p>
-    </div>
-  </section>
-
-  <!-- ═══ 하단: 데모 시나리오 — 내용만 교체하면 됩니다 ═══ -->
-  <section class="box" id="scenarioBox">
-    <h2><span class="n">S</span><em contenteditable>데모 시나리오</em></h2>
-    <div class="slot">
-      <p>…</p>
-    </div>
-  </section>
-</div>
-
-<script>
-  // ws-scrcpy direct stream URL rules:
-  //  1. Client params live in a `#!` HASH, not the query string
-  //     (src/app/index.ts reads location.hash).
-  //  2. The `ws` param is passed straight to `new WebSocket()` by
-  //     StreamReceiverScrcpy, so it must be ws:// scheme.
-  const udid = 'R5KL701HEBN';
-  // This page is opened via file://, so location.host is empty — hard-code
-  // the ws-scrcpy server address.
-  const base = 'http://localhost:8000/';
-  const wsUrl = 'ws://localhost:8000/?action=proxy-adb&remote=tcp:8886&udid=' + encodeURIComponent(udid);
-  const q = new URLSearchParams({
-    action: 'stream', udid: udid, player: 'mse',
-    fitToScreen: 'true', ws: wsUrl,
-  }).toString();
-  document.getElementById('mirror').src = base + '#!' + q;
-</script>
-
-</body>
+        <summary>정확한 모델 입력 · 출력 연결</summary>
+        <p id="sampleMeta" class="subtle"></p>
+        <label for="rawPrompt">모델 입력 (정답 제외)</label>
+        <textarea
+          id="rawPrompt"
+          readonly
+          rows="7"
+          spellcheck="false"
+        ></textarea>
+        <label for="rawOutput">기기 원본 출력 JSON</label>
+        <textarea
+          id="rawOutput"
+          readonly
+          rows="2"
+          spellcheck="false"
+          placeholder="기기의 실제 출력이 여기에 표시됩니다."
+        ></textarea>
+        <p class="subtle">
+          입력·정답은 앱에 탑재된 시나리오입니다. 확률·loss·시간은 실제 native
+          실행 결과입니다.
+        </p>
+        <div class="actions"><button id="copyPrompt">입력 복사</button></div>
+      </details>
+    </dialog>
+    <dialog id="diagramDialog" aria-label="LoRA QAT 학습 구조">
+      <button id="closeDiagram" autofocus>닫기 ×</button
+      ><img
+        src="assets/quick_ai_lora_training.png"
+        alt="Quick.AI LoRA QAT 학습 구조 확대"
+      />
+    </dialog>
+  </body>
 </html>

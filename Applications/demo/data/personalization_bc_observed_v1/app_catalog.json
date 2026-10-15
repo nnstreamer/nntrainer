@@ -1,0 +1,86 @@
+[
+  {
+    "index": 0,
+    "letter": "A",
+    "id": "naver_map",
+    "name": "네이버지도"
+  },
+  {
+    "index": 1,
+    "letter": "B",
+    "id": "kakao_map",
+    "name": "카카오맵"
+  },
+  {
+    "index": 2,
+    "letter": "C",
+    "id": "kakao_t",
+    "name": "카카오T"
+  },
+  {
+    "index": 3,
+    "letter": "D",
+    "id": "kakaotalk",
+    "name": "카카오톡"
+  },
+  {
+    "index": 4,
+    "letter": "E",
+    "id": "toss",
+    "name": "토스"
+  },
+  {
+    "index": 5,
+    "letter": "F",
+    "id": "kakaopay",
+    "name": "카카오페이"
+  },
+  {
+    "index": 6,
+    "letter": "G",
+    "id": "youtube",
+    "name": "YouTube"
+  },
+  {
+    "index": 7,
+    "letter": "H",
+    "id": "calendar_app",
+    "name": "Calendar"
+  },
+  {
+    "index": 8,
+    "letter": "I",
+    "id": "meet",
+    "name": "Meet"
+  },
+  {
+    "index": 9,
+    "letter": "J",
+    "id": "ibk_bank",
+    "name": "기업은행"
+  },
+  {
+    "index": 10,
+    "letter": "K",
+    "id": "anki",
+    "name": "Anki"
+  },
+  {
+    "index": 11,
+    "letter": "L",
+    "id": "notes",
+    "name": "노트"
+  },
+  {
+    "index": 12,
+    "letter": "M",
+    "id": "OTHER_APP",
+    "name": "기타"
+  },
+  {
+    "index": 13,
+    "letter": "N",
+    "id": "NO_LAUNCH",
+    "name": "미사용"
+  }
+]

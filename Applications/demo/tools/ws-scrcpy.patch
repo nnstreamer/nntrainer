@@ -1,0 +1,32 @@
+diff --git a/build.config.override.json b/build.config.override.json
+index 0967ef4..5822f3d 100644
+--- a/build.config.override.json
++++ b/build.config.override.json
+@@ -1 +1,13 @@
+-{}
++{
++  "SCRCPY_LISTENS_ON_ALL_INTERFACES": false,
++  "INCLUDE_APPL": false,
++  "INCLUDE_GOOG": true,
++  "INCLUDE_ADB_SHELL": false,
++  "INCLUDE_DEV_TOOLS": false,
++  "INCLUDE_FILE_LISTING": false,
++  "USE_BROADWAY": false,
++  "USE_TINY_H264": false,
++  "USE_H264_CONVERTER": true,
++  "USE_WEBCODECS": true,
++  "USE_QVH_SERVER": false
++}
+diff --git a/src/server/services/HttpServer.ts b/src/server/services/HttpServer.ts
+index f941dfc..3f07c04 100644
+--- a/src/server/services/HttpServer.ts
++++ b/src/server/services/HttpServer.ts
+@@ -127,7 +127,7 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
+                 server = http.createServer(options, currentApp);
+             }
+             this.servers.push({ server, port });
+-            server.listen(port, () => {
++            server.listen(port, '127.0.0.1', () => {
+                 Utils.printListeningMsg(proto, port, PATHNAME);
+             });
+         });
