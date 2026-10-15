@@ -33,6 +33,7 @@
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
+#include <qs4cx_tensor.h>
 #include <quantizer.h>
 #include <thread_manager.h>
 #include <train_prof.h>
@@ -1095,6 +1096,32 @@ void FullyConnectedLayer::incremental_forwarding(RunLayerContext &context,
   }
 }
 
+void FullyConnectedLayer::releaseDxPlainPayloads(Tensor &weight) {
+  if (dx_plain_released_)
+    return;
+  static const bool keep = [] {
+    const char *e = std::getenv("NNTR_TRAIN_DROP_PLAIN");
+    return e != nullptr && e[0] == '0';
+  }();
+  // NNTR_TRAIN_FWD_FP32 dequantizes W from its plain payload every forward.
+  static const bool fwd_fp32 = std::getenv("NNTR_TRAIN_FWD_FP32") != nullptr;
+  if (keep || fwd_fp32 || !weight.isPacked() || !dx_wt_qs4t_.isPacked())
+    return;
+  dx_plain_released_ = true;
+  // dx_wt_qs4t_ is a standalone tensor and always owns its payload. W owns
+  // its payload only under the QS4CX heap bypass; otherwise it is a slice of
+  // the weight pool and stays.
+  auto release = [](Tensor &t) {
+    const void *base = t.getData<uint8_t>();
+    const size_t bytes = t.getMemoryBytes();
+    if (releaseHostPages(base, bytes))
+      markQs4cxPayloadDropped(base, bytes);
+  };
+  release(dx_wt_qs4t_);
+  if (qs4cxHeapBypassOn())
+    release(weight);
+}
+
 void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
   Tensor &weight = context.getWeight(weight_idx[FCParams::weight]);
 
@@ -1163,11 +1190,15 @@ void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
       train_prof::Scope tp("fc.deriv_base_dx_kai", train_prof::DERIV);
       if (dx_wt_qs4t_.empty())
         dx_wt_qs4t_ = buildQs4cxTransposed(weight);
+      if (dx_scale_.empty()) {
+        const float *ws = static_cast<const float *>(weight.getScale());
+        dx_scale_.assign(ws, ws + w_n);
+      }
       if (dx_scaled_dy_.empty() || dx_scaled_dy_.getDim() != dd0)
         dx_scaled_dy_ = Tensor(dd0, true);
       // G = dY * s (per output channel): s is W's scale, folded out of the
       // unit-scale transposed codes.
-      const float *s = static_cast<const float *>(weight.getScale());
+      const float *s = dx_scale_.data();
       const float *g_in = derivative_.getData<float>();
       float *g = dx_scaled_dy_.getData<float>();
       ThreadManager::Global().parallel_for(0, d_rows, [=](size_t r) {
@@ -1179,6 +1210,8 @@ void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
       dx_scaled_dy_.dot(dx_wt_qs4t_, ret_, false, false);
       static const bool kai_check =
         std::getenv("NNTR_TRAIN_DX_CHECK") != nullptr;
+      if (!kai_check)
+        releaseDxPlainPayloads(weight);
       static int kai_checked = 0;
       if (kai_check && kai_checked < 64) {
         ++kai_checked;

@@ -1047,14 +1047,18 @@ Tensor &FloatTensor::dotQs4cx(Tensor const &input, Tensor &output, bool trans,
   unsigned int M = getDim().batch() * getDim().channel() * getDim().height();
   unsigned int K = getDim().width();
   unsigned int N = output.getDim().width();
-  // Every arm below reads the plain nibbles (directly, or through a pack that
-  // was built from them). A weight whose payload a GPU backend released after
-  // its device repack must be refused here, not multiplied as zeros.
-  refuseIfQs4cxPayloadDropped(input.getData<uint8_t>(),
-                              "FloatTensor::dotQs4cx");
+  // Every arm below reads the plain nibbles, directly or by packing them. A
+  // weight whose payload was released (a GPU backend after its device repack,
+  // or a training FC once its packs exist) must be refused here, not
+  // multiplied as zeros. A pack built before the release is a complete
+  // operand by itself, so the ARM arm only refuses a weight it would have to
+  // read or pack.
 #if defined(__aarch64__) || defined(__ARM_ARCH_7A__) ||                        \
   defined(__ANDROID__) || defined(__arm__) || defined(_M_ARM) ||               \
   defined(_M_ARM64)
+  if (!input.isPacked())
+    refuseIfQs4cxPayloadDropped(input.getData<uint8_t>(),
+                                "FloatTensor::dotQs4cx");
   float *lhs = (float *)getData();
   float *out = output.getData<float>();
 
@@ -1109,6 +1113,8 @@ Tensor &FloatTensor::dotQs4cx(Tensor const &input, Tensor &output, bool trans,
   }
 #elif defined(__x86_64__) || defined(__i586__) || defined(_M_X64) ||           \
   defined(_M_IX86)
+  refuseIfQs4cxPayloadDropped(input.getData<uint8_t>(),
+                              "FloatTensor::dotQs4cx");
 
   float *lhs = (float *)getData();
   char *rhs = input.getData<char>();

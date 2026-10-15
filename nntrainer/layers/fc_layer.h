@@ -220,6 +220,20 @@ private:
    * KleidiAI qai8dxp x qsi4cxp GEMM as the forward. */
   Tensor dx_wt_qs4t_;
   Tensor dx_scaled_dy_; /**< (dY * s) scratch */
+  /** W's per-output-channel scales s, copied out of its payload so dX keeps
+   * them after the plain payload is released (see releaseDxPlainPayloads) */
+  std::vector<float> dx_scale_;
+  /** the plain QS4CX payloads of W and of dx_wt_qs4t_ were released */
+  bool dx_plain_released_ = false;
+  /**
+   * @brief Release the plain QS4CX payloads the KleidiAI dX no longer reads.
+   * Once W's forward pack and dx_wt_qs4t_'s pack exist, both GEMMs read only
+   * the packs, and the two plain payloads (nibbles + scales) are a second
+   * and fourth copy of the frozen weight. Released pages are recorded as
+   * dropped, so a later host reader refuses instead of reading zeros.
+   * NNTR_TRAIN_DROP_PLAIN=0 keeps them.
+   */
+  void releaseDxPlainPayloads(Tensor &weight);
   /** calcGradient left s * dY . B^T (the loraTmp gradient) for this step's
    * calcDerivative to reuse for the LoRA part of dX */
   bool lora_dtmp_ready_ = false;
