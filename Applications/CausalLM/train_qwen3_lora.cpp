@@ -14,6 +14,7 @@
 #include <lora_train.h>
 #include <model_registry.h>
 #include <residency_policy.h>
+#include <tokenizer_cache.h>
 #include <transformer.h>
 
 #include <dataset.h>
@@ -338,8 +339,66 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
     if (params.batch_size)
       nntr_cfg["batch_size"] = params.batch_size;
 
-    const unsigned int seq_len = nntr_cfg["init_seq_len"].get<unsigned int>();
     const unsigned int vocab_size = cfg["vocab_size"].get<unsigned int>();
+
+    const bool decision = params.task == "decision";
+    // "lm35" is the Qwen3.5 demo of the same language-model task (the
+    // Android TASK dropdown uses the value to switch the demo paths);
+    // anything starting with "lm" trains the next-token loss.
+    if (!decision && params.task.rfind("lm", 0) != 0)
+      throw std::invalid_argument("--task must be lm* or decision, got " +
+                                  params.task);
+
+    // The data is read before the graph is built, so the graph can be built
+    // only as wide as the data needs. A sample is right-padded to the
+    // sequence width and every padded row is computed through the trainable
+    // blocks (forward and backward) without ever being read: the causal
+    // mask hides it from the real rows and the loss scores none of it. The
+    // configured seq_len is therefore a cap; the graph takes the longest
+    // sample rounded up to 16 rows (measured on the 123-139 token decision
+    // demo at seq_len 256: epoch 2.05 s -> 1.35 s, bit-identical losses).
+    const unsigned int seq_cap = nntr_cfg["init_seq_len"].get<unsigned int>();
+    std::unique_ptr<TrainingDataGenerator> data_gen;
+    std::unique_ptr<TrainingDataGenerator> valid_gen;
+    // A separate validation file implies --validate. It gets its own
+    // generator (and GPU-trunk writer in hybrid mode) so its rows never mix
+    // into the training epoch's shuffle; the adapter is then kept on the
+    // validation loss and --patience can stop the run early.
+    const bool do_validate =
+      params.validate || !params.valid_data_path.empty() || params.patience > 0;
+    {
+      // the model's own tokenizer is not built yet; this copy only encodes
+      // the samples (the snapshot cache makes the second load cheap)
+      auto data_tok = causallm::LoadTokenizerCached(
+        nntr_cfg["tokenizer_file"].get<std::string>());
+      NNTR_THROW_IF(!data_tok, std::runtime_error)
+        << "failed to load the tokenizer for the training data";
+      data_gen = std::make_unique<TrainingDataGenerator>(
+        data_path, data_tok.get(), seq_cap, vocab_size, params.max_samples,
+        params.seed, decision);
+      if (do_validate) {
+        const std::string &vpath =
+          params.valid_data_path.empty() ? data_path : params.valid_data_path;
+        valid_gen = std::make_unique<TrainingDataGenerator>(
+          vpath, data_tok.get(), seq_cap, vocab_size, /*max_samples=*/0,
+          params.seed, decision);
+      }
+    }
+    {
+      unsigned int longest = data_gen->longestInput();
+      if (valid_gen)
+        longest = std::max(longest, valid_gen->longestInput());
+      const unsigned int fitted = std::min(seq_cap, (longest + 15) / 16 * 16);
+      if (fitted < seq_cap) {
+        nntr_cfg["init_seq_len"] = fitted;
+        data_gen->setSeqLen(fitted);
+        if (valid_gen)
+          valid_gen->setSeqLen(fitted);
+        std::cout << "seq_fit:      " << seq_cap << " -> " << fitted
+                  << " (longest sample " << longest << " rows)" << std::endl;
+      }
+    }
+    const unsigned int seq_len = nntr_cfg["init_seq_len"].get<unsigned int>();
 
     std::string q4_output_path;
     if (do_weight_q4) {
@@ -437,13 +496,6 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
                 << ", ...)" << std::endl;
     };
 
-    const bool decision = params.task == "decision";
-    // "lm35" is the Qwen3.5 demo of the same language-model task (the
-    // Android TASK dropdown uses the value to switch the demo paths);
-    // anything starting with "lm" trains the next-token loss.
-    if (!decision && params.task.rfind("lm", 0) != 0)
-      throw std::invalid_argument("--task must be lm* or decision, got " +
-                                  params.task);
     if (decision) {
       model.setDecisionTask(decisionLetterIds(model_path, model.getTokenizer()),
                             params.decision_objective, params.decision_group,
@@ -469,31 +521,18 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
       throw std::runtime_error(
         "model has no tokenizer; a tokenizer_file is required for training");
 
-    TrainingDataGenerator data_gen(data_path, tokenizer, seq_len, vocab_size,
-                                   params.max_samples, params.seed, decision);
     // Throws when the batch is larger than the sample count, which would
     // otherwise train zero iterations and end with the data buffer's own
     // "No data came while buffer ran".
-    data_gen.setBatchSize(nntr_cfg.value("batch_size", 1u));
-    std::cout << "samples:      " << data_gen.size() << " ("
-              << data_gen.samplesPerEpoch() << " per epoch)" << std::endl;
-
-    // A separate validation file implies --validate. It gets its own
-    // generator (and GPU-trunk writer in hybrid mode) so its rows never mix
-    // into the training epoch's shuffle; the adapter is then kept on the
-    // validation loss and --patience can stop the run early.
-    const bool do_validate =
-      params.validate || !params.valid_data_path.empty() || params.patience > 0;
-    std::unique_ptr<TrainingDataGenerator> valid_gen;
-    if (do_validate) {
-      const std::string &vpath =
-        params.valid_data_path.empty() ? data_path : params.valid_data_path;
-      valid_gen = std::make_unique<TrainingDataGenerator>(
-        vpath, tokenizer, seq_len, vocab_size, /*max_samples=*/0, params.seed,
-        decision);
+    data_gen->setBatchSize(nntr_cfg.value("batch_size", 1u));
+    std::cout << "samples:      " << data_gen->size() << " ("
+              << data_gen->samplesPerEpoch() << " per epoch)" << std::endl;
+    if (valid_gen) {
       valid_gen->setBatchSize(nntr_cfg.value("batch_size", 1u));
       std::cout << "valid:        " << valid_gen->size() << " samples from "
-                << vpath << std::endl;
+                << (params.valid_data_path.empty() ? data_path
+                                                   : params.valid_data_path)
+                << std::endl;
     }
 
     // Hybrid: the producer thread runs the GPU trunk for each sample, so the
@@ -508,8 +547,8 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
       auto *t = dynamic_cast<CausalLM *>(trunk.get());
       NNTR_THROW_IF(!t, std::invalid_argument)
         << "hybrid trunk is not a CausalLM";
-      data_gen.input_writer = [t, L](const int32_t *ids, unsigned int used,
-                                     float *input) {
+      data_gen->input_writer = [t, L](const int32_t *ids, unsigned int used,
+                                      float *input) {
         const auto t0 = std::chrono::steady_clock::now();
         t->trunkHidden(ids, used, L, input);
         /// [DIAG] NNTR_TRAIN_GRAD_DUMP=<dir>: the trunk hidden of the first
@@ -543,7 +582,7 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
     }
 
     std::shared_ptr<ml::train::Dataset> dataset = ml::train::createDataset(
-      ml::train::DatasetType::GENERATOR, trainingDataGenCb, &data_gen);
+      ml::train::DatasetType::GENERATOR, trainingDataGenCb, data_gen.get());
     // Hybrid: a 1-slot iteration queue frees its slot only when the step that
     // consumed it ends, so the GPU trunk of the next sample would start after
     // the CPU step instead of under it. Two slots let it run one sample ahead.
@@ -554,7 +593,7 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
     // Validation runs its own generator (copying the hybrid trunk writer, a
     // no-op on plain CPU) so its rows never mix into the training shuffle.
     if (valid_gen) {
-      valid_gen->input_writer = data_gen.input_writer;
+      valid_gen->input_writer = data_gen->input_writer;
       std::shared_ptr<ml::train::Dataset> valid_dataset =
         ml::train::createDataset(ml::train::DatasetType::GENERATOR,
                                  trainingDataGenCb, valid_gen.get());
@@ -573,7 +612,7 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
     bridge.q4_output_path = q4_output_path;
     bridge.user_cb = callback;
     bridge.user_data = user_data;
-    bridge.num_samples = static_cast<unsigned int>(data_gen.size());
+    bridge.num_samples = static_cast<unsigned int>(data_gen->size());
     bridge.iter_cb = iter_cb;
     bridge.iter_data = iter_data;
 

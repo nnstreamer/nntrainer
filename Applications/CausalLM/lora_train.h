@@ -101,6 +101,20 @@ public:
   /** @brief Number of samples next() yields per epoch. */
   size_t samplesPerEpoch() const;
 
+  /** @brief The most input rows any loaded sample occupies (<= seq_len). */
+  unsigned int longestInput() const;
+
+  /**
+   * @brief Narrow the padded input width to @a seq_len.
+   * @details Every row past a sample's length is padding the causal graph
+   *          never lets an earlier row see, and the loss reads no padded
+   *          row, so a graph built at longestInput() trains exactly as one
+   *          built wider -- only without the padding's compute.
+   * @param seq_len new width, at least longestInput()
+   */
+  void setSeqLen(unsigned int seq_len);
+
+
 private:
   struct Sample {
     std::vector<int32_t> ids; /**< full tokenized sample, unpadded */

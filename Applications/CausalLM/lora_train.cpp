@@ -257,6 +257,20 @@ size_t TrainingDataGenerator::samplesPerEpoch() const {
   return samples_.size() / batch_size_ * batch_size_;
 }
 
+unsigned int TrainingDataGenerator::longestInput() const {
+  size_t longest = 0;
+  for (const auto &s : samples_)
+    longest = std::max(longest, s.ids.size() - (s.k > 0 ? 0 : 1));
+  return static_cast<unsigned int>(longest);
+}
+
+void TrainingDataGenerator::setSeqLen(unsigned int seq_len) {
+  NNTR_THROW_IF(seq_len < longestInput(), std::invalid_argument)
+    << "seq_len " << seq_len << " is shorter than the longest sample ("
+    << longestInput() << " rows)";
+  seq_len_ = seq_len;
+}
+
 void TrainingDataGenerator::reshuffle() {
   std::shuffle(index_order_.begin(), index_order_.end(), rng_);
   cursor_ = 0;
