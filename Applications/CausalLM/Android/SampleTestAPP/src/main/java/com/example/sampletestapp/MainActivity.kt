@@ -256,8 +256,8 @@ class MainActivity : AppCompatActivity() {
     /** stop early after N epochs without a validation improvement (0 = off) */
     private var trainPatience: String = "0"
     private var trainLr: String = "2e-4"
-    private var trainEpochs: String = "5"
-    private var trainBatchSize: String = "1"
+    private var trainEpochs: String = "4"
+    private var trainBatchSize: String = "4"
     /** "lm" (text lines, next-token loss) or "decision" (decision-model
      *  JSONL questions); objective sft | soft | rlcd | rlvr for "decision".
      *  Defaults are the personalization demo's settings: the decision task,
@@ -277,7 +277,7 @@ class MainActivity : AppCompatActivity() {
     private var trainSeqLen: String = "256"
     private var trainLoraRank: String = "8"
     private var trainLoraAlpha: String = "16"
-    private var trainLoraLastN: String = "7"
+    private var trainLoraLastN: String = "4"
     private var trainMaxSamples: String = "0"
     private var trainClipGrad: String = "1.0"
     private var trainQatEnabled: Boolean = true
@@ -308,11 +308,26 @@ class MainActivity : AppCompatActivity() {
      *  on disk changes mid-run). */
     private var testBeforeHandle: Long = 0L
     private var testAfterHandle: Long = 0L
-    private var testPromptText: String =
-        "What is the score of the following review on a scale of 1 to 5? " +
-            "Just answer with 1, 2, 3, 4, or 5 without further explanation. " +
-            "review: Teeny, tiny bars! It looked like ONE bar, it is so " +
-            "small! Cant believe these are 2000 calories!!"
+    /** One personalization demo situation: a decision prompt from the
+     *  demo user's (u02) held-out test rows, and the app the user actually
+     *  opened next. Picked where the base model follows the app used just
+     *  before, while the user's own habit says otherwise. */
+    private data class DemoScenario(
+        val chip: String, val situation: String, val answer: Int,
+        val prompt: String)
+    private val DEMO_SCENARIOS = listOf(
+        DemoScenario("🗺 지도", "약속 장소 도착 · 약속 15분 전 · 방금 쓴 앱: 네이버지도", 3,
+            "User: Context:\n이동=도착\n일정=약속:예정,15분후\n직전=네이버지도\n\nQuestion: 다음 앱?\nOptions:\nA) 네이버지도\nB) 카카오맵\nC) 카카오T\nD) 카카오톡\nE) 토스\nF) 카카오페이\nG) YouTube\nH) Calendar\nI) Meet\nJ) 시계\nK) Anki\nL) 노트\nM) 기타\nN) 미사용\nAnswer with the letter only.\nAssistant: The answer is"),
+        DemoScenario("💳 송금", "친구가 정산 요청 · 지금 처리할 일 · 방금 쓴 앱: 시계", 5,
+            "User: Context:\n정산=친구,지금,미처리\n직전=시계\n\nQuestion: 다음 앱?\nOptions:\nA) 네이버지도\nB) 카카오맵\nC) 카카오T\nD) 카카오톡\nE) 토스\nF) 카카오페이\nG) YouTube\nH) Calendar\nI) Meet\nJ) 시계\nK) Anki\nL) 노트\nM) 기타\nN) 미사용\nAnswer with the letter only.\nAssistant: The answer is"),
+        DemoScenario("👤 요청", "동료가 계좌 문의 · 방금 쓴 앱: Meet", 3,
+            "User: Context:\n정산=동료,지금,계좌문의\n직전=Meet\n\nQuestion: 다음 앱?\nOptions:\nA) 네이버지도\nB) 카카오맵\nC) 카카오T\nD) 카카오톡\nE) 토스\nF) 카카오페이\nG) YouTube\nH) Calendar\nI) Meet\nJ) 시계\nK) Anki\nL) 노트\nM) 기타\nN) 미사용\nAnswer with the letter only.\nAssistant: The answer is"),
+        DemoScenario("📅 일정", "회의 종료 직후 · 방금 쓴 앱: Meet", 3,
+            "User: Context:\n일정=회의:종료\n직전=Meet\n\nQuestion: 다음 앱?\nOptions:\nA) 네이버지도\nB) 카카오맵\nC) 카카오T\nD) 카카오톡\nE) 토스\nF) 카카오페이\nG) YouTube\nH) Calendar\nI) Meet\nJ) 시계\nK) Anki\nL) 노트\nM) 기타\nN) 미사용\nAnswer with the letter only.\nAssistant: The answer is"),
+    )
+    /** The scenario the TEST prompt holds (-1: a typed prompt). */
+    private var testScenario: Int = 0
+    private var testPromptText: String = DEMO_SCENARIOS[0].prompt
     private var testBeforeRunning: Boolean = false
     private var testAfterRunning: Boolean = false
     private var testBeforeOutput: String = ""
@@ -926,29 +941,24 @@ class MainActivity : AppCompatActivity() {
                         // (docs/02_TRAINING.md's objective; demo runs at
                         // rank 8 — see below)
                         trainObjective = "soft"
-                        // demo-scale knobs of the package's conditions:
-                        // rank 8 / alpha 16 / last 7 blocks / batch 1 /
-                        // seq 256 — the loader keeps each prompt's tail
-                        // (question, options, most recent context) and the
-                        // readout sits on the last prompt token, so training
-                        // still works; the older screen context is cut
+                        // the demo package's reference conditions: rank 8
+                        // / alpha 16 / last 4 blocks / batch 4 / 4 epochs;
+                        // seq 256 holds every prompt (123–139 tokens) whole
                         trainLoraRank = "8"
                         trainLoraAlpha = "16"
-                        trainLoraLastN = "7"
-                        trainBatchSize = "1"
+                        trainLoraLastN = "4"
+                        trainBatchSize = "4"
                         trainSeqLen = "256"
                         trainLr = "2e-4"
-                        // 0 = the full 384-row train file; RESUME continues
-                        // a run, PATIENCE adds early stopping.
+                        // 0 = the whole train file; RESUME continues a run,
+                        // PATIENCE adds early stopping.
                         trainMaxSamples = "0"
-                        trainEpochs = "5"
+                        trainEpochs = "4"
                         trainPatience = "0"
-                        // preload the demo's TEST prompt (a map_trip
-                        // question, ~311 tokens): far too long to type, and
-                        // adb input mangles newlines and Korean. Generic
-                        // path — push the target user's prompt there.
-                        val pf = java.io.File("/sdcard/test_prompt.txt")
-                        if (pf.exists()) testPromptText = pf.readText()
+                        testScenario = 0
+                        testPromptText = DEMO_SCENARIOS[0].prompt
+                        if (::testPromptField.isInitialized)
+                            testPromptField.setText(testPromptText)
                     }
                     "lm35" -> {
                         trainModelPath = "/sdcard/q35_qs4"
@@ -1105,51 +1115,97 @@ class MainActivity : AppCompatActivity() {
             LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
         card.addView(cols)
         spacer(card, 8)
-        // Scenario chips: the personalization demo's four situations, each a
-        // full pre-tokenized prompt from the package's device_io test rows.
-        // Tapping one replaces the prompt with a question that exposes the
-        // user's learned pattern (e.g. u03 defers non-urgent payments and
-        // returns to YouTube) — the base model misses it, the trained
-        // adapter picks the user's app. Files live at
-        // /sdcard/demo_prompts/<name>.txt; push the demo user's set there.
+        // Scenario chips: the personalization demo's four situations, each
+        // a held-out test prompt of the demo user. The base model follows
+        // the app used just before; the trained adapter ranks the user's
+        // own habit — the BEFORE / AFTER pair shows the difference.
         card.addView(labelView(t, "SCENARIOS (tap to load the prompt)"))
         val chips = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        chips.addView(makeScenarioChip(t, "🗺 지도", "1_map"))
-        spacerH(chips, 6)
-        chips.addView(makeScenarioChip(t, "💳 송금", "2_pay"))
-        spacerH(chips, 6)
-        chips.addView(makeScenarioChip(t, "👤 요청", "3_contact"))
-        spacerH(chips, 6)
-        chips.addView(makeScenarioChip(t, "📅 일정", "4_meeting"))
+        DEMO_SCENARIOS.forEachIndexed { i, sc ->
+            if (i > 0) spacerH(chips, 6)
+            chips.addView(makeScenarioChip(t, i, sc))
+        }
         card.addView(chips)
+        if (testScenario >= 0) {
+            val sc = DEMO_SCENARIOS[testScenario]
+            val opts = parseDecisionOptions(sc.prompt)
+            spacer(card, 6)
+            card.addView(TextView(this).apply {
+                text = "상황: ${sc.situation}\n실제로 연 앱: ${opts.getOrElse(sc.answer) { "?" }}"
+                textSize = 12f
+                setTextColor(t.onSurface)
+            })
+        }
         spacer(card, 8)
         card.addView(labelView(t, "PROMPT"))
         testPromptField = roundedEditText(t, testPromptText, multiline = true,
-            rows = 2) { testPromptText = it }
+            rows = 2) {
+            testPromptText = it
+            // a typed prompt has no known answer
+            if (testScenario >= 0 && it != DEMO_SCENARIOS[testScenario].prompt)
+                testScenario = -1
+        }
         card.addView(testPromptField)
         return card
     }
 
-    /** A scenario chip: loads /sdcard/demo_prompts/<name>.txt into the
-     *  TEST prompt when present, else shows a note in the prompt box. */
-    private fun makeScenarioChip(t: M3Tokens, label: String, name: String): View =
+    /** A scenario chip: loads that scenario's prompt into the TEST card. */
+    private fun makeScenarioChip(t: M3Tokens, index: Int, sc: DemoScenario): View =
         TextView(this).apply {
-            text = label
+            text = sc.chip
             textSize = 12f
             typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
-            setTextColor(t.onSurface)
-            background = strokedSolid(t.secondaryContainer, 100,
-                t.outline, 1)
+            setTextColor(if (index == testScenario) t.onPrimary else t.onSurface)
+            background = if (index == testScenario) solid(t.primary, 100)
+                else strokedSolid(t.secondaryContainer, 100, t.outline, 1)
             setPadding(dp(12), dp(7), dp(12), dp(7))
             setOnClickListener {
-                val f = java.io.File("/sdcard/demo_prompts/$name.txt")
-                testPromptText = if (f.exists()) f.readText()
-                else "(/sdcard/demo_prompts/$name.txt 없음 — 데모 프롬프트를 푸시하세요)"
+                testScenario = index
+                testPromptText = sc.prompt
+                // rebuildUi() reads the prompt back from the live field
                 if (::testPromptField.isInitialized)
-                    testPromptField.setText(testPromptText)
+                    testPromptField.setText(sc.prompt)
+                testBeforeOutput = ""
+                testAfterOutput = ""
+                rebuildUi()
             }
         }
+
+    /** Option labels of a decision prompt: the "A) label" lines after
+     *  "Options:", in letter order (empty: not a decision prompt). */
+    private fun parseDecisionOptions(prompt: String): List<String> {
+        val lines = prompt.lines()
+        val start = lines.indexOfFirst { it.trim() == "Options:" }
+        if (start < 0) return emptyList()
+        val opts = mutableListOf<String>()
+        for (line in lines.drop(start + 1)) {
+            val m = Regex("^([A-Z])\\) (.*)$").find(line.trim()) ?: break
+            if (m.groupValues[1][0] != 'A' + opts.size) break
+            opts.add(m.groupValues[2])
+        }
+        return opts
+    }
+
+    /** The TEST box text of a decision answer: the four recommended apps
+     *  (기타 / 미사용 are not recommendations, as the demo package scores),
+     *  with the user's actual app marked when the scenario knows it. */
+    private fun formatDecision(opts: List<String>, probs: FloatArray,
+                               answer: Int): String {
+        val real = opts.indices.filter { opts[it] != "기타" && opts[it] != "미사용" }
+        val top4 = real.sortedWith(compareBy({ -probs[it] }, { it })).take(4)
+        val sb = StringBuilder()
+        top4.forEachIndexed { r, i ->
+            sb.append(String.format("%d %s %4.1f%%%s\n", r + 1, opts[i],
+                probs[i] * 100f, if (i == answer) "  ✓" else ""))
+        }
+        if (answer in opts.indices) {
+            val rank = top4.indexOf(answer)
+            sb.append(if (rank < 0) "✗ ${opts[answer]} 추천 밖"
+                      else "✓ ${opts[answer]} ${rank + 1}위")
+        }
+        return sb.toString()
+    }
 
     private fun buildTrainChartPanel(t: M3Tokens): View {
         val card = roundedCard(t, t.surfaceContainerHigh)
@@ -2809,6 +2865,33 @@ class MainActivity : AppCompatActivity() {
                 rebuildUi()
             }
             val prompt = testPromptText
+            // A decision model answers by its letter readout, not by
+            // generating text: one prefill, a probability per option.
+            val options = parseDecisionOptions(prompt)
+            if (trainTask == "decision" && options.size >= 2) {
+                val answer = if (testScenario >= 0)
+                    DEMO_SCENARIOS[testScenario].answer else -1
+                val probs = NativeCausalLm.decideModelHandleNative(
+                    handle, prompt, options.size)
+                mainHandler.post {
+                    if (which == "before") testBeforeRunning = false
+                    else testAfterRunning = false
+                    if (probs == null) {
+                        setTrainStatus("TEST $which failed — see logcat")
+                        appendTrainLog("TEST $which: ✗ decision readout failed")
+                    } else {
+                        val out = formatDecision(options, probs, answer)
+                        if (which == "before") testBeforeOutput = out
+                        else testAfterOutput = out
+                        val top = options.indices.maxByOrNull { probs[it] }!!
+                        setTrainStatus("TEST $which done.")
+                        appendTrainLog(String.format("TEST %s: ✓ top1 %s %.1f%%",
+                            which, options[top], probs[top] * 100f))
+                    }
+                    rebuildUi()
+                }
+                return@execute
+            }
             val sink = object : NativeCausalLm.NativeStreamListener {
                 override fun onDelta(text: String) {
                     mainHandler.post {
