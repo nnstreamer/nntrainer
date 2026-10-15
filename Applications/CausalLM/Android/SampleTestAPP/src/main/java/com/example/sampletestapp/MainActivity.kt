@@ -308,12 +308,15 @@ class MainActivity : AppCompatActivity() {
     private var demoUser: Int = 0
     private var demoRunning: Boolean = false
     private var demoStatus: String =
-        "사용자별 학습과 추론을 따로 실행합니다 · seed 42 고정"
+        "학습 실행 · 추론 실행 · LoRA 로드/초기화 · seed 42 고정"
     /** Per user, per scenario: the BEFORE / AFTER decision readouts. */
     private val demoBefore: List<MutableList<String?>> =
         DEMO_USERS.map { MutableList(it.scenarios.size) { null } }
     private val demoAfter: List<MutableList<String?>> =
         DEMO_USERS.map { MutableList(it.scenarios.size) { null } }
+    /** Per user: whether inference applies the saved LoRA, and whether one is saved. */
+    private val demoLoraEnabled = BooleanArray(DEMO_USERS.size)
+    private val demoAdapterSavedAt = LongArray(DEMO_USERS.size)
     private var webDemoBridge: DeviceDemoBridge? = null
 
     /* ───── UI refs (re-wired on every rebuildUi() call) ───── */
@@ -416,6 +419,9 @@ class MainActivity : AppCompatActivity() {
         }
         val users = snapshot.getJSONArray("users")
         for (u in DEMO_USERS.indices) {
+            val row = users.getJSONObject(u)
+            demoAdapterSavedAt[u] = if (row.has("adapter_path")) row.optLong("adapter_saved_at_ms") else 0L
+            demoLoraEnabled[u] = row.optBoolean("lora_enabled") && row.has("adapter_path")
             val scenarios = users.getJSONObject(u).getJSONArray("scenarios")
             for (s in DEMO_USERS[u].scenarios.indices) {
                 val row = scenarios.getJSONObject(s)
@@ -1144,17 +1150,24 @@ class MainActivity : AppCompatActivity() {
         card.addView(tabs)
         spacer(card, 8)
         val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val label = DEMO_USERS[demoUser].label
-        listOf("사용자 $label 학습" to "train", "사용자 $label 실행" to "run_user")
+        listOf("학습 실행" to "train", "추론 실행" to "run_user")
             .forEachIndexed { i, (text, action) ->
                 if (i > 0) spacerH(actions, 6)
                 actions.addView(demoActionButton(t, text, action), LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
             }
         card.addView(actions)
         spacer(card, 6)
-        card.addView(demoActionButton(t, "B/C 학습·실행", "run_all"), LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+        // One toggle: LoRA applied ⇄ base weights. Inference follows it.
+        val loraOn = demoLoraEnabled[demoUser]
+        val savedAt = demoAdapterSavedAt[demoUser]
+        card.addView(demoActionButton(t, if (loraOn) "Weights 초기화" else "LoRA 로드",
+                if (loraOn) "lora_off" else "lora_on", enabled = loraOn || savedAt > 0L, tonal = true),
+            LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+        val saved = if (savedAt > 0L) "저장된 LoRA " + java.text.SimpleDateFormat("MM/dd HH:mm",
+            java.util.Locale.KOREA).format(java.util.Date(savedAt)) else "저장된 LoRA 없음"
         card.addView(TextView(this).apply {
-            text = "학습: Settings 적용 · seed 42 고정\n개별 실행: 저장 어댑터 추론 · 전체: B 학습·추론 → C 학습·추론"
+            text = "현재: ${if (loraOn) "LoRA 적용 → 추론 결과 AFTER" else "기본 모델 (LoRA 미적용) → 추론 결과 BEFORE"}\n" +
+                "$saved · 학습: Settings 적용 · seed 42 고정 · 학습 시 덮어씀"
             textSize = 11f; setTextColor(t.onSurfaceVar)
             setPadding(dp(4), dp(6), dp(4), dp(8))
         })
@@ -1207,15 +1220,17 @@ class MainActivity : AppCompatActivity() {
             setPadding(dp(8), dp(6), dp(8), dp(6))
         }
 
-    private fun demoActionButton(t: M3Tokens, label: String, action: String): View = TextView(this).apply {
+    private fun demoActionButton(t: M3Tokens, label: String, action: String,
+                                 enabled: Boolean = true, tonal: Boolean = false): View = TextView(this).apply {
         text = label
         textSize = 12f
         typeface = Typeface.DEFAULT_BOLD
         gravity = Gravity.CENTER
-        setTextColor(if (action == "stop") Color.WHITE else t.onPrimary)
-        background = solid(if (action == "stop") t.error else t.primary, 100)
+        setTextColor(if (action == "stop") Color.WHITE else if (tonal) t.onSurface else t.onPrimary)
+        background = if (tonal) strokedSolid(t.secondaryContainer, 100, t.outline, 1)
+            else solid(if (action == "stop") t.error else t.primary, 100)
         setPadding(dp(8), dp(8), dp(8), dp(8))
-        isEnabled = action == "stop" || (!demoRunning && !trainRunning)
+        isEnabled = action == "stop" || (enabled && !demoRunning && !trainRunning)
         alpha = if (isEnabled) 1f else 0.5f
         setOnClickListener { if (action == "stop") onStopDemo() else onDemoCommand(action) }
     }
@@ -1274,7 +1289,9 @@ class MainActivity : AppCompatActivity() {
             "Training Loss Chart", "")
         header.layoutParams = LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f)
         headerRow.addView(header)
-        headerRow.addView(trainToggleButton(t), LinearLayout.LayoutParams(
+        // The decision demo trains from the TEST card; the pill stays for the
+        // text-model tasks, which have no TEST card flow.
+        if (trainTask != "decision") headerRow.addView(trainToggleButton(t), LinearLayout.LayoutParams(
             WRAP_CONTENT, WRAP_CONTENT).also { it.leftMargin = dp(8) })
         card.addView(headerRow)
         spacer(card, 8)

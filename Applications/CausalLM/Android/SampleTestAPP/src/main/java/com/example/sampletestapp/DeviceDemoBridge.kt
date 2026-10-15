@@ -41,7 +41,6 @@ class DeviceDemoBridge(
     private val session = UUID.randomUUID().toString()
     private val runDirectory = File(directory, session).apply { mkdirs() }
     private var sequence = 0
-    private var adapterUsed = false
     @Volatile var busy = false; private set
     @Volatile private var stop = false
     // Captured on the UI thread when a command is accepted. Training and
@@ -84,7 +83,51 @@ class DeviceDemoBridge(
                 }))
         }))
 
-    init { publish() }
+    init { users.indices.forEach(::restoreAdapter); publish() }
+    /** Trained adapters live next to the dataset so they survive app restarts
+     *  and reinstalls; only a successful training run overwrites them. */
+    private fun adapterDirectory(u: Int) = File(File(users[u].data).parentFile!!.parentFile, "adapters/${users[u].id}")
+    private fun restoreAdapter(u: Int) {
+        val meta = File(adapterDirectory(u), "adapter.json")
+        val saved = try { JSONObject(meta.readText()) } catch (_: Exception) { null }
+        val adapter = saved?.let { File(adapterDirectory(u), it.optString("adapter_file")) }
+        synchronized(lock) {
+            if (saved == null || adapter == null || !adapter.isFile || digest(adapter) != saved.optString("adapter_sha256")) {
+                user(u).put("lora_enabled", false); return
+            }
+            user(u).put("adapter_path", adapter.path).put("adapter_sha256", saved.getString("adapter_sha256"))
+                .put("adapter_saved_at_ms", saved.getLong("saved_at_ms"))
+                .put("train_config", saved.getJSONObject("train_config"))
+                .put("epochs", saved.optJSONArray("epochs") ?: JSONArray())
+                .put("iterations", saved.optJSONArray("iterations") ?: JSONArray())
+                .put("status", "trained").put("lora_enabled", true)
+        }
+    }
+    private fun persistAdapter(u: Int) {
+        val dir = adapterDirectory(u).apply { mkdirs() }
+        val trained = synchronized(lock) { File(user(u).getString("adapter_path")) }
+        // Keep the fp32 master next to the q4 adapter the app loads.
+        val masters = trained.path.removeSuffix("_q4.bin").let { if (it == trained.path) emptyList() else listOf(File("$it.bin")) }
+        val copies = (listOf(trained) + masters.filter { it.isFile }).map { source ->
+            val name = if (source == trained) "lora_adapter${if (trained.name.endsWith("_q4.bin")) "_q4" else ""}.bin" else "lora_adapter.bin"
+            val temporary = File(dir, "$name.tmp")
+            source.copyTo(temporary, overwrite = true)
+            temporary to File(dir, name)
+        }
+        for ((temporary, target) in copies) check(temporary.renameTo(target)) { "Cannot save adapter: ${target.path}" }
+        val adapter = copies.first().second
+        val sha = digest(adapter)!!
+        val now = System.currentTimeMillis()
+        val meta = synchronized(lock) {
+            user(u).put("adapter_path", adapter.path).put("adapter_sha256", sha).put("adapter_saved_at_ms", now)
+            JSONObject().put("adapter_file", adapter.name).put("adapter_sha256", sha).put("saved_at_ms", now)
+                .put("train_config", user(u).getJSONObject("train_config"))
+                .put("epochs", user(u).getJSONArray("epochs")).put("iterations", user(u).getJSONArray("iterations"))
+        }
+        val temporary = File(dir, "adapter.json.tmp")
+        temporary.writeText(meta.toString())
+        check(temporary.renameTo(File(dir, "adapter.json"))) { "Cannot save adapter metadata" }
+    }
     private fun digest(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
     private fun digest(file: File): String? = if (file.isFile) digest(file.readBytes()) else null
     private fun user(index: Int) = state.getJSONArray("users").getJSONObject(index)
@@ -117,7 +160,7 @@ class DeviceDemoBridge(
     }
     fun command(request: JSONObject) {
         val action = request.getString("action")
-        require(action in setOf("status", "select", "before", "train", "after", "run_user", "run_all", "stop")) { "Unknown command" }
+        require(action in setOf("status", "select", "before", "train", "after", "run_user", "run_all", "lora_on", "lora_off", "stop")) { "Unknown command" }
         val index = users.indexOfFirst { it.id == request.optString("user", "u03") }
         require(index in users.indices) { "Unknown user" }
         val requestId = request.getString("request_id")
@@ -130,6 +173,22 @@ class DeviceDemoBridge(
         if (busy || appBusy()) {
             synchronized(lock) { state.put("rejected_request_id", requestId) }
             publish("실행 중입니다. 완료 후 다시 요청하세요."); return
+        }
+        if (action == "lora_on" || action == "lora_off") {
+            val enable = action == "lora_on"
+            val label = users[index].label
+            synchronized(lock) {
+                if (enable && !user(index).has("adapter_path")) {
+                    state.put("rejected_request_id", requestId)
+                    null
+                } else {
+                    user(index).put("lora_enabled", enable)
+                    state.put("ack_request_id", requestId).put("selected_user", users[index].id)
+                }
+            } ?: run { publish("사용자 $label: 저장된 LoRA가 없습니다 · 먼저 학습하세요"); return }
+            publish(if (enable) "사용자 $label LoRA 로드 · 추론 실행 시 저장된 LoRA 적용"
+                else "사용자 $label weights 초기화 · 추론 실행 시 기본 모델(LoRA 미적용)")
+            return
         }
         if (state.optString("request_id") == requestId) { publish(); return }
         val settings = trainingSettings(action)
@@ -145,17 +204,17 @@ class DeviceDemoBridge(
             try {
                 when (action) {
                     "before" -> beforeAll()
-                    "train" -> { beforeAll(); train(index) }
+                    "train" -> train(index)
                     "after" -> after(index)
-                    "run_user" -> { beforeAll(); if (user(index).has("adapter_path")) after(index) }
+                    "run_user" -> if (loraEnabled(index)) after(index) else base(index)
                     "run_all" -> { beforeAll(); for (u in users.indices) { checkStop(); train(u); after(u) } }
                 }
                 checkStop()
                 synchronized(lock) { state.put("command_status", "complete") }
                 val message = when (action) {
-                    "train" -> "사용자 ${users[index].label} 학습 완료 · 실행 버튼으로 결과를 확인하세요"
-                    "run_user" -> if (user(index).has("adapter_path")) "사용자 ${users[index].label} 추론 완료 · 추가 학습 없음"
-                        else "사용자 ${users[index].label} 학습 전 결과 · 학습 후 다시 실행하세요"
+                    "train" -> "사용자 ${users[index].label} 학습 완료 · LoRA 저장됨 · 추론 실행으로 결과를 확인하세요"
+                    "run_user" -> if (loraEnabled(index)) "사용자 ${users[index].label} 추론 완료 · 저장된 LoRA 적용"
+                        else "사용자 ${users[index].label} 추론 완료 · 기본 모델(LoRA 미적용)"
                     "run_all" -> "B/C 학습·추론 완료 · 각 사용자 탭에서 결과를 확인하세요"
                     else -> "추론 완료 · 추가 학습 없음"
                 }
@@ -201,19 +260,32 @@ class DeviceDemoBridge(
         synchronized(lock) { scenario(u, s).put(phase, result) }
         publish("${users[u].label} · ${phase.uppercase()} ${s + 1}/${users[u].scenarios.size}", phase, u)
     }
+    private fun loraEnabled(u: Int) = synchronized(lock) { user(u).optBoolean("lora_enabled") && user(u).has("adapter_path") }
     private fun beforeAll() {
         val complete = synchronized(lock) { users.indices.all { u -> users[u].scenarios.indices.all { s -> scenario(u,s).has("before") } } }
         if (complete) { publish("이 세션에서 측정한 학습 전 결과를 유지합니다", "before"); return }
-        check(!adapterUsed) { "새 BEFORE 측정은 앱을 다시 연 뒤 시작하세요" }
         publish("공통 학습 전 추론 준비 · B/C 학습은 수행하지 않습니다", "before")
         val handle = load(parameters(0, File(runDirectory,"unused.bin").path), null)
         try { for (u in users.indices) for (s in users[u].scenarios.indices) read(handle,u,s,"before") }
         finally { NativeCausalLm.destroyModelHandleNative(handle) }
-        // Every baseline is measured before any adapter handle: upstream's teardown ordering.
+    }
+    /** Base model (no LoRA) inference for one user; results fill BEFORE. */
+    private fun base(u: Int) {
+        checkStop()
+        publish("사용자 ${users[u].label} 기본 모델 로드 중 · LoRA 미적용", "before", u)
+        val handle = load(parameters(u, File(runDirectory,"unused.bin").path), null)
+        try { for (s in users[u].scenarios.indices) read(handle,u,s,"before") }
+        finally { NativeCausalLm.destroyModelHandleNative(handle) }
     }
     private fun train(u: Int) {
+        try { trainAndSave(u) } catch (error: Exception) {
+            // A failed or stopped run keeps the previously saved adapter.
+            synchronized(lock) { user(u).put("status", "ready") }
+            restoreAdapter(u); throw error
+        }
+    }
+    private fun trainAndSave(u: Int) {
         checkStop()
-        check(users.indices.all { index -> users[index].scenarios.indices.all { s -> scenario(index,s).has("before") } }) { "먼저 학습 전 결과를 받으세요" }
         val output = File(runDirectory,"adapter_${users[u].label}_${System.currentTimeMillis()}.bin").path
         val params = parameters(u, output)
         require(File(users[u].data).isFile) { "Training data missing" }
@@ -260,16 +332,17 @@ class DeviceDemoBridge(
         synchronized(lock) {
             check(!user(u).has("train_error")) { user(u).optString("train_error") }
             check(user(u).has("adapter_path") && File(user(u).getString("adapter_path")).isFile) { "Training did not save an adapter" }
-            user(u).put("status","trained").put("adapter_sha256",digest(File(user(u).getString("adapter_path"))))
+            user(u).put("status","trained")
         }
-        publish("사용자 ${users[u].label} 학습 완료", "trained",u)
+        persistAdapter(u)
+        synchronized(lock) { user(u).put("lora_enabled", true) }
+        publish("사용자 ${users[u].label} 학습 완료 · LoRA 저장됨", "trained",u)
     }
     private fun after(u: Int) {
         checkStop()
         val adapter = synchronized(lock) { user(u).optString("adapter_path") }
         require(adapter.isNotBlank() && File(adapter).isFile) { "먼저 선택 사용자를 학습하세요" }
-        publish("사용자 ${users[u].label} 학습 후 모델 로드 중", "after",u)
-        adapterUsed = true
+        publish("사용자 ${users[u].label} 저장된 LoRA 로드 중", "after",u)
         // Use the adapter's actual training architecture even if the next
         // run's Settings have since been edited.
         val handle = load(JSONObject(user(u).getJSONObject("train_config").toString()),adapter)

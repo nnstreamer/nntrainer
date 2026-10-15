@@ -17,7 +17,7 @@ import uuid
 
 WEB = Path(__file__).resolve().parents[1]
 RUNS = WEB / '.runtime/runs'
-ACTIONS = {'status', 'select', 'before', 'train', 'after', 'run_user', 'run_all', 'stop'}
+ACTIONS = {'status', 'select', 'before', 'train', 'after', 'run_user', 'run_all', 'lora_on', 'lora_off', 'stop'}
 
 class BridgeError(Exception): pass
 
