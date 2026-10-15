@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>NNTrainer On-Device LoRA Training — Demo</title>
+<style>
+  :root {
+    --bg: #0f1117; --panel: #171a23; --accent: #6c9cff;
+    --text: #e8eaf0; --dim: #9aa0b0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+    display: grid; grid-template-columns: 26vw 1fr; height: 100vh; overflow: hidden;
+  }
+  /* ── Left: live device mirror ─────────────────────────── */
+  #mirrorPane {
+    border-right: 1px solid #262b3a; background: #000;
+    display: flex; flex-direction: column;
+  }
+  #mirrorPane iframe { flex: 1; border: 0; width: 100%; height: 100%; }
+  #mirrorPane .caption {
+    padding: 1vh 1vw; font-size: 1.6vh; color: var(--dim);
+    border-top: 1px solid #262b3a; text-align: center; flex: none;
+  }
+  /* ── Right: top = tech explainer / bottom = demo scenario ── */
+  #infoPane {
+    display: grid; grid-template-rows: 1.2fr 1fr; gap: 2vh;
+    padding: 3vh 2.5vw 3vh 2.5vw; height: 100vh; overflow: hidden;
+  }
+  .box {
+    background: var(--panel); border: 1px dashed #2c3346;
+    border-radius: 12px; padding: 2vh 1.8vw; overflow-y: auto;
+  }
+  .box h2 {
+    font-size: 2.2vh; color: var(--accent); margin-bottom: 1.2vh;
+    display: flex; align-items: center; gap: 1vh;
+  }
+  .box h2 .n {
+    background: var(--accent); color: #fff; width: 3.2vh; height: 3.2vh;
+    border-radius: 50%; display: inline-flex; align-items: center;
+    justify-content: center; font-size: 1.9vh; flex: none;
+  }
+  .box h2 em { font-style: normal; }
+  /* The slot you fill in later */
+  .slot { min-height: 5vh; }
+  .slot p { font-size: 1.8vh; line-height: 1.6; color: var(--dim); }
+  .slot ol, .slot ul { margin-left: 2.2vw; }
+  .slot li { font-size: 1.8vh; line-height: 1.7; color: var(--dim); }
+  .slot .kv { display: grid; grid-template-columns: max-content 1fr; gap: 0.5vh 1.5vw; margin-top: 1vh; }
+  .slot .kv dt { color: var(--dim); font-size: 1.8vh; }
+  .slot .kv dd { font-size: 1.8vh; }
+  .metric { color: #4cc38a; font-weight: 600; }
+  .warn { color: #e2b93b; }
+</style>
+</head>
+<body>
+
+<div id="mirrorPane">
+  <iframe id="mirror" src=""></iframe>
+  <div class="caption">실시간 기기 미러링 (ws-scrcpy) — 마우스/키보드로 직접 조작 가능</div>
+</div>
+
+<div id="infoPane">
+
+  <!-- ═══ 상단: 기술 설명 — 내용만 교체하면 됩니다 ═══ -->
+  <section class="box" id="techBox">
+    <h2><span class="n">T</span><em contenteditable>구현 기술 요약</em></h2>
+    <div class="slot">
+      <p>…</p>
+    </div>
+  </section>
+
+  <!-- ═══ 하단: 데모 시나리오 — 내용만 교체하면 됩니다 ═══ -->
+  <section class="box" id="scenarioBox">
+    <h2><span class="n">S</span><em contenteditable>데모 시나리오</em></h2>
+    <div class="slot">
+      <p>…</p>
+    </div>
+  </section>
+</div>
+
+<script>
+  // ws-scrcpy direct stream URL rules:
+  //  1. Client params live in a `#!` HASH, not the query string
+  //     (src/app/index.ts reads location.hash).
+  //  2. The `ws` param is passed straight to `new WebSocket()` by
+  //     StreamReceiverScrcpy, so it must be ws:// scheme.
+  const udid = 'R5KL701HEBN';
+  // This page is opened via file://, so location.host is empty — hard-code
+  // the ws-scrcpy server address.
+  const base = 'http://localhost:8000/';
+  const wsUrl = 'ws://localhost:8000/?action=proxy-adb&remote=tcp:8886&udid=' + encodeURIComponent(udid);
+  const q = new URLSearchParams({
+    action: 'stream', udid: udid, player: 'mse',
+    fitToScreen: 'true', ws: wsUrl,
+  }).toString();
+  document.getElementById('mirror').src = base + '#!' + q;
+</script>
+
+</body>
+</html>
