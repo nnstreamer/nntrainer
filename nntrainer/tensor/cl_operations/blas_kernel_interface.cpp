@@ -29,6 +29,10 @@
 #include <nntrainer_error.h>
 #include <opencl_loader.h>
 #include <qs4cx_tensor.h> // the dropped-payload registry (DROP_PLAIN)
+#include <thread_manager.h>
+#if defined(__aarch64__)
+#include <arm_neon.h>
+#endif
 
 namespace nntrainer {
 // defined in attention_kernels.cpp; declared here rather than
@@ -1186,6 +1190,31 @@ static inline float v8c_h2f(uint16_t h) {
   std::memcpy(&f, &o, 4);
   return f;
 }
+
+/**
+ * @brief fp16 -> fp32 for a whole host readback, on the compute threads.
+ * @details A host-output FC (the LoRA training head) reads its GEMM result
+ *          back as fp16 and widens it here; done element by element on one
+ *          thread this cost 2-4x the GEMM kernel itself (M=576, N=3072:
+ *          1.8M values, ~2.3 ms against 0.8 ms on an Adreno 840).
+ */
+static void v8c_h2f_rows(const uint16_t *src, float *dst, size_t n) {
+  constexpr size_t chunk = size_t(1) << 15;
+  const size_t chunks = (n + chunk - 1) / chunk;
+  ThreadManager::Global().parallel_for(0, chunks, [=](size_t c) {
+    size_t i = c * chunk;
+    const size_t end = std::min(n, i + chunk);
+#if defined(__aarch64__)
+    for (; i + 8 <= end; i += 8) {
+      const float16x8_t h = vreinterpretq_f16_u16(vld1q_u16(src + i));
+      vst1q_f32(dst + i, vcvt_f32_f16(vget_low_f16(h)));
+      vst1q_f32(dst + i + 4, vcvt_high_f32_f16(h));
+    }
+#endif
+    for (; i < end; ++i)
+      dst[i] = v8c_h2f(src[i]);
+  });
+}
 } // anonymous namespace
 
 // Public symbols: the norm->FC quant handoff is reached from the rmsnorm
@@ -2185,18 +2214,23 @@ bool dotCl_v8c(const Tensor &input, const Tensor &weight, Tensor &output) {
         sc.y_fp16, output, (unsigned int)((size_t)M * N),
         output.getDataType() == ml::train::TensorDim::DataType::FP16);
     } else {
-      std::vector<uint16_t> y_host((size_t)M * N);
-      if (opencl::clEnqueueReadBuffer(
-            q, sc.y_fp16, CL_TRUE, 0, sizeof(uint16_t) * y_host.size(),
-            y_host.data(), 0, nullptr, nullptr) != CL_SUCCESS)
+      // grow-only and not value-initialized: the read overwrites it whole
+      static thread_local std::unique_ptr<uint16_t[]> y_host;
+      static thread_local size_t y_host_cap = 0;
+      const size_t y_n = (size_t)M * N;
+      if (y_host_cap < y_n) {
+        y_host.reset(new uint16_t[y_n]);
+        y_host_cap = y_n;
+      }
+      if (opencl::clEnqueueReadBuffer(q, sc.y_fp16, CL_TRUE, 0,
+                                      sizeof(uint16_t) * y_n, y_host.get(), 0,
+                                      nullptr, nullptr) != CL_SUCCESS)
         return false;
       if (output.getDataType() == ml::train::TensorDim::DataType::FP32) {
-        float *out = output.getData<float>();
-        for (size_t i = 0; i < y_host.size(); ++i)
-          out[i] = v8c_h2f(y_host[i]);
+        v8c_h2f_rows(y_host.get(), output.getData<float>(), y_n);
       } else if (output.getDataType() == ml::train::TensorDim::DataType::FP16) {
-        std::memcpy(output.getData<uint8_t>(), y_host.data(),
-                    sizeof(uint16_t) * y_host.size());
+        std::memcpy(output.getData<uint8_t>(), y_host.get(),
+                    sizeof(uint16_t) * y_n);
       } else {
         throw std::runtime_error("unsupported output dtype");
       }
