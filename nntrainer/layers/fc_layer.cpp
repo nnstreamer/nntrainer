@@ -104,9 +104,9 @@ float meanAbs(const std::vector<float> &v) {
 // STE:        the caller (calcDerivative/calcGradient) treats the round in
 //             this function as the identity for gradient purposes; this
 //             function itself only computes the forward value.
-Tensor FullyConnectedLayer::fakeQuantizeQ4_0(const Tensor &x,
-                                             std::vector<float> &block_d,
-                                             bool training) {
+void FullyConnectedLayer::fakeQuantizeQ4_0(const Tensor &x,
+                                           std::vector<float> &block_d,
+                                           bool training, Tensor &x_fq) {
   // x is stored K x N in nntrainer (height=K, width=N).
   const size_t K = x.getDim().height();
   const size_t N = x.getDim().width();
@@ -117,44 +117,72 @@ Tensor FullyConnectedLayer::fakeQuantizeQ4_0(const Tensor &x,
 
   // Blocks run over the N x K linear index nk = b*32+j: n = nk/K, k = nk%K,
   // which is K x N element k*N+n. Raw-pointer loops (the per-element virtual
-  // getValue and std::function dispatch dominated this op).
+  // getValue and std::function dispatch dominated this op), walking (n, k)
+  // with counters instead of a division per element. x_fq is reused across
+  // calls; every element is written below.
   const float *src = x.getData<float>();
-  Tensor x_fq = x.clone();
+  if (x_fq.empty() || x_fq.getDim() != x.getDim())
+    x_fq = Tensor(x.getDim(), true);
   float *dst = x_fq.getData<float>();
 
+  // Blocks and rows are independent: split them over the compute threads
+  // when the tensor is large enough to amortize the wake-up.
+  auto &tm = ThreadManager::Global();
+  const bool par = K * N >= 16384;
+  const float mom = momentum;
+
   if (training) {
-    for (size_t b = 0; b < num_blocks_NK; ++b) {
+    auto calibrate = [=, &block_d](size_t b) {
+      size_t n = (b * 32) / K, k = (b * 32) % K;
       float amax = 0.0f, m = 0.0f;
       for (size_t j = 0; j < 32; ++j) {
-        const size_t nk = b * 32 + j;
-        const float v = src[(nk % K) * N + nk / K];
+        const float v = src[k * N + n];
         if (std::abs(v) > amax) {
           amax = std::abs(v);
           m = v;
         }
+        if (++k == K) {
+          k = 0;
+          ++n;
+        }
       }
       if (amax <= 1e-8f)
-        continue; // all-zero block: keep its scale (0 until it has one)
+        return; // all-zero block: keep its scale (0 until it has one)
       const float fresh = amax / 8.0f;
       const float prev = std::abs(block_d[b]);
       const float mag =
-        prev < 1e-10f ? fresh : (1.0f - momentum) * prev + momentum * fresh;
+        prev < 1e-10f ? fresh : (1.0f - mom) * prev + mom * fresh;
       block_d[b] =
         compute_fp16_to_fp32(compute_fp32_to_fp16(m > 0.0f ? -mag : mag));
-    }
+    };
+    if (par)
+      tm.parallel_for(0, num_blocks_NK, calibrate);
+    else
+      for (size_t b = 0; b < num_blocks_NK; ++b)
+        calibrate(b);
   }
 
-  for (size_t i = 0, total = K * N; i < total; ++i) {
-    const size_t k = i / N;
-    const size_t n = i % N;
-    const float d = block_d[(n * K + k) / 32];
-    if (std::abs(d) < 1e-10f)
-      continue; // x_fq already holds v
-    float q = std::round(dst[i] / d);
-    q = std::max(-8.0f, std::min(7.0f, q));
-    dst[i] = q * d;
-  }
-  return x_fq;
+  const float *bd = block_d.data();
+  auto apply = [=](size_t k) {
+    const float *s_row = src + k * N;
+    float *d_row = dst + k * N;
+    for (size_t n = 0; n < N; ++n) {
+      const float v = s_row[n];
+      const float d = bd[(n * K + k) / 32];
+      if (std::abs(d) < 1e-10f) {
+        d_row[n] = v;
+        continue;
+      }
+      float q = std::round(v / d);
+      q = std::max(-8.0f, std::min(7.0f, q));
+      d_row[n] = q * d;
+    }
+  };
+  if (par)
+    tm.parallel_for(0, K, apply);
+  else
+    for (size_t k = 0; k < K; ++k)
+      apply(k);
 }
 
 void FullyConnectedLayer::gemm(const Tensor &A, const Tensor &B, Tensor &C,
@@ -897,8 +925,8 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
       // Per-block EMA fake-quant: training updates the EMA, validation
       // reads it without updating.
       train_prof::Scope tp_fq("fc.lora_fakequant+stats", train_prof::FWD);
-      a_fq = fakeQuantizeQ4_0(loraA, lora_a_block_d, training);
-      b_fq = fakeQuantizeQ4_0(loraB, lora_b_block_d, training);
+      fakeQuantizeQ4_0(loraA, lora_a_block_d, training, a_fq);
+      fakeQuantizeQ4_0(loraB, lora_b_block_d, training, b_fq);
 
       // Publish the current calibration to the registries so the
       // Application layer can force-feed these scales at save time. Only a

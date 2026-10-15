@@ -257,9 +257,11 @@ private:
    * @param x the FP32 tensor to fake-quantize (loraA or loraB)
    * @param block_d persistent per-block EMA scale storage for this tensor
    * @param training whether to update the EMA (true) or just apply it (false)
+   * @param[out] x_fq the fake-quantized x; (re)allocated to x's shape when it
+   *             does not have it, reused otherwise
    */
-  Tensor fakeQuantizeQ4_0(const Tensor &x, std::vector<float> &block_d,
-                          bool training);
+  void fakeQuantizeQ4_0(const Tensor &x, std::vector<float> &block_d,
+                        bool training, Tensor &x_fq);
 };
 } // namespace nntrainer
 
