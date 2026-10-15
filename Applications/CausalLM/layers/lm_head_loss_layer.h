@@ -118,6 +118,11 @@ private:
   /** the FP32 W's pages were released (staged or release_host_weight): the
    * FP32 head cannot run anymore */
   bool w_released_ = false;
+  /** [PERF-LMHEAD] NNTR_TRAIN_PROF: accumulated ms per stage */
+  double prof_ms_[3] = {0.0, 0.0, 0.0};
+  /** [PERF-LMHEAD] rows and forwards in the current profiling window */
+  size_t prof_rows_ = 0;
+  unsigned int prof_calls_ = 0;
   void buildQ8(const float *w, unsigned int vocab, unsigned int hidden);
 };
 

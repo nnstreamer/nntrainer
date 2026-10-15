@@ -18,9 +18,11 @@
 #include <util_func.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 #include <limits>
 #include <map>
 #include <mutex>
@@ -286,6 +288,13 @@ void LmHeadLossLayer::forwarding(nntrainer::RunLayerContext &context,
     nntrainer::releaseHostPages(w_data, w.getMemoryBytes());
     w_released_ = true;
   }
+  /// [PERF-LMHEAD] NNTR_TRAIN_PROF: where the head's time goes
+  static const bool prof = std::getenv("NNTR_TRAIN_PROF") != nullptr;
+  using clk = std::chrono::steady_clock;
+  auto ms_since = [](clk::time_point t0) {
+    return std::chrono::duration<double, std::milli>(clk::now() - t0).count();
+  };
+  clk::time_point tp0;
   const unsigned int row_major = 0;
   double loss_sum = 0.0;
   std::vector<float> row_loss(chunk);
@@ -297,12 +306,23 @@ void LmHeadLossLayer::forwarding(nntrainer::RunLayerContext &context,
       std::memcpy(x_rows_.data() + (size_t)j * hidden,
                   x_data + (size_t)rows[c0 + j] * hidden,
                   sizeof(float) * hidden);
+    // The int8 GEMM runs rows in groups of 4 and hands a remainder of 1-3
+    // rows to a GEMV each, which streams the whole (vocabulary-sized) weight
+    // once per row. Pad the chunk to a multiple of 4 with zero rows instead;
+    // their results are never read.
+    const unsigned int mg = q8 ? std::min(chunk, (m + 3) / 4 * 4) : m;
+    if (mg > m)
+      std::fill(x_rows_.data() + (size_t)m * hidden,
+                x_rows_.data() + (size_t)mg * hidden, 0.0f);
+
+    if (prof)
+      tp0 = clk::now();
     // logits (m x vocab) = x_rows (m x hidden) . W^T, split over vocab
     float *lg = logits_.data();
     const float *xr = x_rows_.data();
     const unsigned int n_vt = (vocab + VOCAB_PER_TASK - 1) / VOCAB_PER_TASK;
     if (q8) {
-      nntrainer::__ggml_q8_0_4x8_q8_0_GEMM(m, vocab, hidden, xr, hidden,
+      nntrainer::__ggml_q8_0_4x8_q8_0_GEMM(mg, vocab, hidden, xr, hidden,
                                            w_q8_.data(), hidden, lg, vocab);
     } else {
       tm.parallel_for(0, n_vt, [=](size_t t) {
@@ -314,25 +334,26 @@ void LmHeadLossLayer::forwarding(nntrainer::RunLayerContext &context,
       });
     }
 
+    if (prof) {
+      prof_ms_[0] += ms_since(tp0);
+      tp0 = clk::now();
+    }
     // log-softmax per row; when training, overwrite with dL/dlogits
     const unsigned int *tg = targets.data() + c0;
     float *rl = row_loss.data();
     tm.parallel_for(0, m, [=](size_t j) {
       float *row = lg + j * vocab;
-      const float mx = *std::max_element(row, row + vocab);
-      const float target = row[tg[j]];
-      // one exp per logit: keep exp(l - mx) in place, then rescale it into
-      // dL/dlogits = softmax / n (the logits are not needed after this)
-      double sum = 0.0;
-      for (unsigned int v = 0; v < vocab; ++v) {
-        const float e = std::exp(row[v] - mx);
-        row[v] = e;
-        sum += e;
-      }
-      const float lse = mx + static_cast<float>(std::log(sum));
-      rl[j] = lse - target;
+      // softmax in place on the backend's vectorized kernel (the scalar
+      // std::exp over the vocabulary was the cost here); the logits are not
+      // needed after this. loss = -log p(target), floored at the smallest
+      // denormal so a target that underflowed reads as a large finite loss.
+      ops->softmax_fp32(vocab, row, row);
+      const float p_t = row[tg[j]];
+      rl[j] =
+        -std::log(std::max(p_t, std::numeric_limits<float>::denorm_min()));
       if (training) {
-        const float k = static_cast<float>(inv_n / sum);
+        // dL/dlogits = (softmax - onehot) / n
+        const float k = inv_n;
         for (unsigned int v = 0; v < vocab; ++v)
           row[v] *= k;
         row[tg[j]] -= inv_n;
@@ -342,13 +363,18 @@ void LmHeadLossLayer::forwarding(nntrainer::RunLayerContext &context,
       out_data[rows[c0 + j]] = row_loss[j];
       loss_sum += row_loss[j];
     }
+    if (prof) {
+      prof_ms_[1] += ms_since(tp0);
+      tp0 = clk::now();
+    }
+
     if (!training)
       continue;
     // dL/dx_rows (m x hidden) = dL/dlogits (m x vocab) . W, split over hidden
     float *dxr = dx_rows_.data();
     const unsigned int n_ht = (hidden + HIDDEN_PER_TASK - 1) / HIDDEN_PER_TASK;
     if (q8) {
-      nntrainer::__ggml_q8_0_4x8_q8_0_GEMM(m, hidden, vocab, lg, vocab,
+      nntrainer::__ggml_q8_0_4x8_q8_0_GEMM(mg, hidden, vocab, lg, vocab,
                                            wt_q8_.data(), vocab, dxr, hidden);
     } else {
       tm.parallel_for(0, n_ht, [=](size_t t) {
@@ -361,6 +387,20 @@ void LmHeadLossLayer::forwarding(nntrainer::RunLayerContext &context,
     for (unsigned int j = 0; j < m; ++j)
       std::memcpy(dx_.data() + (size_t)rows[c0 + j] * hidden,
                   dx_rows_.data() + (size_t)j * hidden, sizeof(float) * hidden);
+    if (prof)
+      prof_ms_[2] += ms_since(tp0);
+  }
+
+  if (prof && training) {
+    prof_rows_ += rows.size();
+    if (++prof_calls_ % 10 == 0) {
+      std::cout << "[PERF-LMHEAD] avg over 10: rows " << prof_rows_ / 10.0
+                << " logits_gemm " << prof_ms_[0] / 10 << " ms, softmax "
+                << prof_ms_[1] / 10 << " ms, dx_gemm " << prof_ms_[2] / 10
+                << " ms" << std::endl;
+      prof_ms_[0] = prof_ms_[1] = prof_ms_[2] = 0.0;
+      prof_rows_ = 0;
+    }
   }
 
   context.setLoss(static_cast<float>(loss_sum * inv_n));
