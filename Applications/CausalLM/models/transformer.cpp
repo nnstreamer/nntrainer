@@ -806,7 +806,7 @@ void Transformer::load_weight_lora(const std::string &base_path,
   unsigned int matched = 0;
   std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
     apply =
-      [&](ml::train::Layer &, nntrainer::RunLayerContext &context, void *) {
+      [&](ml::train::Layer &l, nntrainer::RunLayerContext &context, void *) {
         for (auto &w : context.getWeights()) {
           const std::string &name = w->getName();
           auto it = base_weights.find(name);
@@ -822,6 +822,17 @@ void Transformer::load_weight_lora(const std::string &base_path,
           if (it != base_weights.end()) {
             nntrainer::Tensor &dst = w->getVariableRef();
             const nntrainer::Tensor &src = *it->second;
+            // A head-only graph's int8 lm_head builds its copies from the
+            // checkpoint's FP32 weight here, so its own vocabulary-sized FP32
+            // W is never filled (it would be released on the first forward).
+            if (HEAD_FROM_LAYER > 0 && l.getType() == LmHeadLossLayer::type &&
+                src.getDataType() == ml::train::TensorDim::DataType::FP32 &&
+                LmHeadLossLayer::stageInt8Weight(
+                  l.getName(), src.getData<float>(), src.getDim().height(),
+                  src.getDim().width())) {
+              ++matched;
+              continue;
+            }
             // A QS4CX record's scale offset depends on the stride the source
             // was loaded at (padded / trimmed, see QS4CX_Tensor::size()); the
             // training graph's tensor starts at the padded default, so carry

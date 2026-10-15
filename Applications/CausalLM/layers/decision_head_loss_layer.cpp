@@ -12,6 +12,7 @@
 #include <decision_head_loss_layer.h>
 
 #include <nntrainer_error.h>
+#include <util_func.h>
 
 #include <algorithm>
 #include <cmath>
@@ -29,7 +30,7 @@ DecisionHeadLossLayer::DecisionHeadLossLayer() :
   Layer(),
   props(nntrainer::props::Unit(), props::LetterIds(),
         props::DecisionObjective(), props::DecisionGroup(),
-        props::DecisionSeed()) {}
+        props::DecisionSeed(), props::ReleaseHostWeight()) {}
 
 void DecisionHeadLossLayer::setProperty(
   const std::vector<std::string> &values) {
@@ -98,11 +99,23 @@ void DecisionHeadLossLayer::forwarding(nntrainer::RunLayerContext &context,
   const unsigned int len = x.getDim().height();
   const unsigned int hidden = x.getDim().width();
   const float *x_data = x.getData<float>();
-  const float *w_data = w.getData<float>();
   float *out_data = out.getData<float>();
   std::fill(out_data, out_data + out.size(), 0.0f);
   if (training)
     dx_.assign((size_t)batch * len * hidden, 0.0f);
+
+  // The head reads LETTERS rows of the frozen W: keep those, and when this
+  // layer owns W (release_host_weight) hand the rest of its pages back.
+  if (letter_w_.empty()) {
+    const float *w_data = w.getData<float>();
+    letter_w_.resize((size_t)LETTERS * hidden);
+    for (unsigned int i = 0; i < LETTERS; ++i)
+      std::memcpy(letter_w_.data() + (size_t)i * hidden,
+                  w_data + (size_t)letter_ids_[i] * hidden,
+                  sizeof(float) * hidden);
+    if (std::get<props::ReleaseHostWeight>(props).get())
+      nntrainer::releaseHostPages(w_data, w.getMemoryBytes());
+  }
 
   if (!context.isLabelAvailable(SINGLE_INOUT_IDX)) {
     context.setLoss(0.0f);
@@ -135,7 +148,7 @@ void DecisionHeadLossLayer::forwarding(nntrainer::RunLayerContext &context,
     // logits of the K declared letters, softmax over them
     double mx = -INFINITY;
     for (unsigned int i = 0; i < k; ++i) {
-      const float *wr = w_data + (size_t)letter_ids_[i] * hidden;
+      const float *wr = letter_w_.data() + (size_t)i * hidden;
       double d = 0.0;
       for (unsigned int j = 0; j < hidden; ++j)
         d += (double)h[j] * wr[j];
@@ -192,7 +205,7 @@ void DecisionHeadLossLayer::forwarding(nntrainer::RunLayerContext &context,
       const double c = dz[i] / batch;
       if (c == 0.0)
         continue;
-      const float *wr = w_data + (size_t)letter_ids_[i] * hidden;
+      const float *wr = letter_w_.data() + (size_t)i * hidden;
       for (unsigned int j = 0; j < hidden; ++j)
         dxr[j] += static_cast<float>(c * wr[j]);
     }

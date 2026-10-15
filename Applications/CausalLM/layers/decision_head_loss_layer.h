@@ -45,6 +45,7 @@
 #endif
 
 #include <base_properties.h>
+#include <causallm_common_properties.h>
 #include <common_properties.h>
 #include <layer_context.h>
 #include <layer_devel.h>
@@ -138,10 +139,14 @@ public:
 
 private:
   std::tuple<nntrainer::props::Unit, props::LetterIds, props::DecisionObjective,
-             props::DecisionGroup, props::DecisionSeed>
+             props::DecisionGroup, props::DecisionSeed,
+             props::ReleaseHostWeight>
     props;
   unsigned int weight_idx = 0;
   std::vector<unsigned int> letter_ids_;
+  /** the letter rows of the frozen W (LETTERS x hidden), copied on the first
+   * forward: the only part of the vocabulary-sized W this head reads */
+  std::vector<float> letter_w_;
   std::mt19937 rng_;
   bool rng_seeded_ = false;
   std::vector<float> dx_; /**< dL/dx from the last training forward */

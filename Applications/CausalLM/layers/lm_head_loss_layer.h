@@ -36,12 +36,14 @@
 #define WIN_EXPORT
 #endif
 
+#include <causallm_common_properties.h>
 #include <common_properties.h>
 #include <layer_context.h>
 #include <layer_devel.h>
 #include <node_exporter.h>
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace causallm {
@@ -55,8 +57,19 @@ public:
   /** @brief Constructor */
   WIN_EXPORT LmHeadLossLayer();
 
-  /** @brief Destructor */
-  WIN_EXPORT ~LmHeadLossLayer() = default;
+  /** @brief Destructor: drop this layer's entry from the staged-int8
+   * registry (a staged copy that no forward adopted) */
+  WIN_EXPORT ~LmHeadLossLayer();
+
+  /**
+   * @brief Build this layer's two int8 copies of W from @a src (the
+   * checkpoint's FP32 weight) ahead of initialization, keyed by @a layer_name.
+   * The layer adopts them on its first forward and never fills its own FP32 W.
+   * @retval false the head will not run as int8 (or NNTR_LMHEAD_KEEP_FP32 is
+   *               set): the caller must load the FP32 weight normally
+   */
+  static bool stageInt8Weight(const std::string &layer_name, const float *src,
+                              unsigned int vocab, unsigned int hidden);
 
   /** @copydoc Layer::finalize(InitLayerContext &context) */
   WIN_EXPORT void finalize(nntrainer::InitLayerContext &context) override;
@@ -90,7 +103,7 @@ public:
   static constexpr const char *type = "lm_head_loss";
 
 private:
-  std::tuple<nntrainer::props::Unit> props;
+  std::tuple<nntrainer::props::Unit, props::ReleaseHostWeight> props;
   unsigned int weight_idx = 0;
   std::vector<float> dx_;     /**< dL/dx from the last training forward */
   std::vector<float> logits_; /**< one chunk of logits / dL/dlogits */
@@ -100,6 +113,11 @@ private:
   std::vector<uint8_t> w_q8_;  /**< W   (vocab x hidden), blocks on hidden */
   std::vector<uint8_t> wt_q8_; /**< W^T (hidden x vocab), blocks on vocab */
   const float *w_q8_src_ = nullptr; /**< the W the copies were built from */
+  /** this layer's name (set in finalize): key into the staged-int8 map */
+  std::string layer_name_;
+  /** the FP32 W's pages were released (staged or release_host_weight): the
+   * FP32 head cannot run anymore */
+  bool w_released_ = false;
   void buildQ8(const float *w, unsigned int vocab, unsigned int hidden);
 };
 

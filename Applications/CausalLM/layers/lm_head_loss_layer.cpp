@@ -15,12 +15,16 @@
 #include <ggml_interface.h>
 #include <nntrainer_error.h>
 #include <thread_manager.h>
+#include <util_func.h>
 
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <limits>
+#include <map>
+#include <mutex>
+#include <string>
 
 namespace causallm {
 
@@ -54,7 +58,8 @@ bool useQ8Head() {
 }
 } // namespace
 
-LmHeadLossLayer::LmHeadLossLayer() : Layer(), props(nntrainer::props::Unit()) {}
+LmHeadLossLayer::LmHeadLossLayer() :
+  Layer(), props(nntrainer::props::Unit(), props::ReleaseHostWeight()) {}
 
 void LmHeadLossLayer::setProperty(const std::vector<std::string> &values) {
   auto remain = nntrainer::loadProperties(values, props);
@@ -85,32 +90,43 @@ void LmHeadLossLayer::finalize(nntrainer::InitLayerContext &context) {
   ml::train::TensorDim w_dim(
     1, 1, vocab, in_dim.width(),
     {context.getFormat(), context.getWeightDataType()});
+  layer_name_ = context.getName();
   weight_idx = context.requestWeight(w_dim, nntrainer::Initializer::NONE,
                                      nntrainer::WeightRegularizer::NONE, 1.0f,
                                      0.0f, "Embedding", /*trainable=*/false);
 }
 
-void LmHeadLossLayer::buildQ8(const float *w, unsigned int vocab,
-                              unsigned int hidden) {
+namespace {
+/**
+ * @brief Build the int8 head's two copies of the frozen W (vocab x hidden):
+ * W as q8_0x4 with blocks along hidden (logits GEMM) and W^T as q8_0x4 with
+ * blocks along vocab (dL/dx GEMM).
+ */
+void buildQ8Copies(const float *w, unsigned int vocab, unsigned int hidden,
+                   std::vector<uint8_t> &w_q8, std::vector<uint8_t> &wt_q8) {
   auto &tm = nntrainer::ThreadManager::Global();
+
+  // The q8_0x4 repack interleaves groups of 4 rows, so each task quantizes
+  // and repacks its own rows straight into place through a task-sized plain
+  // staging buffer: no full-size plain copy (165 MB per matrix for a 151k
+  // vocabulary) next to the FP32 W and the packed result.
 
   // W (vocab x hidden) for the logits GEMM: Q8_0 blocks along hidden.
   {
-    const size_t bytes = (size_t)vocab * (hidden / 32) * Q8_0_BLOCK_BYTES;
-    std::vector<uint8_t> plain(bytes);
     const size_t row_bytes = (size_t)(hidden / 32) * Q8_0_BLOCK_BYTES;
+    w_q8.resize((size_t)vocab * row_bytes);
     constexpr unsigned int rows_per_task = 256;
     tm.parallel_for(
       0, (vocab + rows_per_task - 1) / rows_per_task, [&](size_t t) {
         const size_t v0 = t * rows_per_task;
         const unsigned int nv =
           std::min<unsigned int>(rows_per_task, vocab - (unsigned int)v0);
-        nntrainer::__ggml_quantize_q8_0(
-          w + v0 * hidden, plain.data() + v0 * row_bytes, nv, hidden, nullptr);
+        std::vector<uint8_t> plain((size_t)nv * row_bytes);
+        nntrainer::__ggml_quantize_q8_0(w + v0 * hidden, plain.data(), nv,
+                                        hidden, nullptr);
+        nntrainer::__ggml_repack_q8_0_to_q8_0_4x8(
+          w_q8.data() + v0 * row_bytes, plain.data(), plain.size(), nv, hidden);
       });
-    w_q8_.resize(bytes);
-    nntrainer::__ggml_repack_q8_0_to_q8_0_4x8(w_q8_.data(), plain.data(), bytes,
-                                              vocab, hidden);
   }
 
   // W^T (hidden x vocab) for the dL/dx GEMM: Q8_0 blocks along vocab. W^T
@@ -118,8 +134,7 @@ void LmHeadLossLayer::buildQ8(const float *w, unsigned int vocab,
   // of its rows and quantizes them.
   {
     const size_t row_bytes = (size_t)(vocab / 32) * Q8_0_BLOCK_BYTES;
-    const size_t bytes = (size_t)hidden * row_bytes;
-    std::vector<uint8_t> plain(bytes);
+    wt_q8.resize((size_t)hidden * row_bytes);
     tm.parallel_for(0, hidden / WT_ROWS_PER_TASK, [&](size_t t) {
       const unsigned int h0 = static_cast<unsigned int>(t) * WT_ROWS_PER_TASK;
       std::vector<float> rows((size_t)WT_ROWS_PER_TASK * vocab);
@@ -128,15 +143,59 @@ void LmHeadLossLayer::buildQ8(const float *w, unsigned int vocab,
         for (unsigned int j = 0; j < WT_ROWS_PER_TASK; ++j)
           rows[(size_t)j * vocab + v] = src[j];
       }
-      nntrainer::__ggml_quantize_q8_0(rows.data(),
-                                      plain.data() + h0 * row_bytes,
+      std::vector<uint8_t> plain((size_t)WT_ROWS_PER_TASK * row_bytes);
+      nntrainer::__ggml_quantize_q8_0(rows.data(), plain.data(),
                                       WT_ROWS_PER_TASK, vocab, nullptr);
+      nntrainer::__ggml_repack_q8_0_to_q8_0_4x8(
+        wt_q8.data() + (size_t)h0 * row_bytes, plain.data(), plain.size(),
+        WT_ROWS_PER_TASK, vocab);
     });
-    wt_q8_.resize(bytes);
-    nntrainer::__ggml_repack_q8_0_to_q8_0_4x8(wt_q8_.data(), plain.data(),
-                                              bytes, hidden, vocab);
   }
+}
+
+/** int8 copies staged by LmHeadLossLayer::stageInt8Weight, by layer name */
+struct StagedInt8 {
+  std::vector<uint8_t> w, wt;
+};
+std::mutex &stagedMutex() {
+  static std::mutex m;
+  return m;
+}
+std::map<std::string, StagedInt8> &stagedInt8() {
+  static std::map<std::string, StagedInt8> m;
+  return m;
+}
+
+/** whether a head of this shape runs its GEMMs as int8 (see useQ8Head) */
+bool int8Head(unsigned int vocab, unsigned int hidden) {
+  return useQ8Head() && hidden % 32 == 0 && vocab % 32 == 0 &&
+         hidden % WT_ROWS_PER_TASK == 0 && vocab % 4 == 0;
+}
+} // namespace
+
+void LmHeadLossLayer::buildQ8(const float *w, unsigned int vocab,
+                              unsigned int hidden) {
+  buildQ8Copies(w, vocab, hidden, w_q8_, wt_q8_);
   w_q8_src_ = w;
+}
+
+bool LmHeadLossLayer::stageInt8Weight(const std::string &layer_name,
+                                      const float *src, unsigned int vocab,
+                                      unsigned int hidden) {
+  if (!int8Head(vocab, hidden) ||
+      std::getenv("NNTR_LMHEAD_KEEP_FP32") != nullptr)
+    return false;
+  StagedInt8 staged;
+  buildQ8Copies(src, vocab, hidden, staged.w, staged.wt);
+  std::lock_guard<std::mutex> lock(stagedMutex());
+  stagedInt8()[layer_name] = std::move(staged);
+  return true;
+}
+
+LmHeadLossLayer::~LmHeadLossLayer() {
+  // a staged copy that no forward adopted (e.g. the run stopped first)
+  std::lock_guard<std::mutex> lock(stagedMutex());
+  stagedInt8().erase(layer_name_);
 }
 
 void LmHeadLossLayer::forwarding(nntrainer::RunLayerContext &context,
@@ -196,10 +255,37 @@ void LmHeadLossLayer::forwarding(nntrainer::RunLayerContext &context,
   auto &tm = nntrainer::ThreadManager::Global();
   // The weight is frozen (tied embedding, never trained here), so its int8
   // copies are built once and reused; rebuilt only if the buffer moves.
-  const bool q8 = useQ8Head() && hidden % 32 == 0 && vocab % 32 == 0 &&
-                  hidden % WT_ROWS_PER_TASK == 0 && vocab % 4 == 0;
-  if (q8 && w_q8_src_ != w_data)
+  // Copies staged at load (stageInt8Weight) were built from the checkpoint
+  // directly: W itself was never filled, so it counts as released.
+  if (w_q8_.empty() && !w_released_) {
+    std::lock_guard<std::mutex> lock(stagedMutex());
+    auto it = stagedInt8().find(layer_name_);
+    if (it != stagedInt8().end()) {
+      w_q8_ = std::move(it->second.w);
+      wt_q8_ = std::move(it->second.wt);
+      stagedInt8().erase(it);
+      w_q8_src_ = w_data;
+      w_released_ = true;
+      nntrainer::releaseHostPages(w_data, w.getMemoryBytes());
+    }
+  }
+  const bool q8 = int8Head(vocab, hidden);
+  NNTR_THROW_IF(!q8 && w_released_, std::runtime_error)
+    << "[lm_head_loss] the FP32 weight was released after the int8 head was "
+       "built; the FP32 head cannot run (NNTR_LMHEAD_Q8=0 needs "
+       "NNTR_LMHEAD_KEEP_FP32=1)";
+  // Once W is released its address no longer names the weight's contents;
+  // the copies built from it stay valid (W is frozen).
+  if (q8 && !w_released_ && w_q8_src_ != w_data)
     buildQ8(w_data, vocab, hidden);
+  // The int8 copies are all the head reads from now on. When this layer owns
+  // W (release_host_weight: nothing else, e.g. a tied embedding, reads it),
+  // its FP32 pages are a dead third copy of the vocabulary-sized weight.
+  if (q8 && !w_released_ && std::get<props::ReleaseHostWeight>(props).get() &&
+      std::getenv("NNTR_LMHEAD_KEEP_FP32") == nullptr) {
+    nntrainer::releaseHostPages(w_data, w.getMemoryBytes());
+    w_released_ = true;
+  }
   const unsigned int row_major = 0;
   double loss_sum = 0.0;
   std::vector<float> row_loss(chunk);
@@ -211,7 +297,6 @@ void LmHeadLossLayer::forwarding(nntrainer::RunLayerContext &context,
       std::memcpy(x_rows_.data() + (size_t)j * hidden,
                   x_data + (size_t)rows[c0 + j] * hidden,
                   sizeof(float) * hidden);
-
     // logits (m x vocab) = x_rows (m x hidden) . W^T, split over vocab
     float *lg = logits_.data();
     const float *xr = x_rows_.data();
@@ -257,7 +342,6 @@ void LmHeadLossLayer::forwarding(nntrainer::RunLayerContext &context,
       out_data[rows[c0 + j]] = row_loss[j];
       loss_sum += row_loss[j];
     }
-
     if (!training)
       continue;
     // dL/dx_rows (m x hidden) = dL/dlogits (m x vocab) . W, split over hidden

@@ -968,8 +968,12 @@ Tensor CausalLM::buildLmHeadOutput(Tensor h, bool add_skip_prefill) {
       withKey("weight_dtype", LMHEAD_DTYPE), withKey("engine", layerEngine()),
       withKey("trainable", "false"),
     };
+    // A head-only graph has no embedding: the head owns W and may release
+    // its host copy once it has built what it reads (see the loss layers).
     if (HEAD_FROM_LAYER == 0)
       props.emplace_back(withKey("shared_from", "embedding0"));
+    else
+      props.emplace_back(withKey("release_host_weight", "true"));
     if (TRAIN_TASK == "decision") {
       NNTR_THROW_IF(DECISION_LETTER_IDS.empty(), std::invalid_argument)
         << "decision task without letter ids (see setDecisionTask())";

@@ -80,6 +80,17 @@ public:
 };
 
 /**
+ * @brief The layer owns its (frozen) weight -- nothing shares it -- and may
+ * release the weight's host pages once it holds everything it reads from it.
+ */
+class ReleaseHostWeight : public nntrainer::Property<bool> {
+public:
+  static constexpr const char *key = "release_host_weight";
+  using prop_tag = nntrainer::bool_prop_tag;
+  ReleaseHostWeight(bool value = false) { set(value); }
+};
+
+/**
  * @brief UseGamma property for RMSNorm scale usage.
  */
 class UseGamma : public nntrainer::Property<bool> {
