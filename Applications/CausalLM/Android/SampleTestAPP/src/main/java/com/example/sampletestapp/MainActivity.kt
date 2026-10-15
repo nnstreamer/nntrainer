@@ -242,21 +242,28 @@ class MainActivity : AppCompatActivity() {
     private var outputScrollY = 0
 
     // ── Train tab state ──────────────────────────────────────────────────
-    private var trainModelPath: String = "/sdcard/q_qs4"
+    private var trainModelPath: String = "/sdcard/q_rlcd_qs4"
     /** GPU-trunk / CPU-head hybrid: frozen layers run on the GPU from this
      *  QS4CX-FP16 model dir, the LoRA layers train on the CPU. */
     private var trainHybrid: Boolean = true
-    private var trainTrunkPath: String = "/sdcard/q_qs4_gpu"
+    private var trainTrunkPath: String = "/sdcard/q_rlcd_qs4_gpu"
     private var trainLastIterNs: Long = 0L
     private val trainIterMs = ArrayDeque<Double>()
-    private var trainDataPath: String = "/sdcard/t.txt"
-    private var trainLr: String = "1e-4"
+    private var trainDataPath: String = "/sdcard/u02_train.jsonl"
+    /** separate validation JSONL (empty: validate on the training data when
+     *  --validate-style validation is on); implies the validation pass */
+    private var trainValidDataPath: String = ""
+    /** stop early after N epochs without a validation improvement (0 = off) */
+    private var trainPatience: String = "0"
+    private var trainLr: String = "2e-4"
     private var trainEpochs: String = "5"
     private var trainBatchSize: String = "1"
     /** "lm" (text lines, next-token loss) or "decision" (decision-model
-     *  JSONL questions); objective sft | rlcd | rlvr for "decision". */
-    private var trainTask: String = "lm"
-    private var trainObjective: String = "sft"
+     *  JSONL questions); objective sft | soft | rlcd | rlvr for "decision".
+     *  Defaults are the personalization demo's settings: the decision task,
+     *  soft-target CE, the /sdcard/q_rlcd_qs4 pack, the full train file. */
+    private var trainTask: String = "decision"
+    private var trainObjective: String = "soft"
     /** (trainLora() value, dropdown label) */
     private val TRAIN_TASKS = listOf(
         "lm" to "Language model — text lines, next-token loss",
@@ -264,13 +271,14 @@ class MainActivity : AppCompatActivity() {
         "decision" to "Decision model — JSONL questions")
     private val TRAIN_OBJECTIVES = listOf(
         "sft" to "SFT — supervised on the answer",
+        "soft" to "Soft — target distribution CE",
         "rlcd" to "RLCD — RL, reward correct − p",
         "rlvr" to "RLVR — RL, reward correct")
-    private var trainSeqLen: String = "128"
+    private var trainSeqLen: String = "256"
     private var trainLoraRank: String = "8"
     private var trainLoraAlpha: String = "16"
     private var trainLoraLastN: String = "7"
-    private var trainMaxSamples: String = "50"
+    private var trainMaxSamples: String = "0"
     private var trainClipGrad: String = "1.0"
     private var trainQatEnabled: Boolean = true
     private var trainWeightQ4: Boolean = true
@@ -893,6 +901,9 @@ class MainActivity : AppCompatActivity() {
             content.addView(labelView(t, "TRAINING DATA"))
             content.addView(roundedEditText(t, trainDataPath, mono = true) { trainDataPath = it })
             spacer(content, 8)
+            content.addView(labelView(t, "VALIDATION DATA (optional, implies validate)"))
+            content.addView(roundedEditText(t, trainValidDataPath, mono = true) { trainValidDataPath = it })
+            spacer(content, 8)
             val r1 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             r1.addView(labeledColumn(t, "LR", roundedEditText(t, trainLr, mono = true) { trainLr = it }, 1f))
             spacerH(r1, 8); r1.addView(labeledColumn(t, "EPOCHS", roundedEditText(t, trainEpochs, mono = true) { trainEpochs = it }, 1f))
@@ -908,17 +919,47 @@ class MainActivity : AppCompatActivity() {
                 when (trainTask) {
                     "decision" -> {
                         trainModelPath = "/sdcard/q_rlcd_qs4"
-                        trainDataPath = "/sdcard/rlcd_triage.jsonl"
+                        trainDataPath = "/sdcard/u02_train.jsonl"
+                        trainValidDataPath = ""
                         trainTrunkPath = "/sdcard/q_rlcd_qs4_gpu"
+                        // the personalization demo's soft-target CE
+                        // (docs/02_TRAINING.md's objective; demo runs at
+                        // rank 8 — see below)
+                        trainObjective = "soft"
+                        // demo-scale knobs of the package's conditions:
+                        // rank 8 / alpha 16 / last 7 blocks / batch 1 /
+                        // seq 256 — the loader keeps each prompt's tail
+                        // (question, options, most recent context) and the
+                        // readout sits on the last prompt token, so training
+                        // still works; the older screen context is cut
+                        trainLoraRank = "8"
+                        trainLoraAlpha = "16"
+                        trainLoraLastN = "7"
+                        trainBatchSize = "1"
+                        trainSeqLen = "256"
+                        trainLr = "2e-4"
+                        // 0 = the full 384-row train file; RESUME continues
+                        // a run, PATIENCE adds early stopping.
+                        trainMaxSamples = "0"
+                        trainEpochs = "5"
+                        trainPatience = "0"
+                        // preload the demo's TEST prompt (a map_trip
+                        // question, ~311 tokens): far too long to type, and
+                        // adb input mangles newlines and Korean. Generic
+                        // path — push the target user's prompt there.
+                        val pf = java.io.File("/sdcard/test_prompt.txt")
+                        if (pf.exists()) testPromptText = pf.readText()
                     }
                     "lm35" -> {
                         trainModelPath = "/sdcard/q35_qs4"
                         trainDataPath = "/sdcard/t.txt"
+                        trainValidDataPath = ""
                         trainTrunkPath = "/sdcard/q35_qs4_gpu"
                     }
                     else -> {
                         trainModelPath = "/sdcard/q_qs4"
                         trainDataPath = "/sdcard/t.txt"
+                        trainValidDataPath = ""
                         trainTrunkPath = "/sdcard/q_qs4_gpu"
                     }
                 }
@@ -953,6 +994,7 @@ class MainActivity : AppCompatActivity() {
             val r5 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             r5.addView(labeledColumn(t, "OUTPUT (blank=default)", roundedEditText(t, trainOutputPath, mono = true) { trainOutputPath = it }, 2f))
             spacerH(r5, 8); r5.addView(labeledColumn(t, "SEED", roundedEditText(t, trainSeed, mono = true) { trainSeed = it }, 1f))
+            spacerH(r5, 8); r5.addView(labeledColumn(t, "PATIENCE", roundedEditText(t, trainPatience, mono = true) { trainPatience = it }, 1f))
             content.addView(r5); spacer(content, 8)
             content.addView(labelView(t, "RESUME LORA PATH (optional)"))
             content.addView(roundedEditText(t, trainResumePath, mono = true) { trainResumePath = it })
@@ -1063,12 +1105,51 @@ class MainActivity : AppCompatActivity() {
             LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
         card.addView(cols)
         spacer(card, 8)
+        // Scenario chips: the personalization demo's four situations, each a
+        // full pre-tokenized prompt from the package's device_io test rows.
+        // Tapping one replaces the prompt with a question that exposes the
+        // user's learned pattern (e.g. u03 defers non-urgent payments and
+        // returns to YouTube) — the base model misses it, the trained
+        // adapter picks the user's app. Files live at
+        // /sdcard/demo_prompts/<name>.txt; push the demo user's set there.
+        card.addView(labelView(t, "SCENARIOS (tap to load the prompt)"))
+        val chips = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        chips.addView(makeScenarioChip(t, "🗺 지도", "1_map"))
+        spacerH(chips, 6)
+        chips.addView(makeScenarioChip(t, "💳 송금", "2_pay"))
+        spacerH(chips, 6)
+        chips.addView(makeScenarioChip(t, "👤 요청", "3_contact"))
+        spacerH(chips, 6)
+        chips.addView(makeScenarioChip(t, "📅 일정", "4_meeting"))
+        card.addView(chips)
+        spacer(card, 8)
         card.addView(labelView(t, "PROMPT"))
         testPromptField = roundedEditText(t, testPromptText, multiline = true,
             rows = 2) { testPromptText = it }
         card.addView(testPromptField)
         return card
     }
+
+    /** A scenario chip: loads /sdcard/demo_prompts/<name>.txt into the
+     *  TEST prompt when present, else shows a note in the prompt box. */
+    private fun makeScenarioChip(t: M3Tokens, label: String, name: String): View =
+        TextView(this).apply {
+            text = label
+            textSize = 12f
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            setTextColor(t.onSurface)
+            background = strokedSolid(t.secondaryContainer, 100,
+                t.outline, 1)
+            setPadding(dp(12), dp(7), dp(12), dp(7))
+            setOnClickListener {
+                val f = java.io.File("/sdcard/demo_prompts/$name.txt")
+                testPromptText = if (f.exists()) f.readText()
+                else "(/sdcard/demo_prompts/$name.txt 없음 — 데모 프롬프트를 푸시하세요)"
+                if (::testPromptField.isInitialized)
+                    testPromptField.setText(testPromptText)
+            }
+        }
 
     private fun buildTrainChartPanel(t: M3Tokens): View {
         val card = roundedCard(t, t.surfaceContainerHigh)
@@ -2804,6 +2885,9 @@ class MainActivity : AppCompatActivity() {
         sb.append(",\"lora_qat\":").append(trainQatEnabled)
         sb.append(",\"lora_weight_q4\":").append(trainWeightQ4)
         sb.append(",\"seed\":").append(trainSeed.trim().toIntOrNull() ?: 42)
+        if (trainValidDataPath.trim().isNotEmpty())
+            sb.append(",\"valid_data\":\"").append(escapeJson(trainValidDataPath.trim())).append('"')
+        sb.append(",\"patience\":").append(trainPatience.trim().toIntOrNull() ?: 0)
         val out = trainOutputPath.trim()
         if (out.isNotEmpty()) sb.append(",\"output_path\":\"").append(escapeJson(out)).append('"')
         val resume = trainResumePath.trim()
