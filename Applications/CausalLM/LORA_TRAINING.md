@@ -505,6 +505,18 @@ device declines runs on the CPU table exactly as before.
 | `NNTR_TRAIN_GPU_MIN_WORK` | smallest `M*N*K` sent to the device (default `2^26`: only the frozen-weight input-derivative GEMMs; the rank-32 adapter matmuls are ~10x slower on the device than on the CPU table) |
 | `NNTR_TRAIN_GPU_CHECK=1` | also run every offloaded GEMM on the CPU and log the relative error and both timings; `=2` additionally copies the CPU result back (isolates the effect of the GPU values) |
 | `NNTR_TRAIN_GPU_PROF=1` | log stage / dispatch / wait+read time per device GEMM |
+| `NNTR_TRAIN_BASE_GPU=1` | route the frozen QS4CX base-weight **forward** GEMM of every host FC through the GPU v8c int8 x int4 kernel (the GPU trunk's kernel; default off, needs a live `gpu` context). While active, the payload-release levers `NNTR_V8C_DROP_PLAIN` and `NNTR_TRAIN_DROP_PLAIN` are forced off: a training step still reads those pages after the first offloaded forward (step 1's dX transposed copy is built from them), and the released pages read as zeros -- the loss then pins at the degenerate constant from step 2 on, with no crash and no mismatch in the forward output itself. |
+| `NNTR_TRAIN_BASE_GPU_CHECK=0` | disable the self-check latch (default on): the first 8 offloaded GEMMs are cross-checked against the host dot and, on a mismatch -- or when the reference itself reads a released payload -- the GPU base path latches off for the process with a log line. `NNTR_TRAIN_BASE_GPU_CHECK=N` (N>8) checks N calls instead. |
+
+The base-weight switch is opt-in because, measured on SM-S948N (Qwen3-0.6B
+QS4CX, rank 8, seq 128), it does not pay off for training today: the round
+trip (FP32 activation upload, fp16 result readback) makes
+`fc.base_fwd.lora` roughly 5x slower than the host i8mm kernel (98 vs
+19 ms per iteration at plateau) and the epoch roughly 2x slower end to end
+(59-67 s vs 22-31 s over 90 samples) -- in inference the kernel wins because
+the activations already live on the device. With the payload levers forced
+off (see above) the loss trajectory matches the host path within the int8
+activation quantisation noise (final train loss 1.96493 vs 1.96309).
 
 Measured on SM-S918N (Adreno 740), Qwen3-0.6B Q4_0, rank 32, QAT, seq 192,
 12 samples, 1 epoch:

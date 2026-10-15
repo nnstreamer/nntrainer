@@ -25,6 +25,7 @@
 
 #include <common_properties.h>
 #include <compute_ops.h>
+#include <engine.h>
 #include <fc_layer.h>
 #include <fp16.h>
 #include <ggml_interface.h>
@@ -845,6 +846,126 @@ bool useQ8Dx() {
   return on;
 }
 
+#if defined(ENABLE_OPENCL)
+/** @brief Whether a host FC's frozen QS4CX base-weight forward GEMM is
+ *         routed to the GPU. NNTR_TRAIN_BASE_GPU opts in; the context
+ *         check runs per call, so a CPU-engine process keeps the host dot
+ *         even with the env set. */
+bool baseGemmGpuOn() {
+  static const bool opt_in = [] {
+    const char *e = std::getenv("NNTR_TRAIN_BASE_GPU");
+    return e != nullptr && e[0] != '0';
+  }();
+  return opt_in && Engine::Global().isContextRegistered("gpu");
+}
+#endif
+
+/**
+ * @brief Run the training base-weight GEMM (FP32 activation x QS4CX weight)
+ *        on the GPU through the v8c int8 x int4 kernel the GPU trunk uses.
+ *
+ * ClComputeOps::fc first tries dotCl_v8c and, when the device declines
+ * (shape outside the kernel's alignment, path switched off), runs the
+ * same-shape host dot the layer would have run -- so a true return always
+ * means @p output was produced and the caller has nothing left to do. The
+ * layer's own dot stays reachable via the false return (feature off,
+ * non-QS4CX weight).
+ */
+bool baseGemmGpu(Tensor &input, Tensor &weight, Tensor &output) {
+#if defined(ENABLE_OPENCL)
+  if (!baseGemmGpuOn() || weight.getDataType() != TensorDim::DataType::QS4CX)
+    return false;
+  // one-shot announcement: the switch is otherwise silent, and the only
+  // trace of the dispatch is v8c kernel/weight-build lines in logcat.
+  static const bool announced = [] {
+    // The v8c weight build releases the plain QS4CX pages after its repack
+    // (the Android default) and the KAI dX backward releases them after its
+    // own build -- but a training run still reads those pages in between:
+    // step 1's dX transposed copy is built from the payload AFTER the first
+    // offloaded forward has already dropped it, which silently zeroed every
+    // head dX (loss pinned at the degenerate constant). While the offload is
+    // active both release levers stay off; the head payload cost is a few
+    // tens of MB.
+    nntr_setenv("NNTR_V8C_DROP_PLAIN", "0", 1);
+    nntr_setenv("NNTR_TRAIN_DROP_PLAIN", "0", 1);
+    std::cout << "[fc] NNTR_TRAIN_BASE_GPU: frozen base-weight GEMMs run on "
+                 "the GPU (v8c int8 x int4); plain payload kept resident"
+              << std::endl;
+    return true;
+  }();
+  (void)announced;
+  // Self-verification: the v8c kernels are exercised in inference with FP16
+  // activations on device-resident tensors; a training call is the first
+  // user of their FP32-activation branch on host/SVM training tensors, and a
+  // wrong output here poisons the loss with no crash to point at (measured:
+  // loss pinned at ~103 while the same run on the host dot trains to ~2).
+  // So the first calls are checked against the host dot -- the same kernel
+  // the caller would run -- and any mismatch latches the GPU path off for
+  // the process. Layer execution is sequential, so plain statics are enough.
+  static const int checks_total = [] {
+    const char *e = std::getenv("NNTR_TRAIN_BASE_GPU_CHECK");
+    if (e == nullptr)
+      return 8; // default on
+    if (e[0] == '0' && e[1] == '\0')
+      return 0;
+    const int n = std::atoi(e);
+    return n > 0 ? n : 8;
+  }();
+  static bool gpu_ok = true;
+  static int checks_left = checks_total;
+  if (!gpu_ok)
+    return false;
+  if (checks_left > 0) {
+    const int call_idx = checks_total - checks_left;
+    --checks_left;
+    Tensor ref(output.getDim());
+    input.dot(weight, ref, false, false);
+    get_cl_ops()->fc(input, weight, output);
+    const float *r = ref.getData<float>();
+    const float *q = output.getData<float>();
+    double num = 0, den = 0;
+    for (size_t i = 0; i < ref.size(); ++i) {
+      const double e = (double)q[i] - (double)r[i];
+      num += e * e;
+      den += (double)r[i] * r[i];
+    }
+    // den == 0 means the REFERENCE read zeros -- the weight's plain QS4CX
+    // pages were released by a drop lever and the host dot multiplied an
+    // empty page, so there is nothing to verify against. A pass here would
+    // be vacuous; treat it as the failure it is.
+    if (!(den > 0)) {
+      gpu_ok = false;
+      std::cout << "[fc] NNTR_TRAIN_BASE_GPU: reference GEMM read a zero "
+                << "payload (released plain pages?) on " << weight.getName()
+                << "; disabling the GPU base path for this run" << std::endl;
+      return false;
+    }
+    const double rel = std::sqrt(num / den);
+    // the int8 activation quantisation alone is worth ~1e-3 relative; a
+    // staging or layout defect shows up two orders of magnitude above it
+    if (rel > 0.05) {
+      gpu_ok = false;
+      std::cout << "[fc] NNTR_TRAIN_BASE_GPU: device GEMM output mismatch, "
+                << "call#" << call_idx << " rel_l2=" << rel << " on "
+                << weight.getName()
+                << "; disabling the GPU base path for this run" << std::endl;
+      return false;
+    }
+    if (checks_left == 0)
+      std::cout << "[fc] NNTR_TRAIN_BASE_GPU: device GEMM verified over "
+                << checks_total << " calls, last rel_l2=" << rel << std::endl;
+    return true;
+  }
+  get_cl_ops()->fc(input, weight, output);
+  return true;
+#else
+  (void)input;
+  (void)weight;
+  (void)output;
+  return false;
+#endif
+}
+
 } // namespace
 
 void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
@@ -872,6 +993,9 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
       Tensor weight_arena_view;
       dequantizeToArena(weight, *quantizer, weight_arena_view);
       input_.dot(weight_arena_view, hidden_, false, false);
+    } else if (baseGemmGpu(input_, weight, hidden_)) {
+      // the frozen int4 base GEMM ran through the GPU v8c kernel (with fc's
+      // same-shape host dot as the in-call fallback) and produced hidden_
     } else {
       input_.dot(weight, hidden_, false, false);
     }
