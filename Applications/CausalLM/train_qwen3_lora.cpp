@@ -269,10 +269,11 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
       nntr_cfg["lora_alpha"] = nntr_cfg["lora_rank"].get<unsigned int>() * 2;
 
     if (!nntr_cfg.contains("lora_target") || nntr_cfg["lora_target"].empty())
-      nntr_cfg["lora_target"] = std::vector<std::string>{
-        "wq",    "wk",         "wv",         "wo",      "ffn_up",
-        "ffn_gate", "ffn_down", "wgate", "linattn_in_qkv", "linattn_in_z",
-        "linattn_out"};
+      nntr_cfg["lora_target"] =
+        std::vector<std::string>{"wq",           "wk",         "wv",
+                                 "wo",           "ffn_up",     "ffn_gate",
+                                 "ffn_down",     "wgate",      "linattn_in_qkv",
+                                 "linattn_in_z", "linattn_out"};
 
     if (params.lora_last_n)
       nntr_cfg["lora_last_n_layers"] = params.lora_last_n;
@@ -352,9 +353,8 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
     // factory instance.
     const std::string architecture = resolveTrainingArchitecture(cfg);
     registerAllModels();
-    auto model_uptr =
-      causallm::Factory::Instance().create(architecture, cfg, generation_cfg,
-                                           nntr_cfg);
+    auto model_uptr = causallm::Factory::Instance().create(
+      architecture, cfg, generation_cfg, nntr_cfg);
     NNTR_THROW_IF(!model_uptr, std::invalid_argument)
       << "unsupported architecture for LoRA training: " << architecture
       << " (register it in model_registry.cpp / quantize.cpp)";
@@ -374,7 +374,13 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
         throw std::invalid_argument(
           "--hybrid_trunk needs --lora_last_n < num_hidden_layers");
       model.setHeadFromLayer(trunk_layers);
-
+    }
+    // The trunk is loaded after the head's weights (load_trunk below):
+    // load_weight_lora() builds and destroys a throwaway base model, and a
+    // model teardown clears the process-wide GPU weight caches. A trunk loaded
+    // before it would lose its device packs and have to rebuild them from its
+    // plain QS4CX payloads, which the GPU path releases after the first build.
+    auto load_trunk = [&]() {
       const std::string &td = params.hybrid_trunk_path;
       causallm::json tcfg = causallm::LoadJsonFile(td + "/config.json");
       causallm::json tgen = causallm::json::object();
@@ -387,11 +393,6 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
       // the GPU attention arms (see README_GPU.md); an explicit setting wins
       setenv("NNTR_MHA_GPU", "1", 0);
       setenv("NNTR_KV_IMG_ATTN", "1", 0);
-      // Keep the trunk's QS4CX host payload: with it released after the
-      // device repack, the first trunk prefill trips the v8c weight-cache
-      // rebuild guard (refuseIfQs4cxPayloadDropped). Costs one host copy of
-      // the trunk FC weights.
-      setenv("NNTR_V8C_DROP_PLAIN", "0", 0);
       trunk = causallm::Factory::Instance().create(
         resolveTrainingArchitecture(tcfg), tcfg, tgen, tnntr);
       NNTR_THROW_IF(!trunk, std::invalid_argument)
@@ -408,7 +409,7 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
       std::cout << "hybrid:       GPU trunk blocks [0, " << trunk_layers
                 << ") from " << td << ", CPU head blocks [" << trunk_layers
                 << ", ...)" << std::endl;
-    }
+    };
 
     const bool decision = params.task == "decision";
     // "lm35" is the Qwen3.5 demo of the same language-model task (the
@@ -434,6 +435,8 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
     const std::string weight_file =
       model_path + "/" + nntr_cfg["model_file_name"].get<std::string>();
     model.load_weight_lora(weight_file, params.resume_lora_path);
+    if (hybrid)
+      load_trunk();
 
     auto *tokenizer = model.getTokenizer();
     if (tokenizer == nullptr)

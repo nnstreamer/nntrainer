@@ -1041,8 +1041,7 @@ static V8cWeightEntry *v8c_get_or_build_weight(const Tensor &weight,
   {
     // Resolved per call, NOT latched: qs4cxDropPlainOn() is per-call now, and
     // an earlier model in the same process must not pin this arm's decision
-    // (train_qwen3_lora turns the drop off for its trunk load after a plain
-    // inference has already run).
+    // (an application may turn the drop off for a later load).
     const bool drop_plain = qs4cxDropPlainOn();
     // Announce the resolved decision on every CHANGE. The drop is otherwise
     // invisible in a run log -- same outputs, same caches, only the residency

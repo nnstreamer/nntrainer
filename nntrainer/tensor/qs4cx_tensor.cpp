@@ -540,12 +540,12 @@ void refuseIfQs4cxPayloadDropped(const void *payload, const char *who) {
 bool qs4cxHeapBypassOn() {
   // Re-resolved per call, NOT latched: this decision gates allocator and
   // residency behaviour PER MODEL, and an application can legitimately change
-  // the env between two models in one process. train_qwen3_lora sets
-  // NNTR_V8C_DROP_PLAIN=0 before its hybrid trunk load so the CPU head can
-  // read those weights on the host; a plain inference run first in the same
-  // process used to latch the Android default ON here, the training load
-  // inherited it, and its host consumers then read a payload the loader had
-  // never filled (first-iteration NaN loss, silent). getenv is a string
+  // the env between two models in one process. When an application set
+  // NNTR_V8C_DROP_PLAIN=0 before a load whose weights it reads on the host,
+  // a plain inference run first in the same process used to latch the
+  // Android default ON here, the later load inherited it, and its host
+  // consumers then read a payload the loader had never filled
+  // (first-iteration NaN loss, silent). getenv is a string
   // lookup; the cost is noise next to the allocations and uploads this
   // decision gates.
   const char *e = std::getenv("NNTR_QS4CX_HEAP_BYPASS");

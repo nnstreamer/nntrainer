@@ -430,9 +430,9 @@ void refuseIfQs4cxPayloadDropped(const void *payload, const char *who);
  *
  * Re-resolved on every call, NOT latched for the process: the decision gates
  * allocator and residency behaviour per model load, and an application can
- * change the variable between two loads in one process (train_qwen3_lora
- * turns the drop off for its hybrid trunk load after a plain inference has
- * already run -- a latched answer silently broke that run).
+ * change the variable between two loads in one process (turning the drop off
+ * for a load after a plain inference has already run -- a latched answer
+ * silently broke such a run).
  */
 bool qs4cxHeapBypassOn();
 
