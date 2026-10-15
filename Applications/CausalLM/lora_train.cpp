@@ -271,6 +271,13 @@ void TrainingDataGenerator::setSeqLen(unsigned int seq_len) {
   seq_len_ = seq_len;
 }
 
+void TrainingDataGenerator::setInputCache(size_t row_width,
+                                          size_t budget_bytes) {
+  cache_row_width_ = row_width;
+  cache_budget_ = budget_bytes;
+  input_cache_.assign(samples_.size(), {});
+}
+
 void TrainingDataGenerator::reshuffle() {
   std::shuffle(index_order_.begin(), index_order_.end(), rng_);
   cursor_ = 0;
@@ -298,7 +305,20 @@ int TrainingDataGenerator::next(float **input, float **label, bool *last) {
     }
   }
   if (input_writer) {
-    input_writer(s.ids.data(), used, input[0]);
+    const size_t idx = index_order_[cursor_];
+    const size_t n = (size_t)used * cache_row_width_;
+    if (cache_row_width_ && !input_cache_[idx].empty()) {
+      // a kept sample: the writer would produce these very rows again
+      std::copy(input_cache_[idx].begin(), input_cache_[idx].end(), input[0]);
+      std::fill(input[0] + n, input[0] + (size_t)seq_len_ * cache_row_width_,
+                0.0f);
+    } else {
+      input_writer(s.ids.data(), used, input[0]);
+      if (cache_row_width_ && n * sizeof(float) <= cache_budget_) {
+        input_cache_[idx].assign(input[0], input[0] + n);
+        cache_budget_ -= n * sizeof(float);
+      }
+    }
   } else {
     float *in = input[0];
     std::fill(in, in + seq_len_, 0.0f);

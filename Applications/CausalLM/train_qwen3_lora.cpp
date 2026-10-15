@@ -579,6 +579,21 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
           acc = 0;
         }
       };
+      // The trunk's blocks are frozen and a sample's ids never change, so
+      // its hidden state is the same in every epoch: keep it after the first
+      // epoch instead of running the GPU trunk again. Besides the trunk time
+      // this takes the trunk's contention off the CPU head (its host threads
+      // and the first batch of each epoch waiting for the trunk to fill it).
+      // NNTR_TRAIN_TRUNK_CACHE_MB caps the kept bytes per generator (default
+      // 256; 0 = off); samples past the cap run the trunk as before.
+      const size_t cache_mb = [] {
+        const char *e = std::getenv("NNTR_TRAIN_TRUNK_CACHE_MB");
+        return e ? static_cast<size_t>(std::strtoull(e, nullptr, 10))
+                 : size_t(256);
+      }();
+      data_gen->setInputCache(t->getHiddenDim(), cache_mb << 20);
+      if (valid_gen)
+        valid_gen->setInputCache(t->getHiddenDim(), cache_mb << 20);
     }
 
     std::shared_ptr<ml::train::Dataset> dataset = ml::train::createDataset(

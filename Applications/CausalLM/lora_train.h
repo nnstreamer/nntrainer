@@ -114,6 +114,18 @@ public:
    */
   void setSeqLen(unsigned int seq_len);
 
+  /**
+   * @brief Keep what input_writer produced for a sample and replay it in
+   *        later epochs instead of calling the writer again.
+   * @details For the hybrid trunk: its blocks are frozen and a sample's ids
+   *          never change, so the hidden state it writes is the same in
+   *          every epoch. Samples are kept in FP32, exactly as written, in
+   *          first-produced order until @a budget_bytes is spent; the rest
+   *          keep calling the writer.
+   * @param row_width floats per input row (the trunk's hidden size)
+   * @param budget_bytes most bytes the kept rows may take (0 = off)
+   */
+  void setInputCache(size_t row_width, size_t budget_bytes);
 
 private:
   struct Sample {
@@ -131,6 +143,11 @@ private:
   unsigned int batch_size_ = 1;
   unsigned int seq_len_;
   unsigned int vocab_size_;
+  /** setInputCache(): per sample the rows input_writer wrote (empty = not
+   *  kept), floats per row, and the bytes left to keep more */
+  std::vector<std::vector<float>> input_cache_;
+  size_t cache_row_width_ = 0;
+  size_t cache_budget_ = 0;
   std::mt19937 rng_;
 
   void loadTextFile(const std::string &path, tokenizers::Tokenizer *tokenizer,
