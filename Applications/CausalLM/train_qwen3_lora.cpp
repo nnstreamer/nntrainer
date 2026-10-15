@@ -20,10 +20,12 @@
 #include <dataset.h>
 #include <model.h>
 
+#include <algorithm>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -235,6 +237,22 @@ static void onEpochComplete(void *user_data) {
  *  callback has counted `patience` epochs without a validation improvement. */
 static bool onEpochStop(void *user_data) {
   return static_cast<EpochBridge *>(user_data)->stop_requested;
+}
+
+/**
+ * @brief Memory the system can hand out now (MemAvailable); 0 if unknown.
+ */
+static size_t availableMemoryBytes() {
+#if defined(__linux__)
+  std::ifstream f("/proc/meminfo");
+  std::string key;
+  size_t kb = 0;
+  std::string unit;
+  while (f >> key >> kb >> unit)
+    if (key == "MemAvailable:")
+      return kb << 10;
+#endif
+  return 0;
 }
 
 int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
@@ -584,16 +602,28 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
       // epoch instead of running the GPU trunk again. Besides the trunk time
       // this takes the trunk's contention off the CPU head (its host threads
       // and the first batch of each epoch waiting for the trunk to fill it).
-      // NNTR_TRAIN_TRUNK_CACHE_MB caps the kept bytes per generator (default
-      // 256; 0 = off); samples past the cap run the trunk as before.
-      const size_t cache_mb = [] {
-        const char *e = std::getenv("NNTR_TRAIN_TRUNK_CACHE_MB");
-        return e ? static_cast<size_t>(std::strtoull(e, nullptr, 10))
-                 : size_t(256);
-      }();
-      data_gen->setInputCache(t->getHiddenDim(), cache_mb << 20);
+      // The budget defaults to the whole data set (FP16 rows), capped at
+      // half the memory available when training starts so a large set on a
+      // small device falls back to running the trunk for the rest instead of
+      // pushing the process into the low-memory killer.
+      // NNTR_TRAIN_TRUNK_CACHE_MB sets an explicit cap per generator instead
+      // (0 = off).
+      const char *cache_env = std::getenv("NNTR_TRAIN_TRUNK_CACHE_MB");
+      const size_t avail_cap = availableMemoryBytes() / 2;
+      auto cache_budget = [&](const TrainingDataGenerator &g) {
+        if (cache_env)
+          return static_cast<size_t>(std::strtoull(cache_env, nullptr, 10))
+                 << 20;
+        const size_t need = g.inputCacheBytes(t->getHiddenDim());
+        return avail_cap ? std::min(need, avail_cap) : need;
+      };
+      const size_t train_budget = cache_budget(*data_gen);
+      data_gen->setInputCache(t->getHiddenDim(), train_budget);
+      std::cout << "trunk_cache:  " << (train_budget >> 20) << " MB of "
+                << (data_gen->inputCacheBytes(t->getHiddenDim()) >> 20)
+                << " MB (fp16)" << std::endl;
       if (valid_gen)
-        valid_gen->setInputCache(t->getHiddenDim(), cache_mb << 20);
+        valid_gen->setInputCache(t->getHiddenDim(), cache_budget(*valid_gen));
     }
 
     std::shared_ptr<ml::train::Dataset> dataset = ml::train::createDataset(

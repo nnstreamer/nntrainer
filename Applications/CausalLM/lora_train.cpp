@@ -10,10 +10,16 @@
 #include <lora_train.h>
 
 #include <decision.h>
+#include <fp16.h>
+
+#if defined(__aarch64__)
+#include <arm_neon.h>
+#endif
 
 #include <nntrainer_error.h>
 
 #include <algorithm>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -264,6 +270,38 @@ unsigned int TrainingDataGenerator::longestInput() const {
   return static_cast<unsigned int>(longest);
 }
 
+namespace {
+
+/** FP32 -> FP16 bits, round to nearest even. */
+void rowsToHalf(const float *src, uint16_t *dst, size_t n) {
+  size_t i = 0;
+#if defined(__aarch64__)
+  for (; i + 8 <= n; i += 8) {
+    const float16x8_t h = vcombine_f16(vcvt_f16_f32(vld1q_f32(src + i)),
+                                       vcvt_f16_f32(vld1q_f32(src + i + 4)));
+    vst1q_u16(dst + i, vreinterpretq_u16_f16(h));
+  }
+#endif
+  for (; i < n; ++i)
+    dst[i] = nntrainer::compute_fp32_to_fp16(src[i]);
+}
+
+/** FP16 bits -> FP32 (exact). */
+void rowsFromHalf(const uint16_t *src, float *dst, size_t n) {
+  size_t i = 0;
+#if defined(__aarch64__)
+  for (; i + 8 <= n; i += 8) {
+    const float16x8_t h = vreinterpretq_f16_u16(vld1q_u16(src + i));
+    vst1q_f32(dst + i, vcvt_f32_f16(vget_low_f16(h)));
+    vst1q_f32(dst + i + 4, vcvt_high_f32_f16(h));
+  }
+#endif
+  for (; i < n; ++i)
+    dst[i] = nntrainer::compute_fp16_to_fp32(src[i]);
+}
+
+} // namespace
+
 void TrainingDataGenerator::setSeqLen(unsigned int seq_len) {
   NNTR_THROW_IF(seq_len < longestInput(), std::invalid_argument)
     << "seq_len " << seq_len << " is shorter than the longest sample ("
@@ -276,6 +314,13 @@ void TrainingDataGenerator::setInputCache(size_t row_width,
   cache_row_width_ = row_width;
   cache_budget_ = budget_bytes;
   input_cache_.assign(samples_.size(), {});
+}
+
+size_t TrainingDataGenerator::inputCacheBytes(size_t row_width) const {
+  size_t rows = 0;
+  for (const Sample &s : samples_)
+    rows += s.ids.size() - (s.k > 0 ? 0 : 1);
+  return rows * row_width * sizeof(uint16_t);
 }
 
 void TrainingDataGenerator::reshuffle() {
@@ -309,14 +354,15 @@ int TrainingDataGenerator::next(float **input, float **label, bool *last) {
     const size_t n = (size_t)used * cache_row_width_;
     if (cache_row_width_ && !input_cache_[idx].empty()) {
       // a kept sample: the writer would produce these very rows again
-      std::copy(input_cache_[idx].begin(), input_cache_[idx].end(), input[0]);
+      rowsFromHalf(input_cache_[idx].data(), input[0], n);
       std::fill(input[0] + n, input[0] + (size_t)seq_len_ * cache_row_width_,
                 0.0f);
     } else {
       input_writer(s.ids.data(), used, input[0]);
-      if (cache_row_width_ && n * sizeof(float) <= cache_budget_) {
-        input_cache_[idx].assign(input[0], input[0] + n);
-        cache_budget_ -= n * sizeof(float);
+      if (cache_row_width_ && n * sizeof(uint16_t) <= cache_budget_) {
+        input_cache_[idx].resize(n);
+        rowsToHalf(input[0], input_cache_[idx].data(), n);
+        cache_budget_ -= n * sizeof(uint16_t);
       }
     }
   } else {

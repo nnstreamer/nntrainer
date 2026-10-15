@@ -119,13 +119,20 @@ public:
    *        later epochs instead of calling the writer again.
    * @details For the hybrid trunk: its blocks are frozen and a sample's ids
    *          never change, so the hidden state it writes is the same in
-   *          every epoch. Samples are kept in FP32, exactly as written, in
-   *          first-produced order until @a budget_bytes is spent; the rest
-   *          keep calling the writer.
+   *          every epoch. Samples are kept in FP16 (half the bytes of the
+   *          FP32 rows; a replayed row is the written row rounded to FP16)
+   *          in first-produced order until @a budget_bytes is spent; the
+   *          rest keep calling the writer.
    * @param row_width floats per input row (the trunk's hidden size)
    * @param budget_bytes most bytes the kept rows may take (0 = off)
    */
   void setInputCache(size_t row_width, size_t budget_bytes);
+
+  /**
+   * @brief Bytes setInputCache() needs to keep every sample.
+   * @param row_width floats per input row
+   */
+  size_t inputCacheBytes(size_t row_width) const;
 
 private:
   struct Sample {
@@ -143,9 +150,9 @@ private:
   unsigned int batch_size_ = 1;
   unsigned int seq_len_;
   unsigned int vocab_size_;
-  /** setInputCache(): per sample the rows input_writer wrote (empty = not
-   *  kept), floats per row, and the bytes left to keep more */
-  std::vector<std::vector<float>> input_cache_;
+  /** setInputCache(): per sample the rows input_writer wrote as FP16 bits
+   *  (empty = not kept), floats per row, and the bytes left to keep more */
+  std::vector<std::vector<uint16_t>> input_cache_;
   size_t cache_row_width_ = 0;
   size_t cache_budget_ = 0;
   std::mt19937 rng_;
