@@ -71,9 +71,25 @@ TrainingDataGenerator::TrainingDataGenerator(const std::string &data_path,
                                              unsigned int max_samples,
                                              unsigned int seed, bool decision) :
   seq_len_(seq_len), vocab_size_(vocab_size), rng_(seed) {
-  if (decision)
-    loadDecisionFile(data_path, tokenizer, max_samples);
-  else
+  if (decision) {
+    // Auto-detect the personalization package's pre-tokenized device_io
+    // format ({"input_ids": [...], "target_probs": [...]}): consuming its
+    // ids verbatim avoids any tokenizer drift between the package and the
+    // device model.
+    bool pretokenized = false;
+    {
+      std::ifstream peek(data_path);
+      std::string first;
+      while (first.empty() && std::getline(peek, first))
+        if (first.find_first_not_of(" \t\r\n") == std::string::npos)
+          first.clear();
+      pretokenized = first.find("\"input_ids\"") != std::string::npos;
+    }
+    if (pretokenized)
+      loadPreTokenizedFile(data_path, max_samples);
+    else
+      loadDecisionFile(data_path, tokenizer, max_samples);
+  } else
     loadTextFile(data_path, tokenizer, max_samples);
   index_order_.resize(samples_.size());
   std::iota(index_order_.begin(), index_order_.end(), 0);
@@ -97,6 +113,73 @@ void TrainingDataGenerator::loadDecisionFile(const std::string &path,
   }
   if (samples_.empty())
     throw std::runtime_error("No usable decision questions found in " + path);
+}
+
+void TrainingDataGenerator::loadPreTokenizedFile(const std::string &path,
+                                                 unsigned int max_samples) {
+  std::ifstream file(path);
+  if (!file.is_open())
+    throw std::runtime_error("Failed to open pre-tokenized data file: " + path);
+
+  std::string line;
+  for (size_t n = 1; std::getline(file, line); ++n) {
+    if (line.find_first_not_of(" \t\r\n") == std::string::npos)
+      continue;
+    if (max_samples && samples_.size() >= max_samples)
+      break;
+    try {
+      const auto j = nlohmann::json::parse(line);
+      NNTR_THROW_IF(!j.contains("input_ids") || !j["input_ids"].is_array(),
+                    std::invalid_argument)
+        << "input_ids (array) is required";
+      NNTR_THROW_IF(!j.contains("target_probs") ||
+                      !j["target_probs"].is_array(),
+                    std::invalid_argument)
+        << "target_probs (array) is required; rows without targets (e.g. the "
+           "package's *_inputs.jsonl) cannot be trained on -- merge the "
+           "targets in first";
+
+      Sample s;
+      for (const auto &t : j["input_ids"]) {
+        const int64_t id = t.get<int64_t>();
+        NNTR_THROW_IF(id < 0 || id >= static_cast<int64_t>(vocab_size_),
+                      std::invalid_argument)
+          << "token id " << id << " outside the vocabulary";
+        s.ids.push_back(static_cast<int32_t>(id));
+      }
+      // the readout sits at the last prompt token; when the row exceeds the
+      // sequence budget keep its tail, as encodeDecisionPrompt does
+      if (s.ids.size() > seq_len_)
+        s.ids.erase(s.ids.begin(), s.ids.end() - seq_len_);
+
+      for (const auto &p : j["target_probs"])
+        s.probs.push_back(p.get<float>());
+      s.k = static_cast<unsigned int>(s.probs.size());
+      NNTR_THROW_IF(s.k < 2 || s.k > DECISION_MAX_CHOICES,
+                    std::invalid_argument)
+        << "target_probs has " << s.k << " entries, need 2.."
+        << DECISION_MAX_CHOICES;
+      double tsum = 0.0;
+      for (float p : s.probs)
+        tsum += p;
+      NNTR_THROW_IF(tsum <= 0.0, std::invalid_argument)
+        << "target_probs sums to " << tsum;
+      if (j.contains("primary_label_index"))
+        s.answer =
+          static_cast<unsigned int>(j["primary_label_index"].get<int>());
+      NNTR_THROW_IF(s.answer >= s.k, std::invalid_argument)
+        << "primary_label_index " << s.answer << " out of range for " << s.k
+        << " options";
+
+      samples_.push_back(std::move(s));
+    } catch (const std::exception &e) {
+      throw std::invalid_argument(path + ":" + std::to_string(n) + ": " +
+                                  e.what());
+    }
+  }
+  if (samples_.empty())
+    throw std::runtime_error("No usable pre-tokenized samples found in " +
+                             path);
 }
 
 void TrainingDataGenerator::loadTextFile(const std::string &path,
@@ -211,10 +294,17 @@ int TrainingDataGenerator::next(float **input, float **label, bool *last) {
 
   float *lbl = label[0];
   if (decision) {
-    // decision_head_loss's label: per letter 1 (answer) / 0 (another
-    // option) / -1 (beyond the options), then the readout row
-    for (unsigned int i = 0; i < DECISION_MAX_CHOICES; ++i)
-      lbl[i] = i >= s.k ? -1.0f : (i == s.answer ? 1.0f : 0.0f);
+    if (!s.probs.empty()) {
+      // soft targets: the declared options carry the target distribution,
+      // -1 (masked) beyond them, then the readout row
+      for (unsigned int i = 0; i < DECISION_MAX_CHOICES; ++i)
+        lbl[i] = i >= s.k ? -1.0f : s.probs[i];
+    } else {
+      // decision_head_loss's label: per letter 1 (answer) / 0 (another
+      // option) / -1 (beyond the options), then the readout row
+      for (unsigned int i = 0; i < DECISION_MAX_CHOICES; ++i)
+        lbl[i] = i >= s.k ? -1.0f : (i == s.answer ? 1.0f : 0.0f);
+    }
     lbl[DECISION_MAX_CHOICES] = static_cast<float>(used - 1);
   } else {
     // Next-token targets: position i (input token ids[i]) is scored against

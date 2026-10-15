@@ -5,21 +5,26 @@
  * @file   decision_head_loss_layer.h
  * @date   12 October 2026
  * @brief  Decision-model head (26 letter rows of the tied embedding) fused
- *         with its training loss: supervised (sft) or RLCD / RLVR
- *         REINFORCE under bandit feedback.
+ *         with its training loss: supervised (sft, soft-target CE) or
+ *         RLCD / RLVR REINFORCE under bandit feedback.
  * @see    https://huggingface.co/anthonym21/qwen3-0.6b-rlcd-decision
  * @bug    No known bugs except for NYI items
  *
  * @details Input  x: (B, 1, L, hidden) final hidden states.
  *          Label  t: (B, 1, 1, 27). t[0..25] per letter: 1 for the correct
  *                    option, 0 for another declared option, -1 beyond the
- *                    option count K (masked). t[26]: the readout row (the
- *                    last prompt token).
+ *                    option count K (masked) -- or, with objective=soft, a
+ *                    target distribution over the first K entries. t[26]:
+ *                    the readout row (the last prompt token).
  *          Output  : (B, 1, 1, 27). [0..25] the option probabilities
  *                    softmax(x[row] W_letters^T) over the first K letters,
  *                    0 beyond; [26] the sample's -log p(correct).
  *
  *          objective=sft   loss = mean_b -log p_b(answer)
+ *          objective=soft  the label's t[0..K-1] carry a target
+ *                          distribution (sums to 1) instead of a one-hot;
+ *                          loss = mean_b -sum_i t_bi log p_bi,
+ *                          dL/dz = p - t (sft is the one-hot special case)
  *          objective=rlcd  per sample, draw `group` actions a ~ p, reward
  *                          r = 1[a correct] - p(a), advantage = r minus the
  *                          leave-one-out mean of the group's rewards,
@@ -28,8 +33,9 @@
  *                          supplies the environment's outcome)
  *          objective=rlvr  the same with r = 1[a correct]
  *
- *          The reported loss is always the mean -log p(correct), whatever
- *          the objective, so training and validation curves read the same.
+ *          The reported loss is the mean -log p(correct) (hard objectives)
+ *          or the mean soft-target CE (objective=soft), so training and
+ *          validation curves read the same.
  *          W is the tied embedding (shared_from the embedding), frozen; only
  *          its 26 letter rows are read.
  */
@@ -65,7 +71,7 @@ public:
   using prop_tag = nntrainer::str_prop_tag;
 };
 
-/** @brief training objective: sft | rlcd | rlvr */
+/** @brief training objective: sft | soft | rlcd | rlvr */
 class DecisionObjective : public nntrainer::Property<std::string> {
 public:
   DecisionObjective(const std::string &value = "sft") { set(value); }
@@ -93,7 +99,7 @@ public:
 
 /**
  * @class   DecisionHeadLossLayer
- * @brief   26-letter decision head + sft / rlcd / rlvr loss
+ * @brief   26-letter decision head + sft / soft / rlcd / rlvr loss
  */
 WIN_EXPORT class DecisionHeadLossLayer final : public nntrainer::Layer {
 public:

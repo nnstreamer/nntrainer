@@ -80,6 +80,11 @@ void printUsage(const char *prog) {
     << "                        keep the adapter with the best validation\n"
     << "                        loss (default: off -- the adapter with the\n"
     << "                        best epoch-mean training loss is kept)\n"
+    << "  --valid_data <file>   validate on this JSONL file instead of the\n"
+    << "                        training data (implies --validate)\n"
+    << "  --patience <int>      stop early after N epochs in a row without a\n"
+    << "                        validation improvement (implies --validate,\n"
+    << "                        0 = off)\n"
     << "  --lora_weight_q4      also save a qint4 adapter (output path with\n"
     << "                        a _q4.bin suffix) alongside the FP32 one.\n"
     << "                        With --lora_qat, force-feeds the calibrated\n"
@@ -124,6 +129,9 @@ struct EpochBridge {
   std::string q4_output_path; ///< empty unless lora_weight_q4 was passed
   unsigned int epoch = 0;
   float best_loss = std::numeric_limits<float>::max();
+  unsigned int patience = 0; ///< 0 = off
+  unsigned int epochs_without_improvement = 0;
+  bool stop_requested = false;
   TrainProgressCb user_cb = nullptr;
   void *user_data = nullptr;
   unsigned int num_samples = 0;
@@ -158,6 +166,18 @@ static void onEpochComplete(void *user_data) {
   // the adapter is kept on the validation loss when there is one, else on
   // the epoch-mean training loss
   const float select_loss = validate ? valid_loss : train_stats.loss;
+  const bool improved = select_loss < st->best_loss;
+
+  // early stop: patience consecutive epochs without a validation improvement
+  if (st->patience && validate) {
+    if (improved)
+      st->epochs_without_improvement = 0;
+    else if (++st->epochs_without_improvement >= st->patience) {
+      st->stop_requested = true;
+      std::cout << "  no valid_loss improvement for " << st->patience
+                << " epochs; stopping early" << std::endl;
+    }
+  }
 
   char timing[96];
   if (validate)
@@ -171,7 +191,7 @@ static void onEpochComplete(void *user_data) {
   std::cout << " time=" << timing << std::endl;
 
   bool saved = false;
-  if (select_loss < st->best_loss) {
+  if (improved) {
     st->best_loss = select_loss;
     try {
       st->model->save_weight_lora(st->output_path);
@@ -208,6 +228,12 @@ static void onEpochComplete(void *user_data) {
     st->user_cb(progress, st->user_data);
   }
   st->epoch_start = std::chrono::steady_clock::now();
+}
+
+/** @brief stop_cb for --patience: break before the next epoch once the epoch
+ *  callback has counted `patience` epochs without a validation improvement. */
+static bool onEpochStop(void *user_data) {
+  return static_cast<EpochBridge *>(user_data)->stop_requested;
 }
 
 int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
@@ -452,6 +478,24 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
     std::cout << "samples:      " << data_gen.size() << " ("
               << data_gen.samplesPerEpoch() << " per epoch)" << std::endl;
 
+    // A separate validation file implies --validate. It gets its own
+    // generator (and GPU-trunk writer in hybrid mode) so its rows never mix
+    // into the training epoch's shuffle; the adapter is then kept on the
+    // validation loss and --patience can stop the run early.
+    const bool do_validate =
+      params.validate || !params.valid_data_path.empty() || params.patience > 0;
+    std::unique_ptr<TrainingDataGenerator> valid_gen;
+    if (do_validate) {
+      const std::string &vpath =
+        params.valid_data_path.empty() ? data_path : params.valid_data_path;
+      valid_gen = std::make_unique<TrainingDataGenerator>(
+        vpath, tokenizer, seq_len, vocab_size, /*max_samples=*/0, params.seed,
+        decision);
+      valid_gen->setBatchSize(nntr_cfg.value("batch_size", 1u));
+      std::cout << "valid:        " << valid_gen->size() << " samples from "
+                << vpath << std::endl;
+    }
+
     // Hybrid: the producer thread runs the GPU trunk for each sample, so the
     // trunk of the next sample overlaps the current training step. Which
     // positions are scored travels with the sample, in its label.
@@ -506,12 +550,25 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
     if (hybrid)
       dataset->setProperty({"buffer_size=2"});
     model.setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset);
-    if (params.validate)
-      model.setDataset(ml::train::DatasetModeType::MODE_VALID, dataset);
+
+    // Validation runs its own generator (copying the hybrid trunk writer, a
+    // no-op on plain CPU) so its rows never mix into the training shuffle.
+    if (valid_gen) {
+      valid_gen->input_writer = data_gen.input_writer;
+      std::shared_ptr<ml::train::Dataset> valid_dataset =
+        ml::train::createDataset(ml::train::DatasetType::GENERATOR,
+                                 trainingDataGenCb, valid_gen.get());
+      if (hybrid)
+        valid_dataset->setProperty({"buffer_size=2"});
+      model.setDataset(ml::train::DatasetModeType::MODE_VALID, valid_dataset);
+    }
 
     EpochBridge bridge;
     bridge.model = &model;
     bridge.params = params;
+    // a separate validation file or --patience implies the validation pass
+    bridge.params.validate = do_validate;
+    bridge.patience = params.patience;
     bridge.output_path = output_path;
     bridge.q4_output_path = q4_output_path;
     bridge.user_cb = callback;
@@ -530,11 +587,11 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
     };
 
     bridge.epoch_start = std::chrono::steady_clock::now();
-    model.train(onEpochComplete, &bridge, nullptr, nullptr, iteration_wrapper,
-                nullptr);
+    model.train(onEpochComplete, &bridge, onEpochStop, &bridge,
+                iteration_wrapper, nullptr);
 
     std::cout << "training complete; best "
-              << (params.validate ? "valid_loss=" : "train_loss=")
+              << (bridge.params.validate ? "valid_loss=" : "train_loss=")
               << bridge.best_loss << ", adapter at " << output_path
               << std::endl;
   } catch (const std::exception &e) {
@@ -608,6 +665,11 @@ int main(int argc, char *argv[]) {
         params.qat_ema_momentum = std::stof(next("--qat_ema_momentum"));
       else if (arg == "--validate")
         params.validate = true;
+      else if (arg == "--valid_data")
+        params.valid_data_path = next("--valid_data");
+      else if (arg == "--patience")
+        params.patience =
+          static_cast<unsigned int>(std::stoul(next("--patience")));
       else if (arg == "--seed")
         params.seed = static_cast<unsigned int>(std::stoul(next("--seed")));
       else if (arg == "--task")

@@ -411,6 +411,7 @@ NATIVE_ARTIFACT_NAMES=(
     libquick_dot_ai_api.so
     nntr_causallm
     nntr_lora_train
+    nntr_decide
     quick_dot_ai_test
     nntr_quantize
     nntr_safetensors_info
@@ -452,6 +453,7 @@ LIBCXX="$ANDROID_NDK/toolchains/llvm/prebuilt/$ANDROID_NDK_HOST/sysroot/usr/lib/
 NATIVE_EXECUTABLES=(
     "$NATIVE_BUILD/nntr_causallm"
     "$NATIVE_BUILD/nntr_lora_train"
+    "$NATIVE_BUILD/nntr_decide"
     "$NATIVE_BUILD/quick_dot_ai_test"
     "$NATIVE_BUILD/nntr_quantize"
     "$NATIVE_BUILD/nntr_safetensors_info"

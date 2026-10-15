@@ -3449,6 +3449,8 @@ extern "C" ErrorCode trainLora(const char *params_json,
     params.qat_ema_momentum = j.value("qat_ema_momentum", 0.0f);
     params.seed = j.value("seed", 42u);
     params.validate = j.value("validate", false);
+    params.valid_data_path = j.value("valid_data", std::string{});
+    params.patience = j.value("patience", 0u);
     // GPU-trunk / CPU-head hybrid: the frozen layers run on the GPU from this
     // (QS4CX-FP16) model directory; empty keeps CPU-only training.
     params.hybrid_trunk_path = j.value("hybrid_trunk", std::string{});

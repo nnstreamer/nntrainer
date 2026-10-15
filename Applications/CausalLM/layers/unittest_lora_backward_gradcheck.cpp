@@ -55,9 +55,9 @@ makeVarGradView(std::vector<nntrainer::Var_Grad> &vars) {
 
 nntrainer::RunLayerContext
 makeRunContext(const std::string &name, std::vector<nntrainer::Weight> &weights,
-              std::vector<nntrainer::Var_Grad> &inputs,
-              std::vector<nntrainer::Var_Grad> &outputs,
-              std::vector<nntrainer::Var_Grad> &tensors) {
+               std::vector<nntrainer::Var_Grad> &inputs,
+               std::vector<nntrainer::Var_Grad> &outputs,
+               std::vector<nntrainer::Var_Grad> &tensors) {
   return nntrainer::RunLayerContext(
     name, true, 0.0f, false, 1.0f, nullptr, false, makeWeightView(weights),
     makeVarGradView(inputs), makeVarGradView(outputs),
@@ -71,9 +71,8 @@ makeRunContext(const std::string &name, std::vector<nntrainer::Weight> &weights,
  *        gradient of L w.r.t. x is what a correct backward pass should
  *        produce for the fixed incoming derivative `dy`.
  */
-void checkGradient(float *x, const float *analytic, const float *dy,
-                   size_t n, size_t out_n,
-                   const std::function<const float *()> &forward,
+void checkGradient(float *x, const float *analytic, const float *dy, size_t n,
+                   size_t out_n, const std::function<const float *()> &forward,
                    float eps = 1e-3f, float tol = 5e-2f) {
   auto loss = [&](const float *out) {
     double l = 0.0;
@@ -134,21 +133,22 @@ TEST(CausalLmLoraBackward, RmsNormCalcDerivativeMatchesFiniteDifference) {
   float x[height * width] = {0.2f, -0.1f, 0.4f, 0.3f, -0.3f, 0.5f, -0.2f, 0.1f};
   std::copy(x, x + height * width, inputs[0].getVariableRef().getData<float>());
 
-  auto run_context = makeRunContext("rms_norm_gradcheck", weights, inputs,
-                                    outputs, tensors);
+  auto run_context =
+    makeRunContext("rms_norm_gradcheck", weights, inputs, outputs, tensors);
 
-  float dy[height * width] = {0.5f, -0.3f, 0.2f, 0.1f, 0.4f, -0.2f, 0.3f, -0.1f};
+  float dy[height * width] = {0.5f, -0.3f, 0.2f, 0.1f,
+                              0.4f, -0.2f, 0.3f, -0.1f};
   std::copy(dy, dy + height * width,
-           run_context.getOutputGradUnsafe(0).getData<float>());
+            run_context.getOutputGradUnsafe(0).getData<float>());
 
   layer.forwarding(run_context, true);
   layer.calcDerivative(run_context);
 
   std::vector<float> analytic(height * width);
   std::copy(run_context.getOutgoingDerivative(0).getData<float>(),
-           run_context.getOutgoingDerivative(0).getData<float>() +
-             height * width,
-           analytic.begin());
+            run_context.getOutgoingDerivative(0).getData<float>() +
+              height * width,
+            analytic.begin());
 
   auto forward = [&]() -> const float * {
     layer.forwarding(run_context, true);
@@ -156,11 +156,11 @@ TEST(CausalLmLoraBackward, RmsNormCalcDerivativeMatchesFiniteDifference) {
   };
 
   checkGradient(inputs[0].getVariableRef().getData<float>(), analytic.data(),
-               dy, height * width, height * width, forward);
+                dy, height * width, height * width, forward);
 }
 
 TEST(CausalLmLoraBackward,
-    ReshapedRmsNormCalcDerivativeMatchesFiniteDifference) {
+     ReshapedRmsNormCalcDerivativeMatchesFiniteDifference) {
   const unsigned int height = 1, width = 8, feature_size = 4;
 
   causallm::ReshapedRMSNormLayer layer;
@@ -175,10 +175,10 @@ TEST(CausalLmLoraBackward,
   std::vector<nntrainer::Var_Grad> inputs, outputs, tensors;
 
   nntrainer::Tensor gamma_tensor(nntrainer::TensorDim({1, 1, 1, feature_size}),
-                                true);
+                                 true);
   float gamma_vals[feature_size] = {1.0f, 2.0f, 0.5f, 1.5f};
   std::copy(gamma_vals, gamma_vals + feature_size,
-           gamma_tensor.getData<float>());
+            gamma_tensor.getData<float>());
   weights.emplace_back(gamma_tensor, nntrainer::Tensor(), nntrainer::Tensor(),
                        "gamma");
 
@@ -199,18 +199,19 @@ TEST(CausalLmLoraBackward,
   auto run_context = makeRunContext("reshaped_rms_norm_gradcheck", weights,
                                     inputs, outputs, tensors);
 
-  float dy[height * width] = {0.5f, -0.3f, 0.2f, 0.1f, 0.4f, -0.2f, 0.3f, -0.1f};
+  float dy[height * width] = {0.5f, -0.3f, 0.2f, 0.1f,
+                              0.4f, -0.2f, 0.3f, -0.1f};
   std::copy(dy, dy + height * width,
-           run_context.getOutputGradUnsafe(0).getData<float>());
+            run_context.getOutputGradUnsafe(0).getData<float>());
 
   layer.forwarding(run_context, true);
   layer.calcDerivative(run_context);
 
   std::vector<float> analytic(height * width);
   std::copy(run_context.getOutgoingDerivative(0).getData<float>(),
-           run_context.getOutgoingDerivative(0).getData<float>() +
-             height * width,
-           analytic.begin());
+            run_context.getOutgoingDerivative(0).getData<float>() +
+              height * width,
+            analytic.begin());
 
   auto forward = [&]() -> const float * {
     layer.forwarding(run_context, true);
@@ -218,7 +219,7 @@ TEST(CausalLmLoraBackward,
   };
 
   checkGradient(inputs[0].getVariableRef().getData<float>(), analytic.data(),
-               dy, height * width, height * width, forward);
+                dy, height * width, height * width, forward);
 }
 
 TEST(CausalLmLoraBackward, SwiGLUCalcDerivativeMatchesFiniteDifference) {
@@ -244,29 +245,29 @@ TEST(CausalLmLoraBackward, SwiGLUCalcDerivativeMatchesFiniteDifference) {
   float gate[height * width] = {0.2f, -0.5f, 0.8f, -0.3f, 0.1f, 1.2f};
   float up[height * width] = {0.4f, 0.9f, -0.6f, 0.3f, -1.1f, 0.2f};
   std::copy(gate, gate + height * width,
-           inputs[0].getVariableRef().getData<float>());
+            inputs[0].getVariableRef().getData<float>());
   std::copy(up, up + height * width,
-           inputs[1].getVariableRef().getData<float>());
+            inputs[1].getVariableRef().getData<float>());
 
   auto run_context =
     makeRunContext("swiglu_gradcheck", weights, inputs, outputs, tensors);
 
   float dy[height * width] = {0.5f, -0.3f, 0.2f, 0.1f, 0.4f, -0.2f};
   std::copy(dy, dy + height * width,
-           run_context.getOutputGradUnsafe(0).getData<float>());
+            run_context.getOutputGradUnsafe(0).getData<float>());
 
   layer.forwarding(run_context, true);
   layer.calcDerivative(run_context);
 
   std::vector<float> analytic_gate(height * width), analytic_up(height * width);
   std::copy(run_context.getOutgoingDerivative(0).getData<float>(),
-           run_context.getOutgoingDerivative(0).getData<float>() +
-             height * width,
-           analytic_gate.begin());
+            run_context.getOutgoingDerivative(0).getData<float>() +
+              height * width,
+            analytic_gate.begin());
   std::copy(run_context.getOutgoingDerivative(1).getData<float>(),
-           run_context.getOutgoingDerivative(1).getData<float>() +
-             height * width,
-           analytic_up.begin());
+            run_context.getOutgoingDerivative(1).getData<float>() +
+              height * width,
+            analytic_up.begin());
 
   auto forward = [&]() -> const float * {
     layer.forwarding(run_context, true);
@@ -274,18 +275,17 @@ TEST(CausalLmLoraBackward, SwiGLUCalcDerivativeMatchesFiniteDifference) {
   };
 
   checkGradient(inputs[0].getVariableRef().getData<float>(),
-               analytic_gate.data(), dy, height * width, height * width,
-               forward);
-  checkGradient(inputs[1].getVariableRef().getData<float>(),
-               analytic_up.data(), dy, height * width, height * width,
-               forward);
+                analytic_gate.data(), dy, height * width, height * width,
+                forward);
+  checkGradient(inputs[1].getVariableRef().getData<float>(), analytic_up.data(),
+                dy, height * width, height * width, forward);
 }
 
 TEST(CausalLmLoraBackward, LmHeadCalcDerivativeMatchesFiniteDifference) {
   const unsigned int height = 3, width = 4, unit = 5;
   nntrainer::g_lm_head_read_row = {1}; // simulate a right-padded sample: the
-                                      // last *real* token is row 1, not
-                                      // row (height - 1) = 2.
+                                       // last *real* token is row 1, not
+                                       // row (height - 1) = 2.
 
   nntrainer::LmHeadLayer layer;
   ASSERT_NO_THROW(layer.setProperty({"unit=" + std::to_string(unit)}));
@@ -298,13 +298,12 @@ TEST(CausalLmLoraBackward, LmHeadCalcDerivativeMatchesFiniteDifference) {
   std::vector<nntrainer::Var_Grad> inputs, outputs, tensors;
 
   nntrainer::Tensor weight_tensor(nntrainer::TensorDim({1, 1, width, unit}),
-                                 true);
-  float weight_vals[width * unit] = {0.1f,  0.2f,  -0.3f, 0.4f,  0.5f,
-                                     -0.2f, 0.3f,  0.1f,  -0.4f, 0.2f,
-                                     0.3f,  -0.1f, 0.2f,  0.4f,  -0.3f,
-                                     0.1f,  -0.2f, 0.3f,  0.4f,  -0.1f};
+                                  true);
+  float weight_vals[width * unit] = {
+    0.1f, 0.2f,  -0.3f, 0.4f, 0.5f,  -0.2f, 0.3f,  0.1f, -0.4f, 0.2f,
+    0.3f, -0.1f, 0.2f,  0.4f, -0.3f, 0.1f,  -0.2f, 0.3f, 0.4f,  -0.1f};
   std::copy(weight_vals, weight_vals + width * unit,
-           weight_tensor.getData<float>());
+            weight_tensor.getData<float>());
   weights.emplace_back(weight_tensor, nntrainer::Tensor(), nntrainer::Tensor(),
                        "weight");
 
@@ -319,8 +318,8 @@ TEST(CausalLmLoraBackward, LmHeadCalcDerivativeMatchesFiniteDifference) {
   outputs.emplace_back(init_context.getOutSpecs()[0].variable_spec.dim,
                        nntrainer::Initializer::NONE, true, true, "output");
 
-  float x[height * width] = {0.2f,  -0.1f, 0.4f, 0.3f, -0.3f, 0.5f,
-                             -0.2f, 0.1f,  0.6f, -0.4f, 0.2f, -0.5f};
+  float x[height * width] = {0.2f,  -0.1f, 0.4f, 0.3f,  -0.3f, 0.5f,
+                             -0.2f, 0.1f,  0.6f, -0.4f, 0.2f,  -0.5f};
   std::copy(x, x + height * width, inputs[0].getVariableRef().getData<float>());
 
   auto run_context =
@@ -334,9 +333,9 @@ TEST(CausalLmLoraBackward, LmHeadCalcDerivativeMatchesFiniteDifference) {
 
   std::vector<float> analytic(height * width);
   std::copy(run_context.getOutgoingDerivative(0).getData<float>(),
-           run_context.getOutgoingDerivative(0).getData<float>() +
-             height * width,
-           analytic.begin());
+            run_context.getOutgoingDerivative(0).getData<float>() +
+              height * width,
+            analytic.begin());
 
   auto forward = [&]() -> const float * {
     layer.forwarding(run_context, true);
@@ -344,13 +343,13 @@ TEST(CausalLmLoraBackward, LmHeadCalcDerivativeMatchesFiniteDifference) {
   };
 
   checkGradient(inputs[0].getVariableRef().getData<float>(), analytic.data(),
-               dy, height * width, unit, forward);
+                dy, height * width, unit, forward);
 
   nntrainer::g_lm_head_read_row.clear();
 }
 
 TEST(CausalLmLoraBackward,
-    TieWordEmbeddingLmHeadCalcDerivativeMatchesFiniteDifference) {
+     TieWordEmbeddingLmHeadCalcDerivativeMatchesFiniteDifference) {
   const unsigned int height = 3, width = 4, unit = 5;
   nntrainer::g_tie_embedding_lm_head_read_row = {
     1}; // simulate a right-padded sample.
@@ -367,13 +366,12 @@ TEST(CausalLmLoraBackward,
 
   // tied weight layout is [vocab=unit, hidden=width] (shared with embedding).
   nntrainer::Tensor weight_tensor(nntrainer::TensorDim({1, 1, unit, width}),
-                                 true);
-  float weight_vals[unit * width] = {0.1f,  0.2f, -0.3f, 0.4f,  0.5f, -0.2f,
-                                     0.3f,  0.1f, -0.4f, 0.2f,  0.3f, -0.1f,
-                                     0.2f,  0.4f, -0.3f, 0.1f,  -0.2f, 0.3f,
-                                     0.4f, -0.1f};
+                                  true);
+  float weight_vals[unit * width] = {
+    0.1f, 0.2f,  -0.3f, 0.4f, 0.5f,  -0.2f, 0.3f,  0.1f, -0.4f, 0.2f,
+    0.3f, -0.1f, 0.2f,  0.4f, -0.3f, 0.1f,  -0.2f, 0.3f, 0.4f,  -0.1f};
   std::copy(weight_vals, weight_vals + unit * width,
-           weight_tensor.getData<float>());
+            weight_tensor.getData<float>());
   weights.emplace_back(weight_tensor, nntrainer::Tensor(), nntrainer::Tensor(),
                        "weight");
 
@@ -388,8 +386,8 @@ TEST(CausalLmLoraBackward,
   outputs.emplace_back(init_context.getOutSpecs()[0].variable_spec.dim,
                        nntrainer::Initializer::NONE, true, true, "output");
 
-  float x[height * width] = {0.2f,  -0.1f, 0.4f, 0.3f, -0.3f, 0.5f,
-                             -0.2f, 0.1f,  0.6f, -0.4f, 0.2f, -0.5f};
+  float x[height * width] = {0.2f,  -0.1f, 0.4f, 0.3f,  -0.3f, 0.5f,
+                             -0.2f, 0.1f,  0.6f, -0.4f, 0.2f,  -0.5f};
   std::copy(x, x + height * width, inputs[0].getVariableRef().getData<float>());
 
   auto run_context = makeRunContext("tie_word_embedding_lmhead_gradcheck",
@@ -403,9 +401,9 @@ TEST(CausalLmLoraBackward,
 
   std::vector<float> analytic(height * width);
   std::copy(run_context.getOutgoingDerivative(0).getData<float>(),
-           run_context.getOutgoingDerivative(0).getData<float>() +
-             height * width,
-           analytic.begin());
+            run_context.getOutgoingDerivative(0).getData<float>() +
+              height * width,
+            analytic.begin());
 
   auto forward = [&]() -> const float * {
     layer.forwarding(run_context, true);
@@ -413,7 +411,7 @@ TEST(CausalLmLoraBackward,
   };
 
   checkGradient(inputs[0].getVariableRef().getData<float>(), analytic.data(),
-               dy, height * width, unit, forward);
+                dy, height * width, unit, forward);
 
   nntrainer::g_tie_embedding_lm_head_read_row.clear();
 }
@@ -468,7 +466,7 @@ TEST(CausalLmLoraBackward, MhaCoreCalcDerivativeMatchesFiniteDifference) {
   for (unsigned int i = 0; i < dy.size(); ++i)
     dy[i] = std::cos(0.9f * i + 0.2f) * 0.3f;
   std::copy(dy.begin(), dy.end(),
-           run_context.getOutputGradUnsafe(0).getData<float>());
+            run_context.getOutputGradUnsafe(0).getData<float>());
 
   layer.forwarding(run_context, true);
   layer.calcDerivative(run_context);
@@ -476,17 +474,17 @@ TEST(CausalLmLoraBackward, MhaCoreCalcDerivativeMatchesFiniteDifference) {
   std::vector<float> analytic_q(seq_len * q_width),
     analytic_k(seq_len * kv_width), analytic_v(seq_len * kv_width);
   std::copy(run_context.getOutgoingDerivative(0).getData<float>(),
-           run_context.getOutgoingDerivative(0).getData<float>() +
-             seq_len * q_width,
-           analytic_q.begin());
+            run_context.getOutgoingDerivative(0).getData<float>() +
+              seq_len * q_width,
+            analytic_q.begin());
   std::copy(run_context.getOutgoingDerivative(1).getData<float>(),
-           run_context.getOutgoingDerivative(1).getData<float>() +
-             seq_len * kv_width,
-           analytic_k.begin());
+            run_context.getOutgoingDerivative(1).getData<float>() +
+              seq_len * kv_width,
+            analytic_k.begin());
   std::copy(run_context.getOutgoingDerivative(2).getData<float>(),
-           run_context.getOutgoingDerivative(2).getData<float>() +
-             seq_len * kv_width,
-           analytic_v.begin());
+            run_context.getOutgoingDerivative(2).getData<float>() +
+              seq_len * kv_width,
+            analytic_v.begin());
 
   auto forward = [&]() -> const float * {
     layer.forwarding(run_context, true);
@@ -494,11 +492,11 @@ TEST(CausalLmLoraBackward, MhaCoreCalcDerivativeMatchesFiniteDifference) {
   };
 
   checkGradient(q, analytic_q.data(), dy.data(), seq_len * q_width,
-               seq_len * q_width, forward, 1e-3f, 5e-3f);
+                seq_len * q_width, forward, 1e-3f, 5e-3f);
   checkGradient(k, analytic_k.data(), dy.data(), seq_len * kv_width,
-               seq_len * q_width, forward, 1e-3f, 5e-3f);
+                seq_len * q_width, forward, 1e-3f, 5e-3f);
   checkGradient(v, analytic_v.data(), dy.data(), seq_len * kv_width,
-               seq_len * q_width, forward, 1e-3f, 5e-3f);
+                seq_len * q_width, forward, 1e-3f, 5e-3f);
 }
 
 /**
@@ -700,8 +698,7 @@ TEST(CausalLmLoraBackward, RmsNormCalcGradientMatchesFiniteDifference) {
  * @brief Finite-difference check of dL/dgamma for ReshapedRMSNorm, where
  *        every feature_size-wide chunk contributes to the same gamma.
  */
-TEST(CausalLmLoraBackward,
-     ReshapedRmsNormCalcGradientMatchesFiniteDifference) {
+TEST(CausalLmLoraBackward, ReshapedRmsNormCalcGradientMatchesFiniteDifference) {
   const unsigned int height = 2, width = 8, feature_size = 4;
 
   causallm::ReshapedRMSNormLayer layer;
@@ -765,8 +762,8 @@ TEST(CausalLmLoraBackward, LmHeadCalcGradientMatchesFiniteDifference) {
   nntrainer::g_lm_head_read_row = {1}; // right-padded: last real token is row 1
 
   nntrainer::LmHeadLayer layer;
-  ASSERT_NO_THROW(layer.setProperty(
-    {"unit=" + std::to_string(unit), "disable_bias=true"}));
+  ASSERT_NO_THROW(
+    layer.setProperty({"unit=" + std::to_string(unit), "disable_bias=true"}));
   nntrainer::InitLayerContext init_context(
     {nntrainer::TensorDim({1, 1, height, width})}, {true}, false,
     "lm_head_gradw", "", 0.0f, {"NCHW", "FP32", "FP32"});
@@ -820,11 +817,11 @@ TEST(CausalLmLoraBackward,
   nntrainer::g_tie_embedding_lm_head_read_row = {1};
 
   nntrainer::TieWordEmbedding layer;
-  ASSERT_NO_THROW(layer.setProperty(
-    {"unit=" + std::to_string(vocab), "disable_bias=true"}));
+  ASSERT_NO_THROW(
+    layer.setProperty({"unit=" + std::to_string(vocab), "disable_bias=true"}));
   nntrainer::InitLayerContext init_context(
-    {nntrainer::TensorDim({1, 1, height, hidden})}, {true}, false,
-    "twe_gradw", "", 0.0f, {"NCHW", "FP32", "FP32"});
+    {nntrainer::TensorDim({1, 1, height, hidden})}, {true}, false, "twe_gradw",
+    "", 0.0f, {"NCHW", "FP32", "FP32"});
   ASSERT_NO_THROW(layer.finalize(init_context));
 
   std::vector<nntrainer::Weight> weights;
@@ -1252,6 +1249,66 @@ TEST(CausalLmLoraBackward, DecisionHeadSftMatchesReferenceAndFiniteDifference) {
     const double lm = f.ctx->getLoss();
     f.x()[i] = orig;
     EXPECT_NEAR(analytic[i], (lp - lm) / (2 * eps), 1e-3) << "element " << i;
+  }
+}
+
+/**
+ * @brief decision_head_loss, objective soft: the label carries a target
+ *        distribution over the declared letters instead of a one-hot.
+ *        Probabilities are unchanged, the loss is -sum t log p, and
+ *        dL/dx = (p - t)/B . W_letters, which the finite differences confirm.
+ */
+TEST(CausalLmLoraBackward, DecisionHeadSoftTargetMatchesReference) {
+  DecisionHeadFixture f("soft");
+  // rewrite the fixture's hard labels as target distributions: sample 0
+  // spreads 0.1..0.4 over its 4 options, sample 1 puts 0.7/0.3/0 on its
+  // first 3 of 3
+  float *t = f.ctx->getOutputGradUnsafe(0).getData<float>();
+  const unsigned int k[DecisionHeadFixture::B] = {4, 3},
+                     row[DecisionHeadFixture::B] = {3, 4};
+  for (unsigned int b = 0; b < DecisionHeadFixture::B; ++b) {
+    for (unsigned int i = 0; i < 26; ++i)
+      t[b * 27 + i] = i >= k[b] ? -1.0f
+                                : (b == 0 ? 0.1f * (i + 1)
+                                          : (i == 0   ? 0.7f
+                                             : i == 1 ? 0.3f
+                                                      : 0.0f));
+    t[b * 27 + 26] = static_cast<float>(row[b]);
+  }
+
+  f.layer.forwarding(*f.ctx, true);
+  const auto p0 = f.probs(0, 4, 3), p1 = f.probs(1, 3, 4);
+  const double l0 = -(0.1 * std::log(p0[0]) + 0.2 * std::log(p0[1]) +
+                      0.3 * std::log(p0[2]) + 0.4 * std::log(p0[3]));
+  const double l1 = -(0.7 * std::log(p1[0]) + 0.3 * std::log(p1[1]));
+  EXPECT_NEAR(f.ctx->getLoss(), (l0 + l1) / 2, 1e-5);
+  const float *out = f.ctx->getOutput(0).getData<float>();
+  EXPECT_NEAR(out[26], l0, 1e-5);
+
+  f.layer.calcDerivative(*f.ctx);
+  const float *dx = f.ctx->getOutgoingDerivative(0).getData<float>();
+  std::vector<float> analytic(dx, dx + DecisionHeadFixture::B *
+                                         DecisionHeadFixture::L *
+                                         DecisionHeadFixture::H);
+  const float eps = 1e-2f;
+  for (size_t i = 0; i < analytic.size(); ++i) {
+    const unsigned int r =
+                         (i / DecisionHeadFixture::H) % DecisionHeadFixture::L,
+                       b =
+                         i / (DecisionHeadFixture::L * DecisionHeadFixture::H);
+    if (r != row[b]) {
+      EXPECT_EQ(analytic[i], 0.0f) << "non-readout element " << i;
+      continue;
+    }
+    const float orig = f.x()[i];
+    f.x()[i] = orig + eps;
+    f.layer.forwarding(*f.ctx, false);
+    const double lp = f.ctx->getLoss();
+    f.x()[i] = orig - eps;
+    f.layer.forwarding(*f.ctx, false);
+    const double lmn = f.ctx->getLoss();
+    f.x()[i] = orig;
+    EXPECT_NEAR(analytic[i], (lp - lmn) / (2 * eps), 1e-3) << "element " << i;
   }
 }
 

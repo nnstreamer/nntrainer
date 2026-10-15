@@ -54,7 +54,11 @@ public:
    *        label is decision_head_loss's: per letter 1 for the answer, 0 for
    *        another option, -1 beyond the options, then the readout row
    *        (the last prompt token). Questions without an answer are
-   *        refused.
+   *        refused. When the file's first row carries an "input_ids" array
+   *        instead (the personalization package's device_io format), it is
+   *        read pre-tokenized: the ids are consumed verbatim -- no
+   *        re-tokenization, no tokenizer-drift risk -- and every row must
+   *        carry target_probs (soft targets over the declared options).
    */
   TrainingDataGenerator(const std::string &data_path,
                         tokenizers::Tokenizer *tokenizer, unsigned int seq_len,
@@ -102,6 +106,9 @@ private:
     std::vector<int32_t> ids; /**< full tokenized sample, unpadded */
     unsigned int k = 0;       /**< decision: option count (0 = text) */
     unsigned int answer = 0;  /**< decision: index of the correct option */
+    /** decision: per-option target probabilities (soft targets, summing to
+     *  1); empty = the one-hot hard label in @a answer */
+    std::vector<float> probs;
   };
 
   std::vector<Sample> samples_;
@@ -117,6 +124,7 @@ private:
   void loadDecisionFile(const std::string &path,
                         tokenizers::Tokenizer *tokenizer,
                         unsigned int max_samples);
+  void loadPreTokenizedFile(const std::string &path, unsigned int max_samples);
   void reshuffle();
 };
 
@@ -169,6 +177,12 @@ struct TrainParams {
    *  itself, so the pass costs a full extra forward per epoch for a number
    *  the epoch-mean training loss already tracks. */
   bool validate = false;
+  /** separate validation file (JSONL); implies validate. Empty = validate
+   *  on the training data itself (the pre-existing --validate behavior). */
+  std::string valid_data_path;
+  /** stop early after this many consecutive epochs without a validation
+   *  improvement (0 = never stop early; requires validate) */
+  unsigned int patience = 0;
   /** "lm": next-token loss on every position of text lines; "decision":
    *  train a decision model on eve-rlcd JSONL questions (decision.h). */
   std::string task = "lm";

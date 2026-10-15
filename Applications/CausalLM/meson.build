@@ -521,6 +521,22 @@ if get_option('enable-test')
     suite: 'unittests'
   )
 
+  unittest_gdelta_gradcheck = executable(
+    'unittest_gdelta_gradcheck',
+    meson.current_source_dir() / 'layers' / 'unittest_gdelta_gradcheck.cpp',
+    dependencies: [nntrainer_dep, gtest_main_dep,
+                   causallm_gated_delta_core_dep],
+    include_directories: causallm_layer_inc,
+    build_by_default: true,
+    install: false,
+  )
+
+  test('unittest_gdelta_gradcheck', unittest_gdelta_gradcheck,
+    args: '--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), 'unittest_gdelta_gradcheck'),
+    timeout: 120,
+    suite: 'unittests'
+  )
+
   # Portable token sampler (token_sampler.h): host-only, header-only. Pins the
   # RNG stream, same-seed reproducibility and the top-k / top-p tie rules.
   unittest_sampling = executable(

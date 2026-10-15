@@ -605,10 +605,10 @@ void Transformer::setDecisionTask(const std::vector<int32_t> &letter_ids,
                                   unsigned int group, unsigned int seed) {
   NNTR_THROW_IF(letter_ids.size() != 26, std::invalid_argument)
     << "a decision task needs 26 letter ids, got " << letter_ids.size();
-  NNTR_THROW_IF(objective != "sft" && objective != "rlcd" &&
-                  objective != "rlvr",
+  NNTR_THROW_IF(objective != "sft" && objective != "soft" &&
+                  objective != "rlcd" && objective != "rlvr",
                 std::invalid_argument)
-    << "decision objective must be sft, rlcd or rlvr, got " << objective;
+    << "decision objective must be sft, soft, rlcd or rlvr, got " << objective;
   std::string ids;
   for (int32_t id : letter_ids)
     ids += (ids.empty() ? "" : ",") + std::to_string(id);

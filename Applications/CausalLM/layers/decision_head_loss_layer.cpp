@@ -65,9 +65,10 @@ void DecisionHeadLossLayer::finalize(nntrainer::InitLayerContext &context) {
       << "[decision_head_loss] letter id " << id << " >= vocab " << vocab;
 
   const std::string &obj = std::get<props::DecisionObjective>(props).get();
-  NNTR_THROW_IF(obj != "sft" && obj != "rlcd" && obj != "rlvr",
+  NNTR_THROW_IF(obj != "sft" && obj != "soft" && obj != "rlcd" && obj != "rlvr",
                 std::invalid_argument)
-    << "[decision_head_loss] objective must be sft, rlcd or rlvr, got " << obj;
+    << "[decision_head_loss] objective must be sft, soft, rlcd or rlvr, got "
+    << obj;
 
   const ml::train::TensorDim &in_dim = context.getInputDimensions()[0];
   NNTR_THROW_IF(in_dim.channel() != 1, std::invalid_argument)
@@ -138,9 +139,18 @@ void DecisionHeadLossLayer::forwarding(nntrainer::RunLayerContext &context,
     for (unsigned int i = 0; i < LETTERS && t[i] >= 0.0f; ++i, ++k)
       if (t[i] > 0.5f)
         answer = i;
-    NNTR_THROW_IF(k < 2 || answer >= k, std::invalid_argument)
-      << "[decision_head_loss] sample " << b << ": " << k << " options, answer "
-      << answer;
+    if (obj == "soft") {
+      double tsum = 0.0;
+      for (unsigned int i = 0; i < k; ++i)
+        tsum += t[i];
+      NNTR_THROW_IF(k < 1 || tsum <= 0.0, std::invalid_argument)
+        << "[decision_head_loss] sample " << b << ": " << k
+        << " options, target mass " << tsum;
+    } else {
+      NNTR_THROW_IF(k < 2 || answer >= k, std::invalid_argument)
+        << "[decision_head_loss] sample " << b << ": " << k
+        << " options, answer " << answer;
+    }
     const unsigned int row =
       std::min(static_cast<unsigned int>(t[LETTERS]), len - 1);
     const float *h = x_data + ((size_t)b * len + row) * hidden;
@@ -164,7 +174,18 @@ void DecisionHeadLossLayer::forwarding(nntrainer::RunLayerContext &context,
       p[i] = std::exp(logits[i] - lse);
       o[i] = static_cast<float>(p[i]);
     }
-    const double nll = lse - logits[answer];
+    double nll;
+    if (obj == "soft") {
+      // soft targets: loss = -sum_i t_i log p_i = tsum*lse - sum_i t_i z_i
+      double tsum = 0.0, tz = 0.0;
+      for (unsigned int i = 0; i < k; ++i) {
+        tsum += t[i];
+        tz += t[i] * logits[i];
+      }
+      nll = tsum * lse - tz;
+    } else {
+      nll = lse - logits[answer];
+    }
     o[LETTERS] = static_cast<float>(nll);
     nll_sum += nll;
 
@@ -177,6 +198,14 @@ void DecisionHeadLossLayer::forwarding(nntrainer::RunLayerContext &context,
       for (unsigned int i = 0; i < k; ++i)
         dz[i] = p[i];
       dz[answer] -= 1.0;
+    } else if (obj == "soft") {
+      // d(-sum_i t_i log p_i)/dz_i = tsum*p_i - t_i (tsum = 1 for a
+      // normalized target, where this is p_i - t_i)
+      double tsum = 0.0;
+      for (unsigned int i = 0; i < k; ++i)
+        tsum += t[i];
+      for (unsigned int i = 0; i < k; ++i)
+        dz[i] = tsum * p[i] - t[i];
     } else {
       // REINFORCE: loss = -1/G sum_g adv_g log p(a_g);
       // d(-log p(a))/dz = p - onehot(a)

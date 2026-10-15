@@ -841,7 +841,7 @@ calibrated output use FP32, or measure on your own data first.
 ### Training
 
 `nntr_lora_train <model> <questions.jsonl> --task decision --objective
-sft|rlcd|rlvr [--group 4]` (app: TASK / OBJECTIVE; `trainLora()` JSON:
+sft|soft|rlcd|rlvr [--group 4]` (app: TASK / OBJECTIVE; `trainLora()` JSON:
 `task`, `objective`, `group`). The training graph ends in
 `decision_head_loss` (`layers/decision_head_loss_layer.cpp`) instead of
 `lm_head_loss`. The layer reads the hidden state at the last prompt token,
@@ -851,6 +851,13 @@ the answer, 0 for another option and -1 beyond K, plus the readout row. The
 objectives follow eve-rlcd:
 
 - `sft`: `-log p(answer)`.
+- `soft`: the label's first K entries carry a target distribution (summing
+  to 1) instead of a one-hot; the loss is `-sum_i t_i log p_i` and the
+  gradient `p - t` (sft is its one-hot special case). When the questions
+  file's first line carries an `"input_ids"` array (the personalization
+  package's pre-tokenized `device_io` JSONL with `target_probs`), the rows
+  are consumed verbatim -- no re-tokenization, so the package's tokenizer
+  cannot drift from the device model's.
 - `rlcd`: per question, draw `group` actions from p and reward each with
   `1[correct] - p(action)`. The advantage is the reward minus the
   leave-one-out mean of the group's rewards, and the loss is
@@ -860,13 +867,23 @@ objectives follow eve-rlcd:
 - `rlvr`: the same with reward `1[correct]`.
 
 The reported loss is always the mean `-log p(answer)`, so the curves of the
-three objectives read the same. Only the head's 26 rows are touched, so the
-head costs next to nothing, unlike `lm_head_loss`.
+objectives read the same. Only the head's 26 rows are touched, so the head
+costs next to nothing, unlike `lm_head_loss`.
+
+A separate validation file selects the checkpoint instead of the training
+loss: `--valid_data <file>` (app: VALIDATION DATA; JSON `valid_data`) runs
+a validation pass after every epoch and keeps the adapter with the best
+validation loss (implies `--validate`). `--patience <n>` (app: PATIENCE;
+JSON `patience`) stops the run early after n epochs in a row without a
+validation improvement.
 
 Checked:
 
 - `unittest_lora_backward_gradcheck`: sft probabilities, loss and `dL/dx`
-  against a direct computation and central differences. For rlcd / rlvr, the
+  against a direct computation and central differences. The soft objective
+  gets its own test: the target-distribution loss `-sum t log p` and the
+  gradient `(p - t) / B . W_letters` against central differences. For
+  rlcd / rlvr, the
   mean `dL/dx` over 40000 sampled forwards matches the exact expected
   REINFORCE gradient `-sum_a p_a r(a) (e_a - p)` to 3%.
 - x86, FP32 model, lr 0: the epoch loss 1.21058 equals the PyTorch mean
