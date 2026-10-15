@@ -249,7 +249,7 @@ class MainActivity : AppCompatActivity() {
     private var trainTrunkPath: String = "/sdcard/q_rlcd_qs4_gpu"
     private var trainLastIterNs: Long = 0L
     private val trainIterMs = ArrayDeque<Double>()
-    private var trainDataPath: String = "/sdcard/u02_train.jsonl"
+    private var trainDataPath: String = "/sdcard/qdc_u02_train.jsonl"
     /** separate validation JSONL (empty: validate on the training data when
      *  --validate-style validation is on); implies the validation pass */
     private var trainValidDataPath: String = ""
@@ -301,44 +301,65 @@ class MainActivity : AppCompatActivity() {
     private var trainStatusText: String = "Idle"
     private var trainStatusView: TextView? = null
 
-    // ── Train tab TEST (before / after inference) state ─────────────────
-    /** Cached inference handles: base checkpoint, and base + LoRA adapter.
-     *  0 = not loaded. Invalidated whenever training starts (the adapter
-     *  on disk changes mid-run). */
-    private var testBeforeHandle: Long = 0L
-    private var testAfterHandle: Long = 0L
-    /** One personalization demo situation: a decision prompt from the
-     *  demo user's (u02) held-out test rows, and the app the user actually
-     *  opened next. Picked where the base model follows the app used just
-     *  before, while the user's own habit says otherwise. */
+    // ── Train tab TEST: personalization demo (users A/B/C) ──────────────
+    /** One held-out test scenario of a demo user: the full-context decision
+     *  prompt (compact context, 123–139 tokens, 14 candidates) and the app the user actually
+     *  opened next. reqTop4 holds extra apps that must land in the visible
+     *  Top-4 (C's travel row wants 카카오맵 and YouTube together). */
     private data class DemoScenario(
         val chip: String, val situation: String, val answer: Int,
-        val prompt: String)
-    private val DEMO_SCENARIOS = listOf(
-        DemoScenario("🗺 지도", "약속 장소 도착 · 약속 15분 전 · 방금 쓴 앱: 네이버지도", 3,
-            "User: Context:\n이동=도착\n일정=약속:예정,15분후\n직전=네이버지도\n\nQuestion: 다음 앱?\nOptions:\nA) 네이버지도\nB) 카카오맵\nC) 카카오T\nD) 카카오톡\nE) 토스\nF) 카카오페이\nG) YouTube\nH) Calendar\nI) Meet\nJ) 시계\nK) Anki\nL) 노트\nM) 기타\nN) 미사용\nAnswer with the letter only.\nAssistant: The answer is"),
-        DemoScenario("💳 송금", "친구가 정산 요청 · 지금 처리할 일 · 방금 쓴 앱: 시계", 5,
-            "User: Context:\n정산=친구,지금,미처리\n직전=시계\n\nQuestion: 다음 앱?\nOptions:\nA) 네이버지도\nB) 카카오맵\nC) 카카오T\nD) 카카오톡\nE) 토스\nF) 카카오페이\nG) YouTube\nH) Calendar\nI) Meet\nJ) 시계\nK) Anki\nL) 노트\nM) 기타\nN) 미사용\nAnswer with the letter only.\nAssistant: The answer is"),
-        DemoScenario("👤 요청", "동료가 계좌 문의 · 방금 쓴 앱: Meet", 3,
-            "User: Context:\n정산=동료,지금,계좌문의\n직전=Meet\n\nQuestion: 다음 앱?\nOptions:\nA) 네이버지도\nB) 카카오맵\nC) 카카오T\nD) 카카오톡\nE) 토스\nF) 카카오페이\nG) YouTube\nH) Calendar\nI) Meet\nJ) 시계\nK) Anki\nL) 노트\nM) 기타\nN) 미사용\nAnswer with the letter only.\nAssistant: The answer is"),
-        DemoScenario("📅 일정", "회의 종료 직후 · 방금 쓴 앱: Meet", 3,
-            "User: Context:\n일정=회의:종료\n직전=Meet\n\nQuestion: 다음 앱?\nOptions:\nA) 네이버지도\nB) 카카오맵\nC) 카카오T\nD) 카카오톡\nE) 토스\nF) 카카오페이\nG) YouTube\nH) Calendar\nI) Meet\nJ) 시계\nK) Anki\nL) 노트\nM) 기타\nN) 미사용\nAnswer with the letter only.\nAssistant: The answer is"),
+        val prompt: String, val reqTop4: List<Int> = emptyList())
+    /** One demo user: a letter tab, their on-device train file, and their
+     *  held-out test scenarios. Each user trains their own LoRA adapter on
+     *  the same base model. */
+    private data class DemoUser(
+        val label: String, val trainData: String,
+        val scenarios: List<DemoScenario>)
+    private val DEMO_USERS = listOf(
+        DemoUser("A", "/sdcard/qdc_u01_train.jsonl", listOf(
+            DemoScenario("🗺 지도", "약속 15분 전 · 출발 전 · 직전 Anki", 0,
+                "User: Context:\n이동=출발전\n일정=약속:예정,15분후\n직전=Anki\n\nQuestion: 다음 앱?\nOptions:\nA) 네이버지도\nB) 카카오맵\nC) 카카오T\nD) 카카오톡\nE) 토스\nF) 카카오페이\nG) YouTube\nH) Calendar\nI) Meet\nJ) 시계\nK) Anki\nL) 노트\nM) 기타\nN) 미사용\nAnswer with the letter only.\nAssistant: The answer is"),  // compact8-confirm-test-019-u01: naver_map
+            DemoScenario("💳 송금", "친구가 지금 송금 요청 · 직전 시계", 4,
+                "User: Context:\n정산=친구,지금,미처리\n직전=시계\n\nQuestion: 다음 앱?\nOptions:\nA) 네이버지도\nB) 카카오맵\nC) 카카오T\nD) 카카오톡\nE) 토스\nF) 카카오페이\nG) YouTube\nH) Calendar\nI) Meet\nJ) 시계\nK) Anki\nL) 노트\nM) 기타\nN) 미사용\nAnswer with the letter only.\nAssistant: The answer is"),  // compact8-confirm-test-038-u01: toss
+            DemoScenario("👤 요청", "가족이 지금 송금 요청 · 직전 시계", 4,
+                "User: Context:\n정산=가족,지금,미처리\n직전=시계\n\nQuestion: 다음 앱?\nOptions:\nA) 네이버지도\nB) 카카오맵\nC) 카카오T\nD) 카카오톡\nE) 토스\nF) 카카오페이\nG) YouTube\nH) Calendar\nI) Meet\nJ) 시계\nK) Anki\nL) 노트\nM) 기타\nN) 미사용\nAnswer with the letter only.\nAssistant: The answer is"),  // compact8-confirm-test-006-u01: toss
+            DemoScenario("📅 일정", "회의 종료 직후 · 직전 Meet", 11,
+                "User: Context:\n일정=회의:종료\n직전=Meet\n\nQuestion: 다음 앱?\nOptions:\nA) 네이버지도\nB) 카카오맵\nC) 카카오T\nD) 카카오톡\nE) 토스\nF) 카카오페이\nG) YouTube\nH) Calendar\nI) Meet\nJ) 시계\nK) Anki\nL) 노트\nM) 기타\nN) 미사용\nAnswer with the letter only.\nAssistant: The answer is"),  // compact8-confirm-test-026-u01: notes
+        )),
+        DemoUser("B", "/sdcard/qdc_u02_train.jsonl", listOf(
+            DemoScenario("🗺 지도", "약속 15분 전 · 출발 전 · 직전 Anki", 1,
+                "User: Context:\n이동=출발전\n일정=약속:예정,15분후\n직전=Anki\n\nQuestion: 다음 앱?\nOptions:\nA) 네이버지도\nB) 카카오맵\nC) 카카오T\nD) 카카오톡\nE) 토스\nF) 카카오페이\nG) YouTube\nH) Calendar\nI) Meet\nJ) 시계\nK) Anki\nL) 노트\nM) 기타\nN) 미사용\nAnswer with the letter only.\nAssistant: The answer is"),  // compact8-confirm-test-019-u02: kakao_map
+            DemoScenario("💳 송금", "친구가 지금 송금 요청 · 직전 시계", 5,
+                "User: Context:\n정산=친구,지금,미처리\n직전=시계\n\nQuestion: 다음 앱?\nOptions:\nA) 네이버지도\nB) 카카오맵\nC) 카카오T\nD) 카카오톡\nE) 토스\nF) 카카오페이\nG) YouTube\nH) Calendar\nI) Meet\nJ) 시계\nK) Anki\nL) 노트\nM) 기타\nN) 미사용\nAnswer with the letter only.\nAssistant: The answer is"),  // compact8-confirm-test-038-u02: kakaopay
+            DemoScenario("👤 요청", "가족이 지금 송금 요청 · 직전 시계", 5,
+                "User: Context:\n정산=가족,지금,미처리\n직전=시계\n\nQuestion: 다음 앱?\nOptions:\nA) 네이버지도\nB) 카카오맵\nC) 카카오T\nD) 카카오톡\nE) 토스\nF) 카카오페이\nG) YouTube\nH) Calendar\nI) Meet\nJ) 시계\nK) Anki\nL) 노트\nM) 기타\nN) 미사용\nAnswer with the letter only.\nAssistant: The answer is"),  // compact8-confirm-test-006-u02: kakaopay
+            DemoScenario("📅 일정", "회의 종료 직후 · 직전 Meet", 3,
+                "User: Context:\n일정=회의:종료\n직전=Meet\n\nQuestion: 다음 앱?\nOptions:\nA) 네이버지도\nB) 카카오맵\nC) 카카오T\nD) 카카오톡\nE) 토스\nF) 카카오페이\nG) YouTube\nH) Calendar\nI) Meet\nJ) 시계\nK) Anki\nL) 노트\nM) 기타\nN) 미사용\nAnswer with the letter only.\nAssistant: The answer is"),  // compact8-confirm-test-026-u02: kakaotalk
+        )),
+        DemoUser("C", "/sdcard/qdc_u03_train.jsonl", listOf(
+            DemoScenario("🗺 이동 · 직전 맵", "이동 중 · 약속 5분 전 · 직전 카카오맵", 6,
+                "User: Context:\n이동=이동중\n일정=약속:예정,5분후\n직전=카카오맵\n\nQuestion: 다음 앱?\nOptions:\nA) 네이버지도\nB) 카카오맵\nC) 카카오T\nD) 카카오톡\nE) 토스\nF) 카카오페이\nG) YouTube\nH) Calendar\nI) Meet\nJ) 시계\nK) Anki\nL) 노트\nM) 기타\nN) 미사용\nAnswer with the letter only.\nAssistant: The answer is", reqTop4 = listOf(1, 6)),  // travel-video-test-05-kakao_map-r0-u03: youtube
+            DemoScenario("🗺 이동 · 직전 영상", "이동 중 · 약속 5분 전 · 직전 YouTube", 1,
+                "User: Context:\n이동=이동중\n일정=약속:예정,5분후\n직전=YouTube\n\nQuestion: 다음 앱?\nOptions:\nA) 네이버지도\nB) 카카오맵\nC) 카카오T\nD) 카카오톡\nE) 토스\nF) 카카오페이\nG) YouTube\nH) Calendar\nI) Meet\nJ) 시계\nK) Anki\nL) 노트\nM) 기타\nN) 미사용\nAnswer with the letter only.\nAssistant: The answer is", reqTop4 = listOf(1, 6)),  // travel-video-test-05-youtube-r0-u03: kakao_map
+            DemoScenario("💳 송금", "친구가 지금 송금 요청 · 직전 시계", 4,
+                "User: Context:\n정산=친구,지금,미처리\n직전=시계\n\nQuestion: 다음 앱?\nOptions:\nA) 네이버지도\nB) 카카오맵\nC) 카카오T\nD) 카카오톡\nE) 토스\nF) 카카오페이\nG) YouTube\nH) Calendar\nI) Meet\nJ) 시계\nK) Anki\nL) 노트\nM) 기타\nN) 미사용\nAnswer with the letter only.\nAssistant: The answer is"),  // compact8-confirm-test-038-u03: toss
+            DemoScenario("👤 요청 · 정산 유예", "동료 정산 요청 · 나중에 · 직전 네이버지도", 6,
+                "User: Context:\n정산=동료,나중,미처리\n직전=네이버지도\n\nQuestion: 다음 앱?\nOptions:\nA) 네이버지도\nB) 카카오맵\nC) 카카오T\nD) 카카오톡\nE) 토스\nF) 카카오페이\nG) YouTube\nH) Calendar\nI) Meet\nJ) 시계\nK) Anki\nL) 노트\nM) 기타\nN) 미사용\nAnswer with the letter only.\nAssistant: The answer is", reqTop4 = listOf(0, 6)),  // compact8-confirm-test-012-u03: youtube
+            DemoScenario("📅 일정", "회의 종료 직후 · 직전 Meet", 7,
+                "User: Context:\n일정=회의:종료\n직전=Meet\n\nQuestion: 다음 앱?\nOptions:\nA) 네이버지도\nB) 카카오맵\nC) 카카오T\nD) 카카오톡\nE) 토스\nF) 카카오페이\nG) YouTube\nH) Calendar\nI) Meet\nJ) 시계\nK) Anki\nL) 노트\nM) 기타\nN) 미사용\nAnswer with the letter only.\nAssistant: The answer is"),  // compact8-confirm-test-026-u03: calendar_app
+        )),
     )
-    /** The scenario the TEST prompt holds (-1: a typed prompt). */
-    private var testScenario: Int = 0
-    private var testPromptText: String = DEMO_SCENARIOS[0].prompt
-    private var testBeforeRunning: Boolean = false
-    private var testAfterRunning: Boolean = false
-    private var testBeforeOutput: String = ""
-    private var testAfterOutput: String = ""
-    /** BEFORE runs only until the first training (or AFTER) run of the
-     *  process: once an adapter handle has been built and torn down in the
-     *  process, a base handle loaded after it reads NaN logits. The BEFORE
-     *  result of each scenario is kept so the comparison stays on screen. */
-    private var testBeforeLocked: Boolean = false
-    private val testBeforeByScenario = mutableMapOf<Int, String>()
-    /** "before" | "after" while a Stop has been requested for that column. */
-    private var testStopRequested: String? = null
+    /** The user tab the TEST card shows. */
+    private var demoUser: Int = 0
+    private var demoRunning: Boolean = false
+    private var demoStopRequested: Boolean = false
+    private var demoStatus: String =
+        "'▶ 전체 데모 실행'이 모든 사용자의 BEFORE → 학습 → AFTER를 순서대로 돌립니다"
+    /** Per user, per scenario: the BEFORE / AFTER decision readouts. */
+    private val demoBefore: List<MutableList<String?>> =
+        DEMO_USERS.map { MutableList(it.scenarios.size) { null } }
+    private val demoAfter: List<MutableList<String?>> =
+        DEMO_USERS.map { MutableList(it.scenarios.size) { null } }
 
     /* ───── UI refs (re-wired on every rebuildUi() call) ───── */
 
@@ -360,9 +381,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var openAIMessagesField: EditText
     private lateinit var chatModelBasePathField: EditText
     private lateinit var chatSessionStatusView: TextView
-    private lateinit var testPromptField: EditText
-    private var testBeforeOutputView: TextView? = null
-    private var testAfterOutputView: TextView? = null
 
     /**
      * @brief ActivityResult launcher for the Android system photo picker
@@ -424,7 +442,6 @@ class MainActivity : AppCompatActivity() {
         if (::chatSeedField.isInitialized) seedText = chatSeedField.text.toString()
         if (::chatPromptField.isInitialized) chatPromptText = chatPromptField.text.toString()
         if (::openAIMessagesField.isInitialized) openAiJsonText = openAIMessagesField.text.toString()
-        if (::testPromptField.isInitialized) testPromptText = testPromptField.text.toString()
 
         // Save scroll positions before rebuilding
         if (::mainScrollView.isInitialized) mainScrollY = mainScrollView.scrollY
@@ -939,7 +956,7 @@ class MainActivity : AppCompatActivity() {
                 when (trainTask) {
                     "decision" -> {
                         trainModelPath = "/sdcard/q_rlcd_qs4"
-                        trainDataPath = "/sdcard/u02_train.jsonl"
+                        trainDataPath = "/sdcard/qdc_u02_train.jsonl"
                         trainValidDataPath = ""
                         trainTrunkPath = "/sdcard/q_rlcd_qs4_gpu"
                         // the personalization demo's soft-target CE
@@ -960,10 +977,6 @@ class MainActivity : AppCompatActivity() {
                         trainMaxSamples = "0"
                         trainEpochs = "4"
                         trainPatience = "0"
-                        testScenario = 0
-                        testPromptText = DEMO_SCENARIOS[0].prompt
-                        if (::testPromptField.isInitialized)
-                            testPromptField.setText(testPromptText)
                     }
                     "lm35" -> {
                         trainModelPath = "/sdcard/q35_qs4"
@@ -978,8 +991,6 @@ class MainActivity : AppCompatActivity() {
                         trainTrunkPath = "/sdcard/q_qs4_gpu"
                     }
                 }
-                // The cached TEST handles point at the previous model dir.
-                invalidateTestHandles()
                 rebuildUi()
             })
             spacer(content, 8)
@@ -1024,7 +1035,11 @@ class MainActivity : AppCompatActivity() {
      *  minimum and the ▶/⏹ emoji glyphs inflate the line box. */
     private fun trainToggleButton(t: M3Tokens): View {
         return TextView(this).apply {
-            text = if (trainRunning) "Stop Training" else "Start Training"
+            text = when {
+                demoRunning -> "■ 데모 정지"
+                trainRunning -> "Stop Training"
+                else -> "Start Training"
+            }
             textSize = 13f
             typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
@@ -1032,7 +1047,11 @@ class MainActivity : AppCompatActivity() {
             background = solid(if (trainRunning) t.error else t.primary, 100)
             setPadding(dp(16), dp(7), dp(16), dp(7))
             setOnClickListener {
-                if (trainRunning) onStopTraining() else onTrainClicked()
+                when {
+                    demoRunning  -> onStopDemo()
+                    trainRunning -> onStopTraining()
+                    else         -> onTrainClicked()
+                }
             }
         }
     }
@@ -1055,135 +1074,103 @@ class MainActivity : AppCompatActivity() {
         return card
     }
 
-    /** One TEST column: a Run button over a small monospace output box. */
-    private fun buildTrainTestColumn(
-        t: M3Tokens, label: String, running: Boolean, output: String,
-        onRun: () -> Unit, which: String,
-    ): View {
-        val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        // TextView pill like the chart-header Start/Stop control — Button
-        // drags in AppCompat's 48dp minimum and the ▶/⏹ glyphs inflate the
-        // line box, so the control balloons past its text.
-        val locked = which == "before" && testBeforeLocked && !running
-        col.addView(TextView(this).apply {
-            text = when {
-                running && testStopRequested == which -> "Stopping…"
-                running -> "Stop"
-                locked -> "BEFORE (학습 전 결과)"
-                else -> "Run $label"
-            }
-            textSize = 13f
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER
-            setTextColor(if (running) Color.WHITE
-                         else if (locked) t.onSurface else t.onPrimary)
-            background = solid(if (running) t.error
-                               else if (locked) t.surfaceContainerHigh
-                               else t.primary, 100)
-            setPadding(dp(10), dp(7), dp(10), dp(7))
-            setOnClickListener {
-                if (locked) {
-                    setTrainStatus("BEFORE는 학습 전에만 실행됩니다 (앱 재시작 시 다시 가능)")
-                    rebuildUi()
-                } else if (running) {
-                    testStopRequested = which
-                    val h = if (which == "before") testBeforeHandle
-                            else testAfterHandle
-                    if (h != 0L) engineExecutor.execute {
-                        NativeCausalLm.cancelModelHandleNative(h)
-                    }
-                } else onRun()
-            }
-        }, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
-        spacer(col, 6)
-        val outBox = TextView(this).apply {
-            text = output.ifEmpty { "(not run yet)" }
-            setTextColor(if (output.isEmpty()) 0x4DFFFFFF else 0xFFEDE7F6.toInt())
-            textSize = 11f
-            typeface = Typeface.MONOSPACE
-            background = solid(t.codeBg, 12)
-            setPadding(dp(8), dp(8), dp(8), dp(8))
-        }
-        if (which == "before") testBeforeOutputView = outBox else testAfterOutputView = outBox
-        col.addView(outBox, LinearLayout.LayoutParams(MATCH_PARENT, dp(120)))
-        return col
-    }
-
-    /** TEST card: BEFORE / AFTER first (the demo actions), prompt entry
-     *  last — the fixed default prompt rarely needs editing. */
+    /** The TEST card: a tab per demo user and one BEFORE|AFTER result row
+     *  per scenario; the ▶ 전체 데모 실행 pill on the header runs the whole
+     *  sequence (every user's BEFORE, their LoRA training, then AFTER) so
+     *  the viewer only browses the finished results here. */
     private fun buildTrainTestPanel(t: M3Tokens): View {
         val card = roundedCard(t, t.surfaceContainerHigh)
-        card.addView(sectionHeader(t, "🧪", t.secondaryContainer, t.onSurface,
-            "TEST", ""))
-        spacer(card, 8)
-        val cols = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        cols.addView(
-            buildTrainTestColumn(t, "BEFORE (base)", testBeforeRunning,
-                testBeforeOutput, { onTrainTestClicked("before") }, "before"),
-            LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
-        spacerH(cols, 8)
-        cols.addView(
-            buildTrainTestColumn(t, "AFTER (trained)", testAfterRunning,
-                testAfterOutput, { onTrainTestClicked("after") }, "after"),
-            LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
-        card.addView(cols)
-        spacer(card, 8)
-        // Scenario chips: the personalization demo's four situations, each
-        // a held-out test prompt of the demo user. The base model follows
-        // the app used just before; the trained adapter ranks the user's
-        // own habit — the BEFORE / AFTER pair shows the difference.
-        card.addView(labelView(t, "SCENARIOS (tap to load the prompt)"))
-        val chips = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        DEMO_SCENARIOS.forEachIndexed { i, sc ->
-            if (i > 0) spacerH(chips, 6)
-            chips.addView(makeScenarioChip(t, i, sc))
+        val headerRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
         }
-        card.addView(chips)
-        if (testScenario >= 0) {
-            val sc = DEMO_SCENARIOS[testScenario]
+        val header = sectionHeader(t, "🧪", t.secondaryContainer, t.onSurface,
+            "TEST", "개인화 데모 — 사용자별 LoRA")
+        header.layoutParams = LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f)
+        headerRow.addView(header)
+        headerRow.addView(demoToggleButton(t), LinearLayout.LayoutParams(
+            WRAP_CONTENT, WRAP_CONTENT).also { it.leftMargin = dp(8) })
+        card.addView(headerRow)
+        spacer(card, 8)
+        // User tabs A / B / C.
+        val tabs = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        DEMO_USERS.forEachIndexed { i, u ->
+            if (i > 0) spacerH(tabs, 6)
+            val active = i == demoUser
+            tabs.addView(TextView(this).apply {
+                text = "사용자 ${u.label}"
+                textSize = 13f
+                typeface = Typeface.DEFAULT_BOLD
+                gravity = Gravity.CENTER
+                setTextColor(if (active) t.onPrimary else t.onSurface)
+                background = if (active) solid(t.primary, 100)
+                    else strokedSolid(t.secondaryContainer, 100, t.outline, 1)
+                setPadding(dp(14), dp(7), dp(14), dp(7))
+                setOnClickListener { demoUser = i; rebuildUi() }
+            }, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
+        }
+        card.addView(tabs)
+        spacer(card, 8)
+        // One result row per scenario: situation line over a BEFORE|AFTER pair.
+        val du = DEMO_USERS[demoUser]
+        du.scenarios.forEachIndexed { s, sc ->
             val opts = parseDecisionOptions(sc.prompt)
-            spacer(card, 6)
-            card.addView(TextView(this).apply {
-                text = "상황: ${sc.situation}\n실제로 연 앱: ${opts.getOrElse(sc.answer) { "?" }}"
+            val actual = opts.getOrElse(sc.answer) { "?" }
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                background = solid(t.surfaceContainer, 10)
+                setPadding(dp(10), dp(8), dp(10), dp(8))
+            }
+            row.addView(TextView(this).apply {
+                text = "${sc.chip}  ${sc.situation}  ·  실제로 연 앱: $actual"
                 textSize = 12f
                 setTextColor(t.onSurface)
             })
+            spacer(row, 4)
+            val cols = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            cols.addView(resultBox(t, "BEFORE",
+                    demoBefore.getOrNull(demoUser)?.getOrNull(s)),
+                LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+            spacerH(cols, 6)
+            cols.addView(resultBox(t, "AFTER",
+                    demoAfter.getOrNull(demoUser)?.getOrNull(s)),
+                LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+            row.addView(cols)
+            card.addView(row)
+            spacer(card, 6)
         }
-        spacer(card, 8)
-        card.addView(labelView(t, "PROMPT"))
-        testPromptField = roundedEditText(t, testPromptText, multiline = true,
-            rows = 2) {
-            testPromptText = it
-            // a typed prompt has no known answer
-            if (testScenario >= 0 && it != DEMO_SCENARIOS[testScenario].prompt)
-                testScenario = -1
-        }
-        card.addView(testPromptField)
+        card.addView(TextView(this).apply {
+            text = demoStatus
+            setTextColor(t.onSurfaceVar)
+            textSize = 11f
+            typeface = Typeface.MONOSPACE
+            setPadding(dp(4), dp(2), dp(4), 0)
+        })
         return card
     }
 
-    /** A scenario chip: loads that scenario's prompt into the TEST card. */
-    private fun makeScenarioChip(t: M3Tokens, index: Int, sc: DemoScenario): View =
+    /** One result box: a small monospace BEFORE/AFTER decision readout. */
+    private fun resultBox(t: M3Tokens, tag: String, body: String?): View =
         TextView(this).apply {
-            text = sc.chip
-            textSize = 12f
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER
-            setTextColor(if (index == testScenario) t.onPrimary else t.onSurface)
-            background = if (index == testScenario) solid(t.primary, 100)
-                else strokedSolid(t.secondaryContainer, 100, t.outline, 1)
-            setPadding(dp(12), dp(7), dp(12), dp(7))
-            setOnClickListener {
-                testScenario = index
-                testPromptText = sc.prompt
-                // rebuildUi() reads the prompt back from the live field
-                if (::testPromptField.isInitialized)
-                    testPromptField.setText(sc.prompt)
-                testBeforeOutput = testBeforeByScenario[index] ?: ""
-                testAfterOutput = ""
-                rebuildUi()
-            }
+            text = if (body == null) "$tag\n(대기)" else "$tag\n$body"
+            setTextColor(if (text == null) 0x66EDE7F6 else 0xFFEDE7F6.toInt())
+            textSize = 10f
+            typeface = Typeface.MONOSPACE
+            background = solid(t.codeBg, 12)
+            setPadding(dp(8), dp(6), dp(8), dp(6))
         }
+
+    /** ▶ 전체 데모 실행 / ■ 정지 pill on the TEST card header. */
+    private fun demoToggleButton(t: M3Tokens): View = TextView(this).apply {
+        text = if (demoRunning) "■ 정지" else "▶ 전체 데모 실행"
+        textSize = 13f
+        typeface = Typeface.DEFAULT_BOLD
+        gravity = Gravity.CENTER
+        setTextColor(if (demoRunning) Color.WHITE else t.onPrimary)
+        background = solid(if (demoRunning) t.error else t.primary, 100)
+        setPadding(dp(14), dp(7), dp(14), dp(7))
+        setOnClickListener { if (demoRunning) onStopDemo() else onRunFullDemo() }
+    }
 
     /** Option labels of a decision prompt: the "A) label" lines after
      *  "Options:", in letter order (empty: not a decision prompt). */
@@ -1201,21 +1188,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** The TEST box text of a decision answer: the four recommended apps
-     *  (기타 / 미사용 are not recommendations, as the demo package scores),
-     *  with the user's actual app marked when the scenario knows it. */
+     *  (후보 밖 앱 / 미사용 계열 are not recommendations, as the demo package
+     *  scores), with the user's actual app and any required-Top4 apps
+     *  marked. */
     private fun formatDecision(opts: List<String>, probs: FloatArray,
-                               answer: Int): String {
-        val real = opts.indices.filter { opts[it] != "기타" && opts[it] != "미사용" }
+                               answer: Int, reqTop4: List<Int> = emptyList()): String {
+        val nonRec = setOf("기타", "미사용", "후보 밖 앱", "5분간 앱 사용 없음")
+        val real = opts.indices.filter { opts[it] !in nonRec }
         val top4 = real.sortedWith(compareBy({ -probs[it] }, { it })).take(4)
         val sb = StringBuilder()
         top4.forEachIndexed { r, i ->
+            val hit = i == answer || i in reqTop4
             sb.append(String.format("%d %s %4.1f%%%s\n", r + 1, opts[i],
-                probs[i] * 100f, if (i == answer) "  ✓" else ""))
+                probs[i] * 100f, if (hit) " ✓" else ""))
         }
         if (answer in opts.indices) {
             val rank = top4.indexOf(answer)
             sb.append(if (rank < 0) "✗ ${opts[answer]} 추천 밖"
                       else "✓ ${opts[answer]} ${rank + 1}위")
+            if (reqTop4.isNotEmpty()) {
+                val got = reqTop4.count { top4.contains(it) }
+                sb.append(String.format("  · 필수 Top4 %d/%d", got, reqTop4.size))
+            }
         }
         return sb.toString()
     }
@@ -2789,157 +2783,238 @@ class MainActivity : AppCompatActivity() {
 
     /* ───── Train handler ───── */
 
-    /** Destroy cached TEST inference handles (before/after columns). */
-    private fun invalidateTestHandles() {
-        for ((name, handle) in listOf("before" to testBeforeHandle,
-                                      "after" to testAfterHandle)) {
-            if (handle != 0L) {
-                engineExecutor.execute {
-                    NativeCausalLm.destroyModelHandleNative(handle)
-                }
-            }
-        }
-        testBeforeHandle = 0L
-        testAfterHandle = 0L
-    }
+    /* ───── Full demo: every user's BEFORE → their LoRA training → AFTER ── */
 
-    /**
-     * TEST card handler: run the prompt through the base checkpoint
-     * ("before") or the base + saved LoRA adapter ("after"), streaming
-     * into that column's output box.
-     */
-    private fun onTrainTestClicked(which: String) {
-        val alreadyRunning =
-            if (which == "before") testBeforeRunning else testAfterRunning
-        if (alreadyRunning) return
-        if (which == "before" && testBeforeLocked) return
-        if (which == "after") testBeforeLocked = true
-        if (which == "before") {
-            testBeforeRunning = true
-            testBeforeOutput = ""
-        } else {
-            testAfterRunning = true
-            testAfterOutput = ""
-        }
-        testStopRequested = null
-        setTrainStatus("TEST $which: loading model…")
-        rebuildUi()
-
-        val modelDir = trainModelPath.trim()
-        if (modelDir.isEmpty()) {
-            setTrainStatus("TEST: model path is empty")
-            testBeforeRunning = false; testAfterRunning = false
+    /** Runs the whole personalization demo on the engine executor: one base
+     *  handle answers every user's held-out scenarios (BEFORE), then each
+     *  user trains their own LoRA adapter and a fresh adapter handle
+     *  re-answers the same scenarios (AFTER). No base handle is ever loaded
+     *  after an adapter handle has been torn down — all BEFORE runs finish
+     *  first — which keeps the known after-teardown NaN path out of the
+     *  demo. */
+    private fun onRunFullDemo() {
+        if (demoRunning) return
+        // Sanity check: the model pack and the three per-user train files.
+        val missing = (listOf(trainModelPath.trim()) + DEMO_USERS.map { it.trainData })
+            .filter { it.isNotEmpty() && !java.io.File(it).exists() }
+        if (missing.isNotEmpty()) {
+            demoStatus = "✗ 파일 없음: ${missing.joinToString()}"
+            appendTrainLog("✗ 데모: 파일 없음 — ${missing.joinToString()}")
             rebuildUi()
             return
         }
-        // After column: a QAT run's Q4_0 adapter when there is one -- the
-        // int4 values training quantized against, i.e. what ships -- else
-        // the FP32 adapter. Before column runs base only.
-        val loraPath = if (which == "after") {
-            val q4 = trainSavedQ4Path.ifEmpty { "$modelDir/lora_adapter_q4.bin" }
-            val fp32 = trainSavedPath.ifEmpty { "$modelDir/lora_adapter.bin" }
-            if (trainQatEnabled && java.io.File(q4).exists()) q4 else fp32
-        } else ""
-        if (loraPath.isNotEmpty())
-            appendTrainLog("TEST after: adapter ${java.io.File(loraPath).name}")
+        demoRunning = true
+        demoStopRequested = false
+        for (l in demoBefore) for (i in l.indices) l[i] = null
+        for (l in demoAfter) for (i in l.indices) l[i] = null
+        trainLog = ""; trainBestLoss = "—"
+        trainLossPoints.clear(); trainEpochBoundaries.clear()
+        lossChartView?.clear()
+        trainRunning = true
+        trainLastIterNs = 0L; trainIterMs.clear()
+        appendTrainLog("▶ 전체 데모 시작: A → B → C, 각 사용자 BEFORE → 학습 → AFTER")
+        demoStatus = "데모 준비 중…"
+        setTrainStatus("데모 실행 중…")
+        rebuildUi()
+        engineExecutor.execute { runDemoSequence() }
+    }
 
-        engineExecutor.execute {
-            val load: () -> Long = {
-                NativeCausalLm.ensureLoaded()
-                NativeCausalLm.loadModelHandleFromDirNative(
-                    backend = 0, // CPU
-                    modelDir = modelDir,
-                    quant = 1,   // W4A32 (matches QS4CX training models)
-                    nativeLibDir = applicationContext.applicationInfo.nativeLibraryDir,
-                    loraPath = loraPath.ifEmpty { null },
-                    loraRank = trainLoraRank.trim().toIntOrNull() ?: 8,
-                    loraAlpha = trainLoraAlpha.trim().toIntOrNull() ?: 16,
-                    loraLastN = trainLoraLastN.trim().toIntOrNull() ?: 7,
-                )
-            }
-            val handle = if (which == "before") {
-                if (testBeforeHandle != 0L) testBeforeHandle
-                else load().also { testBeforeHandle = it }
-            } else {
-                if (testAfterHandle != 0L) testAfterHandle
-                else load().also { testAfterHandle = it }
-            }
-            mainHandler.post { rebuildUi() }
-            if (handle == 0L) {
+    private fun onStopDemo() {
+        if (!demoRunning) return
+        demoStopRequested = true
+        appendTrainLog("⏹ 데모 정지 요청 — 현재 단계까지 마친 후 멈춥니다")
+        NativeCausalLm.stopLoraTrainingNative()
+        demoStatus = "데모 정지 중…"
+        rebuildUi()
+    }
+
+    private fun finishDemo(message: String) {
+        mainHandler.post {
+            demoRunning = false
+            trainRunning = false
+            demoStatus = message
+            appendTrainLog(if (message.startsWith("✗") || message.startsWith("⏹"))
+                message else "✓ $message")
+            rebuildUi()
+        }
+    }
+
+    /** Training-progress listener shared by manual runs and the demo. */
+    private fun makeTrainListener(): NativeCausalLm.TrainListener =
+        object : NativeCausalLm.TrainListener {
+            override fun onEpochProgress(
+                epoch: Int, trainLoss: Float, validLoss: Float,
+                saved: Boolean, bestLoss: Float, numSamples: Int,
+                outputPath: String, q4OutputPath: String,
+                epochSeconds: Double, trainSeconds: Double
+            ) {
                 mainHandler.post {
-                    if (which == "before") testBeforeRunning = false
-                    else testAfterRunning = false
-                    setTrainStatus("TEST $which: model load failed — see logcat")
-                    appendTrainLog("TEST $which: ✗ model load failed ($modelDir)")
+                    if (saved) {
+                        trainSavedPath = outputPath
+                        trainSavedQ4Path = q4OutputPath
+                    }
+                    trainEpochBoundaries.add(trainLossPoints.size - 1)
+                    lossChartView?.addEpochBoundary(trainLossPoints.size - 1)
+                    appendTrainLog(String.format(
+                        "[epoch %d] avg_loss=%.4f%s | best=%.4f | %d samples | %s",
+                        epoch, trainLoss,
+                        if (saved) " ✓ saved" else "", bestLoss, numSamples,
+                        formatSeconds(trainSeconds)))
+                    if (bestLoss < Float.MAX_VALUE)
+                        trainBestLoss = String.format("%.4f", bestLoss)
                     rebuildUi()
                 }
-                return@execute
             }
-            mainHandler.post {
-                setTrainStatus("TEST $which: running…")
-                rebuildUi()
-            }
-            val prompt = testPromptText
-            // A decision model answers by its letter readout, not by
-            // generating text: one prefill, a probability per option.
-            val options = parseDecisionOptions(prompt)
-            if (trainTask == "decision" && options.size >= 2) {
-                val answer = if (testScenario >= 0)
-                    DEMO_SCENARIOS[testScenario].answer else -1
-                val probs = NativeCausalLm.decideModelHandleNative(
-                    handle, prompt, options.size)
+            override fun onIterationProgress(iteration: Int, epoch: Int, loss: Float) {
+                // ms/iter from the gap between iteration callbacks; a gap
+                // spanning an epoch end (validation + save) is skipped.
+                val now = System.nanoTime()
+                val dtMs = if (trainLastIterNs == 0L) -1.0 else (now - trainLastIterNs) / 1e6
+                trainLastIterNs = now
                 mainHandler.post {
-                    if (which == "before") testBeforeRunning = false
-                    else testAfterRunning = false
-                    if (probs == null) {
-                        setTrainStatus("TEST $which failed — see logcat")
-                        appendTrainLog("TEST $which: ✗ decision readout failed")
+                    trainLossPoints.add(loss)
+                    lossChartView?.addPoint(loss)
+                    if (dtMs > 0 && (trainIterMs.isEmpty() || dtMs < 3 * trainIterMs.average())) {
+                        trainIterMs.addLast(dtMs)
+                        while (trainIterMs.size > 10) trainIterMs.removeFirst()
+                    }
+                    if (trainIterMs.isNotEmpty()) {
+                        val avg = trainIterMs.average()
+                        setTrainStatus(String.format("Training… epoch %d iter %d · %.0f ms/iter · loss %.3f",
+                            epoch, iteration, avg, loss))
+                    }
+                }
+            }
+            override fun onTrainComplete() {
+                mainHandler.post {
+                    appendTrainLog("✓ Training complete!")
+                    trainRunning = false; setTrainStatus("Training complete")
+                    rebuildUi()
+                }
+            }
+            override fun onTrainError(message: String) {
+                mainHandler.post {
+                    val cancelled = NativeCausalLm.isLoraTrainingCancelled() != 0
+                    if (cancelled) {
+                        appendTrainLog("⏹ Training stopped by user")
+                        trainRunning = false; setTrainStatus("Training stopped")
                     } else {
-                        val out = formatDecision(options, probs, answer)
-                        if (which == "before") {
-                            testBeforeOutput = out
-                            if (testScenario >= 0)
-                                testBeforeByScenario[testScenario] = out
-                        } else testAfterOutput = out
-                        val top = options.indices.maxByOrNull { probs[it] }!!
-                        setTrainStatus("TEST $which done.")
-                        appendTrainLog(String.format("TEST %s: ✓ top1 %s %.1f%%",
-                            which, options[top], probs[top] * 100f))
+                        appendTrainLog("✗ Error: $message")
+                        trainRunning = false; setTrainStatus("Training failed")
                     }
                     rebuildUi()
                 }
-                return@execute
-            }
-            val sink = object : NativeCausalLm.NativeStreamListener {
-                override fun onDelta(text: String) {
-                    mainHandler.post {
-                        // Re-read the field: rebuildUi() swaps the output
-                        // boxes out from under a captured reference.
-                        val box = if (which == "before") testBeforeOutputView
-                                  else testAfterOutputView
-                        box?.append(text)
-                        if (which == "before") testBeforeOutput += text
-                        else testAfterOutput += text
-                    }
-                }
-            }
-            val rc = NativeCausalLm.runModelHandleStreamingNative(
-                handle, prompt, sink)
-            mainHandler.post {
-                if (which == "before") testBeforeRunning = false
-                else testAfterRunning = false
-                if (rc != 0) {
-                    setTrainStatus("TEST $which failed (rc=$rc)")
-                    appendTrainLog("TEST $which: ✗ rc=$rc")
-                } else {
-                    val out = if (which == "before") testBeforeOutput
-                              else testAfterOutput
-                    setTrainStatus("TEST $which done. (${out.length} chars)")
-                    appendTrainLog("TEST $which: ✓ \"${out.take(60)}\"")
-                }
-                rebuildUi()
             }
         }
+
+    /** Per-user training parameters: the package's reference conditions
+     *  (rank 8 / alpha 16 / last 4 blocks / batch 4, hard one-hot CE via
+     *  the soft-target path) with the demo's own adapter output path. */
+    private fun buildDemoTrainJson(modelDir: String, dataPath: String,
+                                   outPath: String): String {
+        val sb = StringBuilder()
+        sb.append("{\"model_path\":\"").append(escapeJson(modelDir)).append('"')
+        sb.append(",\"data_path\":\"").append(escapeJson(dataPath)).append('"')
+        sb.append(",\"lr\":").append(trainLr.trim().toFloatOrNull() ?: 2e-4f)
+        sb.append(",\"epochs\":").append(trainEpochs.trim().toIntOrNull() ?: 4)
+        sb.append(",\"batch_size\":").append(trainBatchSize.trim().toIntOrNull() ?: 4)
+        sb.append(",\"task\":\"decision\",\"objective\":\"soft\"")
+        sb.append(",\"seq_len\":").append(trainSeqLen.trim().toIntOrNull() ?: 256)
+        sb.append(",\"lora_rank\":").append(trainLoraRank.trim().toIntOrNull() ?: 8)
+        sb.append(",\"lora_alpha\":").append(trainLoraAlpha.trim().toIntOrNull() ?: 16)
+        sb.append(",\"lora_last_n\":").append(trainLoraLastN.trim().toIntOrNull() ?: 4)
+        sb.append(",\"max_samples\":0,\"clip_grad\":1.0,\"train_norms\":false")
+        sb.append(",\"lora_qat\":true,\"lora_weight_q4\":true,\"seed\":42")
+        val trunk = trainTrunkPath.trim()
+        if (trainHybrid && trunk.isNotEmpty())
+            sb.append(",\"hybrid_trunk\":\"").append(escapeJson(trunk)).append('"')
+        sb.append(",\"output_path\":\"").append(escapeJson(outPath)).append("\"}")
+        return sb.toString()
+    }
+
+    /** The demo's engine-thread body; posts UI updates back to the main
+     *  thread. Runs to completion unless [demoStopRequested] is set. */
+    private fun runDemoSequence() {
+        val modelDir = trainModelPath.trim()
+        val libDir = applicationContext.applicationInfo.nativeLibraryDir
+        fun setDemo(message: String) {
+            mainHandler.post { demoStatus = message; rebuildUi() }
+        }
+        fun loadHandle(loraPath: String?): Long {
+            NativeCausalLm.ensureLoaded()
+            return NativeCausalLm.loadModelHandleFromDirNative(
+                backend = 0, modelDir = modelDir, quant = 1, nativeLibDir = libDir,
+                loraPath = loraPath,
+                loraRank = trainLoraRank.trim().toIntOrNull() ?: 8,
+                loraAlpha = trainLoraAlpha.trim().toIntOrNull() ?: 16,
+                loraLastN = trainLoraLastN.trim().toIntOrNull() ?: 4)
+        }
+        fun readout(handle: Long, u: Int, s: Int): String? {
+            val sc = DEMO_USERS[u].scenarios[s]
+            val opts = parseDecisionOptions(sc.prompt)
+            val probs = NativeCausalLm.decideModelHandleNative(handle, sc.prompt, opts.size)
+                ?: return null
+            return formatDecision(opts, probs, sc.answer, sc.reqTop4)
+        }
+        // 1) BEFORE for every user with one base handle.
+        setDemo("BEFORE: 베이스 모델 로드 중…")
+        val base = loadHandle(null)
+        if (base == 0L) { finishDemo("✗ BEFORE: 베이스 모델 로드 실패"); return }
+        var aborted = false
+        loop@ for (u in DEMO_USERS.indices) {
+            val du = DEMO_USERS[u]
+            for (s in du.scenarios.indices) {
+                if (demoStopRequested) break@loop
+                val out = readout(base, u, s)
+                if (out == null) {
+                    setDemo("✗ BEFORE 실패: 사용자 ${du.label} ${du.scenarios[s].chip}")
+                    aborted = true; break@loop
+                }
+                demoBefore[u][s] = out
+                setDemo("BEFORE: 사용자 ${du.label} ${s + 1}/${du.scenarios.size} 완료")
+            }
+        }
+        NativeCausalLm.destroyModelHandleNative(base)
+        if (aborted) { finishDemo("✗ 데모 중단 (BEFORE 실패)"); return }
+        // 2) Each user: train their own adapter, then re-run with it.
+        for (u in DEMO_USERS.indices) {
+            if (demoStopRequested) break
+            val du = DEMO_USERS[u]
+            val outPath = "/sdcard/qd_lora_${du.label}.bin"
+            setDemo("학습: 사용자 ${du.label} 어댑터 (${du.trainData.substringAfterLast('/')})…")
+            // Each user's training is an independent run: reset the loss
+            // chart so user B starts at E1 instead of continuing A's line.
+            mainHandler.post {
+                trainLossPoints.clear()
+                trainEpochBoundaries.clear()
+                lossChartView?.clear()
+                trainLastIterNs = 0L
+                trainIterMs.clear()
+                rebuildUi()
+            }
+            trainRunning = true
+            val trc = NativeCausalLm.trainLoraNative(
+                buildDemoTrainJson(modelDir, du.trainData, outPath), makeTrainListener())
+            trainRunning = false
+            if (trc != 0) { finishDemo("✗ 학습 실패: 사용자 ${du.label} (rc=$trc)"); return }
+            if (demoStopRequested) break
+            val q4 = outPath.removeSuffix(".bin") + "_q4.bin"
+            val lora = if (java.io.File(q4).exists()) q4 else outPath
+            appendTrainLog("TEST after (사용자 ${du.label}): adapter ${lora.substringAfterLast('/')}")
+            setDemo("AFTER: 사용자 ${du.label} 어댑터 로드 중…")
+            val h = loadHandle(lora)
+            if (h == 0L) { finishDemo("✗ AFTER: 사용자 ${du.label} 로드 실패"); return }
+            for (s in du.scenarios.indices) {
+                if (demoStopRequested) break
+                val out = readout(h, u, s)
+                if (out == null) { setDemo("✗ AFTER 실패: 사용자 ${du.label}"); break }
+                demoAfter[u][s] = out
+                setDemo("AFTER: 사용자 ${du.label} ${s + 1}/${du.scenarios.size} 완료")
+            }
+            NativeCausalLm.destroyModelHandleNative(h)
+        }
+        finishDemo(if (demoStopRequested) "⏹ 데모 정지됨" else
+            "✓ 데모 완료 — 탭에서 사용자별 BEFORE/AFTER를 확인하세요")
     }
 
     private fun onStopTraining() {
@@ -2951,10 +3026,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun onTrainClicked() {
         if (trainRunning) return
-        // The adapter files on disk are about to change mid-run; the cached
-        // TEST handles hold loaded copies of the old weights, so drop them.
-        invalidateTestHandles()
-        testBeforeLocked = true
         trainRunning = true; trainLog = ""; trainBestLoss = "—"
         trainLossPoints.clear()
         trainEpochBoundaries.clear()
@@ -3014,71 +3085,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 return@execute
             }
-            val listener = object : NativeCausalLm.TrainListener {
-                override fun onEpochProgress(
-                    epoch: Int, trainLoss: Float, validLoss: Float,
-                    saved: Boolean, bestLoss: Float, numSamples: Int,
-                    outputPath: String, q4OutputPath: String,
-                    epochSeconds: Double, trainSeconds: Double
-                ) {
-                    mainHandler.post {
-                        if (saved) {
-                            trainSavedPath = outputPath
-                            trainSavedQ4Path = q4OutputPath
-                        }
-                        trainEpochBoundaries.add(trainLossPoints.size - 1)
-                        lossChartView?.addEpochBoundary(trainLossPoints.size - 1)
-                        appendTrainLog(String.format(
-                            "[epoch %d] avg_loss=%.4f%s | best=%.4f | %d samples | %s",
-                            epoch, trainLoss,
-                            if (saved) " ✓ saved" else "", bestLoss, numSamples,
-                            formatSeconds(trainSeconds)))
-                        if (bestLoss < Float.MAX_VALUE)
-                            trainBestLoss = String.format("%.4f", bestLoss)
-                        rebuildUi()
-                    }
-                }
-                override fun onIterationProgress(iteration: Int, epoch: Int, loss: Float) {
-                    // ms/iter from the gap between iteration callbacks; a gap
-                    // spanning an epoch end (validation + save) is skipped.
-                    val now = System.nanoTime()
-                    val dtMs = if (trainLastIterNs == 0L) -1.0 else (now - trainLastIterNs) / 1e6
-                    trainLastIterNs = now
-                    mainHandler.post {
-                        trainLossPoints.add(loss)
-                        lossChartView?.addPoint(loss)
-                        if (dtMs > 0 && (trainIterMs.isEmpty() || dtMs < 3 * trainIterMs.average())) {
-                            trainIterMs.addLast(dtMs)
-                            while (trainIterMs.size > 10) trainIterMs.removeFirst()
-                        }
-                        if (trainIterMs.isNotEmpty()) {
-                            val avg = trainIterMs.average()
-                            setTrainStatus(String.format("Training… epoch %d iter %d · %.0f ms/iter · loss %.3f",
-                                epoch, iteration, avg, loss))
-                        }
-                    }
-                }
-                override fun onTrainComplete() {
-                    mainHandler.post {
-                        appendTrainLog("✓ Training complete!")
-                        trainRunning = false; setTrainStatus("Training complete")
-                        rebuildUi()
-                    }
-                }
-                override fun onTrainError(message: String) {
-                    mainHandler.post {
-                        val cancelled = NativeCausalLm.isLoraTrainingCancelled() != 0
-                        if (cancelled) {
-                            appendTrainLog("⏹ Training stopped by user")
-                            trainRunning = false; setTrainStatus("Training stopped")
-                        } else {
-                            appendTrainLog("✗ Error: $message")
-                            trainRunning = false; setTrainStatus("Training failed")
-                        }
-                        rebuildUi()
-                    }
-                }
-            }
+            val listener = makeTrainListener()
             val rc = NativeCausalLm.trainLoraNative(paramsJson, listener)
             if (rc != 0) {
                 mainHandler.post {
