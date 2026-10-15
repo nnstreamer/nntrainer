@@ -318,6 +318,10 @@ class MainActivity : AppCompatActivity() {
     private val demoLoraEnabled = BooleanArray(DEMO_USERS.size)
     private val demoAdapterSavedAt = LongArray(DEMO_USERS.size)
     private var webDemoBridge: DeviceDemoBridge? = null
+    /** What the last full rebuild showed; progress-only state updates
+     *  refresh the chart/status in place so scrolling is not interrupted. */
+    private var demoUiKey: String? = null
+    private var demoStatusView: TextView? = null
 
     /* ───── UI refs (re-wired on every rebuildUi() call) ───── */
 
@@ -455,6 +459,17 @@ class MainActivity : AppCompatActivity() {
             }
         trainSavedPath = current.optString("adapter_path")
         if (epochs.length() > 0) trainBestLoss = "%.4f".format(epochs.getJSONObject(epochs.length() - 1).optDouble("best_loss"))
+        // Per-iteration / per-scenario progress only moves the chart and the
+        // status lines; rebuild the view tree only when the layout changes.
+        val key = listOf(demoRunning, trainRunning, demoUser, demoLoraEnabled.toList(), demoAdapterSavedAt.toList(),
+            demoBefore, demoAfter, epochs.length()).toString()
+        if (key == demoUiKey && lossChartView != null) {
+            lossChartView?.setData(trainLossPoints, trainEpochBoundaries)
+            trainStatusView?.text = trainStatusText
+            demoStatusView?.text = demoStatus
+            return
+        }
+        demoUiKey = key
         rebuildUi()
     }
 
@@ -1199,13 +1214,14 @@ class MainActivity : AppCompatActivity() {
             card.addView(row)
             spacer(card, 6)
         }
-        card.addView(TextView(this).apply {
+        demoStatusView = TextView(this).apply {
             text = demoStatus
             setTextColor(t.onSurfaceVar)
             textSize = 11f
             typeface = Typeface.MONOSPACE
             setPadding(dp(4), dp(2), dp(4), 0)
-        })
+        }
+        card.addView(demoStatusView)
         return card
     }
 

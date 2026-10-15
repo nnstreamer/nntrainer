@@ -234,15 +234,6 @@
         label === "before" ? "BEFORE · 학습 전" : "AFTER · 개인화 학습 후"
       )
     );
-    col.append(
-      element(
-        "span",
-        "screen-source",
-        result
-          ? "기기 실측 · " + number(result.elapsed_ms, 1) + " ms"
-          : "출력 대기"
-      )
-    );
     const shell = element("div", "phone-shell");
     const screen = element("div", "recommendation-screen");
     // Reference One UI chrome, independent of native model measurements.
@@ -579,7 +570,6 @@
     render();
     $("scenarioDialog").close();
   };
-  $("showDetails").onclick = () => $("detailsDialog").showModal();
   $("closeDetails").onclick = () => $("detailsDialog").close();
   controls();
   mirror();
