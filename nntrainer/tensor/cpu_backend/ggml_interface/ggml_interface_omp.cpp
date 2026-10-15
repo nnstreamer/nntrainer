@@ -66,8 +66,12 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
     char *qa_data = QA.data();
 
     // online quantization for M4 * 4 rows; parallelize over 8-group chunks
-    // when there is enough work to amortize waking the pool
+    // when there is enough work to amortize waking the pool. A long reduction
+    // (e.g. a vocabulary-sized K) makes even a few row groups worth one task
+    // each: serially, the quantization outran the GEMM itself.
     unsigned int quant_chunk = 8;
+    if (M4 < 2 * quant_chunk && (size_t)M4 * K >= ((size_t)1 << 18))
+      quant_chunk = 1;
     if (M4 >= 2 * quant_chunk) {
       tm.parallel_for(0, (M4 + quant_chunk - 1) / quant_chunk, [=](size_t t) {
         unsigned int q_end = std::min(quant_chunk * (t + 1), (size_t)M4);
@@ -419,8 +423,12 @@ void __ggml_q8_0_4x4_q8_0_GEMM(const unsigned int M, const unsigned int N,
     char *qa_data = QA.data();
 
     // online quantization for M4 * 4 rows; parallelize over 8-group chunks
-    // when there is enough work to amortize waking the pool
+    // when there is enough work to amortize waking the pool. A long reduction
+    // (e.g. a vocabulary-sized K) makes even a few row groups worth one task
+    // each: serially, the quantization outran the GEMM itself.
     unsigned int quant_chunk = 8;
+    if (M4 < 2 * quant_chunk && (size_t)M4 * K >= ((size_t)1 << 18))
+      quant_chunk = 1;
     if (M4 >= 2 * quant_chunk) {
       tm.parallel_for(0, (M4 + quant_chunk - 1) / quant_chunk, [=](size_t t) {
         unsigned int q_end = std::min(quant_chunk * (t + 1), (size_t)M4);
@@ -488,6 +496,13 @@ void __ggml_q8_0_4x4_q8_0_GEMM(const unsigned int M, const unsigned int N,
   }
 }
 
+/**
+ * @brief K at and above which __ggml_q8_0_4x8_q8_0_GEMM walks the reduction
+ * in slices of LONG_K_SLICE_BLOCKS Q8_0 blocks (see there)
+ */
+static constexpr unsigned int LONG_K_Q8_0 = 32768;
+static constexpr unsigned int LONG_K_SLICE_BLOCKS = 64;
+
 void __ggml_q8_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int K, const float *A,
                                const unsigned int lda, const void *B,
@@ -530,8 +545,12 @@ void __ggml_q8_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
     char *qa_data = QA.data();
 
     // online quantization for M4 * 4 rows; parallelize over 8-group chunks
-    // when there is enough work to amortize waking the pool
+    // when there is enough work to amortize waking the pool. A long reduction
+    // (e.g. a vocabulary-sized K) makes even a few row groups worth one task
+    // each: serially, the quantization outran the GEMM itself.
     unsigned int quant_chunk = 8;
+    if (M4 < 2 * quant_chunk && (size_t)M4 * K >= ((size_t)1 << 18))
+      quant_chunk = 1;
     if (M4 >= 2 * quant_chunk) {
       tm.parallel_for(0, (M4 + quant_chunk - 1) / quant_chunk, [=](size_t t) {
         unsigned int q_end = std::min(quant_chunk * (t + 1), (size_t)M4);
@@ -562,23 +581,63 @@ void __ggml_q8_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
     size_t col_loop = (N + col_chunk_size - 1) / col_chunk_size;
     size_t B_step = sizeof(block_q8_0) * (K / QK8_0);
 
-    tm.parallel_for(0, col_loop * row_loop, [=](size_t i) {
-      unsigned int r = i / col_loop;
-      unsigned int c = i % col_loop;
+    if (K >= LONG_K_Q8_0) {
+      // A long reduction (a vocabulary-sized K, e.g. an LM head's dL/dx) is
+      // memory bound the way the kernel walks it: every 4x4 micro-tile
+      // streams its 4 A rows and 4 B columns over the whole K, ~650 KB each
+      // at K = 151936, so nothing stays in L1 and each task re-reads its
+      // operands once per micro-tile. Walk K in slices instead: per slice the
+      // task's micro-tiles run over a working set that stays in cache, and
+      // the slice results are summed into C. Taller tasks (32 rows) also
+      // halve how often B is streamed. Only the summation order changes.
+      const unsigned int nb = K / QK8_0;
+      const block_q8_0x4 *qa4 = (const block_q8_0x4 *)qa_data;
+      const block_q8_0x4 *b4 = (const block_q8_0x4 *)B;
+      const unsigned int Mg = M4 * 4;
+      const size_t rcs = 32, ccs = 16;
+      const size_t rloop = (Mg + rcs - 1) / rcs;
+      const size_t cloop = (N + ccs - 1) / ccs;
+      tm.parallel_for(0, rloop * cloop, [=](size_t t) {
+        const unsigned int r0 = (t / cloop) * rcs;
+        const unsigned int r1 = std::min((unsigned int)(r0 + rcs), Mg);
+        const unsigned int c0 = (t % cloop) * ccs;
+        const unsigned int c1 = std::min((unsigned int)(c0 + ccs), N);
+        float tile[16];
+        for (unsigned int kb = 0; kb < nb; kb += LONG_K_SLICE_BLOCKS) {
+          const unsigned int kn = std::min(LONG_K_SLICE_BLOCKS, nb - kb);
+          for (unsigned int r = r0; r < r1; r += 4) {
+            for (unsigned int c = c0; c < c1; c += 4) {
+              nntr_gemm_q8_0_4x8_q8_0(kn * QK8_0, tile, 4,
+                                      b4 + (size_t)(c / 4) * nb + kb,
+                                      qa4 + (size_t)(r / 4) * nb + kb, 4, 4);
+              float *cp = C + (size_t)r * ldc + c;
+              for (unsigned int i = 0; i < 4; ++i)
+                for (unsigned int j = 0; j < 4; ++j)
+                  cp[i * ldc + j] = kb == 0 ? tile[i * 4 + j]
+                                            : cp[i * ldc + j] + tile[i * 4 + j];
+            }
+          }
+        }
+      });
+    } else {
+      tm.parallel_for(0, col_loop * row_loop, [=](size_t i) {
+        unsigned int r = i / col_loop;
+        unsigned int c = i % col_loop;
 
-      unsigned int r_start = r * row_chunk_size;
-      unsigned int r_end = std::min((unsigned int)(row_chunk_size * (r + 1)),
-                                    (unsigned int)(M4 * 4));
+        unsigned int r_start = r * row_chunk_size;
+        unsigned int r_end = std::min((unsigned int)(row_chunk_size * (r + 1)),
+                                      (unsigned int)(M4 * 4));
 
-      unsigned int c_start = c * col_chunk_size;
-      unsigned int c_end =
-        std::min((unsigned int)(col_chunk_size * (c + 1)), N);
+        unsigned int c_start = c * col_chunk_size;
+        unsigned int c_end =
+          std::min((unsigned int)(col_chunk_size * (c + 1)), N);
 
-      nntr_gemm_q8_0_4x8_q8_0(K, (float *)(C + r_start * N + c_start), ldc,
-                              (void *)((char *)B + c_start * B_step),
-                              (void *)(QA.data() + r_start * A_step),
-                              r_end - r_start, c_end - c_start);
-    });
+        nntr_gemm_q8_0_4x8_q8_0(K, (float *)(C + r_start * N + c_start), ldc,
+                                (void *)((char *)B + c_start * B_step),
+                                (void *)(qa_data + r_start * A_step),
+                                r_end - r_start, c_end - c_start);
+      });
+    }
 
     // Compute leftover 1 ~ 3 rows with multithreaded GEMV
     for (unsigned int pb = M4 * 4; pb < M; pb++) {
