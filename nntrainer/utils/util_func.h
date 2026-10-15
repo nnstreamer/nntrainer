@@ -511,6 +511,24 @@ void floatToFixedPointAndExponent(float input, int &fixedpoint, int &exponent);
  */
 float fixedPointAndExponentToFloat(int fixedpoint, int exponent);
 
+/**
+ * @brief Give the physical pages of a host buffer whose contents are dead back
+ * to the OS, keeping the address range mapped.
+ *
+ * Only the pages wholly inside [base, base + bytes) are released (the range is
+ * aligned INWARD), so a neighbouring allocation that shares the first or last
+ * page is never touched. A released anonymous page reads back as zeros, so the
+ * caller must never read the buffer again; the memory itself stays owned by
+ * whoever allocated it and is freed the usual way.
+ *
+ * @param base  first byte of the dead buffer
+ * @param bytes length of the dead buffer
+ * @retval true  the pages were released (their contents are gone)
+ * @retval false nothing was released (no whole page in the range, or the
+ *               platform has no such call): the contents are intact
+ */
+bool releaseHostPages(const void *base, size_t bytes);
+
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */

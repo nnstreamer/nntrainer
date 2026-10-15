@@ -22,6 +22,9 @@
 
 #ifdef _WIN32
 #define MAX_PATH_LENGTH 1024
+#else
+#include <sys/mman.h>
+#include <unistd.h>
 #endif
 
 #include <algorithm>
@@ -339,6 +342,25 @@ float fixedPointAndExponentToFloat(int fixedpoint, int exponent) {
                    static_cast<float>(std::numeric_limits<int>::max());
   // reconstruct the floating-point number
   return std::ldexp(mantissa, exponent);
+}
+
+bool releaseHostPages(const void *base, size_t bytes) {
+#if defined(_WIN32)
+  (void)base;
+  (void)bytes;
+  return false;
+#else
+  if (base == nullptr || bytes == 0)
+    return false;
+  const uintptr_t page = static_cast<uintptr_t>(::sysconf(_SC_PAGESIZE));
+  const uintptr_t lo =
+    (reinterpret_cast<uintptr_t>(base) + page - 1) & ~(page - 1);
+  const uintptr_t hi =
+    (reinterpret_cast<uintptr_t>(base) + bytes) & ~(page - 1);
+  if (hi <= lo)
+    return false;
+  return ::madvise(reinterpret_cast<void *>(lo), hi - lo, MADV_DONTNEED) == 0;
+#endif
 }
 
 } // namespace nntrainer
