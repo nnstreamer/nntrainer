@@ -332,6 +332,12 @@ class MainActivity : AppCompatActivity() {
     private var testAfterRunning: Boolean = false
     private var testBeforeOutput: String = ""
     private var testAfterOutput: String = ""
+    /** BEFORE runs only until the first training (or AFTER) run of the
+     *  process: once an adapter handle has been built and torn down in the
+     *  process, a base handle loaded after it reads NaN logits. The BEFORE
+     *  result of each scenario is kept so the comparison stays on screen. */
+    private var testBeforeLocked: Boolean = false
+    private val testBeforeByScenario = mutableMapOf<Int, String>()
     /** "before" | "after" while a Stop has been requested for that column. */
     private var testStopRequested: String? = null
 
@@ -1059,20 +1065,28 @@ class MainActivity : AppCompatActivity() {
         // TextView pill like the chart-header Start/Stop control — Button
         // drags in AppCompat's 48dp minimum and the ▶/⏹ glyphs inflate the
         // line box, so the control balloons past its text.
+        val locked = which == "before" && testBeforeLocked && !running
         col.addView(TextView(this).apply {
             text = when {
                 running && testStopRequested == which -> "Stopping…"
                 running -> "Stop"
+                locked -> "BEFORE (학습 전 결과)"
                 else -> "Run $label"
             }
             textSize = 13f
             typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
-            setTextColor(if (running) Color.WHITE else t.onPrimary)
-            background = solid(if (running) t.error else t.primary, 100)
+            setTextColor(if (running) Color.WHITE
+                         else if (locked) t.onSurface else t.onPrimary)
+            background = solid(if (running) t.error
+                               else if (locked) t.surfaceContainerHigh
+                               else t.primary, 100)
             setPadding(dp(10), dp(7), dp(10), dp(7))
             setOnClickListener {
-                if (running) {
+                if (locked) {
+                    setTrainStatus("BEFORE는 학습 전에만 실행됩니다 (앱 재시작 시 다시 가능)")
+                    rebuildUi()
+                } else if (running) {
                     testStopRequested = which
                     val h = if (which == "before") testBeforeHandle
                             else testAfterHandle
@@ -1166,7 +1180,7 @@ class MainActivity : AppCompatActivity() {
                 // rebuildUi() reads the prompt back from the live field
                 if (::testPromptField.isInitialized)
                     testPromptField.setText(sc.prompt)
-                testBeforeOutput = ""
+                testBeforeOutput = testBeforeByScenario[index] ?: ""
                 testAfterOutput = ""
                 rebuildUi()
             }
@@ -2799,6 +2813,8 @@ class MainActivity : AppCompatActivity() {
         val alreadyRunning =
             if (which == "before") testBeforeRunning else testAfterRunning
         if (alreadyRunning) return
+        if (which == "before" && testBeforeLocked) return
+        if (which == "after") testBeforeLocked = true
         if (which == "before") {
             testBeforeRunning = true
             testBeforeOutput = ""
@@ -2881,8 +2897,11 @@ class MainActivity : AppCompatActivity() {
                         appendTrainLog("TEST $which: ✗ decision readout failed")
                     } else {
                         val out = formatDecision(options, probs, answer)
-                        if (which == "before") testBeforeOutput = out
-                        else testAfterOutput = out
+                        if (which == "before") {
+                            testBeforeOutput = out
+                            if (testScenario >= 0)
+                                testBeforeByScenario[testScenario] = out
+                        } else testAfterOutput = out
                         val top = options.indices.maxByOrNull { probs[it] }!!
                         setTrainStatus("TEST $which done.")
                         appendTrainLog(String.format("TEST %s: ✓ top1 %s %.1f%%",
@@ -2936,6 +2955,7 @@ class MainActivity : AppCompatActivity() {
         // The adapter files on disk are about to change mid-run; the cached
         // TEST handles hold loaded copies of the old weights, so drop them.
         invalidateTestHandles()
+        testBeforeLocked = true
         trainRunning = true; trainLog = ""; trainBestLoss = "—"
         trainLossPoints.clear()
         trainEpochBoundaries.clear()
