@@ -475,6 +475,30 @@ WIN_EXPORT ErrorCode encodeModelHandle(CausalLmHandle handle, const char *text,
                                        float **out_embedding, int *out_dim);
 
 /**
+ * @brief Answer one decision question with a decision model handle (e.g.
+ *        qwen3-0.6b-rlcd-decision): one prefill, nothing generated.
+ *
+ * @p prompt is the complete decision prompt ("User: Context: ...\nOptions:\n
+ * A) ...\nAnswer with the letter only.\nAssistant: The answer is"); it is
+ * tokenized as-is, without the chat template. The probability of option i is
+ * the softmax, over the first @p num_choices letters, of the logits of the
+ * letter tokens " A".." Z" (the model dir's decision.json) at the last prompt
+ * token -- the readout the decision training loss optimizes. A LoRA adapter
+ * loaded with the handle applies.
+ *
+ * @param handle       Handle from loadModelHandleFromDir (a CausalLM model)
+ * @param prompt       UTF-8 decision prompt, at most init_seq_len tokens
+ * @param num_choices  Option count K, 2..26
+ * @param out_probs    [out] caller-owned float[num_choices]
+ * @return ErrorCode. CAUSAL_LM_ERROR_UNSUPPORTED if the model is not a
+ *         CausalLM; CAUSAL_LM_ERROR_INFERENCE_FAILED on a prompt longer than
+ *         the prefill window or a missing letter mapping.
+ */
+WIN_EXPORT ErrorCode decideModelHandle(CausalLmHandle handle,
+                                       const char *prompt, int num_choices,
+                                       float *out_probs);
+
+/**
  * @brief Release a buffer returned by encodeModelHandle().
  * @param embedding  Pointer previously returned via out_embedding (may be NULL)
  */

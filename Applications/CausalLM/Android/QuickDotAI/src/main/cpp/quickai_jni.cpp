@@ -313,6 +313,30 @@ Java_com_example_quickdotai_NativeCausalLm_encodeModelHandleNative(
   return arr;
 }
 
+// ---- decideModelHandle (decision-model readout) ---------------------------
+extern "C" JNIEXPORT jfloatArray JNICALL
+Java_com_example_quickdotai_NativeCausalLm_decideModelHandleNative(
+  JNIEnv *env, jobject /*thiz*/, jlong handleJlong, jstring promptJ,
+  jint numChoices) {
+  auto handle = reinterpret_cast<CausalLmHandle>(handleJlong);
+  if (handle == nullptr || promptJ == nullptr || numChoices < 2 ||
+      numChoices > 26) {
+    return nullptr;
+  }
+  const char *prompt = env->GetStringUTFChars(promptJ, nullptr);
+  std::vector<float> probs(static_cast<size_t>(numChoices));
+  ErrorCode ec = decideModelHandle(handle, prompt, numChoices, probs.data());
+  env->ReleaseStringUTFChars(promptJ, prompt);
+  if (ec != CAUSAL_LM_ERROR_NONE) {
+    return nullptr; // null signals failure to the Kotlin layer
+  }
+  jfloatArray arr = env->NewFloatArray(numChoices);
+  if (arr != nullptr) {
+    env->SetFloatArrayRegion(arr, 0, numChoices, probs.data());
+  }
+  return arr;
+}
+
 // ---------------------------------------------------------------------------
 // runModelHandleStreaming
 // ---------------------------------------------------------------------------

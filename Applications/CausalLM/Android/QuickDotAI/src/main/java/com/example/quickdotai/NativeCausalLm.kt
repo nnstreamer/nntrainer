@@ -200,6 +200,17 @@ object NativeCausalLm {
     external fun encodeModelHandleNative(handle: Long, text: String): FloatArray?
 
     /**
+     * Answer one decision question with a decision-model handle: one
+     * prefill of the full decision prompt (no chat template), softmax over
+     * the first [numChoices] letter tokens at the last prompt token.
+     *
+     * @return the [numChoices] option probabilities, or null on any native
+     *         error (not a CausalLM, prompt past init_seq_len, inference).
+     */
+    external fun decideModelHandleNative(
+        handle: Long, prompt: String, numChoices: Int): FloatArray?
+
+    /**
      * @brief Listener invoked by the JNI trampoline once per decoded
      * delta during [runModelHandleStreamingNative].
      *

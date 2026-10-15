@@ -34,6 +34,7 @@
 
 #include "causal_lm.h"
 #include "chat_template.h"
+#include "decision.h"
 #include "gemma3_causallm.h"
 #include "gemma4_causallm.h"
 #include "gptoss_cached_slim_causallm.h"
@@ -2436,6 +2437,58 @@ ErrorCode encodeModelHandle(CausalLmHandle handle, const char *text,
 }
 
 void freeEmbedding(float *embedding) { delete[] embedding; }
+
+ErrorCode decideModelHandle(CausalLmHandle handle, const char *prompt,
+                            int num_choices, float *out_probs) {
+  if (handle == nullptr || prompt == nullptr || out_probs == nullptr ||
+      num_choices < 2 || num_choices > (int)causallm::DECISION_MAX_CHOICES) {
+    return CAUSAL_LM_ERROR_INVALID_PARAMETER;
+  }
+
+  auto &h = *handle;
+  std::lock_guard<std::mutex> lock(h.mtx);
+
+  if (!h.initialized || h.models.empty()) {
+    return CAUSAL_LM_ERROR_NOT_INITIALIZED;
+  }
+  const size_t model_index = text_generation_model_index(h);
+  auto *llm = dynamic_cast<causallm::CausalLM *>(h.models[model_index].get());
+  if (llm == nullptr || llm->getTokenizer() == nullptr) {
+    LOGE("decideModelHandle: the handle's model is not a CausalLM");
+    return CAUSAL_LM_ERROR_UNSUPPORTED;
+  }
+
+  try {
+    auto *tokenizer = llm->getTokenizer();
+    // The decision prompt is already the model's whole input ("User: ...
+    // Assistant: The answer is"): no chat template, no special tokens --
+    // the same encoding nntr_decide and the training loader use.
+    std::vector<int32_t> ids = tokenizer->Encode(std::string(prompt), false);
+    const std::string model_dir =
+      model_index < h.model_dirs.size() ? h.model_dirs[model_index] : "";
+    const auto letters = causallm::decisionLetterIds(model_dir, tokenizer);
+    // a prompt past the prefill window (init_seq_len) is refused by
+    // promptLogits() rather than silently cut
+    const std::vector<float> logits = llm->promptLogits(ids);
+    float mx = -std::numeric_limits<float>::infinity();
+    for (int i = 0; i < num_choices; ++i)
+      mx = std::max(mx, logits[letters[i]]);
+    double sum = 0.0;
+    for (int i = 0; i < num_choices; ++i)
+      sum += std::exp((double)logits[letters[i]] - mx);
+    for (int i = 0; i < num_choices; ++i)
+      out_probs[i] =
+        static_cast<float>(std::exp((double)logits[letters[i]] - mx) / sum);
+    LOGD("decideModelHandle: %zu tokens, %d choices", ids.size(), num_choices);
+    return CAUSAL_LM_ERROR_NONE;
+  } catch (const std::exception &e) {
+    LOGE("decideModelHandle: exception: %s", e.what());
+    return CAUSAL_LM_ERROR_INFERENCE_FAILED;
+  } catch (...) {
+    LOGE("decideModelHandle: unknown exception");
+    return CAUSAL_LM_ERROR_INFERENCE_FAILED;
+  }
+}
 
 ErrorCode unloadModelHandle(CausalLmHandle handle) {
   if (handle == nullptr) {
