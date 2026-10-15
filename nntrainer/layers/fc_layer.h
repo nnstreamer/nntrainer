@@ -125,7 +125,7 @@ public:
 
   static constexpr const char *type = "fully_connected";
 
-  /** Per-layer Q4_0 QAT calibration snapshot, updated on every QAT forward. */
+  /** Per-layer QAT calibration snapshot, updated on every QAT forward. */
   struct LoRAQATStats {
     float a_min = 0, a_max = 0, a_scale = 0;
     float b_min = 0, b_max = 0, b_scale = 0;
@@ -140,25 +140,26 @@ public:
   static LoRAQATStats getRegisteredStats(const std::string &layer_name);
 
   /**
-   * @brief Look up a layer's current per-block EMA scales (loraA, loraB),
-   * each indexed in N x K layout to match fakeQuantizeQ4_0's block
-   * numbering. Thread-safe. Returns empty vectors if the named layer hasn't
-   * run a QAT forward pass yet.
+   * @brief Look up a layer's current per-channel EMA scales (loraA, loraB),
+   * each indexed by output channel n (the tensor's width: rank for loraA,
+   * out-features for loraB), matching fakeQuantizeQInt4's channel numbering.
+   * Thread-safe. Returns empty vectors if the named layer hasn't run a QAT
+   * forward pass yet.
    */
   static std::pair<std::vector<float>, std::vector<float>>
-  getRegisteredBlockScales(const std::string &layer_name);
+  getRegisteredChannelScales(const std::string &layer_name);
 
 private:
   static std::mutex s_registry_mutex;
   static std::unordered_map<std::string, LoRAQATStats> s_qat_registry;
   static std::unordered_map<std::string,
                             std::pair<std::vector<float>, std::vector<float>>>
-    s_block_d_registry;
+    s_channel_scales_registry;
 
   float lora_scaling;
   std::tuple<props::Unit, props::LoraRank, props::LoraAlpha, props::LoraQAT,
-             props::LoraWeightQ4, props::LoraQatEmaMomentum, props::LoraGPU,
-             props::FusedActivation, props::PlanLastRowOnly>
+             props::LoraQatEmaMomentum, props::LoraGPU, props::FusedActivation,
+             props::PlanLastRowOnly>
     fc_props;                             /**< fc layer properties :
                                                 unit - number of output neurons,
                                                 lora_rank - rank of lora (optional)
@@ -168,10 +169,9 @@ private:
                                              applied after GEMM+bias
                                                 plan_last_row_only - plan the output at height 1
                                              because only the last row is ever produced
-                                                lora_qat - enable per-block Q4_0 fake-quant
-                                                lora_weight_q4 - store/load adapters as real Q4_0
-                                                lora_qat_ema_momentum - EMA momentum for per-block
-                                             QAT scale update (optional, default 0.1)
+                                                lora_qat - enable per-channel qint4 fake-quant
+                                                lora_qat_ema_momentum - EMA momentum for the per-
+                                             channel QAT scale update (optional, default 0.1)
                                                 lora_gpu - offload FP32 GEMMs to the accelerator */
   std::array<unsigned int, 2> weight_idx; /**< indices of the weights */
   std::array<unsigned int, 4> lora_idx;   /**< indices of the lora weights */
@@ -180,7 +180,8 @@ private:
   ActiFunc acti_func; /**< inline fused activation; inert unless
                            fused_activation is set by the FusionRealizer */
 
-  float momentum = 0.1f; /**< EMA momentum for per-block QAT scale update */
+  float momentum =
+    0.1f; /**< EMA momentum for the per-channel QAT scale update */
   ComputeOps *gemm_ops_ =
     nullptr; /**< accelerator table for lora_gpu, else null */
 
@@ -198,10 +199,11 @@ private:
   std::string
     layer_name_; /**< captured in finalize(); keys the QAT registries */
 
-  /** Per-block EMA scales for loraA/loraB (one float per 32-element block,
-   * N x K layout), lazily sized on the first QAT forward pass. */
-  std::vector<float> lora_a_block_d;
-  std::vector<float> lora_b_block_d;
+  /** Per-channel EMA scales for loraA/loraB (one float per output channel:
+   * the tensor's width -- rank for loraA, out-features for loraB), lazily
+   * sized on the first QAT forward pass. */
+  std::vector<float> lora_a_channel_d;
+  std::vector<float> lora_b_channel_d;
 
   /** Fake-quantized loraA/loraB from the most recent forward pass, cached
    * for calcDerivative/calcGradient's straight-through backward. */
@@ -242,26 +244,27 @@ private:
   std::vector<float> lora_dtmp_copy_;
 
   /**
-   * @brief Per-block Q4_0 fake-quantization with EMA-tracked block scales.
+   * @brief Per-channel qint4 fake-quantization with EMA-tracked channel
+   * scales, the same scheme as the QS4CX base weight (channel = the tensor's
+   * width = N).
    *
-   * Blocks are defined in N x K layout (the transposed layout the Q4_0
-   * GEMM kernel and the save-time codec use), so the EMA scales computed
-   * here line up exactly with the blocks force-fed at save time.
-   *
-   * Training: computes a fresh per-block scale, folds it into the running
-   * EMA (bootstrapping on first use), and quantizes with the updated EMA
-   * scale. Validation/inference: quantizes with the current EMA without
-   * updating it. Backward is a straight-through estimator: the gradient
-   * passes through the round+clamp unchanged.
+   * Training: computes a fresh per-channel scale d = amax/7, folds it into
+   * the running EMA (bootstrapping on first use), and quantizes with the
+   * updated EMA scale: q = clamp(round(v/d), -8, 7), value = q * d. The
+   * saved adapter file stores these exact fp32 scales, so deployment
+   * reproduces what training quantized against. Validation/inference:
+   * quantizes with the current EMA without updating it. Backward is a
+   * straight-through estimator: the gradient passes through the round+clamp
+   * unchanged.
    *
    * @param x the FP32 tensor to fake-quantize (loraA or loraB)
-   * @param block_d persistent per-block EMA scale storage for this tensor
+   * @param channel_d persistent per-channel EMA scale storage for this tensor
    * @param training whether to update the EMA (true) or just apply it (false)
    * @param[out] x_fq the fake-quantized x; (re)allocated to x's shape when it
    *             does not have it, reused otherwise
    */
-  void fakeQuantizeQ4_0(const Tensor &x, std::vector<float> &block_d,
-                        bool training, Tensor &x_fq);
+  void fakeQuantizeQInt4(const Tensor &x, std::vector<float> &channel_d,
+                         bool training, Tensor &x_fq);
 };
 } // namespace nntrainer
 

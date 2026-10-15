@@ -60,22 +60,21 @@ std::unordered_map<std::string, FullyConnectedLayer::LoRAQATStats>
   FullyConnectedLayer::s_qat_registry;
 std::unordered_map<std::string,
                    std::pair<std::vector<float>, std::vector<float>>>
-  FullyConnectedLayer::s_block_d_registry;
+  FullyConnectedLayer::s_channel_scales_registry;
 
 FullyConnectedLayer::FullyConnectedLayer() :
   LayerImpl(),
   lora_scaling(1.0f),
   fc_props(props::Unit(), props::LoraRank(), props::LoraAlpha(),
-           props::LoraQAT(), props::LoraWeightQ4(), props::LoraQatEmaMomentum(),
-           props::LoraGPU(), props::FusedActivation(),
-           props::PlanLastRowOnly()),
+           props::LoraQAT(), props::LoraQatEmaMomentum(), props::LoraGPU(),
+           props::FusedActivation(), props::PlanLastRowOnly()),
   quantizer(nullptr) {
   weight_idx.fill(std::numeric_limits<unsigned>::max());
   lora_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
 namespace {
-/** @brief mean magnitude of the (signed) per-block QAT scales */
+/** @brief mean magnitude of the per-channel QAT scales */
 float meanAbs(const std::vector<float> &v) {
   float sum = 0.0f;
   for (float d : v)
@@ -84,96 +83,79 @@ float meanAbs(const std::vector<float> &v) {
 }
 } // namespace
 
-// Per-block Q4_0 fake-quantization with EMA block scales tracked in N x K
-// layout.
+// Per-channel qint4 fake-quantization with EMA channel scales, the same
+// scheme as the QS4CX base weight: one scale per output channel (the
+// tensor's width, N), int4 codes in [-8, 7].
 //
-// Blocks are defined in N x K layout (the transposed layout
-// build_q4_0_forced_blocks uses at save time), so the EMA scales computed
-// here line up exactly with the blocks force-fed at save time.
-//
-// Scale:      ggml's Q4_0 convention: d = m / -8 for the block's
-//             largest-magnitude element m, so that element lands exactly on
-//             code -8 (the grid is -8..7: a plain max|w|/8 clips a positive
-//             maximum to 7). block_d holds the signed d; the EMA runs on its
-//             magnitude and the sign follows the current maximum.
+// Scale:      d = amax / 7 of the channel's elements (the Int4Utils
+//             convention), so both extremes map onto the code range. The
+//             EMA runs on the positive scale; a channel that has never had
+//             a non-zero element keeps scale 0 and passes values through
+//             (loraB starts all-zero at step 0).
 // Training:   update the EMA, bootstrapping it on first use:
-//             |d| = (1-m)*|d| + m*|d_fresh|; validation reads it unchanged.
-// FP16:       every stored scale is rounded to FP16, the precision the
-//             saved adapter keeps, so the values trained against are exactly
-//             the values deployed.
+//             d = (1-m)*d + m*d_fresh; validation reads it unchanged.
+// FP32:       the saved adapter file stores these exact fp32 scales, so
+//             the values trained against are exactly the values deployed
+//             (no fp16 rounding anywhere).
 // STE:        the caller (calcDerivative/calcGradient) treats the round in
 //             this function as the identity for gradient purposes; this
 //             function itself only computes the forward value.
-void FullyConnectedLayer::fakeQuantizeQ4_0(const Tensor &x,
-                                           std::vector<float> &block_d,
-                                           bool training, Tensor &x_fq) {
-  // x is stored K x N in nntrainer (height=K, width=N).
+void FullyConnectedLayer::fakeQuantizeQInt4(const Tensor &x,
+                                            std::vector<float> &channel_d,
+                                            bool training, Tensor &x_fq) {
+  // x is stored K x N in nntrainer (height=K, width=N); channel n = column.
   const size_t K = x.getDim().height();
   const size_t N = x.getDim().width();
-  const size_t num_blocks_NK = (K * N) / 32;
 
-  if (block_d.empty())
-    block_d.resize(num_blocks_NK, 0.0f);
+  if (channel_d.empty())
+    channel_d.resize(N, 0.0f);
+  NNTR_THROW_IF(channel_d.size() != N, std::runtime_error)
+    << "fakeQuantizeQInt4: channel scale count " << channel_d.size()
+    << " != width " << N;
 
-  // Blocks run over the N x K linear index nk = b*32+j: n = nk/K, k = nk%K,
-  // which is K x N element k*N+n. Raw-pointer loops (the per-element virtual
-  // getValue and std::function dispatch dominated this op), walking (n, k)
-  // with counters instead of a division per element. x_fq is reused across
-  // calls; every element is written below.
+  // Per-channel amax is a reduction over each column: parallelize over the
+  // channels when the tensor is large enough to amortize the wake-up.
   const float *src = x.getData<float>();
   if (x_fq.empty() || x_fq.getDim() != x.getDim())
     x_fq = Tensor(x.getDim(), true);
   float *dst = x_fq.getData<float>();
 
-  // Blocks and rows are independent: split them over the compute threads
-  // when the tensor is large enough to amortize the wake-up.
   auto &tm = ThreadManager::Global();
   const bool par = K * N >= 16384;
   const float mom = momentum;
 
   if (training) {
-    auto calibrate = [=, &block_d](size_t b) {
-      size_t n = (b * 32) / K, k = (b * 32) % K;
-      float amax = 0.0f, m = 0.0f;
-      for (size_t j = 0; j < 32; ++j) {
+    auto calibrate = [=, &channel_d](size_t n) {
+      float amax = 0.0f;
+      for (size_t k = 0; k < K; ++k) {
         const float v = src[k * N + n];
-        if (std::abs(v) > amax) {
+        if (std::abs(v) > amax)
           amax = std::abs(v);
-          m = v;
-        }
-        if (++k == K) {
-          k = 0;
-          ++n;
-        }
       }
       if (amax <= 1e-8f)
-        return; // all-zero block: keep its scale (0 until it has one)
-      const float fresh = amax / 8.0f;
-      const float prev = std::abs(block_d[b]);
-      const float mag =
-        prev < 1e-10f ? fresh : (1.0f - mom) * prev + mom * fresh;
-      block_d[b] =
-        compute_fp16_to_fp32(compute_fp32_to_fp16(m > 0.0f ? -mag : mag));
+        return; // all-zero channel: keep its scale (0 until it has one)
+      const float fresh = amax / 7.0f;
+      const float prev = channel_d[n];
+      channel_d[n] = prev < 1e-10f ? fresh : (1.0f - mom) * prev + mom * fresh;
     };
     if (par)
-      tm.parallel_for(0, num_blocks_NK, calibrate);
+      tm.parallel_for(0, N, calibrate);
     else
-      for (size_t b = 0; b < num_blocks_NK; ++b)
-        calibrate(b);
+      for (size_t n = 0; n < N; ++n)
+        calibrate(n);
   }
 
-  const float *bd = block_d.data();
+  const float *cd = channel_d.data();
   auto apply = [=](size_t k) {
     const float *s_row = src + k * N;
     float *d_row = dst + k * N;
     for (size_t n = 0; n < N; ++n) {
-      const float v = s_row[n];
-      const float d = bd[(n * K + k) / 32];
-      if (std::abs(d) < 1e-10f) {
-        d_row[n] = v;
+      const float d = cd[n];
+      if (d < 1e-10f) {
+        d_row[n] = s_row[n];
         continue;
       }
-      float q = std::round(v / d);
+      float q = std::round(s_row[n] / d);
       q = std::max(-8.0f, std::min(7.0f, q));
       d_row[n] = q * d;
     }
@@ -274,10 +256,10 @@ FullyConnectedLayer::getRegisteredStats(const std::string &layer_name) {
 }
 
 std::pair<std::vector<float>, std::vector<float>>
-FullyConnectedLayer::getRegisteredBlockScales(const std::string &layer_name) {
+FullyConnectedLayer::getRegisteredChannelScales(const std::string &layer_name) {
   std::lock_guard<std::mutex> lock(s_registry_mutex);
-  auto it = s_block_d_registry.find(layer_name);
-  if (it != s_block_d_registry.end())
+  auto it = s_channel_scales_registry.find(layer_name);
+  if (it != s_channel_scales_registry.end())
     return it->second;
   return {};
 }
@@ -408,19 +390,11 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
 
     const bool lora_qat_mode = !std::get<props::LoraQAT>(fc_props).empty() &&
                                std::get<props::LoraQAT>(fc_props).get();
-    const bool lora_q4 = !std::get<props::LoraWeightQ4>(fc_props).empty() &&
-                         std::get<props::LoraWeightQ4>(fc_props).get();
-    // Inference-only Q4_0 adapter (no QAT): register loraA/loraB as real
-    // Q4_0 tensors so the W4A8 GEMM kernel fires at runtime. Otherwise
-    // (plain FP32 training, or QAT training, which needs FP32 gradients and
-    // fake-quantizes in forwarding/calcDerivative/calcGradient instead),
-    // keep them in the base weight's dtype.
-    // LoRA adapters are always FP32 for training (gradients need full
-    // precision). Only inference-only Q4_0 adapters (lora_q4 && !QAT)
-    // use Q4_0 dtype so the W4A8 GEMM kernel fires at runtime.
-    const bool use_q4_tensors = lora_q4 && !lora_qat_mode;
-    const auto lora_dtype =
-      use_q4_tensors ? TensorDim::DataType::Q4_0 : TensorDim::DataType::FP32;
+    // LoRA adapters are always FP32: training needs FP32 gradients (QAT
+    // fake-quantizes in forwarding/calcDerivative/calcGradient instead), and
+    // at inference the adapter is loaded dequantized into these FP32 tensors
+    // (a rank-sized LoRA GEMM costs nothing next to the base weights).
+    const auto lora_dtype = TensorDim::DataType::FP32;
 
     /** loraA Dimension : (1, 1, in_dim.width, lora_rank) */
     TensorDim loraA_dim(1, is_nchw ? 1 : lora_rank,
@@ -462,24 +436,14 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
      * entirely by the *random* B, so the initial step is a large step in an
      * arbitrary direction. Empirically that made training diverge above
      * lr ~1e-6 on Qwen3-0.6B, whereas this ordering is stable at 1e-4.
-     *
-     * When loraA/loraB are registered as real Q4_0 tensors (inference-only,
-     * see use_q4_tensors above), there is nothing to initialize randomly:
-     * the values come from the saved adapter file, so use NONE and mark
-     * them non-trainable.
      */
-    const Initializer loraA_init =
-      use_q4_tensors ? Initializer::NONE : Initializer::LECUN_NORMAL;
-    const Initializer loraB_init =
-      use_q4_tensors ? Initializer::NONE : Initializer::ZEROS;
-
     lora_idx[LORAParams::loraA] = context.requestWeight(
-      loraA_dim, loraA_init, weight_regularizer, weight_regularizer_constant,
-      weight_decay, "loraA", !use_q4_tensors);
+      loraA_dim, Initializer::LECUN_NORMAL, weight_regularizer,
+      weight_regularizer_constant, weight_decay, "loraA", true);
 
     lora_idx[LORAParams::loraB] = context.requestWeight(
-      loraB_dim, loraB_init, weight_regularizer, weight_regularizer_constant,
-      weight_decay, "loraB", !use_q4_tensors);
+      loraB_dim, Initializer::ZEROS, weight_regularizer,
+      weight_regularizer_constant, weight_decay, "loraB", true);
 
     lora_idx[LORAParams::loraTmp] =
       context.requestTensor(loraTmp_dim, "hidden_tmp_lora", Initializer::NONE,
@@ -922,27 +886,28 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
     const bool lora_qat = !std::get<props::LoraQAT>(fc_props).empty() &&
                           std::get<props::LoraQAT>(fc_props).get();
     if (lora_qat) {
-      // Per-block EMA fake-quant: training updates the EMA, validation
+      // Per-channel EMA fake-quant: training updates the EMA, validation
       // reads it without updating.
       train_prof::Scope tp_fq("fc.lora_fakequant+stats", train_prof::FWD);
-      fakeQuantizeQ4_0(loraA, lora_a_block_d, training, a_fq);
-      fakeQuantizeQ4_0(loraB, lora_b_block_d, training, b_fq);
+      fakeQuantizeQInt4(loraA, lora_a_channel_d, training, a_fq);
+      fakeQuantizeQInt4(loraB, lora_b_channel_d, training, b_fq);
 
       // Publish the current calibration to the registries so the
       // Application layer can force-feed these scales at save time. Only a
       // training forward moves the scales.
-      if (training && !lora_a_block_d.empty() && !lora_b_block_d.empty()) {
+      if (training && !lora_a_channel_d.empty() && !lora_b_channel_d.empty()) {
         LoRAQATStats s;
         s.a_min = loraA.minValue();
         s.a_max = loraA.maxValue();
-        s.a_scale = meanAbs(lora_a_block_d);
+        s.a_scale = meanAbs(lora_a_channel_d);
         s.b_min = loraB.minValue();
         s.b_max = loraB.maxValue();
-        s.b_scale = meanAbs(lora_b_block_d);
+        s.b_scale = meanAbs(lora_b_channel_d);
         s.valid = true;
         std::lock_guard<std::mutex> lk(s_registry_mutex);
         s_qat_registry[layer_name_] = s;
-        s_block_d_registry[layer_name_] = {lora_a_block_d, lora_b_block_d};
+        s_channel_scales_registry[layer_name_] = {lora_a_channel_d,
+                                                  lora_b_channel_d};
       }
       tp_fq.stop();
     }

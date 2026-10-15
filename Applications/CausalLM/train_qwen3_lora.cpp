@@ -66,20 +66,21 @@ void printUsage(const char *prog) {
     << "                        (0 = off, the default)\n"
     << "  --train_norms         also train the RMSNorm gammas alongside the\n"
     << "                        LoRA adapters (default: norms frozen)\n"
-    << "  --lora_qat            fake-quantize loraA/loraB to the Q4_0 grid\n"
-    << "                        during training (per-block EMA scales,\n"
+    << "  --lora_qat            fake-quantize loraA/loraB to the int4 grid\n"
+    << "                        during training (per-channel EMA scales,\n"
     << "                        straight-through backward). Implies\n"
     << "                        --lora_weight_q4.\n"
-    << "  --qat_ema_momentum <f> EMA momentum for the per-block QAT scale\n"
+    << "  --qat_ema_momentum <f> EMA momentum for the per-channel QAT scale\n"
     << "                        update (0-1, default 0.1). Lower values "
        "smooth\n"
-    << "                        the block scales over more steps — try 0.01\n"
+    << "                        the channel scales over more steps — try "
+       "0.01\n"
     << "                        if long QAT runs destabilize.\n"
     << "  --validate            run a validation pass after every epoch and\n"
     << "                        keep the adapter with the best validation\n"
     << "                        loss (default: off -- the adapter with the\n"
     << "                        best epoch-mean training loss is kept)\n"
-    << "  --lora_weight_q4      also save a Q4_0 adapter (output path with\n"
+    << "  --lora_weight_q4      also save a qint4 adapter (output path with\n"
     << "                        a _q4.bin suffix) alongside the FP32 one.\n"
     << "                        With --lora_qat, force-feeds the calibrated\n"
     << "                        EMA scales; without it, quantizes the\n"
@@ -181,11 +182,11 @@ static void onEpochComplete(void *user_data) {
     }
     if (!st->q4_output_path.empty()) {
       try {
-        st->model->save_weight_lora_q4(st->q4_output_path);
-        std::cout << "  saved Q4_0 LoRA adapter -> " << st->q4_output_path
+        st->model->save_weight_lora_qint4(st->q4_output_path);
+        std::cout << "  saved qint4 LoRA adapter -> " << st->q4_output_path
                   << std::endl;
       } catch (const std::exception &e) {
-        std::cerr << "  failed to save Q4_0 LoRA adapter: " << e.what()
+        std::cerr << "  failed to save qint4 LoRA adapter: " << e.what()
                   << std::endl;
       }
     }
@@ -286,9 +287,8 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
 
     // lora_qat implies lora_weight_q4: there is no point calibrating
     // fake-quant EMA scales without also saving the adapter they describe.
-    // It only selects the extra Q4_0 save; the graph's LoRA tensors stay
-    // FP32 (the lora_weight_q4 layer property builds inference-only Q4_0
-    // tensors, which cannot train).
+    // It only selects the extra adapter save; the graph's LoRA tensors are
+    // always FP32.
     bool do_qat = params.lora_qat;
     bool do_weight_q4 = params.lora_weight_q4;
     if (do_qat)

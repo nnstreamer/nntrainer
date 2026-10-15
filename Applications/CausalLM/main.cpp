@@ -331,9 +331,9 @@ int main(int argc, char *argv[]) {
         !nntr_cfg["lora_q4_file_name"].get<std::string>().empty()) {
       const std::string lora_q4_file =
         model_path + "/" + nntr_cfg["lora_q4_file_name"].get<std::string>();
-      model->load_weight_lora_q4(weight_file, lora_q4_file);
+      model->load_weight_lora_qint4(weight_file, lora_q4_file);
     } else if (nntr_cfg.contains("lora_file_name") &&
-              !nntr_cfg["lora_file_name"].get<std::string>().empty()) {
+               !nntr_cfg["lora_file_name"].get<std::string>().empty()) {
       const std::string lora_file =
         model_path + "/" + nntr_cfg["lora_file_name"].get<std::string>();
       model->load_weight_lora(weight_file, lora_file);

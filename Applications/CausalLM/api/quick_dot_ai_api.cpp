@@ -927,16 +927,12 @@ static void ensure_qnn_backend_ext_config(const std::string &base_dir) {
  *  loads config.json / nntr_config.json directly from that directory;
  *  lora_path (non-empty) applies a saved LoRA adapter on top of the base
  *  checkpoint — the inference counterpart of trainLora(). */
-static ErrorCode load_into_handle(CausalLmModel &h, BackendType compute,
-                                  const char *target_model_name,
-                                  ModelQuantizationType quant_type,
-                                  const char *native_lib_dir,
-                                  const char *model_base_path,
-                                  const char *explicit_model_dir = nullptr,
-                                  const char *lora_path = nullptr,
-                                  unsigned int lora_rank_hint = 0,
-                                  unsigned int lora_alpha_hint = 0,
-                                  unsigned int lora_last_n_hint = 0) {
+static ErrorCode load_into_handle(
+  CausalLmModel &h, BackendType compute, const char *target_model_name,
+  ModelQuantizationType quant_type, const char *native_lib_dir,
+  const char *model_base_path, const char *explicit_model_dir = nullptr,
+  const char *lora_path = nullptr, unsigned int lora_rank_hint = 0,
+  unsigned int lora_alpha_hint = 0, unsigned int lora_last_n_hint = 0) {
   LOGD("[DEBUG] load_into_handle: START");
   LOGD("[DEBUG]   compute: %d", compute);
   LOGD("[DEBUG]   target_model_name: %s",
@@ -1388,15 +1384,15 @@ static ErrorCode load_into_handle(CausalLmModel &h, BackendType compute,
       if (!nntr_cfg.contains("lora_alpha") ||
           nntr_cfg["lora_alpha"].get<unsigned int>() == 0)
         nntr_cfg["lora_alpha"] =
-          lora_alpha_hint
-            ? lora_alpha_hint
-            : nntr_cfg["lora_rank"].get<unsigned int>() * 2;
+          lora_alpha_hint ? lora_alpha_hint
+                          : nntr_cfg["lora_rank"].get<unsigned int>() * 2;
       if (lora_last_n_hint)
         nntr_cfg["lora_last_n_layers"] = lora_last_n_hint;
       if (!nntr_cfg.contains("lora_target") || nntr_cfg["lora_target"].empty())
         nntr_cfg["lora_target"] = std::vector<std::string>{
-          "wq",    "wk",             "wv",         "wo",     "ffn_up",
-          "ffn_gate", "ffn_down",     "wgate", "linattn_in_qkv",
+          "wq",           "wk",         "wv",
+          "wo",           "ffn_up",     "ffn_gate",
+          "ffn_down",     "wgate",      "linattn_in_qkv",
           "linattn_in_z", "linattn_out"};
       // The adapter graph runs on the cpu engine (setForceCpuEngine() below),
       // but mha_core's internal GPU arms -- rope_inplace_f16 and the device
@@ -1454,15 +1450,15 @@ static ErrorCode load_into_handle(CausalLmModel &h, BackendType compute,
     // instead.
     if (lora_path != nullptr && strlen(lora_path) > 0) {
       // Adapter on top of the base checkpoint. A "*_q4" file was saved by
-      // save_weight_lora_q4() and is dequantized into the FP32 LoRA tensors
-      // -- the int4 values a QAT run trained against; everything else is an
-      // FP32 adapter from save_weight_lora().
+      // save_weight_lora_qint4() and is dequantized into the FP32 LoRA
+      // tensors -- the int4 values a QAT run trained against; everything
+      // else is an FP32 adapter from save_weight_lora().
       const std::string lora(lora_path);
       const bool lora_q4 = lora.rfind("_q4") != std::string::npos;
       if (lora_q4) {
-        LOGD("[DEBUG] load_into_handle: applying Q4_0 LoRA adapter %s",
+        LOGD("[DEBUG] load_into_handle: applying qint4 LoRA adapter %s",
              lora.c_str());
-        m->load_weight_lora_q4(weight_file, lora);
+        m->load_weight_lora_qint4(weight_file, lora);
       } else {
         LOGD("[DEBUG] load_into_handle: applying FP32 LoRA adapter %s",
              lora.c_str());
@@ -2090,13 +2086,11 @@ ErrorCode loadModelHandleByName(BackendType compute, const char *model_id,
 ErrorCode loadModelHandleFromDir(BackendType compute, const char *model_dir,
                                  ModelQuantizationType quant_type,
                                  const char *native_lib_dir,
-                                 const char *lora_path,
-                                 unsigned int lora_rank,
+                                 const char *lora_path, unsigned int lora_rank,
                                  unsigned int lora_alpha,
                                  unsigned int lora_last_n,
                                  CausalLmHandle *out_handle) {
-  if (out_handle == nullptr || model_dir == nullptr ||
-      model_dir[0] == '\0') {
+  if (out_handle == nullptr || model_dir == nullptr || model_dir[0] == '\0') {
     LOGE("loadModelHandleFromDir: null/empty model_dir");
     return CAUSAL_LM_ERROR_INVALID_PARAMETER;
   }
@@ -2109,14 +2103,14 @@ ErrorCode loadModelHandleFromDir(BackendType compute, const char *model_dir,
 
   // "Qwen3" is only the architecture hint used when config.json carries no
   // "architectures" entry; the weights/configs all come from model_dir.
-  ErrorCode ec = load_into_handle(*h, compute, "Qwen3", quant_type,
-                                  native_lib_dir,
-                                  /*model_base_path=*/nullptr,
-                                  /*explicit_model_dir=*/model_dir,
-                                  /*lora_path=*/lora_path,
-                                  /*lora_rank_hint=*/lora_rank,
-                                  /*lora_alpha_hint=*/lora_alpha,
-                                  /*lora_last_n_hint=*/lora_last_n);
+  ErrorCode ec =
+    load_into_handle(*h, compute, "Qwen3", quant_type, native_lib_dir,
+                     /*model_base_path=*/nullptr,
+                     /*explicit_model_dir=*/model_dir,
+                     /*lora_path=*/lora_path,
+                     /*lora_rank_hint=*/lora_rank,
+                     /*lora_alpha_hint=*/lora_alpha,
+                     /*lora_last_n_hint=*/lora_last_n);
   if (ec != CAUSAL_LM_ERROR_NONE) {
     delete h;
     *out_handle = nullptr;

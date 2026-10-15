@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
     const std::string weight_file =
       model_path + "/" + nntr_cfg["model_file_name"].get<std::string>();
     if (!nntr_cfg.value("lora_q4_file_name", std::string()).empty())
-      model.load_weight_lora_q4(
+      model.load_weight_lora_qint4(
         weight_file,
         model_path + "/" + nntr_cfg["lora_q4_file_name"].get<std::string>());
     else if (!nntr_cfg.value("lora_file_name", std::string()).empty())

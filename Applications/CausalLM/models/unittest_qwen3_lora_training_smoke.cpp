@@ -270,15 +270,15 @@ TEST(Qwen3LoraTrainingSmoke, TrainsAFewStepsAndSaveLoadLoraRoundTrips) {
 }
 
 /**
- * @brief A QAT run's Q4_0 adapter round-trips: save_weight_lora_q4() writes
- *        every loraA AND loraB (rank 4, so loraB's K is below the 32-element
- *        block) with the per-block scales training calibrated, and
- *        load_weight_lora_q4() dequantizes it into the FP32 LoRA tensors of a
- *        fresh model. Every reloaded element must equal the fake-quantized
- *        value the saved scales give the trained weight; the old repacked
- *        format wrote each loraB as zeros.
+ * @brief A QAT run's qint4 adapter round-trips: save_weight_lora_qint4()
+ *        writes every loraA AND loraB (rank 4 -- the per-channel format has
+ *        no minimum-shape constraint) with the per-channel scales training
+ *        calibrated, and load_weight_lora_qint4() dequantizes it into the
+ *        FP32 LoRA tensors of a fresh model. Every reloaded element must
+ *        equal the fake-quantized value the saved scales give the trained
+ *        weight.
  */
-TEST(Qwen3LoraTrainingSmoke, QatQ4AdapterRoundTripsTheTrainedInt4Values) {
+TEST(Qwen3LoraTrainingSmoke, QatQInt4AdapterRoundTripsTheTrainedInt4Values) {
   auto cfg = makeTinyQwen3Config();
   auto generation_cfg = makeTinyGenerationConfig();
 
@@ -318,7 +318,7 @@ TEST(Qwen3LoraTrainingSmoke, QatQ4AdapterRoundTripsTheTrainedInt4Values) {
   ASSERT_NO_THROW(qat_model.initializeForTraining(/*lr=*/1e-2f, /*epochs=*/1));
   ASSERT_NO_THROW(qat_model.load_weight_lora(base_path, ""));
   // loraB starts at zero; give it values so the training forward
-  // calibrates real loraB block scales
+  // calibrates real loraB channel scales
   fill(qat_model, ":loraB");
   SyntheticDataGen gen{/*seq_len=*/4, /*vocab_size=*/32};
   std::shared_ptr<ml::train::Dataset> dataset = ml::train::createDataset(
@@ -330,47 +330,55 @@ TEST(Qwen3LoraTrainingSmoke, QatQ4AdapterRoundTripsTheTrainedInt4Values) {
   const auto q4_path =
     (std::filesystem::temp_directory_path() / "nntrainer_qwen3_lora_q4.bin")
       .string();
-  ASSERT_NO_THROW(qat_model.save_weight_lora_q4(q4_path));
+  ASSERT_NO_THROW(qat_model.save_weight_lora_qint4(q4_path));
 
   // expected: each trained LoRA weight fake-quantized with its saved scale
   std::map<std::string, std::vector<float>> expected;
   std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
-    collect =
-      [&](ml::train::Layer &l, nntrainer::RunLayerContext &context, void *) {
-        if (l.getType() != "fully_connected")
-          return;
-        auto [a_bd, b_bd] =
-          nntrainer::FullyConnectedLayer::getRegisteredBlockScales(l.getName());
-        for (unsigned int i = 0; i < context.getNumWeights(); ++i) {
-          const std::string name = context.getWeight(i).getName();
-          const bool is_a = name.find(":loraA") != std::string::npos;
-          if (!is_a && name.find(":loraB") == std::string::npos)
-            continue;
-          const std::vector<float> &bd = is_a ? a_bd : b_bd;
-          const nntrainer::Tensor &t = context.getWeight(i);
-          const size_t K = t.getDim().height(), N = t.getDim().width();
-          ASSERT_EQ(bd.size(), K * N / 32) << name;
-          std::vector<float> v(K * N);
-          for (size_t k = 0; k < K; ++k)
-            for (size_t n = 0; n < N; ++n) {
-              const float d = bd[(n * K + k) / 32];
-              const float w = t.getData<float>()[k * N + n];
-              // a block QAT never scaled is saved with its natural scale
-              v[k * N + n] =
-                std::abs(d) < 1e-10f
-                  ? std::nanf("")
-                  : std::max(-8.0f, std::min(7.0f, std::round(w / d))) * d;
+    collect = [&](ml::train::Layer &l, nntrainer::RunLayerContext &context,
+                  void *) {
+      if (l.getType() != "fully_connected")
+        return;
+      auto [a_cd, b_cd] =
+        nntrainer::FullyConnectedLayer::getRegisteredChannelScales(l.getName());
+      for (unsigned int i = 0; i < context.getNumWeights(); ++i) {
+        const std::string name = context.getWeight(i).getName();
+        const bool is_a = name.find(":loraA") != std::string::npos;
+        if (!is_a && name.find(":loraB") == std::string::npos)
+          continue;
+        const std::vector<float> &cd = is_a ? a_cd : b_cd;
+        const nntrainer::Tensor &t = context.getWeight(i);
+        const size_t K = t.getDim().height(), N = t.getDim().width();
+        ASSERT_EQ(cd.size(), N) << name;
+        std::vector<float> v(K * N);
+        for (size_t k = 0; k < K; ++k)
+          for (size_t n = 0; n < N; ++n) {
+            // mirror buildQInt4Record: the calibrated EMA scale when the
+            // channel has one, else the natural amax/7 (an all-zero
+            // channel is saved as all-zero codes with scale 0)
+            float d = cd[n];
+            if (d <= 1e-10f) {
+              float amax = 0.0f;
+              for (size_t kk = 0; kk < K; ++kk)
+                amax = std::max(amax, std::abs(t.getData<float>()[kk * N + n]));
+              d = amax / 7.0f;
             }
-          expected[name] = v;
-        }
-      };
+            const float w = t.getData<float>()[k * N + n];
+            v[k * N + n] =
+              d < 1e-10f
+                ? 0.0f
+                : std::max(-8.0f, std::min(7.0f, std::round(w / d))) * d;
+          }
+        expected[name] = v;
+      }
+    };
   qat_model.forEachLayer(collect, nullptr);
   ASSERT_FALSE(expected.empty());
 
   auto infer_nntr_cfg = makeTinyNntrainerConfig(/*lora_rank=*/4);
   causallm::Qwen3CausalLM reloaded(cfg, generation_cfg, infer_nntr_cfg);
   ASSERT_NO_THROW(reloaded.initialize());
-  ASSERT_NO_THROW(reloaded.load_weight_lora_q4(base_path, q4_path));
+  ASSERT_NO_THROW(reloaded.load_weight_lora_qint4(base_path, q4_path));
 
   unsigned int checked = 0, nonzero_b = 0;
   std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
@@ -383,8 +391,6 @@ TEST(Qwen3LoraTrainingSmoke, QatQ4AdapterRoundTripsTheTrainedInt4Values) {
             continue;
           const float *got = context.getWeight(i).getData<float>();
           for (size_t j = 0; j < it->second.size(); ++j) {
-            if (std::isnan(it->second[j]))
-              continue;
             EXPECT_EQ(got[j], it->second[j]) << name << " element " << j;
             if (name.find(":loraB") != std::string::npos && got[j] != 0.0f)
               ++nonzero_b;

@@ -880,7 +880,7 @@ Checked:
 
   Each objective improves the score it optimizes: sft the log-loss, rlcd
   the Brier score. (A QAT run's `_q4` adapter loads through
-  `lora_q4_file_name` too since the Q4_0 adapter format below.)
+  `lora_q4_file_name` too since the qint4 adapter format below.)
 
 ## Two silent training bugs: clipped gradients sharing memory, frozen inputs overwritten
 
@@ -1036,9 +1036,8 @@ Leave out `--lr_decay_rate` for `check_update.py` runs.
 
 - `unittest_compiler` (TFLite export) fails on this branch:
   `Exporter::saveTflResult` is specialized for an FC props tuple without the
-  `LoraQAT` / `LoraWeightQ4` / `LoraQatEmaMomentum` / `LoraGPU` members added
-  to `fc_props`, so the FC node no longer matches ("given node cannot be
-  converted to tfnode").
+  `LoraQAT` / `LoraQatEmaMomentum` / `LoraGPU` members in `fc_props`, so the
+  FC node no longer matches ("given node cannot be converted to tfnode").
 - `unittest_qwen3_lora_training_smoke` is flaky under `meson test`, which
   sets a random `MALLOC_PERTURB_`: it fails for 1, 33, 128 and 165, with or
   without these fixes. The "base checkpoint" it saves comes from a model
@@ -1124,40 +1123,40 @@ Follow-up commits for on-device speed and training correctness:
   branch independently of the fixes above; see "Pre-existing issues found on
   the way".
 
-## Q4_0 adapter format: the int4 values QAT trained against
+## qint4 adapter format: the int4 values QAT trained against
 
-A QAT run (`--lora_qat`) also saves `<output>_q4.bin`, the adapter as Q4_0
-blocks: what ships to the device. Two defects kept it from being that.
+A QAT run (`--lora_qat`) also saves `<output>_q4.bin`, the adapter as
+per-channel int4 -- the same scheme the QS4CX base weights use -- so what
+ships to the device is the exact quantization training saw.
 
-- **Every loraB was saved as zeros.** The blocks were repacked for the
-  Q4_0 GEMM kernel, which interleaves 32-element blocks of each output row;
-  loraB's rows are rank-long (K = 8), so a row holds no whole block and the
-  repack wrote nothing. Loading such a file gives a no-op adapter.
-- **Inference never used the int4 values.** The app's AFTER test and the
-  FP32 adapter run raw A and B, not the fake-quantized values training saw.
+The file is one record per loraA / loraB, in graph order, behind an `NQI4`
+header:
 
-The file is now plain Q4_0 blocks over the N x K index of each (K x N)
-weight -- the layout `fakeQuantizeQ4_0` calibrates, so a block may span
-several rank-long rows -- behind an `NQ4L` header:
+    u32 magic "NQI4", u32 version 1
+    record: u32 K, u32 N
+            N * ceil(K/2) nibble bytes: row n of the (K x N) weight, even k
+            in the low nibble, odd k in the high
+            N fp32 scales
+    value = (code - 8) * scale[n], with scale[n] = amax of channel n / 7
 
-    u32 magic "NQ4L", u32 version 1
-    per loraA / loraB, in graph order: u32 element count, count/32 blocks
-    block: FP16 d, 16 bytes of codes (element j low nibble of byte j,
-           j+16 the high), value = (code - 8) * d
+The record is the trimmed QS4CX plain layout, so an adapter is byte-valid
+as a base weight of the same shape. `load_weight_lora_qint4` loads the base
+checkpoint like `load_weight_lora` and dequantizes the record into the
+graph's FP32 LoRA tensors (rank-sized LoRA GEMMs cost nothing next to the
+base weights); the graph is never built with int4 LoRA tensors. A file
+without the header (the Q4_0 format saved before the qint4 unification) is
+refused -- re-train and re-save. The app's AFTER test loads the `_q4`
+adapter of a QAT run.
 
-`load_weight_lora_q4` loads the base checkpoint like `load_weight_lora`
-and dequantizes the blocks into the graph's FP32 LoRA tensors (rank-sized
-LoRA GEMMs cost nothing next to the base weights); the graph is never
-built with Q4_0 LoRA tensors. A file without the header (the old format)
-is refused. The app's AFTER test loads the `_q4` adapter of a QAT run.
+The fake-quantizer matches the saved format exactly:
 
-The fake-quantizer now matches the saved format exactly:
-
-- the scale follows ggml's Q4_0 convention, d = m / -8 for the block's
-  largest-magnitude element m, so m lands on code -8 (a max|w| / 8 scale
-  clipped a positive maximum to code 7); the EMA runs on |d|;
-- every scale is rounded to FP16, the precision the file stores.
+- the scale is per output channel (the weight's width): d = amax of the
+  channel / 7, so both sign extremes land inside the code range and a
+  channel's largest magnitude sits on code 7;
+- the EMA tracks each channel's d across steps, and scales stay FP32 --
+  the precision the file stores (the Q4_0 format rounded them to FP16).
 
 So dequantizing the file reproduces, bit for bit, the fake-quantized weight
-the saved per-block scales give (`QatQ4AdapterRoundTripsTheTrainedInt4Values`).
+the saved per-channel scales give
+(`QatQInt4AdapterRoundTripsTheTrainedInt4Values`).
 

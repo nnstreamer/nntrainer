@@ -707,27 +707,28 @@ public:
   virtual void save_weight_lora(const std::string &lora_path);
 
   /**
-   * @brief Save LoRA adapters as Q4_0 (block=32, plain blocks over the N x K
-   *        index behind an "NQ4L" header). When LORA_QAT is active,
-   *        force-feeds the per-block EMA
-   *        scales calibrated during training instead of recomputing a
-   *        natural per-block scale at save time, so the saved adapter
-   *        matches the exact quantization the model trained against.
-   * @param path output path for the Q4_0 adapter file
+   * @brief Save LoRA adapters as qint4 (per-channel int4, the same scheme as
+   *        the QS4CX base weight: N fp32 scales + uint4+8 nibbles, behind an
+   *        "NQI4" header). When LORA_QAT is active, force-feeds the
+   *        per-channel EMA scales calibrated during training instead of
+   *        recomputing a natural per-channel scale at save time, so the
+   *        saved adapter matches the exact quantization the model trained
+   *        against.
+   * @param path output path for the qint4 adapter file
    */
-  virtual void save_weight_lora_q4(const std::string &path);
+  virtual void save_weight_lora_qint4(const std::string &path);
 
   /**
-   * @brief Load a pretrained (non-LoRA) base checkpoint, then load a Q4_0
+   * @brief Load a pretrained (non-LoRA) base checkpoint, then load a qint4
    *        LoRA adapter, dequantized into the graph's FP32 loraA/loraB: the
    *        exact int4 values a QAT run trained against (a rank-sized LoRA
    *        GEMM is negligible next to the base weights, so it stays FP32).
    * @param base_path path to the pretrained (non-LoRA) checkpoint
-   * @param lora_q4_path path to a Q4_0 adapter file (from
-   *        save_weight_lora_q4())
+   * @param lora_qint4_path path to a qint4 adapter file (from
+   *        save_weight_lora_qint4())
    */
-  virtual void load_weight_lora_q4(const std::string &base_path,
-                                   const std::string &lora_q4_path);
+  virtual void load_weight_lora_qint4(const std::string &base_path,
+                                      const std::string &lora_qint4_path);
 
   /**
    * @brief Visit each layer in the compiled model (passthrough to
@@ -992,21 +993,14 @@ protected:
    *  global-norm clipping over the whole adapter. */
   float LORA_CLIP_GRAD = 0.0f;
 
-  /** Enable per-block Q4_0 QAT (fake-quant + EMA calibration + STE) on
+  /** Enable per-channel qint4 QAT (fake-quant + EMA calibration + STE) on
    *  loraA/loraB, from nntr_cfg's "lora_qat". Default false trains the
    *  adapters in plain FP32. */
   bool LORA_QAT = false;
 
-  /** Store/load LoRA adapters as real Q4_0 tensors, from nntr_cfg's
-   *  "lora_weight_q4". Combined with LORA_QAT, the adapters are
-   *  fake-quantized (with EMA-calibrated scales) during training and can be
-   *  saved/loaded as Q4_0 so the W4A8 GEMM kernel fires at inference.
-   *  Requires lora_rank to be a multiple of 32. */
-  bool LORA_WEIGHT_Q4 = false;
-
-  /** EMA momentum for the per-block Q4_0 QAT scale update, from nntr_cfg's
-   *  "lora_qat_ema_momentum" (0 < m < 1; block_d = (1-m)*block_d + m*fresh).
-   *  Lower values smooth the block scales over more steps, damping the
+  /** EMA momentum for the per-channel QAT scale update, from nntr_cfg's
+   *  "lora_qat_ema_momentum" (0 < m < 1; d = (1-m)*d + m*fresh). Lower
+   *  values smooth the channel scales over more steps, damping the
    *  scale/loss feedback that can destabilize long QAT runs. Default 0.1. */
   float QAT_EMA_MOMENTUM = 0.1f;
 

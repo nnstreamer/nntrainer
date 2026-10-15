@@ -160,8 +160,8 @@ struct TrainParams {
   std::string hybrid_trunk_path; ///< GPU trunk model dir (empty = CPU only)
   float clip_grad = -1.0f;       ///< gradient clip global norm (-1 = config)
   bool train_norms = false;      ///< also train RMSNorm gammas
-  bool lora_qat = false;         ///< fake-quantize loraA/loraB to Q4_0
-  bool lora_weight_q4 = false;   ///< also save a Q4_0 adapter
+  bool lora_qat = false;         ///< fake-quantize loraA/loraB to int4
+  bool lora_weight_q4 = false;   ///< also save a qint4 adapter
   float qat_ema_momentum = 0.0f; ///< EMA momentum for QAT scale update
   unsigned int seed = 42;        ///< RNG seed for epoch shuffling
   /** run a validation pass after every epoch and select the saved adapter
@@ -180,21 +180,21 @@ struct TrainParams {
  * @brief Per-epoch progress reported through the training callback.
  */
 struct TrainProgress {
-  unsigned int epoch = 0;     ///< 1-based epoch index
-  float train_loss = 0.0f;    ///< mean training loss over this epoch
+  unsigned int epoch = 0;  ///< 1-based epoch index
+  float train_loss = 0.0f; ///< mean training loss over this epoch
   /** validation loss for this epoch; NaN unless TrainParams::validate */
   float valid_loss = std::numeric_limits<float>::quiet_NaN();
   float accuracy = 0.0f;      ///< top-1 accuracy (0 if unavailable)
   bool saved = false;         ///< whether the adapter was saved this epoch
   std::string output_path;    ///< current best-adapter output path
-  std::string q4_output_path; ///< Q4_0 adapter path (empty if not saved)
+  std::string q4_output_path; ///< qint4 adapter path (empty if not saved)
   /** best loss so far: validation loss with TrainParams::validate, else
    *  the epoch-mean training loss */
   float best_loss = std::numeric_limits<float>::max();
-  unsigned int num_samples = 0;        ///< total training samples loaded
-  double epoch_seconds = 0.0; ///< wall time of the epoch (train + validation)
-  double train_seconds = 0.0; ///< training part of it; the rest is validation
-                              ///< (equal without TrainParams::validate)
+  unsigned int num_samples = 0; ///< total training samples loaded
+  double epoch_seconds = 0.0;   ///< wall time of the epoch (train + validation)
+  double train_seconds = 0.0;   ///< training part of it; the rest is validation
+                                ///< (equal without TrainParams::validate)
 };
 
 /**

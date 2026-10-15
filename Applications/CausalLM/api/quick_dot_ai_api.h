@@ -265,8 +265,8 @@ WIN_EXPORT ErrorCode loadModelHandleByName(BackendType compute,
  * When @p lora_path is non-NULL and non-empty, the LoRA layer config
  * (rank/alpha/target/last_n) is defaulted the same way trainLora() does
  * so the graph actually contains LoRA weights; an adapter file named
- * "*_q4.bin" is loaded through load_weight_lora_q4() (dequantized into the
- * graph's FP32 LoRA tensors), any other file through load_weight_lora().
+ * "*_q4.bin" is loaded through load_weight_lora_qint4() (dequantized into
+ * the graph's FP32 LoRA tensors), any other file through load_weight_lora().
  *
  * @param compute         Compute backend
  * @param model_dir       Absolute path to the model directory holding
@@ -277,15 +277,11 @@ WIN_EXPORT ErrorCode loadModelHandleByName(BackendType compute,
  * @param out_handle      Out-parameter receiving the new handle on success
  * @return ErrorCode
  */
-WIN_EXPORT ErrorCode loadModelHandleFromDir(BackendType compute,
-                                            const char *model_dir,
-                                            ModelQuantizationType quant_type,
-                                            const char *native_lib_dir,
-                                            const char *lora_path,
-                                            unsigned int lora_rank,
-                                            unsigned int lora_alpha,
-                                            unsigned int lora_last_n,
-                                            CausalLmHandle *out_handle);
+WIN_EXPORT ErrorCode loadModelHandleFromDir(
+  BackendType compute, const char *model_dir, ModelQuantizationType quant_type,
+  const char *native_lib_dir, const char *lora_path, unsigned int lora_rank,
+  unsigned int lora_alpha, unsigned int lora_last_n,
+  CausalLmHandle *out_handle);
 
 /**
  * @brief SD 모델 로드 후 DDTree speculative decoding 활성화 여부를 설정한다.
@@ -756,7 +752,7 @@ WIN_EXPORT const char *getModelCatalogJson(void);
  *     "clip_grad":   1.0,                      // -1 = from config
  *     "train_norms": false,
  *     "lora_qat":    true,                     // QAT fake-quant
- *     "lora_weight_q4": true,                  // also save Q4_0 adapter
+ *     "lora_weight_q4": true,                  // also save qint4 adapter
  *     "qat_ema_momentum": 0.1,
  *     "validate":    false,                    // per-epoch validation pass
  *     "lr_decay_rate":   0.0,
