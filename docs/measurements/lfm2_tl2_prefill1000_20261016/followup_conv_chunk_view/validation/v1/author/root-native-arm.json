@@ -1,0 +1,10 @@
+{
+  "binary_sha256": "8293faf7b7bed96be45d9adb23e8cebfea551d40fc7c3023f81fa961e89ee69c",
+  "device": "R3CY70LV96T",
+  "command": [
+    "/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/conv-chunk-check"
+  ],
+  "returncode": 0,
+  "log_sha256": "2d8b9bf42c7e7fa9f66219ed26cb5e0e19d7cf88d4c1f5a725c1ae8fbf976cf6",
+  "scope": "Native NEON exact source helpers with mock RPC/allocator data; no model TPS or physical DSP concurrency claim"
+}

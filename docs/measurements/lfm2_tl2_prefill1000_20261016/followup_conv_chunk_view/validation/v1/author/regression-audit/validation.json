@@ -1,0 +1,67 @@
+{
+  "production_unchanged": true,
+  "production_patch_sha256": "4a6661df1b353699c22151b4d36e60ba5f341811c5c8766e5a615f8fbdec85a7",
+  "source_sha256": "2392af8742e5ac2c0679bbb26364d50e0d12e0d0254ebc0ed03c17459f89f8f9",
+  "common_app": {
+    "before_frame_bytes": 1760,
+    "candidate_frame_bytes": 1824,
+    "prologue_save_instruction_count_each": 7,
+    "before_local_sp_subtract": 1648,
+    "candidate_local_sp_subtract": 1712,
+    "before_instruction_count": 1965,
+    "candidate_instruction_count": 2513,
+    "additional_app_code_bytes": 2192,
+    "candidate_outline_range_frame_bytes": 192
+  },
+  "m1": {
+    "new_chunk_or_range_helper_executed": false,
+    "old_node_walk_remains": true,
+    "profile_call_count_each": 1920,
+    "profile_conv_delta_total_us": 147.90699999999924,
+    "profile_conv_delta_per_token_us": 2.311046874999988,
+    "limit": "Instrumented single pair; not an explanation of normal-run latency differences."
+  },
+  "full_helper_codegen_independent": {
+    "path": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/unchanged-path-codegen.json",
+    "sha256": "4656faa18863136b97a8bb657aa581b63dcea9cae8d3c1352b6f2a9340e15c08",
+    "data": {
+      "before": {
+        "callback_code_bytes": 236,
+        "row_setup_instruction_count": 28,
+        "hot_loop_instruction_count": 30,
+        "row_setup_load_instructions": 7,
+        "hot_loop_stack_references": []
+      },
+      "candidate": {
+        "callback_code_bytes": 252,
+        "row_setup_instruction_count": 32,
+        "hot_loop_instruction_count": 30,
+        "row_setup_load_instructions": 9,
+        "hot_loop_stack_references": []
+      },
+      "hot_loop_encoding_differences": [
+        {
+          "before": [
+            112,
+            "f9401002",
+            "ldr\tx2, [x0, #0x20]"
+          ],
+          "candidate": [
+            128,
+            "f9401402",
+            "ldr\tx2, [x0, #0x28]"
+          ]
+        }
+      ],
+      "1024_model_extra_setup_instructions": 122880,
+      "scope": "Actual Android compiler object, baseline/final2392 candidate; instruction count is not cycle/TPS measurement."
+    }
+  },
+  "isolation_design_only": {
+    "original_full_helper": "restore exact baseline six-argument helper body and lambda",
+    "range_helper": "separate eight-argument function used only by chunk helper, same precise FP pragma",
+    "optional_chunk_noinline": "compiler-guarded noinline keeps added metadata/loop out of common app body; requires a new compile and tests before making codegen/performance claims",
+    "no_new_public_api_or_capacity": true,
+    "source_edits_or_compile_for_this_design": false
+  }
+}

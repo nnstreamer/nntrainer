@@ -1,0 +1,9 @@
+{
+  "production.patch": "4a6661df1b353699c22151b4d36e60ba5f341811c5c8766e5a615f8fbdec85a7",
+  "tests.patch": "2845812902815c03a8b35460314f08b5c2125caed7f9600549f145428353906c",
+  "test/htp/host/lfm2_conv_chunk_check.cpp": "282b1ebacce28958bb9f7049850ca603c622575b469496e8e72258cc824bc669",
+  "test/htp/host/run_lfm2_conv_chunk_check.py": "e1d8323503822e8d7a5997a4f26cf17998d24cf7209fbfb49d70ed8641f80f35",
+  "candidate/Applications/CausalLM/layers/conv_block_layer.cpp": "2392af8742e5ac2c0679bbb26364d50e0d12e0d0254ebc0ed03c17459f89f8f9",
+  "before/Applications/CausalLM/layers/conv_block_layer.cpp": "bc019abdbf0cadb48e0aaa4ecc3898bc9b0a37e11f28c306d9762f766292869a",
+  "checks/native-arm/check": "8293faf7b7bed96be45d9adb23e8cebfea551d40fc7c3023f81fa961e89ee69c"
+}

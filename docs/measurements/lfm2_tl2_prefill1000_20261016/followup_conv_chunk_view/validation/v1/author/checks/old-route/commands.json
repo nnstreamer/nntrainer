@@ -1,0 +1,20 @@
+{
+  "source_sha256": "2392af8742e5ac2c0679bbb26364d50e0d12e0d0254ebc0ed03c17459f89f8f9",
+  "extracted_sha256": "9d065972327e5cb3f8b0ec177a5f496f8c5cf610a5f39fbbf4638f8d5e6054ee",
+  "compile": [
+    "c++",
+    "-std=c++17",
+    "-O2",
+    "-g",
+    "-Wall",
+    "-Wextra",
+    "-fsanitize=address,undefined",
+    "-fno-omit-frame-pointer",
+    "/tmp/nntr-lfm2-conv-chunk-view-20261016/checks/old-route/lfm2_conv_ion_route_check.cpp",
+    "-o",
+    "/tmp/nntr-lfm2-conv-chunk-view-20261016/checks/old-route/route_check"
+  ],
+  "run": [
+    "/tmp/nntr-lfm2-conv-chunk-view-20261016/checks/old-route/route_check"
+  ]
+}

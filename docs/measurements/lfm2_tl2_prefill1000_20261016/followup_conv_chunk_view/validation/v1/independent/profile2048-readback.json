@@ -1,0 +1,407 @@
+{
+  "0": {
+    "raw_sha256": "6402ddca31ae482ca81e73e09122473970133fc2ad23d4cc6595edeb4b8456d5",
+    "main_layer_groups": {
+      "other": {
+        "calls": 196,
+        "ms": 216.563538
+      },
+      "conv_norm": {
+        "calls": 30,
+        "ms": 60.47890699999999
+      },
+      "conv": {
+        "calls": 30,
+        "ms": 481.66640800000005
+      },
+      "qkv": {
+        "calls": 10,
+        "ms": 73.174427
+      },
+      "attention": {
+        "calls": 10,
+        "ms": 525.4119760000001
+      },
+      "sparse_moe": {
+        "calls": 38,
+        "ms": 1057.299217
+      }
+    },
+    "main_layer_total_ms": 2414.594473,
+    "main_records": 314,
+    "decode_perkind_us_token": {
+      "RMSNORM": 637,
+      "FC": 6277,
+      "CONV1D_GATE": 337,
+      "QK_NORM": 185,
+      "ROPE": 46,
+      "ATTN_M1": 3355,
+      "ADD": 142,
+      "ROUTER_TOPK": 1553,
+      "MOE": 40800,
+      "DENSE_FFN": 1418,
+      "LM_HEAD": 1285,
+      "moe_net": 9436
+    },
+    "decode_miss_wait_us_token": 31363.7,
+    "decode_dsp_wall_ms_token": 56.276,
+    "arm_staging_copy_ms": 239.6,
+    "explicit_interleaved_M1_records": [],
+    "staging": [
+      {
+        "line": 1756,
+        "ms": 27.4,
+        "MiB_printed": 608.0,
+        "copies": 38
+      },
+      {
+        "line": 5774,
+        "ms": 62.6,
+        "MiB_printed": 1284.5,
+        "copies": 152
+      },
+      {
+        "line": 5861,
+        "ms": 87.3,
+        "MiB_printed": 1735.5,
+        "copies": 120
+      },
+      {
+        "line": 5900,
+        "ms": 31.5,
+        "MiB_printed": 667.5,
+        "copies": 150
+      },
+      {
+        "line": 7233,
+        "ms": 2.8,
+        "MiB_printed": 52.0,
+        "copies": 4
+      },
+      {
+        "line": 7396,
+        "ms": 27.4,
+        "MiB_printed": 660.0,
+        "copies": 42
+      }
+    ],
+    "rpc_shapes": [
+      {
+        "K": 2048,
+        "N": 64,
+        "M_class": "M>1",
+        "kind": "FC",
+        "calls": 38,
+        "rows": 77824,
+        "host_ms": 219.7
+      },
+      {
+        "K": 2048,
+        "N": 512,
+        "M_class": "M>1",
+        "kind": "FC",
+        "calls": 20,
+        "rows": 1280,
+        "host_ms": 4.2
+      },
+      {
+        "K": 2048,
+        "N": 2048,
+        "M_class": "M>1",
+        "kind": "",
+        "calls": 39,
+        "rows": 79872,
+        "host_ms": 606.8
+      },
+      {
+        "K": 2048,
+        "N": 2048,
+        "M_class": "M>1",
+        "kind": "dense",
+        "calls": 3,
+        "rows": 4608,
+        "host_ms": 53.3
+      },
+      {
+        "K": 2048,
+        "N": 2048,
+        "M_class": "M>1",
+        "kind": "FC",
+        "calls": 130,
+        "rows": 85120,
+        "host_ms": 125.1
+      },
+      {
+        "K": 2048,
+        "N": 3072,
+        "M_class": "M>1",
+        "kind": "FC",
+        "calls": 10,
+        "rows": 20480,
+        "host_ms": 53.8
+      },
+      {
+        "K": 2048,
+        "N": 6144,
+        "M_class": "M>1",
+        "kind": "FC",
+        "calls": 90,
+        "rows": 63808,
+        "host_ms": 174.7
+      },
+      {
+        "K": 2048,
+        "N": 65536,
+        "M_class": "M==1",
+        "kind": "FC",
+        "calls": 1,
+        "rows": 1,
+        "host_ms": 1.8
+      }
+    ],
+    "expert_prefill": {
+      "read": 2304,
+      "ready": 2304,
+      "asked": 2304,
+      "wait_ms": 0.0,
+      "register_ms": 2.2,
+      "reader_ms_per_expert": 3.13
+    },
+    "expert_decode": {
+      "misses": 4210,
+      "file_read_ms": 2207.6,
+      "rounds": 2111,
+      "arm_ms_per_round": 1.046,
+      "pair_reads": 1298
+    },
+    "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+    "full_run_peak_kib": 3083556.0
+  },
+  "1": {
+    "raw_sha256": "f2fc236a4429634c17c6f04cdc3d7b7ec0ef6c957c8b34788413a634d7951945",
+    "main_layer_groups": {
+      "other": {
+        "calls": 196,
+        "ms": 221.41839099999996
+      },
+      "conv_norm": {
+        "calls": 30,
+        "ms": 70.38291600000001
+      },
+      "conv": {
+        "calls": 30,
+        "ms": 448.38416599999994
+      },
+      "qkv": {
+        "calls": 10,
+        "ms": 73.433594
+      },
+      "attention": {
+        "calls": 10,
+        "ms": 531.986565
+      },
+      "sparse_moe": {
+        "calls": 38,
+        "ms": 1119.7506259999996
+      }
+    },
+    "main_layer_total_ms": 2465.356258,
+    "main_records": 314,
+    "decode_perkind_us_token": {
+      "RMSNORM": 647,
+      "FC": 6362,
+      "CONV1D_GATE": 335,
+      "QK_NORM": 186,
+      "ROPE": 47,
+      "ATTN_M1": 3370,
+      "ADD": 143,
+      "ROUTER_TOPK": 1556,
+      "MOE": 41285,
+      "DENSE_FFN": 1454,
+      "LM_HEAD": 1312,
+      "moe_net": 9503
+    },
+    "decode_miss_wait_us_token": 31782.8,
+    "decode_dsp_wall_ms_token": 56.945,
+    "arm_staging_copy_ms": 171.4,
+    "explicit_interleaved_M1_records": [
+      {
+        "line": 935,
+        "interleave": "LAYERPROF\t[HTP] token driver: first token pos=2048 id=50311 us=92500 logits=0",
+        "continuation": "1\tlayer27_conv_norm\t1042",
+        "scope": "M1 conv_norm outside this main-prefill aggregation; explicitly recognized, not silently ignored"
+      }
+    ],
+    "staging": [
+      {
+        "line": 1756,
+        "ms": 29.3,
+        "MiB_printed": 608.0,
+        "copies": 38
+      },
+      {
+        "line": 5774,
+        "ms": 64.3,
+        "MiB_printed": 1284.5,
+        "copies": 152
+      },
+      {
+        "line": 5861,
+        "ms": 13.8,
+        "MiB_printed": 295.5,
+        "copies": 60
+      },
+      {
+        "line": 5900,
+        "ms": 31.8,
+        "MiB_printed": 667.5,
+        "copies": 150
+      },
+      {
+        "line": 7233,
+        "ms": 2.5,
+        "MiB_printed": 52.0,
+        "copies": 4
+      },
+      {
+        "line": 7396,
+        "ms": 28.9,
+        "MiB_printed": 660.0,
+        "copies": 42
+      }
+    ],
+    "rpc_shapes": [
+      {
+        "K": 2048,
+        "N": 64,
+        "M_class": "M>1",
+        "kind": "FC",
+        "calls": 38,
+        "rows": 77824,
+        "host_ms": 224.4
+      },
+      {
+        "K": 2048,
+        "N": 512,
+        "M_class": "M>1",
+        "kind": "FC",
+        "calls": 20,
+        "rows": 1280,
+        "host_ms": 4.3
+      },
+      {
+        "K": 2048,
+        "N": 2048,
+        "M_class": "M>1",
+        "kind": "",
+        "calls": 39,
+        "rows": 79872,
+        "host_ms": 619.5
+      },
+      {
+        "K": 2048,
+        "N": 2048,
+        "M_class": "M>1",
+        "kind": "dense",
+        "calls": 3,
+        "rows": 4608,
+        "host_ms": 52.4
+      },
+      {
+        "K": 2048,
+        "N": 2048,
+        "M_class": "M>1",
+        "kind": "FC",
+        "calls": 130,
+        "rows": 85120,
+        "host_ms": 125.8
+      },
+      {
+        "K": 2048,
+        "N": 3072,
+        "M_class": "M>1",
+        "kind": "FC",
+        "calls": 10,
+        "rows": 20480,
+        "host_ms": 53.7
+      },
+      {
+        "K": 2048,
+        "N": 6144,
+        "M_class": "M>1",
+        "kind": "FC",
+        "calls": 90,
+        "rows": 63808,
+        "host_ms": 180.1
+      },
+      {
+        "K": 2048,
+        "N": 65536,
+        "M_class": "M==1",
+        "kind": "FC",
+        "calls": 1,
+        "rows": 1,
+        "host_ms": 1.7
+      }
+    ],
+    "expert_prefill": {
+      "read": 2304,
+      "ready": 2304,
+      "asked": 2304,
+      "wait_ms": 0.0,
+      "register_ms": 2.3,
+      "reader_ms_per_expert": 3.39
+    },
+    "expert_decode": {
+      "misses": 4210,
+      "file_read_ms": 2237.1,
+      "rounds": 2111,
+      "arm_ms_per_round": 1.06,
+      "pair_reads": 1292
+    },
+    "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+    "full_run_peak_kib": 3035268.0
+  },
+  "delta1_minus0": {
+    "main_layer_groups_ms": {
+      "other": 4.854852999999963,
+      "conv_norm": 9.904009000000016,
+      "conv": -33.28224200000011,
+      "qkv": 0.25916700000000503,
+      "attention": 6.574588999999946,
+      "sparse_moe": 62.45140899999956
+    },
+    "decode_dsp_wall_us_token": 668.9999999999969,
+    "decode_miss_wait_us_token": 419.09999999999854,
+    "decode_perkind_us_token": {
+      "RMSNORM": 10,
+      "FC": 85,
+      "CONV1D_GATE": -2,
+      "QK_NORM": 1,
+      "ROPE": 1,
+      "ATTN_M1": 15,
+      "ADD": 1,
+      "ROUTER_TOPK": 3,
+      "MOE": 485,
+      "DENSE_FFN": 36,
+      "LM_HEAD": 27,
+      "moe_net": 67
+    },
+    "arm_staging_copy_ms": -68.19999999999999
+  },
+  "limits": "One PROFILE1 pair only, not normal throughput proof or causality. Perkind us rounded; raw profile conversions differ from absolute wall. LAYERPROF exact M2048/name-set parity excludes startup warmup/load; one interleaved M1 conv_norm record is explicitly accounted.",
+  "copy_and_dispatch_interpretation": {
+    "same_rpc_shape_count_rows": true,
+    "expected_main_conv_layers": 30,
+    "source_expected_fullcopy_reduction_bytes": 1509949440,
+    "source_expected_fullcopy_reduction_MiB": 1440,
+    "observed_rounded_site5861_MiB_reduction": 1440.0,
+    "observed_site5861_copy_count_reduction": 60,
+    "observed_site5861_ms_reduction": 73.5,
+    "logged_byte_precision": "MiB despite MB label; one decimal; difference rounding tolerance0.1MiB. Unrounded bytes are not printed.",
+    "N6144_FC_cohort": "90calls/63808rows = main60calls/61440rows + load30calls/2368rows(512+29*64). Identical both runs.",
+    "residual_site5861": "295.5MiB/60copies is consistent with conv load55.5MiB/30copies plus main QKV240MiB/30destination copies.",
+    "all30_scope": "Strong aggregate/source evidence: exactly60projection full copies and30*48MiB disappear while30conv records and allRPC shapes/counts remain. No per-layer chunk-path counter exists in this profile; do not label this direct per-layer branch tracing.",
+    "new_path_fallback": "A view fallback can add sync copies; no additional >=1ms copy site is printed, and total byte reduction matches expectation within printed rounding. Lower-cost sites can be omitted by existing print threshold."
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "binary_sha256": "874e77d22921aa273d2decd9612d10343649a904b96787d2f5b5ee8e9fd5f5ca",
+  "device": "R3CY70LV96T",
+  "command": [
+    "/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/conv-chunk-isolated-check"
+  ],
+  "returncode": 0,
+  "log_sha256": "2d8b9bf42c7e7fa9f66219ed26cb5e0e19d7cf88d4c1f5a725c1ae8fbf976cf6",
+  "scope": "Actual native NEON helpers with mock projection RPC; not DSP arithmetic or performance evidence."
+}

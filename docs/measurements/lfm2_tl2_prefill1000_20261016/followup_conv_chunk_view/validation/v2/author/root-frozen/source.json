@@ -1,0 +1,14 @@
+{
+  "source_sha256": "846921eaa9b7da92bb20b7ee891e918b317017e471b0048a1e2b3a05b4708de3",
+  "author_patch_sha256": "94ae618667ce4f9d822b68d7d03814d0f1100110f7685be012cad17ea7331342",
+  "applied_patch_sha256": "1ac6823822a127e3a2aceeb3defbf6ea1e3b0d7b70320b36c15aa703b929fbc3",
+  "tests_sha256": {
+    "lfm2_conv_chunk_check.cpp": "1f66b7fd088da2543517bfb696578e2fb7c9bc12221f67be551ed6ccd0944f7a",
+    "run_lfm2_conv_chunk_check.py": "3a82845a2e79dab500fbc00e4c5466b144e3a6217a40a57f767633247248b81d"
+  },
+  "app_binaries_sha256": {
+    "libcausallm.so": "c9efd4428d5644389f0d7b76f5d5c0e6ad274a5309d1475fc6fd9e8da8656ba4",
+    "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76"
+  },
+  "normal_dsp_sha256": "3baddb92d14d1d23fe9b6c6a7cacfe3a6cd4708001c110bb8b15e1b0b7276f7c"
+}

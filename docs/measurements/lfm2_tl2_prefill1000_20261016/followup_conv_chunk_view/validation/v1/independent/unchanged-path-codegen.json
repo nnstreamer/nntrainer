@@ -1,0 +1,32 @@
+{
+  "before": {
+    "callback_code_bytes": 236,
+    "row_setup_instruction_count": 28,
+    "hot_loop_instruction_count": 30,
+    "row_setup_load_instructions": 7,
+    "hot_loop_stack_references": []
+  },
+  "candidate": {
+    "callback_code_bytes": 252,
+    "row_setup_instruction_count": 32,
+    "hot_loop_instruction_count": 30,
+    "row_setup_load_instructions": 9,
+    "hot_loop_stack_references": []
+  },
+  "hot_loop_encoding_differences": [
+    {
+      "before": [
+        112,
+        "f9401002",
+        "ldr\tx2, [x0, #0x20]"
+      ],
+      "candidate": [
+        128,
+        "f9401402",
+        "ldr\tx2, [x0, #0x28]"
+      ]
+    }
+  ],
+  "1024_model_extra_setup_instructions": 122880,
+  "scope": "Actual Android compiler object, baseline/final2392 candidate; instruction count is not cycle/TPS measurement."
+}

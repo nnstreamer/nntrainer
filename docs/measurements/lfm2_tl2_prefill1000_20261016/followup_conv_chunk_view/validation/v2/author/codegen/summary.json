@@ -1,0 +1,133 @@
+{
+  "before": {
+    "app_instruction_count": 1965,
+    "app_code_bytes": 7860,
+    "prologue": [
+      [
+        "fc190fe8",
+        "str\td8, [sp, #-0x70]!"
+      ],
+      [
+        "a9017bfd",
+        "stp\tx29, x30, [sp, #0x10]"
+      ],
+      [
+        "a9026ffc",
+        "stp\tx28, x27, [sp, #0x20]"
+      ],
+      [
+        "a90367fa",
+        "stp\tx26, x25, [sp, #0x30]"
+      ],
+      [
+        "a9045ff8",
+        "stp\tx24, x23, [sp, #0x40]"
+      ],
+      [
+        "a90557f6",
+        "stp\tx22, x21, [sp, #0x50]"
+      ],
+      [
+        "a9064ff4",
+        "stp\tx20, x19, [sp, #0x60]"
+      ],
+      [
+        "910043fd",
+        "add\tx29, sp, #0x10"
+      ],
+      [
+        "d119c3ff",
+        "sub\tsp, sp, #0x670"
+      ]
+    ],
+    "callback_instruction_count": 59,
+    "callback_code_bytes": 236
+  },
+  "v1": {
+    "app_instruction_count": 2513,
+    "app_code_bytes": 10052,
+    "prologue": [
+      [
+        "fc190fe8",
+        "str\td8, [sp, #-0x70]!"
+      ],
+      [
+        "a9017bfd",
+        "stp\tx29, x30, [sp, #0x10]"
+      ],
+      [
+        "a9026ffc",
+        "stp\tx28, x27, [sp, #0x20]"
+      ],
+      [
+        "a90367fa",
+        "stp\tx26, x25, [sp, #0x30]"
+      ],
+      [
+        "a9045ff8",
+        "stp\tx24, x23, [sp, #0x40]"
+      ],
+      [
+        "a90557f6",
+        "stp\tx22, x21, [sp, #0x50]"
+      ],
+      [
+        "a9064ff4",
+        "stp\tx20, x19, [sp, #0x60]"
+      ],
+      [
+        "910043fd",
+        "add\tx29, sp, #0x10"
+      ],
+      [
+        "d11ac3ff",
+        "sub\tsp, sp, #0x6b0"
+      ]
+    ]
+  },
+  "v2": {
+    "app_instruction_count": 2053,
+    "app_code_bytes": 8212,
+    "prologue": [
+      [
+        "fc190fe8",
+        "str\td8, [sp, #-0x70]!"
+      ],
+      [
+        "a9017bfd",
+        "stp\tx29, x30, [sp, #0x10]"
+      ],
+      [
+        "a9026ffc",
+        "stp\tx28, x27, [sp, #0x20]"
+      ],
+      [
+        "a90367fa",
+        "stp\tx26, x25, [sp, #0x30]"
+      ],
+      [
+        "a9045ff8",
+        "stp\tx24, x23, [sp, #0x40]"
+      ],
+      [
+        "a90557f6",
+        "stp\tx22, x21, [sp, #0x50]"
+      ],
+      [
+        "a9064ff4",
+        "stp\tx20, x19, [sp, #0x60]"
+      ],
+      [
+        "910043fd",
+        "add\tx29, sp, #0x10"
+      ],
+      [
+        "d119c3ff",
+        "sub\tsp, sp, #0x670"
+      ]
+    ],
+    "callback_instruction_count": 59,
+    "callback_code_bytes": 236
+  },
+  "full_callback_raw_instruction_bytes_equal": true
+}

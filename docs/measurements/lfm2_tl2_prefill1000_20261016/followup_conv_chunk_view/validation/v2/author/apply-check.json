@@ -1,0 +1,14 @@
+[
+  {
+    "cwd": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/before",
+    "patch": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/production.patch",
+    "exit": 0,
+    "stderr": ""
+  },
+  {
+    "cwd": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/v1",
+    "patch": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/v1-to-v2.patch",
+    "exit": 0,
+    "stderr": ""
+  }
+]

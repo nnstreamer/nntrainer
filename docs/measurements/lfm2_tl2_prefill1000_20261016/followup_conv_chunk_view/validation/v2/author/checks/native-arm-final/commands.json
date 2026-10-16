@@ -1,0 +1,37 @@
+{
+  "source_sha256": "846921eaa9b7da92bb20b7ee891e918b317017e471b0048a1e2b3a05b4708de3",
+  "baseline_sha256": "bc019abdbf0cadb48e0aaa4ecc3898bc9b0a37e11f28c306d9762f766292869a",
+  "core_sha256": "5e75571e5433132d8c9d17691882cbddea73ebbf651e2e8e0b3b6957ac3566df",
+  "extracts": {
+    "candidate_helpers.inc": "a48a06f54810c16929e6138f7c3f035e6e42989024719717d312761ba3cc12d5",
+    "baseline_helpers.inc": "db278b294e0afbc00b4c4a47957ab05bf6858b6aa2d49b47cc8acf36fcb2e882",
+    "staging.inc": "ae89a657bf3972e8e0f55e4479b492d3a939d50dc253b7360320662a12056df9",
+    "views.inc": "a3de08248229143dce1ecf322b0891d65a1eeffd98aea05474d5b44786af2e0e",
+    "app_route.inc": "48780f7651d1f0ccccf683c0f49d8d01d2ba2842fb2cd5a1a2503abea46872e2"
+  },
+  "compile": [
+    "/home/jungone-lee/workspace/nntrainer/android-ndk-r30/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang++",
+    "-march=armv8.2-a+fp16+dotprod+i8mm",
+    "-static-libstdc++",
+    "-std=c++17",
+    "-O2",
+    "-g",
+    "-ffast-math",
+    "-pthread",
+    "-Wall",
+    "-Wextra",
+    "-I/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/nntrainer/tensor/htp_backend",
+    "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/checks/native-arm-final/lfm2_conv_chunk_check.cpp",
+    "-o",
+    "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/checks/native-arm-final/check"
+  ],
+  "run": [
+    "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/checks/native-arm-final/check"
+  ],
+  "arithmetic": "native ARM NEON",
+  "standins": [
+    "Actual app arithmetic; simulated NEON results require separate native ARM validation.",
+    "HTP allocation uses aligned host heap with actual fit/stage/input/alias helpers; fake RPC writes deterministic projection bytes.",
+    "Synchronous ThreadManager substitute can use1or4pthread row lanes; no DSP/FastRPC timing claim."
+  ]
+}

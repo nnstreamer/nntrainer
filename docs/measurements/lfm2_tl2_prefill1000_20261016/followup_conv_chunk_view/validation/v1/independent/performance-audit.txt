@@ -1,0 +1,64 @@
+Conv chunk v1: bounded unchanged-path and profile audit
+
+This supplements the frozen correctness review; it does not claim normal TPS
+preservation or adoption. Production4a6661df/source2392af87 is unchanged.
+Normal parent A/B observations remain the decision evidence. The PROFILE1 pair
+below is for mechanism, not a replacement benchmark.
+
+1024 executable path
+The new2048 chunk helper is not taken, but the shared postgate helper changed.
+Independent Android object comparison finds callback236 ->252B, row setup28
+->32 instructions (+2 scalar loads, subtraction and multiplication). The2048
+channel loop has30 instructions repeated512times in both; all machine words
+are identical except the weights capture offset0x20 ->0x28. No loop stack
+loads/spills were added. Former postgate was inlined into app forwarding;
+the new range function has a192B frame and a separate call. App frame grows
+1760 ->1824B. Therefore1024 is semantically preserved, not object-identical.
+Static extra work cannot by itself establish the cause or magnitude of the
+normal1024 regression; no cycle or latency bound is inferred.
+
+M1 dispatch correction
+Historical independently traced NeuralNetwork's node walk: the app Conv method
+still runs during native graph decode. Its arithmetic is resident in DSP;
+rows==1 makes lfm_prefill false, so neither new chunk nor ranged prefill work
+runs. It is inaccurate to say the whole app Conv function is bypassed. App
+layout/prologue may change, and indirect effects are not excluded by this guard.
+Detailed M1 instruction/layer timing proof is in the author's separate audit.
+
+Actual2048 PROFILE1 pair
+Both rawlogs have complete314 main M2048 layer records with the same names,
+including30conv,38MoE and10attention; load/warmup is excluded from these sums.
+Candidate has one stderr-interleaved M1 conv_norm record at935, explicitly
+recognized with its following continuation. It does not affect main sums.
+Both65-ID files agree exactly. All HTP aggregate RPC shape/call/row counts match.
+K2048/N6144:90calls/63808rows = main60calls/61440rows plus30load calls/2368rows
+(first512,remaining29*64, per shared loader). New API does not reduce FC RPCs.
+
+Staging source5861 removes60full copies:1735.5 ->295.5MiB,120 ->60copies,
+87.3 ->13.8ms. All other printed sites have identical bytes andcopycounts.
+The expected30 *2048 *6144 *4 =1509949440B =1440MiB matches the printed reduction;
+profile labels MB but divides by1024^2. These counters print one decimal,
+so their difference has0.1MiB rounding tolerance; raw exact bytes are not logged.
+Total staged-copy time239.6 ->171.4ms. Small sampled windows are not counted.
+Remaining295.5MiB/60copies is consistent with unchanged conv load55.5MiB/30
+copies plus main QKV240MiB/30destination copies. With30main Conv calls and
+unchanged RPC topology, this is strong aggregate evidence all30use the
+intended copy-saving path. It is not a direct per-layer branch counter.
+No added >=1ms sync-copy site appears; the existing logger hides cheaper sites.
+
+Main layer totals: conv481.666 ->448.384ms (-33.282); conv_norm+9.904ms,
+MoE+62.451ms,attention+6.575ms,qkv+0.259ms,other+4.855ms. Total2414.594
+->2465.356ms. Conv savings coexist with increases elsewhere in this one pair;
+the data do not assign those increases causally to this app change or to noise.
+
+Prefill I/O:2304/2304ready and0.0ms exposed wait on both; registration2.2
+->2.3ms; per-reader service3.13 ->3.39ms. Decode misses4210 androunds2111
+are unchanged. File read2207.6 ->2237.1ms, miss wait31363.7 ->31782.8us/token
+(+419.1), DSP wall56276 ->56945us/token (+669). Native DSP CONV1D_GATE337
+->335us/token; net MoE9436 ->9503(+67),FC6277 ->6362(+85). Thus this pair
+places most of the observed DSP wall increase in miss wait, not the new CPU
+prefill helper. It does not prove the cause of normal decode regression.
+
+Raw hashes, exact parsed fields, codegen details and limits are retained in
+profile2048-readback.json, unchanged-path-codegen.json and the disassembly files.
+No root source/phone changes or new candidate implementation were made.

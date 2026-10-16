@@ -1,0 +1,111 @@
+{
+  "topic": "LFM2048 retained projection chunks; isolated full/range helpers v2",
+  "status": "Author and independent82/mutation/TU checks pass; root integrated build/native82 pass; normal model validation remains root-owned",
+  "source_base": "7a6f088c13f80f2e6975d76c2cc35416babd8abe, app source unchanged by later evidence-only commits",
+  "frozen": {
+    "production.patch": "94ae618667ce4f9d822b68d7d03814d0f1100110f7685be012cad17ea7331342",
+    "v1-to-v2.patch": "40881519824b79fdbc02b8e9f6a1659bc9362595ef94928596a75d6e634c23b3",
+    "tests.patch": "0a1754e918f1d7cb50c94e415dd3337607d4caa79ee289e677801d32507c3708",
+    "tests-v1-to-v2.patch": "f301155437bcb0f579f1758a02291afc1c5ed9561a4c989413ab595cd565cb3d",
+    "candidate/Applications/CausalLM/layers/conv_block_layer.cpp": "846921eaa9b7da92bb20b7ee891e918b317017e471b0048a1e2b3a05b4708de3",
+    "test/htp/host/lfm2_conv_chunk_check.cpp": "1f66b7fd088da2543517bfb696578e2fb7c9bc12221f67be551ed6ccd0944f7a",
+    "test/htp/host/run_lfm2_conv_chunk_check.py": "3a82845a2e79dab500fbc00e4c5466b144e3a6217a40a57f767633247248b81d",
+    "checks/native-arm-final/check": "874e77d22921aa273d2decd9612d10343649a904b96787d2f5b5ee8e9fd5f5ca",
+    "run_mutants.py": "629b5ff512aa8343700049ba293d1279109adfe9b27d5c489f2ed913b8c8b67a"
+  },
+  "production_scope": [
+    "One app C++ file only; exact native affine LFM K=C=N2048,M2048 route remains unchanged fromv1",
+    "Restore original full6argument helper body verbatim; separate ARM-only range helper; feature-checked noinline chunk function",
+    "No core/DSP/IDL API changes, extra activation or weight allocation, staging capacity growth, cache/readers/preload/quant changes"
+  ],
+  "tests": {
+    "actual_helper_asan_ubsan_cases": 82,
+    "mutants": {
+      "passed": 6,
+      "total": 6,
+      "results": "mutants-final/results.json"
+    },
+    "android_arm_full_tu": "android-build-final.log",
+    "android_x86_full_tu": "android-x86-clang.log",
+    "linux_gcc_full_tu": "linux-x86-gcc.log",
+    "format_byte_identical": true,
+    "full_helper_source_byte_identical": true,
+    "native_arm_binary_built": "checks/native-arm-final/check",
+    "native_arm_fixture_device_run": {
+      "root_executed": true,
+      "cases": 82,
+      "result": "PASS",
+      "artifacts": [
+        "root-native-arm.log",
+        "root-native-arm.json"
+      ],
+      "scope": "Actual NEON with fake projection RPC; not DSP/model performance proof"
+    },
+    "independent_review": "Reviewer reports82 actual-helper ASan/UBSan,6 mutants,Android TU PASS; retained-input and final codegen review ongoing separately"
+  },
+  "actual_staging_fixture": {
+    "act_requests_bytes": [
+      15728640,
+      1048576
+    ],
+    "act_capacities_bytes": [
+      15732736,
+      1052672
+    ],
+    "out_requests_bytes": [
+      47185920,
+      3145728
+    ],
+    "out_capacities_bytes": [
+      47190016,
+      3149824
+    ],
+    "baseline_copy_bytes_per_conv": 67108864,
+    "candidate_copy_bytes_per_conv": 16777216,
+    "remaining_sampled_window_bytes_per_conv": 4224,
+    "capacity_same": true,
+    "interpretation": "Logical copy payload; not DDR bandwidth or measured latency"
+  },
+  "codegen": {
+    "summary": "codegen/summary-final.json",
+    "full_row_callback_bytes": 236,
+    "full_row_callback_instruction_count": 59,
+    "full_row_callback_machine_bytes_equal_baseline": true,
+    "full_helper_outlined": false,
+    "app_frame_bytes": {
+      "baseline": 1760,
+      "v1": 1824,
+      "v2": 1760
+    },
+    "known_2048_nested_app_plus_helper_frames_bytes": {
+      "v1": 2016,
+      "v2": 2224
+    },
+    "v2_chunk_helper_frame_bytes": 464,
+    "app_code_bytes": {
+      "baseline": 7860,
+      "v1": 10052,
+      "v2": 8212
+    },
+    "common_prologue_first9_instructions_equal_baseline": true,
+    "whole_app_byte_identity_claim": false
+  },
+  "metadata_limits": {
+    "additional_activation_or_weight_buffers": false,
+    "new_persistent_content_cache": false,
+    "extra_metadata_heap_zero_claim": false,
+    "api_vector_source_abi_estimate_per_rpc": {
+      "argument_vector_payload_bytes": 32,
+      "extra_handles_and_chunks_held_payload_bytes": 32,
+      "extra_geometric_allocations": 11,
+      "cumulative_payload_bytes": 88
+    },
+    "caveat": "Source/ABI estimates exclude allocator overhead and ThreadManager callable metadata; root full-process monitor measures actual peak."
+  },
+  "limitations": [
+    "Real app/staging helpers, SIMDe host arithmetic, fake backend projection RPC and allocator; no DSP/FastRPC numerical or timing proof",
+    "Native ARM binary uses actual NEON with same82case fixture but still fake projection RPC",
+    "Existing single-owner backend and sampled-alias contracts unchanged",
+    "No v2 normal speed/IDs/peak claim before root device tests; v1 mixed normal results are not transferred to v2"
+  ]
+}

@@ -1,0 +1,109 @@
+Independent review: isolated LFM2048 convolution chunk views v2
+
+Conclusion: no correctness or build blocker found in the frozen candidate.
+This review did not modify the root checkout or use the phone. Independent
+results below were executed in this review directory. Parent device model
+results remain separate; the codegen evidence does not establish a TPS gain.
+
+Frozen inputs
+  App source: 846921eaa9b7da92bb20b7ee891e918b317017e471b0048a1e2b3a05b4708de3
+  Production patch: 94ae618667ce4f9d822b68d7d03814d0f1100110f7685be012cad17ea7331342
+  Tests patch: 0a1754e918f1d7cb50c94e415dd3337607d4caa79ee289e677801d32507c3708
+  Baseline app: bc019abdbf0cadb48e0aaa4ecc3898bc9b0a37e11f28c306d9762f766292869a
+  Detailed exports/tests/core/extraction hashes: input-manifest.json and
+  host-san/commands.json. The preliminary draft exports are preserved in
+  frozen/draft and are not the final source's production delta.
+
+What was reviewed
+  Only the app convolution file changes. At the existing affine LFM
+  K=C=N2048 route, the new function is selected for contiguous FP32 M2048
+  on AArch64, both affine projection weights, !compare, backend capability,
+  and !(htp_owns_state_ && from>0). M1024 and native M1 do not execute it.
+  Native M1 still visits the app method; only its arithmetic is DSP-resident.
+  The old six-argument full helper is restored byte for byte. A distinct,
+  ARM-only range helper handles global gated rows with chunk-local projection.
+  The chunk function has a feature-checked noinline attribute. All new ARM
+  functions/calls are excluded on non-ARM. No headers, core/DSP ABI, cache,
+  reader count, persistent content buffers, or staging capacities change.
+
+Lifetimes, numerical order, aliases, and errors
+  The two pre-existing FC shapes remain 1920+128. Each projection host_view
+  is consumed before the next RPC can reuse its staging. Both parallel_for
+  operations finish their workers before the next backend operation. Global
+  gated rows retain the previous two rows across the boundary; only projection
+  indexing subtracts first. The arithmetic sequence remains multiply, FMA,
+  FMA, post-multiply under the original precise FP scope.
+  Before any RPC, all mutable tensor ranges are checked against input,
+  convolution weights, and each other using subtraction-based uintptr_t span
+  comparisons. A missing or live-range-overlapping view uses sync_to_host.
+  Sampled host bytes are not treated as the full projection. Existing actual
+  stageInput/fit/stage/host_view/sync and kept-source machinery is unchanged.
+  The output projection starts after both chunks finish. State writes remain
+  after both chunks succeed, before output projection as in the old route.
+  RPC/sync errors propagate, and a retry passes. There is no new promise that
+  partially written output tensors are rolled back on an exception.
+
+Independent execution
+  1. 82 actual extracted app/staging cases pass ASan+UBSan with leak checking
+     and halt-on-error, no sanitizer suppression. They cover guards, 1/4
+     pthread lanes, old/default/ranged geometry, signed zero/subnormal/Inf/NaN,
+     prior-view poisoning, RPC/sync errors and retry, capacity and exact state.
+     Reproduction uses frozen/test/htp/host/run_lfm2_conv_chunk_check.py with
+     --repo R --source frozen/candidate --baseline frozen/before
+     --simde-include <SIMDe0.8.2> --output <new-output> --sanitize.
+     See host-san/commands.json and host-san.log.
+  2. All six intended mutations are rejected by actual fixture assertions:
+     chunk-local history, wrong projection offset, missing input overlap,
+     sampled-host use, early state update, and missing owns/from guard.
+     Commands, mutated source hashes and failure reasons are in
+     mutants-san/results.json. See frozen/run_mutants.py.
+  3. Twelve independent retained-input extensions pass ASan+UBSan: the full
+     activation resides only in either existing out_pool or x2_pool; all
+     nonsampled host bytes stay poisoned. Cross 1/4 lanes with normal view,
+     null-view materialization, or second-RPC failure followed by retry.
+     The original production extracts are unchanged; only fake-RPC input
+     verification points at immutable input truth. See retained-input/.
+  4. Whole actual Android AArch64 app TU compiles independently with -O3,
+     original fast-math/build flags and -fstack-usage. Whole actual Android
+     x86_64 Clang and Linux x86 GCC object compiles also pass with
+     -Werror=unused-function. These are object builds, not full links/platform
+     test suites. Commands and logs are retained individually.
+  5. Clang-format14 output is byte-identical to the frozen production source.
+  6. Parent separately ran native ARM82 on S26, binary SHA874e77d22921aa273d2decd9612d10343649a904b96787d2f5b5ee8e9fd5f5ca.
+     Copied parent-native-arm.* documents that run; it is not reviewer execution.
+
+Actual unchanged-path codegen and bounded stack
+  Own whole-TU before/candidate objects show the original full-row callback
+  is exactly the same 59 instructions / 236 bytes. The app's first nine
+  instructions, including register saves and SP adjustment, match exactly.
+  App frame is 1760 bytes (baseline1760, v1 was1824). The new noinline chunk
+  frame is464; the range callback frame is0 and the ranged helper inlines in
+  chunk. Known simultaneous app+chunk frames total2224 bytes versus v1's
+  known2016, a208-byte increase on the selected2048 route. This is not a bound
+  on the whole dynamic backend/thread call stack. The common old full helper
+  has no new outlined call. See codegen.json/check_codegen.py and object/.su.
+  The entire app method is NOT byte-identical: baseline1965 instructions,
+  v2 2053; source guards and code layout are different. Callback restoration
+  does not itself prove unchanged timing or explain v1's measured regression.
+
+Memory and measurement limits
+  Exact actual fixture request/capacity pairs are unchanged:
+    act15728640/15732736 +1048576/1052672 bytes;
+    out47185920/47190016 +3145728/3149824 bytes.
+  The logical full-copy payload per convolution falls67108864->16777216B,
+  removing48MiB; two sampled33x64B windows remain,4224B/layer. No new large
+  allocation occurs. Small API argument/internal vectors and ThreadManager
+  callable metadata are still extra work; zero-extra-heap is not claimed.
+  Prior v1 metadata source/ABI estimate remains applicable:11 extra geometric
+  allocations,88 cumulative payload bytes/RPC,64 held, excluding allocator
+  and callable overhead. It is not a measured allocator count or peak.
+
+  Host tests use actual app/staging code and SIMDe arithmetic, deterministic
+  fake projection RPC and aligned host allocations. The native ARM fixture
+  uses real NEON but the same fake RPC. Neither proves DSP/FastRPC execution,
+  coherency, model throughput, or peak. Root alone performs that validation.
+  The earlier v1 profile readback and mixed normal performance findings are
+  frozen separately at ../nntr-lfm2-conv-chunk-view-review-20261016/
+  performance-audit.txt; those numbers are not v2 benchmark results.
+  M1024 does not enter this optimization, so a normal1024 improvement cannot
+  be attributed directly to eliminating the selected2048 projection copies.

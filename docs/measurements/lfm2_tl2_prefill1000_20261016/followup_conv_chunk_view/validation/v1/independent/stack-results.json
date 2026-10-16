@@ -1,0 +1,27 @@
+{
+  "before": {
+    "frames": [
+      {
+        "symbol": "_ZN8causallm14ConvBlockLayer22incremental_forwardingERN9nntrainer15RunLayerContextEjjb",
+        "bytes": 1760,
+        "kind": "static"
+      }
+    ],
+    "object_sha256": "92e205a684c8c6ba09abb391910ba66a0ca86500dddab7d581c77b096b97fddb"
+  },
+  "candidate": {
+    "frames": [
+      {
+        "symbol": "_ZN8causallm14ConvBlockLayer22incremental_forwardingERN9nntrainer15RunLayerContextEjjb",
+        "bytes": 1824,
+        "kind": "static"
+      },
+      {
+        "symbol": "_ZN8causallmL22lfmConvPostGatePrefillEPKfS1_S1_Pfjjjj",
+        "bytes": 192,
+        "kind": "static"
+      }
+    ],
+    "object_sha256": "219f7af489538a6ccd81a5d1d1630f927278a356b859990f17b482cf6ab59b69"
+  }
+}

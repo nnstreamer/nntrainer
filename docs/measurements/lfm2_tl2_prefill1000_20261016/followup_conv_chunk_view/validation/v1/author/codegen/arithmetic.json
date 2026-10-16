@@ -1,0 +1,26 @@
+{
+  "before": [
+    {
+      "function": "0000000000000000 <causallm::lfmConvPostGatePrefill(float const*, float const*, float const*, float*, unsigned int, unsigned int)::$_0::operator()(unsigned long) const>:",
+      "relevant_opcodes": [
+        "fmul",
+        "fmla",
+        "fmla",
+        "fmul",
+        "str"
+      ]
+    }
+  ],
+  "candidate": [
+    {
+      "function": "0000000000000000 <causallm::lfmConvPostGatePrefill(float const*, float const*, float const*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0::operator()(unsigned long) const>:",
+      "relevant_opcodes": [
+        "fmul",
+        "fmla",
+        "fmla",
+        "fmul",
+        "str"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1012 @@
+{
+  "evidence": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016",
+  "files": [
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/README.txt",
+      "target": "validation/v1/author/README.txt"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/android-build.log",
+      "target": "validation/v1/author/android-build.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/android-command.json",
+      "target": "validation/v1/author/android-command.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/android-x86-clang.log",
+      "target": "validation/v1/author/android-x86-clang.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/base.json",
+      "target": "validation/v1/author/base.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/build_codegen.py",
+      "target": "validation/v1/author/build_codegen.py"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/codegen.log",
+      "target": "validation/v1/author/codegen.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/host-san.log",
+      "target": "validation/v1/author/host-san.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/linux-x86-gcc.log",
+      "target": "validation/v1/author/linux-x86-gcc.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/make_candidate.py",
+      "target": "validation/v1/author/make_candidate.py"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/manifest.json",
+      "target": "validation/v1/author/manifest.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants.log",
+      "target": "validation/v1/author/mutants.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/native-arm-build.log",
+      "target": "validation/v1/author/native-arm-build.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/old-route.log",
+      "target": "validation/v1/author/old-route.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/portable-builds.json",
+      "target": "validation/v1/author/portable-builds.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/production.patch",
+      "target": "validation/v1/author/production.patch"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-app-build.log",
+      "target": "validation/v1/author/root-app-build.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-control-rebuild.json",
+      "target": "validation/v1/author/root-control-rebuild.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-control-rebuild.log",
+      "target": "validation/v1/author/root-control-rebuild.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-native-arm.json",
+      "target": "validation/v1/author/root-native-arm.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-native-arm.log",
+      "target": "validation/v1/author/root-native-arm.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-normal-jobs.json",
+      "target": "validation/v1/author/root-normal-jobs.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-normal-runs.log",
+      "target": "validation/v1/author/root-normal-runs.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-normal-summary.json",
+      "target": "validation/v1/author/root-normal-summary.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-profile-jobs.json",
+      "target": "validation/v1/author/root-profile-jobs.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-profile-runs.log",
+      "target": "validation/v1/author/root-profile-runs.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-profile-validation.json",
+      "target": "validation/v1/author/root-profile-validation.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-v1-freeze-validation.json",
+      "target": "validation/v1/author/root-v1-freeze-validation.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/run_mutants.py",
+      "target": "validation/v1/author/run_mutants.py"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/source-hashes.json",
+      "target": "validation/v1/author/source-hashes.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/tests.patch",
+      "target": "validation/v1/author/tests.patch"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/validation.json",
+      "target": "validation/v1/author/validation.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/android-build.log",
+      "target": "validation/v1/independent/android-build.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/android-command.json",
+      "target": "validation/v1/independent/android-command.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/before-android.dis",
+      "target": "validation/v1/independent/before-android.dis"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/before-postgate-callback.dis",
+      "target": "validation/v1/independent/before-postgate-callback.dis"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/before-stack-build.log",
+      "target": "validation/v1/independent/before-stack-build.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/before-stack.su",
+      "target": "validation/v1/independent/before-stack.su"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/candidate-android.dis",
+      "target": "validation/v1/independent/candidate-android.dis"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/candidate-postgate-callback.dis",
+      "target": "validation/v1/independent/candidate-postgate-callback.dis"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/candidate-stack-build.log",
+      "target": "validation/v1/independent/candidate-stack-build.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/candidate-stack.su",
+      "target": "validation/v1/independent/candidate-stack.su"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/host-san.log",
+      "target": "validation/v1/independent/host-san.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/input-manifest.json",
+      "target": "validation/v1/independent/input-manifest.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/mutants.log",
+      "target": "validation/v1/independent/mutants.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/parent-native-arm.json",
+      "target": "validation/v1/independent/parent-native-arm.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/parent-native-arm.log",
+      "target": "validation/v1/independent/parent-native-arm.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/performance-audit.txt",
+      "target": "validation/v1/independent/performance-audit.txt"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/profile2048-readback.json",
+      "target": "validation/v1/independent/profile2048-readback.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/review.txt",
+      "target": "validation/v1/independent/review.txt"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/runner-final-delta.diff",
+      "target": "validation/v1/independent/runner-final-delta.diff"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/stack-commands.json",
+      "target": "validation/v1/independent/stack-commands.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/stack-results.json",
+      "target": "validation/v1/independent/stack-results.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/unchanged-path-codegen.json",
+      "target": "validation/v1/independent/unchanged-path-codegen.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/validation.json",
+      "target": "validation/v1/independent/validation.json"
+    },
+    {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/tl2-gu-direct-epilogue-artifacts.json",
+      "target": "artifacts/tl2-gu-direct-epilogue.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/tl2-gu-direct-epilogue.source.patch",
+      "target": "artifacts/tl2-gu-direct-epilogue.source.patch"
+    },
+    {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/lfm-conv-chunk-view-artifacts.json",
+      "target": "artifacts/lfm-conv-chunk-view.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/lfm-conv-chunk-view.source.patch",
+      "target": "artifacts/lfm-conv-chunk-view.source.patch"
+    },
+    {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/lfm-conv-chunk-isolated-artifacts.json",
+      "target": "artifacts/lfm-conv-chunk-isolated.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/lfm-conv-chunk-isolated.source.patch",
+      "target": "artifacts/lfm-conv-chunk-isolated.source.patch"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/summarize_pair.py",
+      "target": "validation/summarize_pair.py"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/README.txt",
+      "target": "validation/v2/author/README.txt"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/android-build-final.log",
+      "target": "validation/v2/author/android-build-final.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/android-build.log",
+      "target": "validation/v2/author/android-build.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/android-command-final.json",
+      "target": "validation/v2/author/android-command-final.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/android-command.json",
+      "target": "validation/v2/author/android-command.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/android-x86-clang.log",
+      "target": "validation/v2/author/android-x86-clang.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/apply-check.json",
+      "target": "validation/v2/author/apply-check.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/continue-conv-isolated-repeat1024.runner.log",
+      "target": "validation/v2/author/continue-conv-isolated-repeat1024.runner.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/continue-conv-isolated-repeat2048.runner.log",
+      "target": "validation/v2/author/continue-conv-isolated-repeat2048.runner.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/host-san-final.log",
+      "target": "validation/v2/author/host-san-final.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/host-san.log",
+      "target": "validation/v2/author/host-san.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/linux-x86-gcc.log",
+      "target": "validation/v2/author/linux-x86-gcc.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/manifest.json",
+      "target": "validation/v2/author/manifest.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final.log",
+      "target": "validation/v2/author/mutants-final.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants.log",
+      "target": "validation/v2/author/mutants.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/native-build-final.log",
+      "target": "validation/v2/author/native-build-final.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/native-build.log",
+      "target": "validation/v2/author/native-build.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/portable-builds.json",
+      "target": "validation/v2/author/portable-builds.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/production.patch",
+      "target": "validation/v2/author/production.patch"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-app-build.log",
+      "target": "validation/v2/author/root-app-build.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-native-arm.json",
+      "target": "validation/v2/author/root-native-arm.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-native-arm.log",
+      "target": "validation/v2/author/root-native-arm.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-normal-jobs.json",
+      "target": "validation/v2/author/root-normal-jobs.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-normal-runs.log",
+      "target": "validation/v2/author/root-normal-runs.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-normal-summary.json",
+      "target": "validation/v2/author/root-normal-summary.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-profile-jobs.json",
+      "target": "validation/v2/author/root-profile-jobs.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-profile-runs.log",
+      "target": "validation/v2/author/root-profile-runs.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-profile-summary.json",
+      "target": "validation/v2/author/root-profile-summary.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/run_mutants.py",
+      "target": "validation/v2/author/run_mutants.py"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/source-hashes.json",
+      "target": "validation/v2/author/source-hashes.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/tests-v1-to-v2.patch",
+      "target": "validation/v2/author/tests-v1-to-v2.patch"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/tests.patch",
+      "target": "validation/v2/author/tests.patch"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/v1-to-v2.patch",
+      "target": "validation/v2/author/v1-to-v2.patch"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/validation.json",
+      "target": "validation/v2/author/validation.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/android-build.log",
+      "target": "validation/v2/independent/android-build.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/android-command.json",
+      "target": "validation/v2/independent/android-command.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/android-x86-clang-command.json",
+      "target": "validation/v2/independent/android-x86-clang-command.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/android-x86-clang.log",
+      "target": "validation/v2/independent/android-x86-clang.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/before-android.dis",
+      "target": "validation/v2/independent/before-android.dis"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/before-full-callback.dis",
+      "target": "validation/v2/independent/before-full-callback.dis"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/candidate-android.dis",
+      "target": "validation/v2/independent/candidate-android.dis"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/candidate-full-callback.dis",
+      "target": "validation/v2/independent/candidate-full-callback.dis"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/candidate-stack.su",
+      "target": "validation/v2/independent/candidate-stack.su"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/check_codegen.py",
+      "target": "validation/v2/independent/check_codegen.py"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/codegen.json",
+      "target": "validation/v2/independent/codegen.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/full-helper.txt",
+      "target": "validation/v2/independent/full-helper.txt"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/host-san.log",
+      "target": "validation/v2/independent/host-san.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/input-manifest.json",
+      "target": "validation/v2/independent/input-manifest.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/linux-x86-gcc-command.json",
+      "target": "validation/v2/independent/linux-x86-gcc-command.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/linux-x86-gcc.log",
+      "target": "validation/v2/independent/linux-x86-gcc.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san.log",
+      "target": "validation/v2/independent/mutants-san.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/parent-native-arm.json",
+      "target": "validation/v2/independent/parent-native-arm.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/parent-native-arm.log",
+      "target": "validation/v2/independent/parent-native-arm.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/review.txt",
+      "target": "validation/v2/independent/review.txt"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/validation.json",
+      "target": "validation/v2/independent/validation.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/continue-conv-isolated-repeat1024-run1.ids",
+      "target": "validation/repeat/continue-conv-isolated-repeat1024-run1.ids"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/continue-conv-isolated-repeat1024-run2.ids",
+      "target": "validation/repeat/continue-conv-isolated-repeat1024-run2.ids"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/continue-conv-isolated-repeat1024.json",
+      "target": "validation/repeat/continue-conv-isolated-repeat1024.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/continue-conv-isolated-repeat1024.log",
+      "target": "validation/repeat/continue-conv-isolated-repeat1024.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/continue-conv-isolated-repeat2048-run1.ids",
+      "target": "validation/repeat/continue-conv-isolated-repeat2048-run1.ids"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/continue-conv-isolated-repeat2048-run2.ids",
+      "target": "validation/repeat/continue-conv-isolated-repeat2048-run2.ids"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/continue-conv-isolated-repeat2048.json",
+      "target": "validation/repeat/continue-conv-isolated-repeat2048.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/continue-conv-isolated-repeat2048.log",
+      "target": "validation/repeat/continue-conv-isolated-repeat2048.log"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-decision.txt",
+      "target": "README.txt"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-results.json",
+      "target": "results.json"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/run_repeat_handoff.py",
+      "target": "validation/repeat/run_repeat_handoff.py"
+    }
+  ],
+  "trees": [
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/before",
+      "target": "validation/v1/author/before"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/candidate",
+      "target": "validation/v1/author/candidate"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/test",
+      "target": "validation/v1/author/test"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/codegen",
+      "target": "validation/v1/author/codegen"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/checks",
+      "target": "validation/v1/author/checks"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants",
+      "target": "validation/v1/author/mutants"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/regression-audit",
+      "target": "validation/v1/author/regression-audit"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-frozen",
+      "target": "validation/v1/author/root-frozen"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/host-san",
+      "target": "validation/v1/independent/host-san"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/retained-input",
+      "target": "validation/v1/independent/retained-input"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/before",
+      "target": "validation/v2/author/before"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/candidate",
+      "target": "validation/v2/author/candidate"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/test",
+      "target": "validation/v2/author/test"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/codegen",
+      "target": "validation/v2/author/codegen"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/checks/host-san-final",
+      "target": "validation/v2/author/checks/host-san-final"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/checks/native-arm-final",
+      "target": "validation/v2/author/checks/native-arm-final"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final",
+      "target": "validation/v2/author/mutants-final"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-frozen",
+      "target": "validation/v2/author/root-frozen"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-integrated-san",
+      "target": "validation/v2/author/root-integrated-san"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/host-san",
+      "target": "validation/v2/independent/host-san"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/retained-input",
+      "target": "validation/v2/independent/retained-input"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san",
+      "target": "validation/v2/independent/mutants-san"
+    },
+    {
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/frozen",
+      "target": "validation/v2/independent/frozen"
+    }
+  ],
+  "runs": [
+    {
+      "variant": "tl2-gu-direct-epilogue",
+      "tag": "continue-conv-chunk-0-r1",
+      "model": "model",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      }
+    },
+    {
+      "variant": "lfm-conv-chunk-view",
+      "tag": "continue-conv-chunk-1-r1",
+      "model": "model",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      }
+    },
+    {
+      "variant": "lfm-conv-chunk-view",
+      "tag": "continue-conv-chunk-1-r2",
+      "model": "model",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      }
+    },
+    {
+      "variant": "tl2-gu-direct-epilogue",
+      "tag": "continue-conv-chunk-0-r2",
+      "model": "model",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      }
+    },
+    {
+      "variant": "tl2-gu-direct-epilogue",
+      "tag": "continue-conv-chunk-0-r3",
+      "model": "model",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      }
+    },
+    {
+      "variant": "lfm-conv-chunk-view",
+      "tag": "continue-conv-chunk-1-r3",
+      "model": "model",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      }
+    },
+    {
+      "variant": "tl2-gu-direct-epilogue",
+      "tag": "continue-conv-chunk2048-0-r1",
+      "model": "model2048",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      }
+    },
+    {
+      "variant": "lfm-conv-chunk-view",
+      "tag": "continue-conv-chunk2048-1-r1",
+      "model": "model2048",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      }
+    },
+    {
+      "variant": "lfm-conv-chunk-view",
+      "tag": "continue-conv-chunk2048-1-r2",
+      "model": "model2048",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      }
+    },
+    {
+      "variant": "tl2-gu-direct-epilogue",
+      "tag": "continue-conv-chunk2048-0-r2",
+      "model": "model2048",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      }
+    },
+    {
+      "variant": "tl2-gu-direct-epilogue",
+      "tag": "continue-conv-chunk2048-0-r3",
+      "model": "model2048",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      }
+    },
+    {
+      "variant": "lfm-conv-chunk-view",
+      "tag": "continue-conv-chunk2048-1-r3",
+      "model": "model2048",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      }
+    },
+    {
+      "variant": "tl2-gu-direct-epilogue",
+      "tag": "continue-conv-chunk-profile2048-0",
+      "model": "model2048",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      },
+      "profile": true
+    },
+    {
+      "variant": "lfm-conv-chunk-view",
+      "tag": "continue-conv-chunk-profile2048-1",
+      "model": "model2048",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      },
+      "profile": true
+    },
+    {
+      "variant": "tl2-gu-direct-epilogue",
+      "tag": "continue-conv-isolated-0-r1",
+      "model": "model",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      }
+    },
+    {
+      "variant": "lfm-conv-chunk-isolated",
+      "tag": "continue-conv-isolated-1-r1",
+      "model": "model",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      }
+    },
+    {
+      "variant": "lfm-conv-chunk-isolated",
+      "tag": "continue-conv-isolated-1-r2",
+      "model": "model",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      }
+    },
+    {
+      "variant": "tl2-gu-direct-epilogue",
+      "tag": "continue-conv-isolated-0-r2",
+      "model": "model",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      }
+    },
+    {
+      "variant": "tl2-gu-direct-epilogue",
+      "tag": "continue-conv-isolated-0-r3",
+      "model": "model",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      }
+    },
+    {
+      "variant": "lfm-conv-chunk-isolated",
+      "tag": "continue-conv-isolated-1-r3",
+      "model": "model",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      }
+    },
+    {
+      "variant": "tl2-gu-direct-epilogue",
+      "tag": "continue-conv-isolated2048-0-r1",
+      "model": "model2048",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      }
+    },
+    {
+      "variant": "lfm-conv-chunk-isolated",
+      "tag": "continue-conv-isolated2048-1-r1",
+      "model": "model2048",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      }
+    },
+    {
+      "variant": "lfm-conv-chunk-isolated",
+      "tag": "continue-conv-isolated2048-1-r2",
+      "model": "model2048",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      }
+    },
+    {
+      "variant": "tl2-gu-direct-epilogue",
+      "tag": "continue-conv-isolated2048-0-r2",
+      "model": "model2048",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      }
+    },
+    {
+      "variant": "tl2-gu-direct-epilogue",
+      "tag": "continue-conv-isolated2048-0-r3",
+      "model": "model2048",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      }
+    },
+    {
+      "variant": "lfm-conv-chunk-isolated",
+      "tag": "continue-conv-isolated2048-1-r3",
+      "model": "model2048",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      }
+    },
+    {
+      "variant": "lfm-conv-chunk-isolated",
+      "tag": "continue-conv-isolated-profile2048",
+      "model": "model2048",
+      "env": {
+        "NNTR_HTP_PREDICT": 2,
+        "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+        "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+        "NNTR_LFM2_PREFILL_EARLY": 1,
+        "NNTR_LFM2_DECODE_PAIR_READ": 1,
+        "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+        "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+      },
+      "profile": true
+    }
+  ],
+  "environment": {
+    "NNTR_NUM_THREADS": "8",
+    "NNTR_HTP_PAGE_CACHE": "0",
+    "NNTR_LOAD_PREFETCH": "0",
+    "NNTR_MOE_CACHE_GROW": "0",
+    "NNTR_MOE_PRELOAD_EXPERTS": "128",
+    "NNTR_HTP_PREDICT": "2",
+    "NNTR_MOE_PREFETCH_RESIDUAL": "0.5",
+    "NNTR_HTP_TL2_STABLE_SLOTS": "1",
+    "NNTR_LFM2_PREFILL_EARLY": "1",
+    "NNTR_LFM2_DECODE_PAIR_READ": "1",
+    "NNTR_LFM2_DECODE_DEMAND_HANDOFF": "1",
+    "NNTR_LFM2_ROUTER_INPUT_HANDOFF": "1"
+  },
+  "ids_sha256": {
+    "1024": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+    "2048": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33"
+  }
+}

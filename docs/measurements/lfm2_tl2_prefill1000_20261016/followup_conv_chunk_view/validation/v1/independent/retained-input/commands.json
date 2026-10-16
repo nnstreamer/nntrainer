@@ -1,0 +1,23 @@
+{
+  "compile": [
+    "g++",
+    "-fsanitize=address,undefined",
+    "-fno-omit-frame-pointer",
+    "-mfma",
+    "-std=c++17",
+    "-O2",
+    "-g",
+    "-ffast-math",
+    "-pthread",
+    "-Wall",
+    "-Wextra",
+    "-I/tmp/nntr-lfm2-conv-chunk-view-20261016/deps/simde-0.8.2",
+    "-I/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/nntrainer/tensor/htp_backend",
+    "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/retained-input/lfm2_conv_chunk_check.cpp",
+    "-o",
+    "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/retained-input/check"
+  ],
+  "run": [
+    "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/retained-input/check"
+  ]
+}

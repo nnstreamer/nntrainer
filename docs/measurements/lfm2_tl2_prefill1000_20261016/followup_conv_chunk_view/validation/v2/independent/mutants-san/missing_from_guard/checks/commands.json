@@ -1,0 +1,39 @@
+{
+  "source_sha256": "99763a48595b99e8c472f3f33dd1de485cc1697f3f14a636a65d7a9a34893bc2",
+  "baseline_sha256": "bc019abdbf0cadb48e0aaa4ecc3898bc9b0a37e11f28c306d9762f766292869a",
+  "core_sha256": "5e75571e5433132d8c9d17691882cbddea73ebbf651e2e8e0b3b6957ac3566df",
+  "extracts": {
+    "candidate_helpers.inc": "a48a06f54810c16929e6138f7c3f035e6e42989024719717d312761ba3cc12d5",
+    "baseline_helpers.inc": "db278b294e0afbc00b4c4a47957ab05bf6858b6aa2d49b47cc8acf36fcb2e882",
+    "staging.inc": "ae89a657bf3972e8e0f55e4479b492d3a939d50dc253b7360320662a12056df9",
+    "views.inc": "a3de08248229143dce1ecf322b0891d65a1eeffd98aea05474d5b44786af2e0e",
+    "app_route.inc": "267f87789181a3a8517df8e9c8870081caf9b521577f6f273d104f4e76f80bf4"
+  },
+  "compile": [
+    "g++",
+    "-fsanitize=address,undefined",
+    "-fno-omit-frame-pointer",
+    "-mfma",
+    "-I/tmp/nntr-lfm2-conv-chunk-view-20261016/deps/simde-0.8.2",
+    "-std=c++17",
+    "-O2",
+    "-g",
+    "-ffast-math",
+    "-pthread",
+    "-Wall",
+    "-Wextra",
+    "-I/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/nntrainer/tensor/htp_backend",
+    "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/missing_from_guard/checks/lfm2_conv_chunk_check.cpp",
+    "-o",
+    "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/missing_from_guard/checks/check"
+  ],
+  "run": [
+    "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/missing_from_guard/checks/check"
+  ],
+  "arithmetic": "SIMDe0.8.2 on x86 FMA",
+  "standins": [
+    "Actual app arithmetic; simulated NEON results require separate native ARM validation.",
+    "HTP allocation uses aligned host heap with actual fit/stage/input/alias helpers; fake RPC writes deterministic projection bytes.",
+    "Synchronous ThreadManager substitute can use1or4pthread row lanes; no DSP/FastRPC timing claim."
+  ]
+}

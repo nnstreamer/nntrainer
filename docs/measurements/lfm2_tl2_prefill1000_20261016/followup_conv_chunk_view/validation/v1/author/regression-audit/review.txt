@@ -1,0 +1,58 @@
+Conv chunk candidate unchanged-path regression audit (read-only)
+
+Frozen production/source remain 4a6661df / 2392af87. This audit made no source
+edits, compiler rebuilds, device calls, or adoption decision. Existing before/
+candidate objects were disassembled with relocation symbols for inspection.
+
+M1 execution boundary
+CausalLM::incrementalInference -> NeuralNetwork::incremental_inference uses
+Context runDecode / the incremental_forwarding layer walk. Conv still enters
+its app method; DSP residency skips CPU projection/convolution arithmetic,
+not the whole app method. References: causal_lm.cpp 697 / 2285;
+neuralnet.cpp 805-918,2817-2843; conv_block_layer.cpp 409,414,448,502;
+htp_compute_ops.cpp 3224,3464. M1 makes lfm_prefill false before the new guard,
+so neither new chunk helper nor the ranged postgate helper is called.
+
+The app prologue retains the same seven save instructions. The local SP
+subtraction changes0x670->0x6b0 (frame1760->1824B); this is one immediate change,
+not extra64B allocation, zeroing or a new decode memory copy. Common app code
+grows1965->2513 instructions (+2192B), and register allocation/stack offsets
+change. Indirect layout/cache effects cannot be ruled out from static code.
+
+Existing profile1 pair,2048
+Each has1920 decode Conv layer records (30 layers *64 tokens).
+Total app Conv time:7.725636->7.873543ms (+0.147907ms /64=+2.311047us/token).
+First30 state-seeding calls:5.946561->5.999588ms.
+Remaining1890 calls:1.779075->1.873955ms.
+Median call:0.886->0.989us.
+Token-driver DSP wall:56275.6->56945.4us/token (+669.8).
+Between-token ARM work:362.0->373.7us/token (+11.7).
+These instrumented observations do not support the app frame change as the
+main slowdown in this pair. They cannot establish the cause of the separate
+normal-run2048 decode regression. No comparison of trace TPS with normal TPS
+is made. Full source log hashes and aggregates: m1-profile.json.
+
+1024 full helper
+Source arithmetic is unchanged but its compiled form is not identical. The
+old helper was inlined into the app. The new shared full/range helper is an
+outlined192B frame. The independently inspected row callback grows236->252B:
+row setup28->32 instructions (two scalar loads,sub,mul), then the same30-
+instruction hot loop repeated512 times per2048-channel row. The only hot-loop
+encoding difference is a closure field offset0x20->0x28; no loop stack spills.
+This is122880 additional scalar setup instructions over30*1024 rows, not a
+cycle or latency measurement. The postgate callback allocation changes48->56B
+in the actual NDK object. No quantitative cause of the normal0.81% PF decrease
+is proven. Independent detail/hash recorded in validation.json.
+
+Bounded isolation if parent elects a new candidate
+Restore the baseline six-argument full helper verbatim, including its lambda;
+put the current range-aware implementation in a separate eight-argument helper
+used only by2048 chunk path. Keep identical precise-FP pragmas. This avoids
+routing1024 through a generalized helper. Optionally prevent the large2048-
+only chunk helper from inlining with a compiler-guarded noinline attribute,
+keeping its vector metadata and loop out of the common app body. New call is
+once per2048 conv layer,not per row. No public API,tensor allocation,staging
+capacity,cache or reader changes are needed. Full app byte identity/frame and
+normal performance would still require a fresh codegen/tests/device check;
+restoring a source helper alone does not guarantee whole-function layout.
+No implementation of this design was started here.

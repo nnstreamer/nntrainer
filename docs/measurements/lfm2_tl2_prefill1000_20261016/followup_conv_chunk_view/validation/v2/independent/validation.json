@@ -1,0 +1,70 @@
+{
+  "status": "PASS; no correctness/build blocker found",
+  "production": {
+    "source": {
+      "candidate/Applications/CausalLM/layers/conv_block_layer.cpp": "846921eaa9b7da92bb20b7ee891e918b317017e471b0048a1e2b3a05b4708de3",
+      "before/Applications/CausalLM/layers/conv_block_layer.cpp": "bc019abdbf0cadb48e0aaa4ecc3898bc9b0a37e11f28c306d9762f766292869a"
+    },
+    "exports": {
+      "production.patch": "94ae618667ce4f9d822b68d7d03814d0f1100110f7685be012cad17ea7331342",
+      "v1-to-v2.patch": "40881519824b79fdbc02b8e9f6a1659bc9362595ef94928596a75d6e634c23b3",
+      "tests.patch": "0a1754e918f1d7cb50c94e415dd3337607d4caa79ee289e677801d32507c3708",
+      "tests-v1-to-v2.patch": "f301155437bcb0f579f1758a02291afc1c5ed9561a4c989413ab595cd565cb3d"
+    },
+    "test": {
+      "test/htp/host/lfm2_conv_chunk_check.cpp": "1f66b7fd088da2543517bfb696578e2fb7c9bc12221f67be551ed6ccd0944f7a",
+      "test/htp/host/run_lfm2_conv_chunk_check.py": "3a82845a2e79dab500fbc00e4c5466b144e3a6217a40a57f767633247248b81d"
+    },
+    "mutants": "629b5ff512aa8343700049ba293d1279109adfe9b27d5c489f2ed913b8c8b67a"
+  },
+  "independently_executed": {
+    "actual_app_staging_asan_ubsan": 82,
+    "retained_input_extension_asan_ubsan": 12,
+    "mutants_killed": 6,
+    "sanitizer_suppressions": false,
+    "actual_android_aarch64_tu": "PASS object build",
+    "actual_android_x86_64_tu": "PASS object build with Werror=unused-function",
+    "actual_linux_x86_gcc_tu": "PASS object build with Werror=unused-function",
+    "clang_format14_exact": true,
+    "full_helper_source_exact": true,
+    "full_callback_machine_bytes_exact": true,
+    "common_app_first9_instructions_exact": true
+  },
+  "codegen": {
+    "full_callback_bytes": 236,
+    "baseline_app_frame": 1760,
+    "v1_app_frame": 1824,
+    "v2_app_frame": 1760,
+    "v2_chunk_frame": 464,
+    "known_nested_v1": 2016,
+    "known_nested_v2": 2224,
+    "whole_app_byte_identical": false
+  },
+  "parent_native_arm_fixture": {
+    "cases": 82,
+    "executed_by": "root",
+    "passed": true,
+    "binary_sha256": "874e77d22921aa273d2decd9612d10343649a904b96787d2f5b5ee8e9fd5f5ca",
+    "real_dsp_rpc": false
+  },
+  "scope_limits": [
+    "No reviewer root edits or device use",
+    "Mock projection RPC, actual extracted app/staging, SIMDe host arithmetic",
+    "No TPS/peak or causality claim from this review",
+    "Native M1 app still executes; new helper does not",
+    "Small metadata allocations exist; no new content cache/staging capacity",
+    "Known nested stack is not a whole-callstack bound"
+  ],
+  "artifacts": {
+    "review.txt": "401dcc1419ba7f1d05e1e9a0ce281053156e1d1cf5c19fda38da92b221982b52",
+    "host-san.log": "2d8b9bf42c7e7fa9f66219ed26cb5e0e19d7cf88d4c1f5a725c1ae8fbf976cf6",
+    "mutants-san.log": "4d2f5e422ab5b0d173b215720a147a1236911306b7656e1dc0a80db68af203d1",
+    "mutants-san/results.json": "b366c3e6583a14778db888c2fff78775bf1304f594ba106ca683e44f04b79f91",
+    "retained-input/run.log": "59c23e3801dc3d10d290c93d47357c9ab12522b81868e0cffd22aa6e520d5823",
+    "retained-input/lfm2_conv_chunk_check.cpp": "1c6bfe2164090b0ee6d67ec18a1e040441bdb25731b1983e794d79d061ea8153",
+    "codegen.json": "d988afef9b0376b860dbdebf30a43d77e578cc05a3348cc3be9821eb18c8142c",
+    "candidate-stack.o": "974305073a12b73d3363f75da3064093ce3299b71e5ec573e23e1e64e37b7c5b",
+    "android-x86-clang.o": "82c8bf3ced8df53f9719ef252b02cd92231864be8dc4b9f0a5cabbf623a66e88",
+    "linux-x86-gcc.o": "e052658f0194600829b37c87422408a5a5f5b7a6b5057dc7d0fd2d02f3ac9dbf"
+  }
+}

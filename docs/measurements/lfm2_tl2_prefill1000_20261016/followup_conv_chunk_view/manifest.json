@@ -1,0 +1,1978 @@
+{
+  "validated_runs": [
+    "continue-conv-chunk-0-r1",
+    "continue-conv-chunk-1-r1",
+    "continue-conv-chunk-1-r2",
+    "continue-conv-chunk-0-r2",
+    "continue-conv-chunk-0-r3",
+    "continue-conv-chunk-1-r3",
+    "continue-conv-chunk2048-0-r1",
+    "continue-conv-chunk2048-1-r1",
+    "continue-conv-chunk2048-1-r2",
+    "continue-conv-chunk2048-0-r2",
+    "continue-conv-chunk2048-0-r3",
+    "continue-conv-chunk2048-1-r3",
+    "continue-conv-chunk-profile2048-0",
+    "continue-conv-chunk-profile2048-1",
+    "continue-conv-isolated-0-r1",
+    "continue-conv-isolated-1-r1",
+    "continue-conv-isolated-1-r2",
+    "continue-conv-isolated-0-r2",
+    "continue-conv-isolated-0-r3",
+    "continue-conv-isolated-1-r3",
+    "continue-conv-isolated2048-0-r1",
+    "continue-conv-isolated2048-1-r1",
+    "continue-conv-isolated2048-1-r2",
+    "continue-conv-isolated2048-0-r2",
+    "continue-conv-isolated2048-0-r3",
+    "continue-conv-isolated2048-1-r3",
+    "continue-conv-isolated-profile2048"
+  ],
+  "files": {
+    "README.txt": {
+      "sha256": "4745649a4c74c479fd15522a03a9c67e4183e1f61e506e81cdf771b81d5039a8",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-decision.txt",
+      "uncompressed_sha256": "4745649a4c74c479fd15522a03a9c67e4183e1f61e506e81cdf771b81d5039a8"
+    },
+    "artifacts/lfm-conv-chunk-isolated.json": {
+      "sha256": "ddaab76e8e750310fd03cd3d13c1a92e21207d8f3b4da08464274082785fc9df",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/lfm-conv-chunk-isolated-artifacts.json",
+      "uncompressed_sha256": "ddaab76e8e750310fd03cd3d13c1a92e21207d8f3b4da08464274082785fc9df"
+    },
+    "artifacts/lfm-conv-chunk-isolated.source.patch.gz": {
+      "sha256": "a221b592df431e8d82cc48ce4bd3a2c25abc72f60e0c00ce74f3169028da6834",
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/lfm-conv-chunk-isolated.source.patch",
+      "uncompressed_sha256": "1ac6823822a127e3a2aceeb3defbf6ea1e3b0d7b70320b36c15aa703b929fbc3"
+    },
+    "artifacts/lfm-conv-chunk-view.json": {
+      "sha256": "d4837ab7d9d23f93d4916476e57fbd94498e5668b33db8ec9d35aa73f73a5afa",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/lfm-conv-chunk-view-artifacts.json",
+      "uncompressed_sha256": "d4837ab7d9d23f93d4916476e57fbd94498e5668b33db8ec9d35aa73f73a5afa"
+    },
+    "artifacts/lfm-conv-chunk-view.source.patch.gz": {
+      "sha256": "5cd89de55862f708919ccab36d7452e6b5f44851b5c8a996e22f8c7d1ddebd15",
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/lfm-conv-chunk-view.source.patch",
+      "uncompressed_sha256": "033255559266ccd0ce6cd9fe5f94f3b3d9de956ac69d22d1172f08b75e5bed61"
+    },
+    "artifacts/tl2-gu-direct-epilogue.json": {
+      "sha256": "0f53cafd7977ce9b05e38839ca67b5c37ef7bdb8d889d44ba19b2affcc238e15",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/tl2-gu-direct-epilogue-artifacts.json",
+      "uncompressed_sha256": "0f53cafd7977ce9b05e38839ca67b5c37ef7bdb8d889d44ba19b2affcc238e15"
+    },
+    "artifacts/tl2-gu-direct-epilogue.source.patch.gz": {
+      "sha256": "ca038b75adfc2a4daebeebe29ef0b84904ab86b49c6ec76225e4cd1724d5ba3e",
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/tl2-gu-direct-epilogue.source.patch",
+      "uncompressed_sha256": "6fad1e1493b7155e6b04555c39ed82fad495517888871fbca1865504de7bcf3b"
+    },
+    "raw/continue-conv-chunk-0-r1.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-0-r1.ids",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e"
+    },
+    "raw/continue-conv-chunk-0-r1.json": {
+      "sha256": "e83002aa07582bc3c36a7f8597b8e4c7494f357b76104b42d4cd12087562c7d6",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-0-r1.json",
+      "uncompressed_sha256": "e83002aa07582bc3c36a7f8597b8e4c7494f357b76104b42d4cd12087562c7d6"
+    },
+    "raw/continue-conv-chunk-0-r1.log.gz": {
+      "sha256": "2f12ab23d1cae477326a6cb0b9a4108b4ba5ff60fbc84cc3c731d7c2a54c27d3",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-0-r1.log",
+      "uncompressed_sha256": "94ec58d42cc48adee065d0f40839efc41ec24fce40ee3a9ae53099a7b193dea3"
+    },
+    "raw/continue-conv-chunk-0-r1.memory.json.gz": {
+      "sha256": "2b53a4b24ef05844b4bc74f2e1b660a9bd0563698c15053dff3c4d29b1dede3a",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-0-r1.memory.json",
+      "uncompressed_sha256": "47db2c01972c9273539593a601f04e0520f5c83c80007bbb753c59d20986cf0c"
+    },
+    "raw/continue-conv-chunk-0-r2.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-0-r2.ids",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e"
+    },
+    "raw/continue-conv-chunk-0-r2.json": {
+      "sha256": "a983598c07db0034470568722387cba44ae5b0ad001e5a80c0504d1ff6863108",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-0-r2.json",
+      "uncompressed_sha256": "a983598c07db0034470568722387cba44ae5b0ad001e5a80c0504d1ff6863108"
+    },
+    "raw/continue-conv-chunk-0-r2.log.gz": {
+      "sha256": "04f2c98eebf0d9849892248d8e93b490576d29ce9c94ee6a6e6e009430deb146",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-0-r2.log",
+      "uncompressed_sha256": "49438e54c64bf6cb20122c8023ad5cd01ce8ac74fedda953939a0caa6603d026"
+    },
+    "raw/continue-conv-chunk-0-r2.memory.json.gz": {
+      "sha256": "ebfb59644505befa12d63f3acbb246a6e47e87933c01ff928b60360bc213e5ba",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-0-r2.memory.json",
+      "uncompressed_sha256": "7fa277949a2c7d5c6349b2594f6f7a743e64494248cb86bd0751959cde23d190"
+    },
+    "raw/continue-conv-chunk-0-r3.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-0-r3.ids",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e"
+    },
+    "raw/continue-conv-chunk-0-r3.json": {
+      "sha256": "1d061b8b426c1455ffa804ee0805c564818819fb636c07a71d92b3382ca58c82",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-0-r3.json",
+      "uncompressed_sha256": "1d061b8b426c1455ffa804ee0805c564818819fb636c07a71d92b3382ca58c82"
+    },
+    "raw/continue-conv-chunk-0-r3.log.gz": {
+      "sha256": "6afe0383c371c0ad969efe6d1048284905b155d6eb8d3e0b211a46a66cb8b594",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-0-r3.log",
+      "uncompressed_sha256": "b606aec285d7a0e682594bb06ba2b200ad4a49a5029d132c130ac0ff18288ef8"
+    },
+    "raw/continue-conv-chunk-0-r3.memory.json.gz": {
+      "sha256": "0860807ea7257b77448b9c4bc21084abdbe9636f497e509c3b4537be9412b041",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-0-r3.memory.json",
+      "uncompressed_sha256": "e7a97cb3c7485d5b22cbed3b07072f3403c92eaf4fdaad5f3aa326da115087ac"
+    },
+    "raw/continue-conv-chunk-1-r1.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-1-r1.ids",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e"
+    },
+    "raw/continue-conv-chunk-1-r1.json": {
+      "sha256": "3548c59729c32ad8486650770669fd635b32c365d8fc2dfe835d6986412c9473",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-1-r1.json",
+      "uncompressed_sha256": "3548c59729c32ad8486650770669fd635b32c365d8fc2dfe835d6986412c9473"
+    },
+    "raw/continue-conv-chunk-1-r1.log.gz": {
+      "sha256": "554136c5909070e136fecc8056ac6a4bc3828035b5e07fb62aaa19dca707f8d6",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-1-r1.log",
+      "uncompressed_sha256": "8f419116b544d23e0cfe5b0b43203b7ad9632161fb9896e22a8d06e17563a948"
+    },
+    "raw/continue-conv-chunk-1-r1.memory.json.gz": {
+      "sha256": "be235100a6bf02d039cc67bb54fbce1f7397a1ab95b565aace9589c493f93300",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-1-r1.memory.json",
+      "uncompressed_sha256": "21a7e49d5efd33b21b9fa08f20db82a9d7267b978a93998f89adcc508884cfe7"
+    },
+    "raw/continue-conv-chunk-1-r2.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-1-r2.ids",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e"
+    },
+    "raw/continue-conv-chunk-1-r2.json": {
+      "sha256": "e7509eb5b30c7c257a6e9d0319c123e30fc9514bcd277418daa7cd15fa4fbaed",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-1-r2.json",
+      "uncompressed_sha256": "e7509eb5b30c7c257a6e9d0319c123e30fc9514bcd277418daa7cd15fa4fbaed"
+    },
+    "raw/continue-conv-chunk-1-r2.log.gz": {
+      "sha256": "c6857dd75076fcec27b9abb1d5c05382e389f3c35b133002a0048694f0214461",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-1-r2.log",
+      "uncompressed_sha256": "440463acc0b2e66faf03702f42a24e20abcae9214ebc5f023ee909aad3321be7"
+    },
+    "raw/continue-conv-chunk-1-r2.memory.json.gz": {
+      "sha256": "9cbf38494a286f25b0d444c8cbb6a81328b7f54973f819c1f0baea81bf9e24eb",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-1-r2.memory.json",
+      "uncompressed_sha256": "ee12351ebc9315e4f0365224ff77a4f704a1134f99da2ec737a7ff8459d324b5"
+    },
+    "raw/continue-conv-chunk-1-r3.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-1-r3.ids",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e"
+    },
+    "raw/continue-conv-chunk-1-r3.json": {
+      "sha256": "338679ddc21886da90196d347b30b0fed31f60fda8e76122cf6e1c21263b8a96",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-1-r3.json",
+      "uncompressed_sha256": "338679ddc21886da90196d347b30b0fed31f60fda8e76122cf6e1c21263b8a96"
+    },
+    "raw/continue-conv-chunk-1-r3.log.gz": {
+      "sha256": "da3e70dd505f61781c97b1ae600b1f741ea05a270bf518f43b27987efe245880",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-1-r3.log",
+      "uncompressed_sha256": "de487e20172575442a85b0048433ab4218a2d4b1a5cb8656f443f0190749c5de"
+    },
+    "raw/continue-conv-chunk-1-r3.memory.json.gz": {
+      "sha256": "3456dc7c0400f6951199e491bce3a0c0196b247b0487bcb6b21daf63e327fa41",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-1-r3.memory.json",
+      "uncompressed_sha256": "07402425bdb466f26189a9aa2d524db5e0b494138af808c3d5fa5de8390c4b14"
+    },
+    "raw/continue-conv-chunk-profile2048-0.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-profile2048-0.ids",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33"
+    },
+    "raw/continue-conv-chunk-profile2048-0.json": {
+      "sha256": "a0b91aee5208f38b9f4d57255e374a01f72afbf0703404fc5d0262eb70a4e239",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-profile2048-0.json",
+      "uncompressed_sha256": "a0b91aee5208f38b9f4d57255e374a01f72afbf0703404fc5d0262eb70a4e239"
+    },
+    "raw/continue-conv-chunk-profile2048-0.log.gz": {
+      "sha256": "e13b506c727e015b22a213248b63834514b7c4905c599615c624bf4582ac7037",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-profile2048-0.log",
+      "uncompressed_sha256": "6402ddca31ae482ca81e73e09122473970133fc2ad23d4cc6595edeb4b8456d5"
+    },
+    "raw/continue-conv-chunk-profile2048-0.logcat.txt.gz": {
+      "sha256": "7d2e409be2a76cfaecf5da47ec4507b4cc069a6dfd98690730a956176d0025b6",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-profile2048-0.logcat.txt",
+      "uncompressed_sha256": "766851538f1a3c94f02c0c370f42cb70eff955ced579adafeb629c106dcdec8b"
+    },
+    "raw/continue-conv-chunk-profile2048-0.memory.json.gz": {
+      "sha256": "ea7e80c7d0af663cab4d1b8c5fa96ca6494f66e781ce7293569e302325af8d9b",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-profile2048-0.memory.json",
+      "uncompressed_sha256": "ac5b1f1770eef660b43a6c747f713f12e253424b8e4638592bbe9f6ff46902e8"
+    },
+    "raw/continue-conv-chunk-profile2048-1.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-profile2048-1.ids",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33"
+    },
+    "raw/continue-conv-chunk-profile2048-1.json": {
+      "sha256": "3c6c736becbc1c3f2cdc4fedf8aee4d0ff47acd1a2a535a6f7c823eae64a712d",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-profile2048-1.json",
+      "uncompressed_sha256": "3c6c736becbc1c3f2cdc4fedf8aee4d0ff47acd1a2a535a6f7c823eae64a712d"
+    },
+    "raw/continue-conv-chunk-profile2048-1.log.gz": {
+      "sha256": "9ecd37a925a55c9b7ae35912b406c2e27da5441b3a20a311665c4f49d9b5df1d",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-profile2048-1.log",
+      "uncompressed_sha256": "f2fc236a4429634c17c6f04cdc3d7b7ec0ef6c957c8b34788413a634d7951945"
+    },
+    "raw/continue-conv-chunk-profile2048-1.logcat.txt.gz": {
+      "sha256": "139d38da4432904754d49f29f1520b12a04f38e914290c6944be3deab7cb577e",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-profile2048-1.logcat.txt",
+      "uncompressed_sha256": "2b74f1a8cdfa10c4c5878576ed2a3b72a44c0a975ed6b6a67e8101b01961ea20"
+    },
+    "raw/continue-conv-chunk-profile2048-1.memory.json.gz": {
+      "sha256": "0d09598a4dbfb84e53de26ff1f902426f177a760a4b0d47a6df1f30afa2028f4",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk-profile2048-1.memory.json",
+      "uncompressed_sha256": "14185dd02ce46b7f156aeaa2142aaeae10c3ed02e6863a4e336fdbe1ddab2f8e"
+    },
+    "raw/continue-conv-chunk2048-0-r1.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk2048-0-r1.ids",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33"
+    },
+    "raw/continue-conv-chunk2048-0-r1.json": {
+      "sha256": "8b2550577e509efaf1f75bd3e031486d206fb20d696717f7674c365ab1aec244",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk2048-0-r1.json",
+      "uncompressed_sha256": "8b2550577e509efaf1f75bd3e031486d206fb20d696717f7674c365ab1aec244"
+    },
+    "raw/continue-conv-chunk2048-0-r1.log.gz": {
+      "sha256": "64cdef1b4c9426079e32259837de8766a141866e44f11e4368929a80bc386111",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk2048-0-r1.log",
+      "uncompressed_sha256": "763f15508d525516ca7ecf49403e6d4b961832aa350b83de15bc59ba05972566"
+    },
+    "raw/continue-conv-chunk2048-0-r1.memory.json.gz": {
+      "sha256": "5001ffa25ae05d94ae73543522322b1a72d81a3fb46938e49dd1878ee551ccbd",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk2048-0-r1.memory.json",
+      "uncompressed_sha256": "ed54292b0c42608663429d29b90e8b14c05f1b2fb2fddae0c23c171a8318f69c"
+    },
+    "raw/continue-conv-chunk2048-0-r2.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk2048-0-r2.ids",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33"
+    },
+    "raw/continue-conv-chunk2048-0-r2.json": {
+      "sha256": "9058f0e542ce388d885d185d103b729f86737bd2f1453b991154b9669480fd5f",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk2048-0-r2.json",
+      "uncompressed_sha256": "9058f0e542ce388d885d185d103b729f86737bd2f1453b991154b9669480fd5f"
+    },
+    "raw/continue-conv-chunk2048-0-r2.log.gz": {
+      "sha256": "39409120abd3e5025fdd90a1e0d0cf99a2edbc3ca64409135cc18b3deef5316d",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk2048-0-r2.log",
+      "uncompressed_sha256": "d65457b5e850fd954f55dea8d876e3c7eab560b19823a044ffe8b67391e3bca3"
+    },
+    "raw/continue-conv-chunk2048-0-r2.memory.json.gz": {
+      "sha256": "94a9eeb9d9f876373b1ef7c3e31ebe52da9cf862aa545f05c03d9e8fcb2bc157",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk2048-0-r2.memory.json",
+      "uncompressed_sha256": "fdfe4360774885cd07a5047eab5e99e255e6f26fad8472c0a8b2a2005ca35956"
+    },
+    "raw/continue-conv-chunk2048-0-r3.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk2048-0-r3.ids",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33"
+    },
+    "raw/continue-conv-chunk2048-0-r3.json": {
+      "sha256": "5d1c9387f7ba3c45eb4a32bb714014d813621c2bb6a2f59a49ef956244952773",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk2048-0-r3.json",
+      "uncompressed_sha256": "5d1c9387f7ba3c45eb4a32bb714014d813621c2bb6a2f59a49ef956244952773"
+    },
+    "raw/continue-conv-chunk2048-0-r3.log.gz": {
+      "sha256": "a57a904bfcfb626608c2e66f25ef25aee4b6aaccd58494b072224cce38cf1673",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk2048-0-r3.log",
+      "uncompressed_sha256": "36ce2eb102cf6699a63ed8aa5ec67ea05c8fdc09c993e5b9a8c5b28596adae7f"
+    },
+    "raw/continue-conv-chunk2048-0-r3.memory.json.gz": {
+      "sha256": "4730fb9c925b188eb3257aab740f74698e1416c5b9ffaf32d10ae7f858a89a74",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk2048-0-r3.memory.json",
+      "uncompressed_sha256": "84ffdcbfbb26abe2f3cf3d8f7185dc4b09601b491579fedbae0711b8e378cb17"
+    },
+    "raw/continue-conv-chunk2048-1-r1.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk2048-1-r1.ids",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33"
+    },
+    "raw/continue-conv-chunk2048-1-r1.json": {
+      "sha256": "1dd33ce66c1d3d0648f38b54c86e240598b5935779ec4dd15fa2e57616948140",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk2048-1-r1.json",
+      "uncompressed_sha256": "1dd33ce66c1d3d0648f38b54c86e240598b5935779ec4dd15fa2e57616948140"
+    },
+    "raw/continue-conv-chunk2048-1-r1.log.gz": {
+      "sha256": "39d518c89b232613300695f04f5a942472246d6cf1cb726d5829bb076b38e943",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk2048-1-r1.log",
+      "uncompressed_sha256": "c52657a84ea24f06c6a4e0a48b6585b3e00182f43914baae9009ae22c6b1a0d6"
+    },
+    "raw/continue-conv-chunk2048-1-r1.memory.json.gz": {
+      "sha256": "ac89358612664d9ce4dd7a58679c589922ad86a701441a88a4bbd53cf0de4f26",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk2048-1-r1.memory.json",
+      "uncompressed_sha256": "1eec6aed1c597edc3e6cfecef29f979a8557af59db77a7527b52781db5ed7e4e"
+    },
+    "raw/continue-conv-chunk2048-1-r2.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk2048-1-r2.ids",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33"
+    },
+    "raw/continue-conv-chunk2048-1-r2.json": {
+      "sha256": "5591c143697e095fb313793996ca5c9143424df8cc5e343368e95b645b960ab6",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk2048-1-r2.json",
+      "uncompressed_sha256": "5591c143697e095fb313793996ca5c9143424df8cc5e343368e95b645b960ab6"
+    },
+    "raw/continue-conv-chunk2048-1-r2.log.gz": {
+      "sha256": "ae4c5dbe9853877bf09152a0e0a90f7e0fe7075c2f2a2286f1048923d413d9d9",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk2048-1-r2.log",
+      "uncompressed_sha256": "3407ae95a821a821742326a732cd8a380563440d837d40b907d34492d2e59bd6"
+    },
+    "raw/continue-conv-chunk2048-1-r2.memory.json.gz": {
+      "sha256": "2ec41a8d5226ee430190b90102babee2f8310a3aa6bde29d000925671378e0ee",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk2048-1-r2.memory.json",
+      "uncompressed_sha256": "bdc3d0ae840e6ceda208f34d658df518f64d80c80b4869c1d6d9d398ecd05209"
+    },
+    "raw/continue-conv-chunk2048-1-r3.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk2048-1-r3.ids",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33"
+    },
+    "raw/continue-conv-chunk2048-1-r3.json": {
+      "sha256": "a7d23b6028b1d6132931470a569c234815ffdcf14130560b0e61e55bc074447d",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk2048-1-r3.json",
+      "uncompressed_sha256": "a7d23b6028b1d6132931470a569c234815ffdcf14130560b0e61e55bc074447d"
+    },
+    "raw/continue-conv-chunk2048-1-r3.log.gz": {
+      "sha256": "eec7d06dd1eea5e6bc66cc4d6e19c8da544b81cd026608befeae3a0c4a7fa396",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk2048-1-r3.log",
+      "uncompressed_sha256": "1fa77e88c1b3d249d6220dc238277d2e022e66e56606f08390595f2020371d9d"
+    },
+    "raw/continue-conv-chunk2048-1-r3.memory.json.gz": {
+      "sha256": "22e8386131508ecf75ecf1a7f89213115a027c96de4722fba634396a318e0408",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-chunk2048-1-r3.memory.json",
+      "uncompressed_sha256": "c94fcc7bad1b20a6a6ce772d08ee2042ba8165b7ef0fa691aa12ee49cf2398f7"
+    },
+    "raw/continue-conv-isolated-0-r1.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-0-r1.ids",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e"
+    },
+    "raw/continue-conv-isolated-0-r1.json": {
+      "sha256": "9ac46aaaaa5dd9a2ff98af20d214d11a154dfd943f826aa4a98f7c636b24eea3",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-0-r1.json",
+      "uncompressed_sha256": "9ac46aaaaa5dd9a2ff98af20d214d11a154dfd943f826aa4a98f7c636b24eea3"
+    },
+    "raw/continue-conv-isolated-0-r1.log.gz": {
+      "sha256": "4ac134f74b7ea066602654b30285058486125a2fad3eaa40ac7197d40f56d8aa",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-0-r1.log",
+      "uncompressed_sha256": "7abdc629ecea9c9d3acb9c58d4bba6593f8e5a1da9d0cf88058a14256dd426f1"
+    },
+    "raw/continue-conv-isolated-0-r1.memory.json.gz": {
+      "sha256": "0d6cf15cff5355f7681144f566343f1ea22667af3b6ff89e00d203a20271f10c",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-0-r1.memory.json",
+      "uncompressed_sha256": "12d46fd276654147f76ad060d6e899f47efdd7a8b13f78bea524e74dac22025a"
+    },
+    "raw/continue-conv-isolated-0-r2.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-0-r2.ids",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e"
+    },
+    "raw/continue-conv-isolated-0-r2.json": {
+      "sha256": "64469ded1d1f8e339f09547c6e3cc2c51af0ec2efe98daf2f59a2e89c6ce8510",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-0-r2.json",
+      "uncompressed_sha256": "64469ded1d1f8e339f09547c6e3cc2c51af0ec2efe98daf2f59a2e89c6ce8510"
+    },
+    "raw/continue-conv-isolated-0-r2.log.gz": {
+      "sha256": "753ccc4b86d7040ba5dba8412da2bb7b71db13ffdab6abc81b21f5985df35c00",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-0-r2.log",
+      "uncompressed_sha256": "b3b4ca2953610545a2d75ed3b6795cbbcffa1c1972ed021452d411d443d4d156"
+    },
+    "raw/continue-conv-isolated-0-r2.memory.json.gz": {
+      "sha256": "23e3fbfcb59aed67db278ef15543f04ae40e275266972ef9f751a5319c9ffb3c",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-0-r2.memory.json",
+      "uncompressed_sha256": "f1d6a986245c217a4b0bf64c26149187903a10fdaad94e9451d3ec969d508bc5"
+    },
+    "raw/continue-conv-isolated-0-r3.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-0-r3.ids",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e"
+    },
+    "raw/continue-conv-isolated-0-r3.json": {
+      "sha256": "dd021d353354fac10735390d40cc149eb1412d7534485f3288df3ca76dd65311",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-0-r3.json",
+      "uncompressed_sha256": "dd021d353354fac10735390d40cc149eb1412d7534485f3288df3ca76dd65311"
+    },
+    "raw/continue-conv-isolated-0-r3.log.gz": {
+      "sha256": "3eb9ef596d1db18333dac06fa308fb98e1f5d216665d2436f2dace654a849ee5",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-0-r3.log",
+      "uncompressed_sha256": "92a76e20a7cd5e0f37b44b1993b84cbcdb3c8b1ff8d2254b9526adc7555769e8"
+    },
+    "raw/continue-conv-isolated-0-r3.memory.json.gz": {
+      "sha256": "1bdaf01034271edf5cf801245642bae403bc5d25f10062d916fc42f2c349a070",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-0-r3.memory.json",
+      "uncompressed_sha256": "7b2db829925be44938690ca861250a5eac65e1dc199695e7a71b549d5b4177ed"
+    },
+    "raw/continue-conv-isolated-1-r1.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-1-r1.ids",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e"
+    },
+    "raw/continue-conv-isolated-1-r1.json": {
+      "sha256": "c60c9b57a62d283bc864ff7af447c945a7dd46dbc098028da49abf45aa84e707",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-1-r1.json",
+      "uncompressed_sha256": "c60c9b57a62d283bc864ff7af447c945a7dd46dbc098028da49abf45aa84e707"
+    },
+    "raw/continue-conv-isolated-1-r1.log.gz": {
+      "sha256": "26e1dfa3901143d0a9c509de2637a19b223ec3e8ed2e8f662553a0d2af0b1f66",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-1-r1.log",
+      "uncompressed_sha256": "cc2fcb7ce69053c72533e681eef0562328a59d2e0153eb5ac0e57c49a08f853e"
+    },
+    "raw/continue-conv-isolated-1-r1.memory.json.gz": {
+      "sha256": "a4bf9db0aee2fe76b6eab7b96bcc17686807969f483870d164811167b5d45d7f",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-1-r1.memory.json",
+      "uncompressed_sha256": "7d97fe54c18e4fa874d1a5d6432ea7d3864daf12799be884d0f3772b1e5978c5"
+    },
+    "raw/continue-conv-isolated-1-r2.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-1-r2.ids",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e"
+    },
+    "raw/continue-conv-isolated-1-r2.json": {
+      "sha256": "633ec6b8aa426b1584f93b74cdc266fa601f43fbb4da7561668132bdb748c039",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-1-r2.json",
+      "uncompressed_sha256": "633ec6b8aa426b1584f93b74cdc266fa601f43fbb4da7561668132bdb748c039"
+    },
+    "raw/continue-conv-isolated-1-r2.log.gz": {
+      "sha256": "89cd5c0ce83434e2616497707c94e08414a5976ccc72b13462a991ce21efeb6f",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-1-r2.log",
+      "uncompressed_sha256": "3ae9065d5262f1276ae9c47ad1908e057e2af60f9d104baae7dc321da37eb76f"
+    },
+    "raw/continue-conv-isolated-1-r2.memory.json.gz": {
+      "sha256": "27f8856a1d89536d74070f1ff0f7d211cb02c4944b4a4ce6a5eaba6aae2f4d5e",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-1-r2.memory.json",
+      "uncompressed_sha256": "d53afbdc583fbd4dd360a317482ef6c2e92c5ba6a8e2c97163d80ea5b35d420e"
+    },
+    "raw/continue-conv-isolated-1-r3.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-1-r3.ids",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e"
+    },
+    "raw/continue-conv-isolated-1-r3.json": {
+      "sha256": "ccfe05d9b7a7d400fcb0939295b6da8dbd94603b7d4e6bf586f278de57865800",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-1-r3.json",
+      "uncompressed_sha256": "ccfe05d9b7a7d400fcb0939295b6da8dbd94603b7d4e6bf586f278de57865800"
+    },
+    "raw/continue-conv-isolated-1-r3.log.gz": {
+      "sha256": "45447af4bf71ff9027518218c31c59d6c4b75dcdefb919bfc34a3af82556d77e",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-1-r3.log",
+      "uncompressed_sha256": "c39e6ce85f13376b929280fda37448f29a621dc8c260c891b3f268e9b326e6bf"
+    },
+    "raw/continue-conv-isolated-1-r3.memory.json.gz": {
+      "sha256": "f4df0b8f44510fef5aa6e4557e818ea0528a8b72098ef3951309f2d321aad463",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-1-r3.memory.json",
+      "uncompressed_sha256": "4daedd301fb39d18bc1194ff8b47cd905cb44aeada0ed1bf6e4a0e25e5091917"
+    },
+    "raw/continue-conv-isolated-profile2048.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-profile2048.ids",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33"
+    },
+    "raw/continue-conv-isolated-profile2048.json": {
+      "sha256": "9eb17980e11c3c63ad05d98d31672829b9477c19ac16e927d77d63f0be9042d0",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-profile2048.json",
+      "uncompressed_sha256": "9eb17980e11c3c63ad05d98d31672829b9477c19ac16e927d77d63f0be9042d0"
+    },
+    "raw/continue-conv-isolated-profile2048.log.gz": {
+      "sha256": "78d3a4ecc8e2c795bbfe98e8e2048efb999f251f1b5b8e31bd100633211b37cc",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-profile2048.log",
+      "uncompressed_sha256": "8e4257ec7c18a6a9a73071a189543687ce28042a01e2f7bf8b1bcbab33a348e6"
+    },
+    "raw/continue-conv-isolated-profile2048.logcat.txt.gz": {
+      "sha256": "b2275f1a926918d43ecb0fc712161720744eb7db75c4daf7b527f119589071bf",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-profile2048.logcat.txt",
+      "uncompressed_sha256": "9d8495ca7a422f96dde2943e4637dec595ea460805cb787b34ee768af0be4e47"
+    },
+    "raw/continue-conv-isolated-profile2048.memory.json.gz": {
+      "sha256": "75f9853cd90696a58263ceda13c909012d7b2281e1f449ee932f32a43ba8eb09",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-profile2048.memory.json",
+      "uncompressed_sha256": "3f75686664b96cafe580db83bdcf5f9f38b9074196df4b903fd721f20194adc4"
+    },
+    "raw/continue-conv-isolated2048-0-r1.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated2048-0-r1.ids",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33"
+    },
+    "raw/continue-conv-isolated2048-0-r1.json": {
+      "sha256": "14ae1ca484e6549d3673717bdfba4276731bdc74311eb7abdd75310feae056f8",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated2048-0-r1.json",
+      "uncompressed_sha256": "14ae1ca484e6549d3673717bdfba4276731bdc74311eb7abdd75310feae056f8"
+    },
+    "raw/continue-conv-isolated2048-0-r1.log.gz": {
+      "sha256": "6697836a1b37bc4e5a22c01ad602d54bc3e29803ea0ed406c6852ead15275ec4",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated2048-0-r1.log",
+      "uncompressed_sha256": "e766dcd4975459be90c3b419ee78c2644990e4a5fd14690c87be2124fa5912bb"
+    },
+    "raw/continue-conv-isolated2048-0-r1.memory.json.gz": {
+      "sha256": "a94f032a4c0a62f1b4d784fdd5ab727eb534601fb1f37d1dc9fe64fc8f2da4b2",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated2048-0-r1.memory.json",
+      "uncompressed_sha256": "4c99f2bbcbdd1ba2e129dc573bfc5876da6c1b2b6a7ee19d35cb14374c9ac75b"
+    },
+    "raw/continue-conv-isolated2048-0-r2.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated2048-0-r2.ids",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33"
+    },
+    "raw/continue-conv-isolated2048-0-r2.json": {
+      "sha256": "dd8e8505fbaad93dc3262f548b733f95c261531ab58e93c768c5152a0fb6a553",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated2048-0-r2.json",
+      "uncompressed_sha256": "dd8e8505fbaad93dc3262f548b733f95c261531ab58e93c768c5152a0fb6a553"
+    },
+    "raw/continue-conv-isolated2048-0-r2.log.gz": {
+      "sha256": "1c8d30635e7f3ce51dd6c47a02577544dc58481e2b13ad0361dd9bae833c2306",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated2048-0-r2.log",
+      "uncompressed_sha256": "50b66453215b334995801aa95c628909320708c531abead3eb16c33ebe57afe2"
+    },
+    "raw/continue-conv-isolated2048-0-r2.memory.json.gz": {
+      "sha256": "385eb5298766d0494e860e3bc99049bdc8782b5edf82ac64859f7b5f78bc880e",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated2048-0-r2.memory.json",
+      "uncompressed_sha256": "2eeaebb193b569a7ecaa74636f66b40524e19bc19439935ea5aa481f9228109e"
+    },
+    "raw/continue-conv-isolated2048-0-r3.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated2048-0-r3.ids",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33"
+    },
+    "raw/continue-conv-isolated2048-0-r3.json": {
+      "sha256": "38e13ada49a6f1a7687e97caaaa72c2e0dc58724b5fabfcc306d5902dc64b7b8",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated2048-0-r3.json",
+      "uncompressed_sha256": "38e13ada49a6f1a7687e97caaaa72c2e0dc58724b5fabfcc306d5902dc64b7b8"
+    },
+    "raw/continue-conv-isolated2048-0-r3.log.gz": {
+      "sha256": "230f7effd8e1fdf15c0a80e99890525963440400048cd7bf2496268b5568eb01",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated2048-0-r3.log",
+      "uncompressed_sha256": "bbe87f6d587c8fd5baa3e7b88e24d52d2cd27bbace80dad0bfd2f1e71cf247f3"
+    },
+    "raw/continue-conv-isolated2048-0-r3.memory.json.gz": {
+      "sha256": "ef0a52aefc9a8afcce2845119d10e28f6d68655316542b16ba20b22454dbed88",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated2048-0-r3.memory.json",
+      "uncompressed_sha256": "d6419a4b532c7687e195ff84b8cf0d29e7482555b84d980c8869ab537bb8018a"
+    },
+    "raw/continue-conv-isolated2048-1-r1.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated2048-1-r1.ids",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33"
+    },
+    "raw/continue-conv-isolated2048-1-r1.json": {
+      "sha256": "31dc5cc509749d4dc976f67ed51f1b00bd906603d86614f98e72b87000588acf",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated2048-1-r1.json",
+      "uncompressed_sha256": "31dc5cc509749d4dc976f67ed51f1b00bd906603d86614f98e72b87000588acf"
+    },
+    "raw/continue-conv-isolated2048-1-r1.log.gz": {
+      "sha256": "4df112f0ea67ff4f68b82438a1ae6ffaf280140a35d302f90d54613858d23755",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated2048-1-r1.log",
+      "uncompressed_sha256": "1ee6d4bfaa0b573eabe30b016622f9a0b19bd19c376f3946b591ad1293922132"
+    },
+    "raw/continue-conv-isolated2048-1-r1.memory.json.gz": {
+      "sha256": "062da75e9320f5a14890d77f956880a3ee16a62802f08351b2609af2be8a3bf7",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated2048-1-r1.memory.json",
+      "uncompressed_sha256": "74716b1e89099ff905367b9717bca52b0f24152fb140598a12d3f7ef164bc56b"
+    },
+    "raw/continue-conv-isolated2048-1-r2.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated2048-1-r2.ids",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33"
+    },
+    "raw/continue-conv-isolated2048-1-r2.json": {
+      "sha256": "8e4c822b3e69b267653a3211ec7a3483f4b4ffcabe8da9e8f1ff87dfb6a43d20",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated2048-1-r2.json",
+      "uncompressed_sha256": "8e4c822b3e69b267653a3211ec7a3483f4b4ffcabe8da9e8f1ff87dfb6a43d20"
+    },
+    "raw/continue-conv-isolated2048-1-r2.log.gz": {
+      "sha256": "846d55b30ac17687c43b7bb247b785a3e85d1b3af0afd251599a699d97d0dfdb",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated2048-1-r2.log",
+      "uncompressed_sha256": "2d4cda284bdfe69fd97efbeff1b4650a05b2c5b4e908317b8e3685a3adbe0338"
+    },
+    "raw/continue-conv-isolated2048-1-r2.memory.json.gz": {
+      "sha256": "7929b2ae93d8adc84ba76ea75df8fc200d3818fd2ef9084656b4b493a2f2ed1f",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated2048-1-r2.memory.json",
+      "uncompressed_sha256": "9dc0962a22890868a671ab28f192f0d456ea3545f56982a2e5f0eefc886f981c"
+    },
+    "raw/continue-conv-isolated2048-1-r3.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated2048-1-r3.ids",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33"
+    },
+    "raw/continue-conv-isolated2048-1-r3.json": {
+      "sha256": "3cd797ed96286eb25e2f5ef8fbb14a35691db03ae021fcd2208679392326ffc1",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated2048-1-r3.json",
+      "uncompressed_sha256": "3cd797ed96286eb25e2f5ef8fbb14a35691db03ae021fcd2208679392326ffc1"
+    },
+    "raw/continue-conv-isolated2048-1-r3.log.gz": {
+      "sha256": "0b95b6f4187be2391c86e125d63217ec3764a4abe1c029908020669ef2fde59a",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated2048-1-r3.log",
+      "uncompressed_sha256": "29a332a93820aa3cacc53a55d097fc4d3a17b3b3a11308c71bceb60b372a194b"
+    },
+    "raw/continue-conv-isolated2048-1-r3.memory.json.gz": {
+      "sha256": "c516afd008f37f77c75adda78f6a76e2f9e023ce98b4fbb98ad0a2d6bb831460",
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated2048-1-r3.memory.json",
+      "uncompressed_sha256": "836c462d91e1df789f2dd4d7fcbbfc50691d97188bbd8c410c81713f3e0319d1"
+    },
+    "results.json": {
+      "sha256": "57b951c6bca80cede427b6bf65a6858197b68ed0ae5ede62145acc03470dccf7",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-results.json",
+      "uncompressed_sha256": "57b951c6bca80cede427b6bf65a6858197b68ed0ae5ede62145acc03470dccf7"
+    },
+    "validation/curate_conv_chunk.py": {
+      "sha256": "02a2089659a190e541447c3695aebf0dd9feab86f865d929f6867b020a166940",
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/curate_conv_chunk.py",
+      "uncompressed_sha256": "02a2089659a190e541447c3695aebf0dd9feab86f865d929f6867b020a166940"
+    },
+    "validation/curation-spec.json": {
+      "sha256": "497a5493debcd9a12438bd8b09f70938d5d6d3f06e48b31788bea0d401ef28bf",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-archive-spec.json",
+      "uncompressed_sha256": "497a5493debcd9a12438bd8b09f70938d5d6d3f06e48b31788bea0d401ef28bf"
+    },
+    "validation/repeat/continue-conv-isolated-repeat1024-run1.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/continue-conv-isolated-repeat1024-run1.ids",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e"
+    },
+    "validation/repeat/continue-conv-isolated-repeat1024-run2.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/continue-conv-isolated-repeat1024-run2.ids",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e"
+    },
+    "validation/repeat/continue-conv-isolated-repeat1024.json": {
+      "sha256": "e211f3ec29e4e9428f9752cb8bfbe01d6c1f99769e1b6b9f4b09687826691871",
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/continue-conv-isolated-repeat1024.json",
+      "uncompressed_sha256": "e211f3ec29e4e9428f9752cb8bfbe01d6c1f99769e1b6b9f4b09687826691871"
+    },
+    "validation/repeat/continue-conv-isolated-repeat1024.log.gz": {
+      "sha256": "6075b2d84226fd1f9916d59dee48d8139f67e0cb9d6128cb451904290bc32616",
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/continue-conv-isolated-repeat1024.log",
+      "uncompressed_sha256": "af7652bfa6a1529279d24f9189e9abd1f22a509bccc5cf4d160c25bd743d11e9"
+    },
+    "validation/repeat/continue-conv-isolated-repeat2048-run1.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/continue-conv-isolated-repeat2048-run1.ids",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33"
+    },
+    "validation/repeat/continue-conv-isolated-repeat2048-run2.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/continue-conv-isolated-repeat2048-run2.ids",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33"
+    },
+    "validation/repeat/continue-conv-isolated-repeat2048.json": {
+      "sha256": "c2b58cc2d06f39bd33d8cc8f95ee3baa8875432bb70bf2b720c5612fcb15e04a",
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/continue-conv-isolated-repeat2048.json",
+      "uncompressed_sha256": "c2b58cc2d06f39bd33d8cc8f95ee3baa8875432bb70bf2b720c5612fcb15e04a"
+    },
+    "validation/repeat/continue-conv-isolated-repeat2048.log.gz": {
+      "sha256": "ba987ce69bd8dd2a804611a38a116d2cdd01ebc539fed58b9ea941d21664cd70",
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/continue-conv-isolated-repeat2048.log",
+      "uncompressed_sha256": "e0ad3afd1c629bfa1e3dcb1960b282b6c87e80c645741b5f63e9b18a6bda1903"
+    },
+    "validation/repeat/run_repeat_handoff.py": {
+      "sha256": "91f8292ccad0f54c938ee886d566e552679a42b9df9f0bf20aa190dcf9439395",
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/run_repeat_handoff.py",
+      "uncompressed_sha256": "91f8292ccad0f54c938ee886d566e552679a42b9df9f0bf20aa190dcf9439395"
+    },
+    "validation/summarize_pair.py": {
+      "sha256": "e0404228e565eb14cfb76a9e3425d5ed633a33e18e0878eb52746f7a6237550b",
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/summarize_pair.py",
+      "uncompressed_sha256": "e0404228e565eb14cfb76a9e3425d5ed633a33e18e0878eb52746f7a6237550b"
+    },
+    "validation/v1/author/README.txt": {
+      "sha256": "aeb6a93cfdbd8c3841e1f6f21a09e5a6af50c82f4545438cdb18e50ca794a746",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/README.txt",
+      "uncompressed_sha256": "aeb6a93cfdbd8c3841e1f6f21a09e5a6af50c82f4545438cdb18e50ca794a746"
+    },
+    "validation/v1/author/android-build.log.gz": {
+      "sha256": "30759210f99b4cb4781ef38f0c71ecb50343c700a7a64afdbad518076df8bf58",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/android-build.log",
+      "uncompressed_sha256": "c6171aea6f6862d7bc9c6bcb1eb70bcb5c454664da948f75bdc9810a955b2473"
+    },
+    "validation/v1/author/android-command.json": {
+      "sha256": "b032b13f8db6dee5970d9577572758cd11c9985adeb69b37f12d60ba1994cc64",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/android-command.json",
+      "uncompressed_sha256": "b032b13f8db6dee5970d9577572758cd11c9985adeb69b37f12d60ba1994cc64"
+    },
+    "validation/v1/author/android-x86-clang.log.gz": {
+      "sha256": "30759210f99b4cb4781ef38f0c71ecb50343c700a7a64afdbad518076df8bf58",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/android-x86-clang.log",
+      "uncompressed_sha256": "c6171aea6f6862d7bc9c6bcb1eb70bcb5c454664da948f75bdc9810a955b2473"
+    },
+    "validation/v1/author/base.json": {
+      "sha256": "27a3cbae684366f809ec5b51644f9edcbe2ae2b834b4d66003c79a057c7842b7",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/base.json",
+      "uncompressed_sha256": "27a3cbae684366f809ec5b51644f9edcbe2ae2b834b4d66003c79a057c7842b7"
+    },
+    "validation/v1/author/before/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "b23efb15c6e1073a040d6da9ee97c23fdee1dcbca9c28170d3cf1d0825091d92",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/before/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "uncompressed_sha256": "bc019abdbf0cadb48e0aaa4ecc3898bc9b0a37e11f28c306d9762f766292869a"
+    },
+    "validation/v1/author/build_codegen.py": {
+      "sha256": "d25d260a5470cb9615197837a3d484d9a319a46a37c3c4097ad9d1836b8ecf58",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/build_codegen.py",
+      "uncompressed_sha256": "d25d260a5470cb9615197837a3d484d9a319a46a37c3c4097ad9d1836b8ecf58"
+    },
+    "validation/v1/author/candidate/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "8c2a1e04ae010016e5e0e61181f0ef4756478d64255c2ca7654cad3e76756771",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/candidate/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "uncompressed_sha256": "2392af8742e5ac2c0679bbb26364d50e0d12e0d0254ebc0ed03c17459f89f8f9"
+    },
+    "validation/v1/author/checks/host-san/commands.json": {
+      "sha256": "9bd06b818f67f77ff469f5915c77174306178f59770aa1860d9cda6ebcaf1c15",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/checks/host-san/commands.json",
+      "uncompressed_sha256": "9bd06b818f67f77ff469f5915c77174306178f59770aa1860d9cda6ebcaf1c15"
+    },
+    "validation/v1/author/checks/host-san/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "09e4e8bff61945987d930df0a8fc0c2c05916ebbfff6f687b7716fcfc9f5312a",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/checks/host-san/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "282b1ebacce28958bb9f7049850ca603c622575b469496e8e72258cc824bc669"
+    },
+    "validation/v1/author/checks/native-arm/commands.json": {
+      "sha256": "60bf9c08c5cf044344d513d28a997effc371e763bc2b6fbba6cc6ce08c11a7bd",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/checks/native-arm/commands.json",
+      "uncompressed_sha256": "60bf9c08c5cf044344d513d28a997effc371e763bc2b6fbba6cc6ce08c11a7bd"
+    },
+    "validation/v1/author/checks/native-arm/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "09e4e8bff61945987d930df0a8fc0c2c05916ebbfff6f687b7716fcfc9f5312a",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/checks/native-arm/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "282b1ebacce28958bb9f7049850ca603c622575b469496e8e72258cc824bc669"
+    },
+    "validation/v1/author/checks/old-route/commands.json": {
+      "sha256": "fa15809ef6263e1dca23472ece7219f69039e9c49d5c70fa8d351616a73e64f0",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/checks/old-route/commands.json",
+      "uncompressed_sha256": "fa15809ef6263e1dca23472ece7219f69039e9c49d5c70fa8d351616a73e64f0"
+    },
+    "validation/v1/author/checks/old-route/lfm2_conv_ion_route_check.cpp.gz": {
+      "sha256": "06c703a055215fbdeb52fb258d721899a857d0d8ff4d2818afde7f2b913530cc",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/checks/old-route/lfm2_conv_ion_route_check.cpp",
+      "uncompressed_sha256": "f46ceff094aba011a35e59f957dfd0bc1131d24456e16dd1d39630c91c55cdc2"
+    },
+    "validation/v1/author/codegen.log.gz": {
+      "sha256": "7131da2e43debd9c0a08d8d847d9276079ed77cdb0f45d7147e64d77f2e4198a",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/codegen.log",
+      "uncompressed_sha256": "6ff9c0b72238fa13510f3d496329cd46c08d16a01f686df148bf55d620740ef3"
+    },
+    "validation/v1/author/codegen/arithmetic.json": {
+      "sha256": "b13c74a61732ccb81f5ea9f24aa9312e0e4daf1f9b1124f625247d26ee523e59",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/codegen/arithmetic.json",
+      "uncompressed_sha256": "b13c74a61732ccb81f5ea9f24aa9312e0e4daf1f9b1124f625247d26ee523e59"
+    },
+    "validation/v1/author/codegen/before/build.log.gz": {
+      "sha256": "7809ad205f189fe9fbcbb12eaf948e46e92548ac54ba0ca85a39fe164486b72b",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/codegen/before/build.log",
+      "uncompressed_sha256": "149fa11eff5f8df28abe54cf17f4a6ed90a237308aa2de31cf4ca7d792f7cd12"
+    },
+    "validation/v1/author/codegen/before/conv.disasm.txt.gz": {
+      "sha256": "292b20a55fb984aaab4b26342f86ee70128bcca597065b3ad67c859bb1f3b380",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/codegen/before/conv.disasm.txt",
+      "uncompressed_sha256": "eadd3f9678f1d293a6ba47e9e6053adeea49fe702e65450c55b68adbcb108084"
+    },
+    "validation/v1/author/codegen/before/conv.su.gz": {
+      "sha256": "0c95c63cd4c50e825bbc9ed95f3407aa6767b314936f7c4b86674cd7d86b974b",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/codegen/before/conv.su",
+      "uncompressed_sha256": "5e75c2904009f2204a86bbde9d2380cf62ac74710251aff17a0545a0c12cafc0"
+    },
+    "validation/v1/author/codegen/candidate/build.log.gz": {
+      "sha256": "30759210f99b4cb4781ef38f0c71ecb50343c700a7a64afdbad518076df8bf58",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/codegen/candidate/build.log",
+      "uncompressed_sha256": "c6171aea6f6862d7bc9c6bcb1eb70bcb5c454664da948f75bdc9810a955b2473"
+    },
+    "validation/v1/author/codegen/candidate/conv.disasm.txt.gz": {
+      "sha256": "aaacdff2239dfcfdd9c508d328d09bc2e571f9386b75fe416be5ef6356337a14",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/codegen/candidate/conv.disasm.txt",
+      "uncompressed_sha256": "912ddb0cce10b2b92ae6135ba1133ad6230d37263553a107bda35bca350ecd35"
+    },
+    "validation/v1/author/codegen/candidate/conv.su.gz": {
+      "sha256": "fba21766b549e259bf708c5683316c99df3b44996bc9bb25e02d9ecb1064ba74",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/codegen/candidate/conv.su",
+      "uncompressed_sha256": "be88376126351fd190982169f672751a02328974311912d75c8becd9d8febe53"
+    },
+    "validation/v1/author/codegen/results.json": {
+      "sha256": "29d796a2b4780a976b6c93f2ae9adb182c4408e1d646a9594374c4021e73db1e",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/codegen/results.json",
+      "uncompressed_sha256": "29d796a2b4780a976b6c93f2ae9adb182c4408e1d646a9594374c4021e73db1e"
+    },
+    "validation/v1/author/host-san.log.gz": {
+      "sha256": "52529d7bbbe070f8d48d5e476883b86c65fb85b15cfd7e7f1136655609c5b981",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/host-san.log",
+      "uncompressed_sha256": "2d8b9bf42c7e7fa9f66219ed26cb5e0e19d7cf88d4c1f5a725c1ae8fbf976cf6"
+    },
+    "validation/v1/author/linux-x86-gcc.log.gz": {
+      "sha256": "b65dd70211e8109d3a15c1e3f80907f99ab61a43e3ee3ea7dac3a7dfeaebf676",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/linux-x86-gcc.log",
+      "uncompressed_sha256": "32d54c9d38211d5044754524e8156966767ae2e26155b65b244325343ade78df"
+    },
+    "validation/v1/author/make_candidate.py": {
+      "sha256": "c573b702cf4fb81cd41bf51403cc79a183793f5ec9a9338d59d08a1f6533da0e",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/make_candidate.py",
+      "uncompressed_sha256": "c573b702cf4fb81cd41bf51403cc79a183793f5ec9a9338d59d08a1f6533da0e"
+    },
+    "validation/v1/author/manifest.json": {
+      "sha256": "34fbffe832bce5148ba956b01b596f4d54859c00923bb1657162dd1d2351db12",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/manifest.json",
+      "uncompressed_sha256": "34fbffe832bce5148ba956b01b596f4d54859c00923bb1657162dd1d2351db12"
+    },
+    "validation/v1/author/mutants.log.gz": {
+      "sha256": "d2dbacfcfa16825620bcb6b89369437563287e0e2c6ebf9b17b500b994768fb3",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants.log",
+      "uncompressed_sha256": "4d2f5e422ab5b0d173b215720a147a1236911306b7656e1dc0a80db68af203d1"
+    },
+    "validation/v1/author/mutants/chunk_local_history/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "860c346b974e700838667aad8e82c4044d9c1d4736a5b2f4bebb95d129e9f096",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/chunk_local_history/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "uncompressed_sha256": "1619c0e8ffd02f48bc2690386fff2e2df0f061127feeb6fd7574decfda85f66a"
+    },
+    "validation/v1/author/mutants/chunk_local_history/checks/commands.json": {
+      "sha256": "f299fee022f89609cf1985669147a03ae24cd2f499c6a4921cf16e267fe43864",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/chunk_local_history/checks/commands.json",
+      "uncompressed_sha256": "f299fee022f89609cf1985669147a03ae24cd2f499c6a4921cf16e267fe43864"
+    },
+    "validation/v1/author/mutants/chunk_local_history/checks/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "09e4e8bff61945987d930df0a8fc0c2c05916ebbfff6f687b7716fcfc9f5312a",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/chunk_local_history/checks/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "282b1ebacce28958bb9f7049850ca603c622575b469496e8e72258cc824bc669"
+    },
+    "validation/v1/author/mutants/chunk_local_history/run.log.gz": {
+      "sha256": "3b0380d00449e483bedbe05fc53ee18f2a202a97fa30c1617f831987cb52d676",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/chunk_local_history/run.log",
+      "uncompressed_sha256": "ddb1bd5e3251ffbc7322f6bd3bc331b4923013b125f08b84f294dccc3a281f08"
+    },
+    "validation/v1/author/mutants/missing_from_guard/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "db4bf5a1bdb800511c4569391ae705b6656501038425e770a9a8bd88a98a1389",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/missing_from_guard/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "uncompressed_sha256": "3e5c0d040125d22ee14e74915bbf09477b5a2edfa605fe77bca30c9ee9e2a10b"
+    },
+    "validation/v1/author/mutants/missing_from_guard/checks/commands.json": {
+      "sha256": "0712cbb3cfcb695751ec8851bd0e7e8ce45d7cf9a6ad42833fada5f3d8e9d089",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/missing_from_guard/checks/commands.json",
+      "uncompressed_sha256": "0712cbb3cfcb695751ec8851bd0e7e8ce45d7cf9a6ad42833fada5f3d8e9d089"
+    },
+    "validation/v1/author/mutants/missing_from_guard/checks/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "09e4e8bff61945987d930df0a8fc0c2c05916ebbfff6f687b7716fcfc9f5312a",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/missing_from_guard/checks/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "282b1ebacce28958bb9f7049850ca603c622575b469496e8e72258cc824bc669"
+    },
+    "validation/v1/author/mutants/missing_from_guard/run.log.gz": {
+      "sha256": "57cf53639fc1fceffeb62bdeaa43f76d88f8fc64f6d15d6b136b697df6ad3728",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/missing_from_guard/run.log",
+      "uncompressed_sha256": "9eca830a597656ac3f83581535e8b5481e11c1d4ef4719a1180f0d300f64e455"
+    },
+    "validation/v1/author/mutants/missing_input_overlap/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "eaa5444e14cb3022f76bcded2cbd07ade9623f3bd69fab5a7fa3863a9e79656f",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/missing_input_overlap/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "uncompressed_sha256": "d76cbf2989092a583dcbe3c17ebd7c1c1b18fb6ce8a8015e9802b96a85642e03"
+    },
+    "validation/v1/author/mutants/missing_input_overlap/checks/commands.json": {
+      "sha256": "5fc444e4754126f4ca83fc94dd9b788323ed93052682ccfad8406189bbadf563",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/missing_input_overlap/checks/commands.json",
+      "uncompressed_sha256": "5fc444e4754126f4ca83fc94dd9b788323ed93052682ccfad8406189bbadf563"
+    },
+    "validation/v1/author/mutants/missing_input_overlap/checks/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "09e4e8bff61945987d930df0a8fc0c2c05916ebbfff6f687b7716fcfc9f5312a",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/missing_input_overlap/checks/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "282b1ebacce28958bb9f7049850ca603c622575b469496e8e72258cc824bc669"
+    },
+    "validation/v1/author/mutants/missing_input_overlap/run.log.gz": {
+      "sha256": "ba4ec591b221236e23167f208855cab1beb34995936d0a20c436fd4c3e5334ac",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/missing_input_overlap/run.log",
+      "uncompressed_sha256": "6873358813d37851eae422abbd8e24c509ca0cee0bce85369785e946419bb573"
+    },
+    "validation/v1/author/mutants/read_sampled_host/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "12d4de5f789294fcc9f96c5cc4fd76e5debeec24cd1b46164f8705bde16aa07e",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/read_sampled_host/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "uncompressed_sha256": "08d0ced08d7edba84fc0c47459cc4fa2cf9be118e39543945e5003ea8b4dd14d"
+    },
+    "validation/v1/author/mutants/read_sampled_host/checks/commands.json": {
+      "sha256": "e8abc5b5a37132678ba58419738eb0b3652dd0fe2178367c14119a85b3497040",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/read_sampled_host/checks/commands.json",
+      "uncompressed_sha256": "e8abc5b5a37132678ba58419738eb0b3652dd0fe2178367c14119a85b3497040"
+    },
+    "validation/v1/author/mutants/read_sampled_host/checks/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "09e4e8bff61945987d930df0a8fc0c2c05916ebbfff6f687b7716fcfc9f5312a",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/read_sampled_host/checks/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "282b1ebacce28958bb9f7049850ca603c622575b469496e8e72258cc824bc669"
+    },
+    "validation/v1/author/mutants/read_sampled_host/run.log.gz": {
+      "sha256": "edd8a4f8393e4aeb3113ef0327521ff2ddaedb7d5f13bf3b48031af630c458ee",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/read_sampled_host/run.log",
+      "uncompressed_sha256": "ca00f9a51d1a0e70f67705a2dd6a655beaae8f0e90945c96295539462b91d175"
+    },
+    "validation/v1/author/mutants/results.json": {
+      "sha256": "7e76b87c1909d32c44c17ac65890618eeaa521136b78c29dffc01a3357eb8241",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/results.json",
+      "uncompressed_sha256": "7e76b87c1909d32c44c17ac65890618eeaa521136b78c29dffc01a3357eb8241"
+    },
+    "validation/v1/author/mutants/state_before_success/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "d853ec721aec0369813982995b295c6dc0a99e5bdec32c20ddd45d62a4ea9cdf",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/state_before_success/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "uncompressed_sha256": "cc5211f902f0615ecf6ee9c8865c6c7a0a41f47c5874d27c3e7674d9163d8595"
+    },
+    "validation/v1/author/mutants/state_before_success/checks/commands.json": {
+      "sha256": "8e6a8183ca65040773c5afb2e352a1561d2af7912e41449413df8ceaf0918c76",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/state_before_success/checks/commands.json",
+      "uncompressed_sha256": "8e6a8183ca65040773c5afb2e352a1561d2af7912e41449413df8ceaf0918c76"
+    },
+    "validation/v1/author/mutants/state_before_success/checks/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "09e4e8bff61945987d930df0a8fc0c2c05916ebbfff6f687b7716fcfc9f5312a",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/state_before_success/checks/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "282b1ebacce28958bb9f7049850ca603c622575b469496e8e72258cc824bc669"
+    },
+    "validation/v1/author/mutants/state_before_success/run.log.gz": {
+      "sha256": "ae82d70f385beac717db2228b358ce9768d072fe9f77ddfbb3fd5b9e94320d98",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/state_before_success/run.log",
+      "uncompressed_sha256": "9b01f3efa253b1123ce814c402d130801f49896152dc81f2a90322f35c5e3dbc"
+    },
+    "validation/v1/author/mutants/wrong_projection_row/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "f3ad08059d0b607dbd685ac53fe911a1bc028c513e0d926549176a32c4f2442c",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/wrong_projection_row/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "uncompressed_sha256": "3e3d5340c1570f5d20a5f49ffe13f05ee4ede32a790fa358f6b44471c24c3589"
+    },
+    "validation/v1/author/mutants/wrong_projection_row/checks/commands.json": {
+      "sha256": "16a2893c26d192f4fe01da2e81a31c58722b07d0e83f731f3a594c576ec0bc67",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/wrong_projection_row/checks/commands.json",
+      "uncompressed_sha256": "16a2893c26d192f4fe01da2e81a31c58722b07d0e83f731f3a594c576ec0bc67"
+    },
+    "validation/v1/author/mutants/wrong_projection_row/checks/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "09e4e8bff61945987d930df0a8fc0c2c05916ebbfff6f687b7716fcfc9f5312a",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/wrong_projection_row/checks/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "282b1ebacce28958bb9f7049850ca603c622575b469496e8e72258cc824bc669"
+    },
+    "validation/v1/author/mutants/wrong_projection_row/run.log.gz": {
+      "sha256": "e146176915091f3045749bfa5655c8617c1c89e2680a74fae6c7f291e2f16a14",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/mutants/wrong_projection_row/run.log",
+      "uncompressed_sha256": "cdb589238fa4b79ef57b6095575f29ed3a29773036b931f400bf4e0d408f7de2"
+    },
+    "validation/v1/author/native-arm-build.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/native-arm-build.log",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "validation/v1/author/old-route.log.gz": {
+      "sha256": "d062ef856b0e6713b57dae2487d503706fc319057bec3d9b7d1df0715ee5582a",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/old-route.log",
+      "uncompressed_sha256": "94edfec1914f30751962522e36ecf46395251c749130c0de97d2f0353a0825b2"
+    },
+    "validation/v1/author/portable-builds.json": {
+      "sha256": "ad0dbbea486b04901b94f82be343801cffa3e7c79acc3ccf81a8d305ebee9239",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/portable-builds.json",
+      "uncompressed_sha256": "ad0dbbea486b04901b94f82be343801cffa3e7c79acc3ccf81a8d305ebee9239"
+    },
+    "validation/v1/author/production.patch.gz": {
+      "sha256": "048afab9f5c912e110033cb92a56207314564e6069e17aa9d22222e521b0eaf0",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/production.patch",
+      "uncompressed_sha256": "4a6661df1b353699c22151b4d36e60ba5f341811c5c8766e5a615f8fbdec85a7"
+    },
+    "validation/v1/author/regression-audit/before-app-reloc.dis.gz": {
+      "sha256": "85bf93d586b25e41c6344374e4ca55ac43bf417735bdbd9260ab0e4995d91bc4",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/regression-audit/before-app-reloc.dis",
+      "uncompressed_sha256": "e90258d44dc168ed0df4f610a6e014e17188f8456f47b4334e1f2afe8345340f"
+    },
+    "validation/v1/author/regression-audit/before-app.dis.gz": {
+      "sha256": "754ccec266c5ac4cc6468d0e14335d50a3291ce37a16a9d012eedc29bb3b9c6a",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/regression-audit/before-app.dis",
+      "uncompressed_sha256": "2f9cdd1a894bf28e9cb9eefa03d7ee14f3e68aeeb877e16ed0cbac2658310897"
+    },
+    "validation/v1/author/regression-audit/candidate-app-reloc.dis.gz": {
+      "sha256": "d96287600c6f56c88532c708c7ce4e691caaf3c8a27b9c726e5529fec9f5cd4f",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/regression-audit/candidate-app-reloc.dis",
+      "uncompressed_sha256": "ef40e94a389b0b21c9508d51cecc800ac76f580d670d87e7c37cc9c0c9588746"
+    },
+    "validation/v1/author/regression-audit/candidate-app.dis.gz": {
+      "sha256": "a53113fd30631ece416305c19e7c2e004cf36eb2bfa21ca9ab2ecf6bd316e931",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/regression-audit/candidate-app.dis",
+      "uncompressed_sha256": "a4bbe37d9b96c4ccf0ffeb45c1ad3a6b65aaa4aebee612349d4d0a7d3909a965"
+    },
+    "validation/v1/author/regression-audit/m1-profile.json": {
+      "sha256": "889c0df74cefdb1af1c434002222bd58c650eb771ebb43c9269c4a799272dd10",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/regression-audit/m1-profile.json",
+      "uncompressed_sha256": "889c0df74cefdb1af1c434002222bd58c650eb771ebb43c9269c4a799272dd10"
+    },
+    "validation/v1/author/regression-audit/review.txt": {
+      "sha256": "e3a89daf0586b930c3fafd8335d9874f1b17de1591eba0a2bda84ef7581d57a3",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/regression-audit/review.txt",
+      "uncompressed_sha256": "e3a89daf0586b930c3fafd8335d9874f1b17de1591eba0a2bda84ef7581d57a3"
+    },
+    "validation/v1/author/regression-audit/validation.json": {
+      "sha256": "bc432b50c352d0f44181e741e8cec2916c02d0ae7d916f827d964f8febf51052",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/regression-audit/validation.json",
+      "uncompressed_sha256": "bc432b50c352d0f44181e741e8cec2916c02d0ae7d916f827d964f8febf51052"
+    },
+    "validation/v1/author/root-app-build.log.gz": {
+      "sha256": "c1b31bdccd5e0732d1dce03d72fc259391188787022ca4de8f04c707cdb040fc",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-app-build.log",
+      "uncompressed_sha256": "6b5cb4386f4e9af825d93148de669f0078d51c90f73bce781e77bc2cac38946e"
+    },
+    "validation/v1/author/root-control-rebuild.json": {
+      "sha256": "066f259c1122048c89610ea84ad5dc5469bc5330ef95929c4a0537f993712d00",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-control-rebuild.json",
+      "uncompressed_sha256": "066f259c1122048c89610ea84ad5dc5469bc5330ef95929c4a0537f993712d00"
+    },
+    "validation/v1/author/root-control-rebuild.log.gz": {
+      "sha256": "d5552c47ace34189ffa694b38f5fcc99bea02654bb4fc6a96f10785f39a735fb",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-control-rebuild.log",
+      "uncompressed_sha256": "fb3c2e8fd1fc8fc6ff9a8f5f453d29aab6368518f219561b58ee23b5f07a6c03"
+    },
+    "validation/v1/author/root-frozen/applied.patch.gz": {
+      "sha256": "5cd89de55862f708919ccab36d7452e6b5f44851b5c8a996e22f8c7d1ddebd15",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-frozen/applied.patch",
+      "uncompressed_sha256": "033255559266ccd0ce6cd9fe5f94f3b3d9de956ac69d22d1172f08b75e5bed61"
+    },
+    "validation/v1/author/root-frozen/source.json": {
+      "sha256": "3723ff3288e2fc31f21c09d6eca56af78b7f3d581af8b6794e32c22bc27ae896",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-frozen/source.json",
+      "uncompressed_sha256": "3723ff3288e2fc31f21c09d6eca56af78b7f3d581af8b6794e32c22bc27ae896"
+    },
+    "validation/v1/author/root-native-arm.json": {
+      "sha256": "a3230fc29542c018d219424febedbc1ffd749b5e47a24382757c3db3e07abea9",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-native-arm.json",
+      "uncompressed_sha256": "a3230fc29542c018d219424febedbc1ffd749b5e47a24382757c3db3e07abea9"
+    },
+    "validation/v1/author/root-native-arm.log.gz": {
+      "sha256": "52529d7bbbe070f8d48d5e476883b86c65fb85b15cfd7e7f1136655609c5b981",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-native-arm.log",
+      "uncompressed_sha256": "2d8b9bf42c7e7fa9f66219ed26cb5e0e19d7cf88d4c1f5a725c1ae8fbf976cf6"
+    },
+    "validation/v1/author/root-normal-jobs.json": {
+      "sha256": "b933b88c5d7fd8cd92168e8c73d9d7a7c9159bbbdc6b45d835324dfcb88a7f1b",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-normal-jobs.json",
+      "uncompressed_sha256": "b933b88c5d7fd8cd92168e8c73d9d7a7c9159bbbdc6b45d835324dfcb88a7f1b"
+    },
+    "validation/v1/author/root-normal-runs.log.gz": {
+      "sha256": "a2a4796e4e52964ad104c978d652fcde3eb6accc87d8e5d59d21ee557f75acfe",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-normal-runs.log",
+      "uncompressed_sha256": "01c86f24a9e5cb3047f7606f5b9514e40b1155ef7cd7d5006264cebc88086229"
+    },
+    "validation/v1/author/root-normal-summary.json": {
+      "sha256": "d73d57acb21639a3b91bc1bd32612473c2d5a77afbf1a9a8cbb9654909999406",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-normal-summary.json",
+      "uncompressed_sha256": "d73d57acb21639a3b91bc1bd32612473c2d5a77afbf1a9a8cbb9654909999406"
+    },
+    "validation/v1/author/root-profile-jobs.json": {
+      "sha256": "41b56405e356018b8a088632d7e038fac9de4d22255719ad3a12147384fe60a1",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-profile-jobs.json",
+      "uncompressed_sha256": "41b56405e356018b8a088632d7e038fac9de4d22255719ad3a12147384fe60a1"
+    },
+    "validation/v1/author/root-profile-runs.log.gz": {
+      "sha256": "186f120a0c5dcfbeb96cdbc563bd9c55d2d6d8f3e293eb3d7398617c303efdac",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-profile-runs.log",
+      "uncompressed_sha256": "0ce804313667be59b9e234c073d65a11bbc1c910e8013c53561ce28a9ffff67b"
+    },
+    "validation/v1/author/root-profile-validation.json": {
+      "sha256": "86fe95a44b95094785e8055f50f5c245b79860323bba9abcea92699a27bfe7a2",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-profile-validation.json",
+      "uncompressed_sha256": "86fe95a44b95094785e8055f50f5c245b79860323bba9abcea92699a27bfe7a2"
+    },
+    "validation/v1/author/root-v1-freeze-validation.json": {
+      "sha256": "4345832b8be2865d0aa5228f460f420a75bbeeaf1b6cb790abe238eb451dfe99",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/root-v1-freeze-validation.json",
+      "uncompressed_sha256": "4345832b8be2865d0aa5228f460f420a75bbeeaf1b6cb790abe238eb451dfe99"
+    },
+    "validation/v1/author/run_mutants.py": {
+      "sha256": "7da19ddeee8b24f7667fa7d7677723fffb6ea88bf67a7d6d4c40d4c17b3ac549",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/run_mutants.py",
+      "uncompressed_sha256": "7da19ddeee8b24f7667fa7d7677723fffb6ea88bf67a7d6d4c40d4c17b3ac549"
+    },
+    "validation/v1/author/source-hashes.json": {
+      "sha256": "b40e3c68a6334730ff63a1b5ae8f041d3ebea5485134a6d54bec022952bc4e9b",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/source-hashes.json",
+      "uncompressed_sha256": "b40e3c68a6334730ff63a1b5ae8f041d3ebea5485134a6d54bec022952bc4e9b"
+    },
+    "validation/v1/author/test/htp/host/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "09e4e8bff61945987d930df0a8fc0c2c05916ebbfff6f687b7716fcfc9f5312a",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/test/htp/host/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "282b1ebacce28958bb9f7049850ca603c622575b469496e8e72258cc824bc669"
+    },
+    "validation/v1/author/test/htp/host/run_lfm2_conv_chunk_check.py": {
+      "sha256": "e1d8323503822e8d7a5997a4f26cf17998d24cf7209fbfb49d70ed8641f80f35",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/test/htp/host/run_lfm2_conv_chunk_check.py",
+      "uncompressed_sha256": "e1d8323503822e8d7a5997a4f26cf17998d24cf7209fbfb49d70ed8641f80f35"
+    },
+    "validation/v1/author/tests.patch.gz": {
+      "sha256": "da8d0600d87b37e378d089638d55281aeff99fe241f2fd75ea0134a548544ef7",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/tests.patch",
+      "uncompressed_sha256": "2845812902815c03a8b35460314f08b5c2125caed7f9600549f145428353906c"
+    },
+    "validation/v1/author/validation.json": {
+      "sha256": "40bfe5ee5b0cea5d88eadb7689158603867ae85646d9826cffd33fcdf9a5720a",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-20261016/validation.json",
+      "uncompressed_sha256": "40bfe5ee5b0cea5d88eadb7689158603867ae85646d9826cffd33fcdf9a5720a"
+    },
+    "validation/v1/independent/android-build.log.gz": {
+      "sha256": "79af472b4ca16669e5d573fa455752a78e9c74118c742879e125d11106969f2d",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/android-build.log",
+      "uncompressed_sha256": "114610258db26cf770fa2dda76a929212fb3178c4f59f482c08826c4bdd1ffac"
+    },
+    "validation/v1/independent/android-command.json": {
+      "sha256": "558403c6e61e354f598ef3583f86af5daa0318a789e4d1af87e736bef66aac7e",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/android-command.json",
+      "uncompressed_sha256": "558403c6e61e354f598ef3583f86af5daa0318a789e4d1af87e736bef66aac7e"
+    },
+    "validation/v1/independent/before-android.dis.gz": {
+      "sha256": "809a32df2d0bd3d15ae971babb242e77bc8d053afc20590f45909422393f10cf",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/before-android.dis",
+      "uncompressed_sha256": "cfa2a94f1cadcb099497dccda1403ab6f0b4a32b168226943c28d67f81cf4b5f"
+    },
+    "validation/v1/independent/before-postgate-callback.dis.gz": {
+      "sha256": "1ba3184f973e60b774cc765618b0991036c89e4cef1819f952255a6fd4ad4b94",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/before-postgate-callback.dis",
+      "uncompressed_sha256": "7218bc516b1c1034a0f9f67a32e8a9a3569645918b1781846162559c3cd9c230"
+    },
+    "validation/v1/independent/before-stack-build.log.gz": {
+      "sha256": "cfeb7100cf595a82e6a99fd5e5cceff364be2e892014190abf9d2342e08a1237",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/before-stack-build.log",
+      "uncompressed_sha256": "3e49e69e239272747027062720b8b2e888d9dffcb2ab8258fb231fcf76216405"
+    },
+    "validation/v1/independent/before-stack.su.gz": {
+      "sha256": "6685cc7177fed13f860310d28d8ad96bd4d10662c9990ddaa15978f7ab0e5b64",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/before-stack.su",
+      "uncompressed_sha256": "058585abe72a7232f715288a7b24670f29be8ef5e0b1231f632dba8be4f5f7d7"
+    },
+    "validation/v1/independent/candidate-android.dis.gz": {
+      "sha256": "6e7d1e625a5f8bd1ea88f4ee163f1504caeeeb35a901f66e739a646d67a9f8af",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/candidate-android.dis",
+      "uncompressed_sha256": "629b53d57f9bba60363854b4343a3e909516b5a4802bce2a0c7427272823f1c2"
+    },
+    "validation/v1/independent/candidate-postgate-callback.dis.gz": {
+      "sha256": "65331287da6659594d9d7e8ffab4b6bedba5f508f0218678b7de36c0ab940ede",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/candidate-postgate-callback.dis",
+      "uncompressed_sha256": "0fbd2b9d347117cccfd09e042bfab19db7bac3f04c2e9a07261d5fe58c77951a"
+    },
+    "validation/v1/independent/candidate-stack-build.log.gz": {
+      "sha256": "79af472b4ca16669e5d573fa455752a78e9c74118c742879e125d11106969f2d",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/candidate-stack-build.log",
+      "uncompressed_sha256": "114610258db26cf770fa2dda76a929212fb3178c4f59f482c08826c4bdd1ffac"
+    },
+    "validation/v1/independent/candidate-stack.su.gz": {
+      "sha256": "d298c80bc81830db6e2abf5f84087970ea6a81fd1743bef459354918c3c5cae6",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/candidate-stack.su",
+      "uncompressed_sha256": "391b1c3183a9f8ef06d6505456c6e7739c8c75ab3baf1e83ac36af01afece697"
+    },
+    "validation/v1/independent/host-san.log.gz": {
+      "sha256": "52529d7bbbe070f8d48d5e476883b86c65fb85b15cfd7e7f1136655609c5b981",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/host-san.log",
+      "uncompressed_sha256": "2d8b9bf42c7e7fa9f66219ed26cb5e0e19d7cf88d4c1f5a725c1ae8fbf976cf6"
+    },
+    "validation/v1/independent/host-san/commands.json": {
+      "sha256": "9146fec7a2648eff0101b4b3ad7d5478e8745a97fcc5cfb03f930e93c4fe2b33",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/host-san/commands.json",
+      "uncompressed_sha256": "9146fec7a2648eff0101b4b3ad7d5478e8745a97fcc5cfb03f930e93c4fe2b33"
+    },
+    "validation/v1/independent/host-san/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "09e4e8bff61945987d930df0a8fc0c2c05916ebbfff6f687b7716fcfc9f5312a",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/host-san/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "282b1ebacce28958bb9f7049850ca603c622575b469496e8e72258cc824bc669"
+    },
+    "validation/v1/independent/input-manifest.json": {
+      "sha256": "bf81bb076eab5e6941956ac5b15cdd33c05de24d9cc105f294b28ad11482b817",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/input-manifest.json",
+      "uncompressed_sha256": "bf81bb076eab5e6941956ac5b15cdd33c05de24d9cc105f294b28ad11482b817"
+    },
+    "validation/v1/independent/mutants.log.gz": {
+      "sha256": "d2dbacfcfa16825620bcb6b89369437563287e0e2c6ebf9b17b500b994768fb3",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/mutants.log",
+      "uncompressed_sha256": "4d2f5e422ab5b0d173b215720a147a1236911306b7656e1dc0a80db68af203d1"
+    },
+    "validation/v1/independent/parent-native-arm.json": {
+      "sha256": "a3230fc29542c018d219424febedbc1ffd749b5e47a24382757c3db3e07abea9",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/parent-native-arm.json",
+      "uncompressed_sha256": "a3230fc29542c018d219424febedbc1ffd749b5e47a24382757c3db3e07abea9"
+    },
+    "validation/v1/independent/parent-native-arm.log.gz": {
+      "sha256": "52529d7bbbe070f8d48d5e476883b86c65fb85b15cfd7e7f1136655609c5b981",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/parent-native-arm.log",
+      "uncompressed_sha256": "2d8b9bf42c7e7fa9f66219ed26cb5e0e19d7cf88d4c1f5a725c1ae8fbf976cf6"
+    },
+    "validation/v1/independent/performance-audit.txt": {
+      "sha256": "239739ed5b46ca46bff6121458728c8a0545a036ec184af1d8c549a39a94d0cf",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/performance-audit.txt",
+      "uncompressed_sha256": "239739ed5b46ca46bff6121458728c8a0545a036ec184af1d8c549a39a94d0cf"
+    },
+    "validation/v1/independent/profile2048-readback.json": {
+      "sha256": "e09b53fea38e0b62c18e4b6b80380d79ccb0b4957cd51ca9e966812a179e048a",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/profile2048-readback.json",
+      "uncompressed_sha256": "e09b53fea38e0b62c18e4b6b80380d79ccb0b4957cd51ca9e966812a179e048a"
+    },
+    "validation/v1/independent/retained-input/commands.json": {
+      "sha256": "3376e7fa1f44a1ab6c83ae39c8371424d79fb5f8b6fa4bafa3c65f210703ebdf",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/retained-input/commands.json",
+      "uncompressed_sha256": "3376e7fa1f44a1ab6c83ae39c8371424d79fb5f8b6fa4bafa3c65f210703ebdf"
+    },
+    "validation/v1/independent/retained-input/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/retained-input/compile.log",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "validation/v1/independent/retained-input/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "8596cd4f56eac3d126d5b1a15ff91a2140d51c0967624014cb6b3488b049bd26",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/retained-input/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "e7efc207088f00fabbaa53f0266c10ffa102b4df319794d43be5586d876bf9f2"
+    },
+    "validation/v1/independent/retained-input/run.log.gz": {
+      "sha256": "5b39513481170e1900ebb94b40085d8a0025c4d58154d5ebaddab67defd8ed89",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/retained-input/run.log",
+      "uncompressed_sha256": "59c23e3801dc3d10d290c93d47357c9ab12522b81868e0cffd22aa6e520d5823"
+    },
+    "validation/v1/independent/review.txt": {
+      "sha256": "065559fee2b72340bab8ebe26295d9f2116f57d1209d21a3705b408e83f32bfa",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/review.txt",
+      "uncompressed_sha256": "065559fee2b72340bab8ebe26295d9f2116f57d1209d21a3705b408e83f32bfa"
+    },
+    "validation/v1/independent/runner-final-delta.diff.gz": {
+      "sha256": "a4b4f33f58a0a268643811b21faa8d837cdf29bc6c724938cd462bf582f814fc",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/runner-final-delta.diff",
+      "uncompressed_sha256": "041ac1c522accabcda6677b66b0d04fab4e36037bf37c00cb20ed53f690755a7"
+    },
+    "validation/v1/independent/stack-commands.json": {
+      "sha256": "012427d39adb169df3154947a341e146292f79276232037b7ecbb56715fba949",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/stack-commands.json",
+      "uncompressed_sha256": "012427d39adb169df3154947a341e146292f79276232037b7ecbb56715fba949"
+    },
+    "validation/v1/independent/stack-results.json": {
+      "sha256": "c42c918d549ae7f81414f5ce3e4b6e4114744f54c655271383007d20a9f974db",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/stack-results.json",
+      "uncompressed_sha256": "c42c918d549ae7f81414f5ce3e4b6e4114744f54c655271383007d20a9f974db"
+    },
+    "validation/v1/independent/unchanged-path-codegen.json": {
+      "sha256": "4656faa18863136b97a8bb657aa581b63dcea9cae8d3c1352b6f2a9340e15c08",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/unchanged-path-codegen.json",
+      "uncompressed_sha256": "4656faa18863136b97a8bb657aa581b63dcea9cae8d3c1352b6f2a9340e15c08"
+    },
+    "validation/v1/independent/validation.json": {
+      "sha256": "193a7a935751449525799adf94f27c199299f8b5ec8724003744e5f1cabbf4cc",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/validation.json",
+      "uncompressed_sha256": "193a7a935751449525799adf94f27c199299f8b5ec8724003744e5f1cabbf4cc"
+    },
+    "validation/v2/author/README.txt": {
+      "sha256": "f6e69b6e31eb3064136f30fe5a96fcba8d19ec1ee87b916e46e1cfa67412e91c",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/README.txt",
+      "uncompressed_sha256": "f6e69b6e31eb3064136f30fe5a96fcba8d19ec1ee87b916e46e1cfa67412e91c"
+    },
+    "validation/v2/author/android-build-final.log.gz": {
+      "sha256": "f780ed6c5166565b03ebc7786d7fe0cdd06f1ef762cbbed99eb7d3a1aa1fbc73",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/android-build-final.log",
+      "uncompressed_sha256": "6ff3c6bfb803ea6f7f5ef6d819d57269ce9cf2f9662863409f6e8bc471ca140b"
+    },
+    "validation/v2/author/android-build.log.gz": {
+      "sha256": "f780ed6c5166565b03ebc7786d7fe0cdd06f1ef762cbbed99eb7d3a1aa1fbc73",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/android-build.log",
+      "uncompressed_sha256": "6ff3c6bfb803ea6f7f5ef6d819d57269ce9cf2f9662863409f6e8bc471ca140b"
+    },
+    "validation/v2/author/android-command-final.json": {
+      "sha256": "de561c9d336eb97442fea6749d12c187b6e99e92fc3b7926fbdba077ca55a5ef",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/android-command-final.json",
+      "uncompressed_sha256": "de561c9d336eb97442fea6749d12c187b6e99e92fc3b7926fbdba077ca55a5ef"
+    },
+    "validation/v2/author/android-command.json": {
+      "sha256": "b5228c3be261c638573932575c232aef5be2ef7fd9c0e5db3eaea91fc77d3022",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/android-command.json",
+      "uncompressed_sha256": "b5228c3be261c638573932575c232aef5be2ef7fd9c0e5db3eaea91fc77d3022"
+    },
+    "validation/v2/author/android-x86-clang.log.gz": {
+      "sha256": "f780ed6c5166565b03ebc7786d7fe0cdd06f1ef762cbbed99eb7d3a1aa1fbc73",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/android-x86-clang.log",
+      "uncompressed_sha256": "6ff3c6bfb803ea6f7f5ef6d819d57269ce9cf2f9662863409f6e8bc471ca140b"
+    },
+    "validation/v2/author/apply-check.json": {
+      "sha256": "1221e599c818a5e55af7f15f811fea6b40ebce3bfaa11a95c779bbbbddc18d61",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/apply-check.json",
+      "uncompressed_sha256": "1221e599c818a5e55af7f15f811fea6b40ebce3bfaa11a95c779bbbbddc18d61"
+    },
+    "validation/v2/author/before/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "b23efb15c6e1073a040d6da9ee97c23fdee1dcbca9c28170d3cf1d0825091d92",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/before/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "uncompressed_sha256": "bc019abdbf0cadb48e0aaa4ecc3898bc9b0a37e11f28c306d9762f766292869a"
+    },
+    "validation/v2/author/candidate/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "c5b5c314d5664e442df2a25fec267f9ca08a53e451dd97ee65ca0899a71e606f",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/candidate/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "uncompressed_sha256": "846921eaa9b7da92bb20b7ee891e918b317017e471b0048a1e2b3a05b4708de3"
+    },
+    "validation/v2/author/checks/host-san-final/commands.json": {
+      "sha256": "4b1a47acb93f138edb491573555f356cba4bf94e6b526ca84f1c4a8b293f3753",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/checks/host-san-final/commands.json",
+      "uncompressed_sha256": "4b1a47acb93f138edb491573555f356cba4bf94e6b526ca84f1c4a8b293f3753"
+    },
+    "validation/v2/author/checks/host-san-final/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "456c54a4bddb89bb188d63eca6f6bdaa0c7eb757ad2ac6337d8fdeb316302574",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/checks/host-san-final/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "1f66b7fd088da2543517bfb696578e2fb7c9bc12221f67be551ed6ccd0944f7a"
+    },
+    "validation/v2/author/checks/native-arm-final/commands.json": {
+      "sha256": "cacf64eb2ea078948f29e4a15f08eb7d631d0a1d47fe0ef801557d0768be40e3",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/checks/native-arm-final/commands.json",
+      "uncompressed_sha256": "cacf64eb2ea078948f29e4a15f08eb7d631d0a1d47fe0ef801557d0768be40e3"
+    },
+    "validation/v2/author/checks/native-arm-final/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "456c54a4bddb89bb188d63eca6f6bdaa0c7eb757ad2ac6337d8fdeb316302574",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/checks/native-arm-final/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "1f66b7fd088da2543517bfb696578e2fb7c9bc12221f67be551ed6ccd0944f7a"
+    },
+    "validation/v2/author/codegen/analyze.py": {
+      "sha256": "a496ea4fbe5a3bfb7ced6b360f914919a55c10c0ec92a4f0f5bce39c7cf10f40",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/codegen/analyze.py",
+      "uncompressed_sha256": "a496ea4fbe5a3bfb7ced6b360f914919a55c10c0ec92a4f0f5bce39c7cf10f40"
+    },
+    "validation/v2/author/codegen/before-full-callback.dis.gz": {
+      "sha256": "a1a5060982a45953c459bb08c8338fa3203c65fb01bb50abcf9bf115830008fd",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/codegen/before-full-callback.dis",
+      "uncompressed_sha256": "78fc000f401fd8f8565545fc8c4f108ee17a54b0e6e37b68790a283cd93bbfb6"
+    },
+    "validation/v2/author/codegen/candidate-final/conv.disasm.txt.gz": {
+      "sha256": "ea5338a589622c9aa9b3047981b41cdb33c6c54cd7d7155f9b30c4c1f62ea60c",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/codegen/candidate-final/conv.disasm.txt",
+      "uncompressed_sha256": "e91c421950864b5395ed3ee635485ce44a2e85493b8371d39655c9b2d2955921"
+    },
+    "validation/v2/author/codegen/candidate-final/conv.su.gz": {
+      "sha256": "1be3b25d32bb1d0a542354b10abc295d09f5d326f11cef65ab3e329d59075ff0",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/codegen/candidate-final/conv.su",
+      "uncompressed_sha256": "aeeec2006630a3ae9ee80a0503f23eb8f3393c99ba1fbf7c1d6578cc8211626a"
+    },
+    "validation/v2/author/codegen/candidate/conv.disasm.txt.gz": {
+      "sha256": "1217d19ecc9dd8359faa7ee7b1797a71f72717aad57f2855ca141d998583762f",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/codegen/candidate/conv.disasm.txt",
+      "uncompressed_sha256": "d76a16b63f7a29105b331779837a40f3c534e7e642b9b01c6807be529214a011"
+    },
+    "validation/v2/author/codegen/candidate/conv.su.gz": {
+      "sha256": "b5f924a903e6225dbfd1adf5d96c056d3acedd6ad4aa3e50ddc69cab8901fd61",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/codegen/candidate/conv.su",
+      "uncompressed_sha256": "f50cde6fc76c930ed55dc766b15989eeb6bf3474bbfa72f5b7f85059f1f100c4"
+    },
+    "validation/v2/author/codegen/summary-final.json": {
+      "sha256": "3aa8ef6485e32f2b5eb8c2f0110b821e4c9d24b6ca6155ab95840592d5edd009",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/codegen/summary-final.json",
+      "uncompressed_sha256": "3aa8ef6485e32f2b5eb8c2f0110b821e4c9d24b6ca6155ab95840592d5edd009"
+    },
+    "validation/v2/author/codegen/summary.json": {
+      "sha256": "9860e38c48215fa845bf7404e9176ab205ae67271606e3e2445c064442ed68b4",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/codegen/summary.json",
+      "uncompressed_sha256": "9860e38c48215fa845bf7404e9176ab205ae67271606e3e2445c064442ed68b4"
+    },
+    "validation/v2/author/codegen/v2-full-callback.dis.gz": {
+      "sha256": "a1a5060982a45953c459bb08c8338fa3203c65fb01bb50abcf9bf115830008fd",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/codegen/v2-full-callback.dis",
+      "uncompressed_sha256": "78fc000f401fd8f8565545fc8c4f108ee17a54b0e6e37b68790a283cd93bbfb6"
+    },
+    "validation/v2/author/continue-conv-isolated-repeat1024.runner.log.gz": {
+      "sha256": "073fb1d43d0af4f63b6f502dc67731fc010c1e9032758895c0c5bbdba25f8ca2",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/continue-conv-isolated-repeat1024.runner.log",
+      "uncompressed_sha256": "2d693f3b9f54f0182d49a34dc6c9195c90b5be09b0562d007cce086e229c4ca3"
+    },
+    "validation/v2/author/continue-conv-isolated-repeat2048.runner.log.gz": {
+      "sha256": "af2a38848ed97c2765354920f586a2adbbd17e7393fe06b82c656aefd2a4c2e0",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/continue-conv-isolated-repeat2048.runner.log",
+      "uncompressed_sha256": "36a612341681299e58e4e222bafd55b947c5d4c5ccd314801822c77d26e3ba38"
+    },
+    "validation/v2/author/host-san-final.log.gz": {
+      "sha256": "52529d7bbbe070f8d48d5e476883b86c65fb85b15cfd7e7f1136655609c5b981",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/host-san-final.log",
+      "uncompressed_sha256": "2d8b9bf42c7e7fa9f66219ed26cb5e0e19d7cf88d4c1f5a725c1ae8fbf976cf6"
+    },
+    "validation/v2/author/host-san.log.gz": {
+      "sha256": "52529d7bbbe070f8d48d5e476883b86c65fb85b15cfd7e7f1136655609c5b981",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/host-san.log",
+      "uncompressed_sha256": "2d8b9bf42c7e7fa9f66219ed26cb5e0e19d7cf88d4c1f5a725c1ae8fbf976cf6"
+    },
+    "validation/v2/author/linux-x86-gcc.log.gz": {
+      "sha256": "307aab511fd8e5c259eb61672e36feb1ef89412470bb400ccc454dd097182bcd",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/linux-x86-gcc.log",
+      "uncompressed_sha256": "539f7cb7463ca4243847f8649e1a8a3caaf05fc7b811cdcdd088ca525f160e38"
+    },
+    "validation/v2/author/manifest.json": {
+      "sha256": "737f3cfb3fdffb8f4ed9d8136241c36843e359cadf4148cdec0dfbf807ae3e34",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/manifest.json",
+      "uncompressed_sha256": "737f3cfb3fdffb8f4ed9d8136241c36843e359cadf4148cdec0dfbf807ae3e34"
+    },
+    "validation/v2/author/mutants-final.log.gz": {
+      "sha256": "d2dbacfcfa16825620bcb6b89369437563287e0e2c6ebf9b17b500b994768fb3",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final.log",
+      "uncompressed_sha256": "4d2f5e422ab5b0d173b215720a147a1236911306b7656e1dc0a80db68af203d1"
+    },
+    "validation/v2/author/mutants-final/chunk_local_history/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "020a013367e111c1ce0c2d43d94397f2dea7b64816f865ee1dc838f8e6b84749",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/chunk_local_history/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "uncompressed_sha256": "03accad362107c8b02ff96dd886bc1feda073ed6e431d91687e221ee30ee2754"
+    },
+    "validation/v2/author/mutants-final/chunk_local_history/checks/commands.json": {
+      "sha256": "28346cf46a1e130e93975b81feaa8a81d7d1cfea45b7a447eb4154878a173b72",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/chunk_local_history/checks/commands.json",
+      "uncompressed_sha256": "28346cf46a1e130e93975b81feaa8a81d7d1cfea45b7a447eb4154878a173b72"
+    },
+    "validation/v2/author/mutants-final/chunk_local_history/checks/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "456c54a4bddb89bb188d63eca6f6bdaa0c7eb757ad2ac6337d8fdeb316302574",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/chunk_local_history/checks/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "1f66b7fd088da2543517bfb696578e2fb7c9bc12221f67be551ed6ccd0944f7a"
+    },
+    "validation/v2/author/mutants-final/chunk_local_history/run.log.gz": {
+      "sha256": "0a1457c77ff93781ab15cecbd1c5f4f83e5ef287a1b37d38596fff4a32acc934",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/chunk_local_history/run.log",
+      "uncompressed_sha256": "5911d9fa6b2429bcc504785cf1ed403edad207d651be65a7bb5ce6e26e710519"
+    },
+    "validation/v2/author/mutants-final/missing_from_guard/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "f3210bf6d1edfc4080ea0d5148fab66711b3af95314961ecd0f4502fb87268d6",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/missing_from_guard/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "uncompressed_sha256": "99763a48595b99e8c472f3f33dd1de485cc1697f3f14a636a65d7a9a34893bc2"
+    },
+    "validation/v2/author/mutants-final/missing_from_guard/checks/commands.json": {
+      "sha256": "550af55f86493e79a14df005ef9559f36ac8ea778bf5475b03cac28b3f986693",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/missing_from_guard/checks/commands.json",
+      "uncompressed_sha256": "550af55f86493e79a14df005ef9559f36ac8ea778bf5475b03cac28b3f986693"
+    },
+    "validation/v2/author/mutants-final/missing_from_guard/checks/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "456c54a4bddb89bb188d63eca6f6bdaa0c7eb757ad2ac6337d8fdeb316302574",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/missing_from_guard/checks/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "1f66b7fd088da2543517bfb696578e2fb7c9bc12221f67be551ed6ccd0944f7a"
+    },
+    "validation/v2/author/mutants-final/missing_from_guard/run.log.gz": {
+      "sha256": "5ee7b7d2d3b1058f474bc2d19f05a6859b77848b8ddd77b85a115040f424152f",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/missing_from_guard/run.log",
+      "uncompressed_sha256": "0d7bc0cd79a9c03f09edb18a8dd38d1f8a324aecd85ccda16fd64dabbc85edd2"
+    },
+    "validation/v2/author/mutants-final/missing_input_overlap/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "eabf91f259ffdb2f26af2f85346211eb06822e0352aa8e139191ddb0b3ab7438",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/missing_input_overlap/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "uncompressed_sha256": "0c0c5ef4ef7df0636b7b7fed6ef6b2c0ed159eadf01a533e4dc053853ac58128"
+    },
+    "validation/v2/author/mutants-final/missing_input_overlap/checks/commands.json": {
+      "sha256": "6e94866eb4ae032127d55a0cdc6a4806313a6d637ca2cd8cc9a5ea9b9d2d56c0",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/missing_input_overlap/checks/commands.json",
+      "uncompressed_sha256": "6e94866eb4ae032127d55a0cdc6a4806313a6d637ca2cd8cc9a5ea9b9d2d56c0"
+    },
+    "validation/v2/author/mutants-final/missing_input_overlap/checks/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "456c54a4bddb89bb188d63eca6f6bdaa0c7eb757ad2ac6337d8fdeb316302574",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/missing_input_overlap/checks/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "1f66b7fd088da2543517bfb696578e2fb7c9bc12221f67be551ed6ccd0944f7a"
+    },
+    "validation/v2/author/mutants-final/missing_input_overlap/run.log.gz": {
+      "sha256": "05c094a42518bb14bad074e42725649371ea5d09ef1c4d938fd6df2c3051f029",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/missing_input_overlap/run.log",
+      "uncompressed_sha256": "165f9e2a05528412e024ff6a4ba22442861aad542d9f51f1a949b3a38f809921"
+    },
+    "validation/v2/author/mutants-final/read_sampled_host/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "815349afafa527d0902de875d557c2c5ee71b504ebaa03d2c998de51ed3cf45b",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/read_sampled_host/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "uncompressed_sha256": "abebeb914bd8c8effe8b25a68fc8be7cf2778c69c0787cb294d679f06d24ebe2"
+    },
+    "validation/v2/author/mutants-final/read_sampled_host/checks/commands.json": {
+      "sha256": "a1a159dbd017ca1b3f71cfb3102115994ce8a65fb33728a44a8a888902d94fa8",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/read_sampled_host/checks/commands.json",
+      "uncompressed_sha256": "a1a159dbd017ca1b3f71cfb3102115994ce8a65fb33728a44a8a888902d94fa8"
+    },
+    "validation/v2/author/mutants-final/read_sampled_host/checks/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "456c54a4bddb89bb188d63eca6f6bdaa0c7eb757ad2ac6337d8fdeb316302574",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/read_sampled_host/checks/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "1f66b7fd088da2543517bfb696578e2fb7c9bc12221f67be551ed6ccd0944f7a"
+    },
+    "validation/v2/author/mutants-final/read_sampled_host/run.log.gz": {
+      "sha256": "57a65c5a5c441c1f4d34bbb17583514b018027d457d7dd7804f76b7ae8468922",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/read_sampled_host/run.log",
+      "uncompressed_sha256": "b9364f13dcedd777a9102eac5c81b574328d2c500c20806516cb35aef26675b3"
+    },
+    "validation/v2/author/mutants-final/results.json": {
+      "sha256": "8278ff472c90b44546d7c6c9974ad264f17bf2f4fef72b9efbb61e88f407ec2f",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/results.json",
+      "uncompressed_sha256": "8278ff472c90b44546d7c6c9974ad264f17bf2f4fef72b9efbb61e88f407ec2f"
+    },
+    "validation/v2/author/mutants-final/state_before_success/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "97c346737281f4c4d6cd4ae7bda46211057b94c058ae5ae3ae5ff15caf1efd61",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/state_before_success/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "uncompressed_sha256": "fa6b7e91159164ef07cb7f68f23916927e714c1a7a2d1bf5965369c00d62de9f"
+    },
+    "validation/v2/author/mutants-final/state_before_success/checks/commands.json": {
+      "sha256": "c77e76fe36cea05aa812bb8fb57a35cf91e17b11ca9dd1b328f923a50dd5f224",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/state_before_success/checks/commands.json",
+      "uncompressed_sha256": "c77e76fe36cea05aa812bb8fb57a35cf91e17b11ca9dd1b328f923a50dd5f224"
+    },
+    "validation/v2/author/mutants-final/state_before_success/checks/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "456c54a4bddb89bb188d63eca6f6bdaa0c7eb757ad2ac6337d8fdeb316302574",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/state_before_success/checks/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "1f66b7fd088da2543517bfb696578e2fb7c9bc12221f67be551ed6ccd0944f7a"
+    },
+    "validation/v2/author/mutants-final/state_before_success/run.log.gz": {
+      "sha256": "2d07b1bd4f5d50d5afa18f0dc74bc8544f824a6b0da7536a58cad96449725535",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/state_before_success/run.log",
+      "uncompressed_sha256": "0ae36a6dd801e01f7f8ab54777d1f42a6c3df1ece1bdf0cae5106b46659e9104"
+    },
+    "validation/v2/author/mutants-final/wrong_projection_row/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "93cb582e95b79c06169f042b44bd15fd75be391bcf4d5d9a9830546716df30db",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/wrong_projection_row/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "uncompressed_sha256": "94c196f185047ce7d7571abd24c5acc5bfb654954274a2d70dbe366d9fe87305"
+    },
+    "validation/v2/author/mutants-final/wrong_projection_row/checks/commands.json": {
+      "sha256": "530480ea4d950a225160c9ad4ff40e479253fed95da1ff45a83e40ca4b296ba4",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/wrong_projection_row/checks/commands.json",
+      "uncompressed_sha256": "530480ea4d950a225160c9ad4ff40e479253fed95da1ff45a83e40ca4b296ba4"
+    },
+    "validation/v2/author/mutants-final/wrong_projection_row/checks/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "456c54a4bddb89bb188d63eca6f6bdaa0c7eb757ad2ac6337d8fdeb316302574",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/wrong_projection_row/checks/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "1f66b7fd088da2543517bfb696578e2fb7c9bc12221f67be551ed6ccd0944f7a"
+    },
+    "validation/v2/author/mutants-final/wrong_projection_row/run.log.gz": {
+      "sha256": "43e06c05d8e4fbd8880f5864bd6d2b1b902054ec403a772f8e0ed181c24f3764",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants-final/wrong_projection_row/run.log",
+      "uncompressed_sha256": "305dfbbc2296df3786e3002cff7f43955bc8675f98f3b992a236d40099d7c15a"
+    },
+    "validation/v2/author/mutants.log.gz": {
+      "sha256": "d2dbacfcfa16825620bcb6b89369437563287e0e2c6ebf9b17b500b994768fb3",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/mutants.log",
+      "uncompressed_sha256": "4d2f5e422ab5b0d173b215720a147a1236911306b7656e1dc0a80db68af203d1"
+    },
+    "validation/v2/author/native-build-final.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/native-build-final.log",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "validation/v2/author/native-build.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/native-build.log",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "validation/v2/author/portable-builds.json": {
+      "sha256": "862f32bc4af5ed21f89a347b12959c81b20de97610e46265e6c49c5b992d9b8c",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/portable-builds.json",
+      "uncompressed_sha256": "862f32bc4af5ed21f89a347b12959c81b20de97610e46265e6c49c5b992d9b8c"
+    },
+    "validation/v2/author/production.patch.gz": {
+      "sha256": "d219cdf9a91c0bf015f9748fa62c73a3e580212db3449a642972c46ecdfd0261",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/production.patch",
+      "uncompressed_sha256": "94ae618667ce4f9d822b68d7d03814d0f1100110f7685be012cad17ea7331342"
+    },
+    "validation/v2/author/root-app-build.log.gz": {
+      "sha256": "d5552c47ace34189ffa694b38f5fcc99bea02654bb4fc6a96f10785f39a735fb",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-app-build.log",
+      "uncompressed_sha256": "fb3c2e8fd1fc8fc6ff9a8f5f453d29aab6368518f219561b58ee23b5f07a6c03"
+    },
+    "validation/v2/author/root-frozen/applied.patch.gz": {
+      "sha256": "a221b592df431e8d82cc48ce4bd3a2c25abc72f60e0c00ce74f3169028da6834",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-frozen/applied.patch",
+      "uncompressed_sha256": "1ac6823822a127e3a2aceeb3defbf6ea1e3b0d7b70320b36c15aa703b929fbc3"
+    },
+    "validation/v2/author/root-frozen/source.json": {
+      "sha256": "10b0f86944c97a324ae53f6ce48753c47f5b6dc6ae57066f91d1b9d3867f0471",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-frozen/source.json",
+      "uncompressed_sha256": "10b0f86944c97a324ae53f6ce48753c47f5b6dc6ae57066f91d1b9d3867f0471"
+    },
+    "validation/v2/author/root-integrated-san/commands.json": {
+      "sha256": "07ee9aa8058363b515f348f98e51f771e96236ddfbf8bf6223816a490e4d30c7",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-integrated-san/commands.json",
+      "uncompressed_sha256": "07ee9aa8058363b515f348f98e51f771e96236ddfbf8bf6223816a490e4d30c7"
+    },
+    "validation/v2/author/root-integrated-san/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "456c54a4bddb89bb188d63eca6f6bdaa0c7eb757ad2ac6337d8fdeb316302574",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-integrated-san/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "1f66b7fd088da2543517bfb696578e2fb7c9bc12221f67be551ed6ccd0944f7a"
+    },
+    "validation/v2/author/root-native-arm.json": {
+      "sha256": "b43f3359b022eb429b3016f9263ec32786e8e3e87b89cb65a17399d257ec7c38",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-native-arm.json",
+      "uncompressed_sha256": "b43f3359b022eb429b3016f9263ec32786e8e3e87b89cb65a17399d257ec7c38"
+    },
+    "validation/v2/author/root-native-arm.log.gz": {
+      "sha256": "52529d7bbbe070f8d48d5e476883b86c65fb85b15cfd7e7f1136655609c5b981",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-native-arm.log",
+      "uncompressed_sha256": "2d8b9bf42c7e7fa9f66219ed26cb5e0e19d7cf88d4c1f5a725c1ae8fbf976cf6"
+    },
+    "validation/v2/author/root-normal-jobs.json": {
+      "sha256": "3654b3fdfbcc934186a0eca3786a97dae39ea604da1652756a68a41d4819c5a5",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-normal-jobs.json",
+      "uncompressed_sha256": "3654b3fdfbcc934186a0eca3786a97dae39ea604da1652756a68a41d4819c5a5"
+    },
+    "validation/v2/author/root-normal-runs.log.gz": {
+      "sha256": "4b60114f4a35c429a31cd00140cbb1a560137ab825bc5180a4de03483a7fa52d",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-normal-runs.log",
+      "uncompressed_sha256": "d947862b4221994603b9b4f5cc2760c762360a10e6a27c7390b356a6e982a326"
+    },
+    "validation/v2/author/root-normal-summary.json": {
+      "sha256": "21851df013851fab272785f8b303f019ad162e25000410777b0b8e3b5c27fe68",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-normal-summary.json",
+      "uncompressed_sha256": "21851df013851fab272785f8b303f019ad162e25000410777b0b8e3b5c27fe68"
+    },
+    "validation/v2/author/root-profile-jobs.json": {
+      "sha256": "b38fc03a984d317671a9d91b7cb38ffd511a6472ec6f9d2d5b2e35ddc81b65cb",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-profile-jobs.json",
+      "uncompressed_sha256": "b38fc03a984d317671a9d91b7cb38ffd511a6472ec6f9d2d5b2e35ddc81b65cb"
+    },
+    "validation/v2/author/root-profile-runs.log.gz": {
+      "sha256": "4dd7afa2386e3a9d71f808aa0da0f1f8790d68a9dd89b37b17bfb49e7fd390a0",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-profile-runs.log",
+      "uncompressed_sha256": "a525da48df4db94ad05e3ba9e3675e225355a4eae00bda3964452d8f3e9f0e55"
+    },
+    "validation/v2/author/root-profile-summary.json": {
+      "sha256": "e2ffa2090de7f304dce45905c30464cb0bf4b45c986a329b7ad5bd5853085940",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/root-profile-summary.json",
+      "uncompressed_sha256": "e2ffa2090de7f304dce45905c30464cb0bf4b45c986a329b7ad5bd5853085940"
+    },
+    "validation/v2/author/run_mutants.py": {
+      "sha256": "629b5ff512aa8343700049ba293d1279109adfe9b27d5c489f2ed913b8c8b67a",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/run_mutants.py",
+      "uncompressed_sha256": "629b5ff512aa8343700049ba293d1279109adfe9b27d5c489f2ed913b8c8b67a"
+    },
+    "validation/v2/author/source-hashes.json": {
+      "sha256": "e974ee9d806b61e40f8881b07488f7c684c0e0d3a9a6078d7a069dbef700978d",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/source-hashes.json",
+      "uncompressed_sha256": "e974ee9d806b61e40f8881b07488f7c684c0e0d3a9a6078d7a069dbef700978d"
+    },
+    "validation/v2/author/test/htp/host/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "456c54a4bddb89bb188d63eca6f6bdaa0c7eb757ad2ac6337d8fdeb316302574",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/test/htp/host/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "1f66b7fd088da2543517bfb696578e2fb7c9bc12221f67be551ed6ccd0944f7a"
+    },
+    "validation/v2/author/test/htp/host/run_lfm2_conv_chunk_check.py": {
+      "sha256": "3a82845a2e79dab500fbc00e4c5466b144e3a6217a40a57f767633247248b81d",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/test/htp/host/run_lfm2_conv_chunk_check.py",
+      "uncompressed_sha256": "3a82845a2e79dab500fbc00e4c5466b144e3a6217a40a57f767633247248b81d"
+    },
+    "validation/v2/author/tests-v1-to-v2.patch.gz": {
+      "sha256": "043a17c58a24af8e47686395dcc4b100806b5cdec4cd10489b6e43e00b7166b3",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/tests-v1-to-v2.patch",
+      "uncompressed_sha256": "f301155437bcb0f579f1758a02291afc1c5ed9561a4c989413ab595cd565cb3d"
+    },
+    "validation/v2/author/tests.patch.gz": {
+      "sha256": "64300059bcdb7ab2dab4412c7a4ea291bf60b38cef4e2490d49cbd836ba55ad0",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/tests.patch",
+      "uncompressed_sha256": "0a1754e918f1d7cb50c94e415dd3337607d4caa79ee289e677801d32507c3708"
+    },
+    "validation/v2/author/v1-to-v2.patch.gz": {
+      "sha256": "13f01f93ec509f7fc2a4b7ae9dcdf68cfb3d1ea3edb9b7c70e5b5f653b58ad8b",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/v1-to-v2.patch",
+      "uncompressed_sha256": "40881519824b79fdbc02b8e9f6a1659bc9362595ef94928596a75d6e634c23b3"
+    },
+    "validation/v2/author/validation.json": {
+      "sha256": "e0176cf7aa9f4131f2197bb45fe45334f280de7453cbd5a011b184bbe664413d",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/validation.json",
+      "uncompressed_sha256": "e0176cf7aa9f4131f2197bb45fe45334f280de7453cbd5a011b184bbe664413d"
+    },
+    "validation/v2/independent/android-build.log.gz": {
+      "sha256": "8b9e2074b6dae9a5d0251342e8cb2ddfdaaf6f27564d4abd7419a576f3be5661",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/android-build.log",
+      "uncompressed_sha256": "348aa70be8864afa564a45c09d595d3bf789bdf9aa96c761186a0fe042372fce"
+    },
+    "validation/v2/independent/android-command.json": {
+      "sha256": "b87baa3ad440fb6becb2dfd9a85ff8c45a5c8ea71118df7228876d71bca3b072",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/android-command.json",
+      "uncompressed_sha256": "b87baa3ad440fb6becb2dfd9a85ff8c45a5c8ea71118df7228876d71bca3b072"
+    },
+    "validation/v2/independent/android-x86-clang-command.json": {
+      "sha256": "e041b73d6f4cde05bc39c3cb4573abfdcc0cb1a3efc2dc9d4dda8242c13f4f1b",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/android-x86-clang-command.json",
+      "uncompressed_sha256": "e041b73d6f4cde05bc39c3cb4573abfdcc0cb1a3efc2dc9d4dda8242c13f4f1b"
+    },
+    "validation/v2/independent/android-x86-clang.log.gz": {
+      "sha256": "8b9e2074b6dae9a5d0251342e8cb2ddfdaaf6f27564d4abd7419a576f3be5661",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/android-x86-clang.log",
+      "uncompressed_sha256": "348aa70be8864afa564a45c09d595d3bf789bdf9aa96c761186a0fe042372fce"
+    },
+    "validation/v2/independent/before-android.dis.gz": {
+      "sha256": "809a32df2d0bd3d15ae971babb242e77bc8d053afc20590f45909422393f10cf",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/before-android.dis",
+      "uncompressed_sha256": "cfa2a94f1cadcb099497dccda1403ab6f0b4a32b168226943c28d67f81cf4b5f"
+    },
+    "validation/v2/independent/before-full-callback.dis.gz": {
+      "sha256": "cd33278af1ee4c5cc814e3dcfa7ba3bd4c03aa243735106592f179107bf6d79b",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/before-full-callback.dis",
+      "uncompressed_sha256": "c61792e0703a4866bbbbb960e18a72ea454c467ae67e2e1c1ed26e2d9c4a2ec5"
+    },
+    "validation/v2/independent/candidate-android.dis.gz": {
+      "sha256": "e36ebac64c27e40dcc3bb734ca46993cf2845de7713c49a4839d0c7737195599",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/candidate-android.dis",
+      "uncompressed_sha256": "a059528dfcdfed36ff90dbb4cbc4b8271828fa2db9bafafe21471001f425a1d6"
+    },
+    "validation/v2/independent/candidate-full-callback.dis.gz": {
+      "sha256": "cd33278af1ee4c5cc814e3dcfa7ba3bd4c03aa243735106592f179107bf6d79b",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/candidate-full-callback.dis",
+      "uncompressed_sha256": "c61792e0703a4866bbbbb960e18a72ea454c467ae67e2e1c1ed26e2d9c4a2ec5"
+    },
+    "validation/v2/independent/candidate-stack.su.gz": {
+      "sha256": "a7a11cff6c8da82d841b812cbe87570aa80b1be401fb8f65ed789a50baad76d1",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/candidate-stack.su",
+      "uncompressed_sha256": "1095a91a4c864e92ff2d681624c6d13ca927cade42b9c3ae82dbb68038aaddc1"
+    },
+    "validation/v2/independent/check_codegen.py": {
+      "sha256": "a8b120049f505e923c0a47a40c3a50688809373ffa759c0b6b1941da900f5bd1",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/check_codegen.py",
+      "uncompressed_sha256": "a8b120049f505e923c0a47a40c3a50688809373ffa759c0b6b1941da900f5bd1"
+    },
+    "validation/v2/independent/codegen.json": {
+      "sha256": "d988afef9b0376b860dbdebf30a43d77e578cc05a3348cc3be9821eb18c8142c",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/codegen.json",
+      "uncompressed_sha256": "d988afef9b0376b860dbdebf30a43d77e578cc05a3348cc3be9821eb18c8142c"
+    },
+    "validation/v2/independent/frozen/android-command.json": {
+      "sha256": "b5228c3be261c638573932575c232aef5be2ef7fd9c0e5db3eaea91fc77d3022",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/frozen/android-command.json",
+      "uncompressed_sha256": "b5228c3be261c638573932575c232aef5be2ef7fd9c0e5db3eaea91fc77d3022"
+    },
+    "validation/v2/independent/frozen/author-source-hashes.json": {
+      "sha256": "e974ee9d806b61e40f8881b07488f7c684c0e0d3a9a6078d7a069dbef700978d",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/frozen/author-source-hashes.json",
+      "uncompressed_sha256": "e974ee9d806b61e40f8881b07488f7c684c0e0d3a9a6078d7a069dbef700978d"
+    },
+    "validation/v2/independent/frozen/before/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "b23efb15c6e1073a040d6da9ee97c23fdee1dcbca9c28170d3cf1d0825091d92",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/frozen/before/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "uncompressed_sha256": "bc019abdbf0cadb48e0aaa4ecc3898bc9b0a37e11f28c306d9762f766292869a"
+    },
+    "validation/v2/independent/frozen/candidate/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "c5b5c314d5664e442df2a25fec267f9ca08a53e451dd97ee65ca0899a71e606f",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/frozen/candidate/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "uncompressed_sha256": "846921eaa9b7da92bb20b7ee891e918b317017e471b0048a1e2b3a05b4708de3"
+    },
+    "validation/v2/independent/frozen/draft/production.patch.gz": {
+      "sha256": "a969643a65b2cf8f55d9f9a1dda444f3a05f480df5233ef036a7b6ccc427b217",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/frozen/draft/production.patch",
+      "uncompressed_sha256": "838abe73fefc562aa73106a030319cc3b9663ad7a2a3ea4ed0dfccde4e41dd33"
+    },
+    "validation/v2/independent/frozen/draft/v1-to-v2.patch.gz": {
+      "sha256": "13a129a78d035d6f59f0e65687ba9f8bf8f0a517474dbabae82b452f8a7703fd",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/frozen/draft/v1-to-v2.patch",
+      "uncompressed_sha256": "79c38ec70ee7907453a7dfc486cb609d135fec41642edb9f59425d62d04939a8"
+    },
+    "validation/v2/independent/frozen/production.patch.gz": {
+      "sha256": "d219cdf9a91c0bf015f9748fa62c73a3e580212db3449a642972c46ecdfd0261",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/frozen/production.patch",
+      "uncompressed_sha256": "94ae618667ce4f9d822b68d7d03814d0f1100110f7685be012cad17ea7331342"
+    },
+    "validation/v2/independent/frozen/run_mutants.py": {
+      "sha256": "629b5ff512aa8343700049ba293d1279109adfe9b27d5c489f2ed913b8c8b67a",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/frozen/run_mutants.py",
+      "uncompressed_sha256": "629b5ff512aa8343700049ba293d1279109adfe9b27d5c489f2ed913b8c8b67a"
+    },
+    "validation/v2/independent/frozen/test/htp/host/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "456c54a4bddb89bb188d63eca6f6bdaa0c7eb757ad2ac6337d8fdeb316302574",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/frozen/test/htp/host/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "1f66b7fd088da2543517bfb696578e2fb7c9bc12221f67be551ed6ccd0944f7a"
+    },
+    "validation/v2/independent/frozen/test/htp/host/run_lfm2_conv_chunk_check.py": {
+      "sha256": "3a82845a2e79dab500fbc00e4c5466b144e3a6217a40a57f767633247248b81d",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/frozen/test/htp/host/run_lfm2_conv_chunk_check.py",
+      "uncompressed_sha256": "3a82845a2e79dab500fbc00e4c5466b144e3a6217a40a57f767633247248b81d"
+    },
+    "validation/v2/independent/frozen/tests-v1-to-v2.patch.gz": {
+      "sha256": "043a17c58a24af8e47686395dcc4b100806b5cdec4cd10489b6e43e00b7166b3",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/frozen/tests-v1-to-v2.patch",
+      "uncompressed_sha256": "f301155437bcb0f579f1758a02291afc1c5ed9561a4c989413ab595cd565cb3d"
+    },
+    "validation/v2/independent/frozen/tests.patch.gz": {
+      "sha256": "64300059bcdb7ab2dab4412c7a4ea291bf60b38cef4e2490d49cbd836ba55ad0",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/frozen/tests.patch",
+      "uncompressed_sha256": "0a1754e918f1d7cb50c94e415dd3337607d4caa79ee289e677801d32507c3708"
+    },
+    "validation/v2/independent/frozen/v1-to-v2.patch.gz": {
+      "sha256": "13f01f93ec509f7fc2a4b7ae9dcdf68cfb3d1ea3edb9b7c70e5b5f653b58ad8b",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/frozen/v1-to-v2.patch",
+      "uncompressed_sha256": "40881519824b79fdbc02b8e9f6a1659bc9362595ef94928596a75d6e634c23b3"
+    },
+    "validation/v2/independent/full-helper.txt": {
+      "sha256": "9a11cc9a736f30ef08e824c85a1815b718f895d71f4a132ea19ee966fa6b413b",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/full-helper.txt",
+      "uncompressed_sha256": "9a11cc9a736f30ef08e824c85a1815b718f895d71f4a132ea19ee966fa6b413b"
+    },
+    "validation/v2/independent/host-san.log.gz": {
+      "sha256": "52529d7bbbe070f8d48d5e476883b86c65fb85b15cfd7e7f1136655609c5b981",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/host-san.log",
+      "uncompressed_sha256": "2d8b9bf42c7e7fa9f66219ed26cb5e0e19d7cf88d4c1f5a725c1ae8fbf976cf6"
+    },
+    "validation/v2/independent/host-san/commands.json": {
+      "sha256": "c81492999b6c32338f4c03a44e1a6906e3f69fcd3ac89bedc33ad4eafb944174",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/host-san/commands.json",
+      "uncompressed_sha256": "c81492999b6c32338f4c03a44e1a6906e3f69fcd3ac89bedc33ad4eafb944174"
+    },
+    "validation/v2/independent/host-san/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "456c54a4bddb89bb188d63eca6f6bdaa0c7eb757ad2ac6337d8fdeb316302574",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/host-san/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "1f66b7fd088da2543517bfb696578e2fb7c9bc12221f67be551ed6ccd0944f7a"
+    },
+    "validation/v2/independent/input-manifest.json": {
+      "sha256": "97d3e53aa431b89b6aa18bc11d42db3c543efd3bf7cd9cd4b89098d712d90844",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/input-manifest.json",
+      "uncompressed_sha256": "97d3e53aa431b89b6aa18bc11d42db3c543efd3bf7cd9cd4b89098d712d90844"
+    },
+    "validation/v2/independent/linux-x86-gcc-command.json": {
+      "sha256": "20db030e42e5ad65b9365b71ea76739a83d3b02b5ee0b5e9425dffcba61e6ce0",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/linux-x86-gcc-command.json",
+      "uncompressed_sha256": "20db030e42e5ad65b9365b71ea76739a83d3b02b5ee0b5e9425dffcba61e6ce0"
+    },
+    "validation/v2/independent/linux-x86-gcc.log.gz": {
+      "sha256": "3d4698e67321af8e32bd892db74c8615c976b58481bb1cd24cb4c7f3fda3ec47",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/linux-x86-gcc.log",
+      "uncompressed_sha256": "e7bc4415cc5e55d7f6fb0e0e949dedbb3df15ff69ebf092c239b77ff75e97f5a"
+    },
+    "validation/v2/independent/mutants-san.log.gz": {
+      "sha256": "d2dbacfcfa16825620bcb6b89369437563287e0e2c6ebf9b17b500b994768fb3",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san.log",
+      "uncompressed_sha256": "4d2f5e422ab5b0d173b215720a147a1236911306b7656e1dc0a80db68af203d1"
+    },
+    "validation/v2/independent/mutants-san/chunk_local_history/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "020a013367e111c1ce0c2d43d94397f2dea7b64816f865ee1dc838f8e6b84749",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/chunk_local_history/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "uncompressed_sha256": "03accad362107c8b02ff96dd886bc1feda073ed6e431d91687e221ee30ee2754"
+    },
+    "validation/v2/independent/mutants-san/chunk_local_history/checks/commands.json": {
+      "sha256": "603626d3aba4ec04ff48b6abe73eefdac264b625363bf4c804765d59216249a2",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/chunk_local_history/checks/commands.json",
+      "uncompressed_sha256": "603626d3aba4ec04ff48b6abe73eefdac264b625363bf4c804765d59216249a2"
+    },
+    "validation/v2/independent/mutants-san/chunk_local_history/checks/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "456c54a4bddb89bb188d63eca6f6bdaa0c7eb757ad2ac6337d8fdeb316302574",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/chunk_local_history/checks/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "1f66b7fd088da2543517bfb696578e2fb7c9bc12221f67be551ed6ccd0944f7a"
+    },
+    "validation/v2/independent/mutants-san/chunk_local_history/run.log.gz": {
+      "sha256": "e8e5a1ebbf789317b7b9a643b37830db211734d335b11cbd463412988ce4a55a",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/chunk_local_history/run.log",
+      "uncompressed_sha256": "9960b91f3559e039764e4e706253bba5f6e984b26dc68681a06695aec228fd95"
+    },
+    "validation/v2/independent/mutants-san/missing_from_guard/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "f3210bf6d1edfc4080ea0d5148fab66711b3af95314961ecd0f4502fb87268d6",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/missing_from_guard/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "uncompressed_sha256": "99763a48595b99e8c472f3f33dd1de485cc1697f3f14a636a65d7a9a34893bc2"
+    },
+    "validation/v2/independent/mutants-san/missing_from_guard/checks/commands.json": {
+      "sha256": "f322a5924702812df6cd30b97174e6808a85130c51347549363cd699c2f964e1",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/missing_from_guard/checks/commands.json",
+      "uncompressed_sha256": "f322a5924702812df6cd30b97174e6808a85130c51347549363cd699c2f964e1"
+    },
+    "validation/v2/independent/mutants-san/missing_from_guard/checks/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "456c54a4bddb89bb188d63eca6f6bdaa0c7eb757ad2ac6337d8fdeb316302574",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/missing_from_guard/checks/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "1f66b7fd088da2543517bfb696578e2fb7c9bc12221f67be551ed6ccd0944f7a"
+    },
+    "validation/v2/independent/mutants-san/missing_from_guard/run.log.gz": {
+      "sha256": "bc62e17072e14a28ed8daec9be7df3844be29fb74db3acb4fc270047075ca8ac",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/missing_from_guard/run.log",
+      "uncompressed_sha256": "76911f5f59469ed3f823b7a184146330f6f117df0f7a98d095a8b03451276e47"
+    },
+    "validation/v2/independent/mutants-san/missing_input_overlap/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "eabf91f259ffdb2f26af2f85346211eb06822e0352aa8e139191ddb0b3ab7438",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/missing_input_overlap/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "uncompressed_sha256": "0c0c5ef4ef7df0636b7b7fed6ef6b2c0ed159eadf01a533e4dc053853ac58128"
+    },
+    "validation/v2/independent/mutants-san/missing_input_overlap/checks/commands.json": {
+      "sha256": "2504a07e9b7f8059e737e279e44de09c0f6b7122efb5dd2c679f75ec8c1ec1e2",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/missing_input_overlap/checks/commands.json",
+      "uncompressed_sha256": "2504a07e9b7f8059e737e279e44de09c0f6b7122efb5dd2c679f75ec8c1ec1e2"
+    },
+    "validation/v2/independent/mutants-san/missing_input_overlap/checks/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "456c54a4bddb89bb188d63eca6f6bdaa0c7eb757ad2ac6337d8fdeb316302574",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/missing_input_overlap/checks/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "1f66b7fd088da2543517bfb696578e2fb7c9bc12221f67be551ed6ccd0944f7a"
+    },
+    "validation/v2/independent/mutants-san/missing_input_overlap/run.log.gz": {
+      "sha256": "92ac320e6c124ba09f6e96b9df0be2542aaf70dfdbd041660cba0e2012375497",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/missing_input_overlap/run.log",
+      "uncompressed_sha256": "6d810f189b8a849cb10434f59d6c77811c619de04be29d92f9d1e0e356825721"
+    },
+    "validation/v2/independent/mutants-san/read_sampled_host/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "815349afafa527d0902de875d557c2c5ee71b504ebaa03d2c998de51ed3cf45b",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/read_sampled_host/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "uncompressed_sha256": "abebeb914bd8c8effe8b25a68fc8be7cf2778c69c0787cb294d679f06d24ebe2"
+    },
+    "validation/v2/independent/mutants-san/read_sampled_host/checks/commands.json": {
+      "sha256": "a7d5de97977ad1fd9ac57db23f9da19c7aaa28154fca334ffd27874efa03b815",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/read_sampled_host/checks/commands.json",
+      "uncompressed_sha256": "a7d5de97977ad1fd9ac57db23f9da19c7aaa28154fca334ffd27874efa03b815"
+    },
+    "validation/v2/independent/mutants-san/read_sampled_host/checks/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "456c54a4bddb89bb188d63eca6f6bdaa0c7eb757ad2ac6337d8fdeb316302574",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/read_sampled_host/checks/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "1f66b7fd088da2543517bfb696578e2fb7c9bc12221f67be551ed6ccd0944f7a"
+    },
+    "validation/v2/independent/mutants-san/read_sampled_host/run.log.gz": {
+      "sha256": "61bdab3d3c14968ebd098e7d5ddd769d72e9b250061db3287f8cef817fc272d4",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/read_sampled_host/run.log",
+      "uncompressed_sha256": "bf028b0c0b8b44e06412bc28422f0489452ed44ea8b4dda3381376f20d1ed518"
+    },
+    "validation/v2/independent/mutants-san/results.json": {
+      "sha256": "b366c3e6583a14778db888c2fff78775bf1304f594ba106ca683e44f04b79f91",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/results.json",
+      "uncompressed_sha256": "b366c3e6583a14778db888c2fff78775bf1304f594ba106ca683e44f04b79f91"
+    },
+    "validation/v2/independent/mutants-san/state_before_success/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "97c346737281f4c4d6cd4ae7bda46211057b94c058ae5ae3ae5ff15caf1efd61",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/state_before_success/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "uncompressed_sha256": "fa6b7e91159164ef07cb7f68f23916927e714c1a7a2d1bf5965369c00d62de9f"
+    },
+    "validation/v2/independent/mutants-san/state_before_success/checks/commands.json": {
+      "sha256": "3403b83437c09e1b615bb7140c01b4c4fb55a40aa788eaf88d099dcb86fdca94",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/state_before_success/checks/commands.json",
+      "uncompressed_sha256": "3403b83437c09e1b615bb7140c01b4c4fb55a40aa788eaf88d099dcb86fdca94"
+    },
+    "validation/v2/independent/mutants-san/state_before_success/checks/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "456c54a4bddb89bb188d63eca6f6bdaa0c7eb757ad2ac6337d8fdeb316302574",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/state_before_success/checks/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "1f66b7fd088da2543517bfb696578e2fb7c9bc12221f67be551ed6ccd0944f7a"
+    },
+    "validation/v2/independent/mutants-san/state_before_success/run.log.gz": {
+      "sha256": "11e5692373df8f9ba28746179dd6b2bd6bc6495e16fbcacfe59da159edd6b84a",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/state_before_success/run.log",
+      "uncompressed_sha256": "1f0b242f5d781fc9e63ab5653039bd0cdf586da8553564a319951318ad1f99c0"
+    },
+    "validation/v2/independent/mutants-san/wrong_projection_row/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "93cb582e95b79c06169f042b44bd15fd75be391bcf4d5d9a9830546716df30db",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/wrong_projection_row/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "uncompressed_sha256": "94c196f185047ce7d7571abd24c5acc5bfb654954274a2d70dbe366d9fe87305"
+    },
+    "validation/v2/independent/mutants-san/wrong_projection_row/checks/commands.json": {
+      "sha256": "8f4991bd378892a28ae7c775b07d8d929b9d9f009e27d68c926edfe1a4e430e1",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/wrong_projection_row/checks/commands.json",
+      "uncompressed_sha256": "8f4991bd378892a28ae7c775b07d8d929b9d9f009e27d68c926edfe1a4e430e1"
+    },
+    "validation/v2/independent/mutants-san/wrong_projection_row/checks/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "456c54a4bddb89bb188d63eca6f6bdaa0c7eb757ad2ac6337d8fdeb316302574",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/wrong_projection_row/checks/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "1f66b7fd088da2543517bfb696578e2fb7c9bc12221f67be551ed6ccd0944f7a"
+    },
+    "validation/v2/independent/mutants-san/wrong_projection_row/run.log.gz": {
+      "sha256": "bf2a9d45e6c78eac9d0349345e56949a1ef7ad46f95b24a94506a1dc9da358b6",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/mutants-san/wrong_projection_row/run.log",
+      "uncompressed_sha256": "79b4c03b4b94c770633191dd9b052985ab927867d275a1f70d6a3a4d174aba82"
+    },
+    "validation/v2/independent/parent-native-arm.json": {
+      "sha256": "b43f3359b022eb429b3016f9263ec32786e8e3e87b89cb65a17399d257ec7c38",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/parent-native-arm.json",
+      "uncompressed_sha256": "b43f3359b022eb429b3016f9263ec32786e8e3e87b89cb65a17399d257ec7c38"
+    },
+    "validation/v2/independent/parent-native-arm.log.gz": {
+      "sha256": "52529d7bbbe070f8d48d5e476883b86c65fb85b15cfd7e7f1136655609c5b981",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/parent-native-arm.log",
+      "uncompressed_sha256": "2d8b9bf42c7e7fa9f66219ed26cb5e0e19d7cf88d4c1f5a725c1ae8fbf976cf6"
+    },
+    "validation/v2/independent/retained-input/commands.json": {
+      "sha256": "81fe0e51d8004bfbe9d7c028e064fa4a052a345e4095f8357418254d5b61d26d",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/retained-input/commands.json",
+      "uncompressed_sha256": "81fe0e51d8004bfbe9d7c028e064fa4a052a345e4095f8357418254d5b61d26d"
+    },
+    "validation/v2/independent/retained-input/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/retained-input/compile.log",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "validation/v2/independent/retained-input/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "25a90795dee5b43a500e0b492607e54de7f3a6ce41b56a73f84ceca6986f1eb0",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/retained-input/lfm2_conv_chunk_check.cpp",
+      "uncompressed_sha256": "1c6bfe2164090b0ee6d67ec18a1e040441bdb25731b1983e794d79d061ea8153"
+    },
+    "validation/v2/independent/retained-input/run.log.gz": {
+      "sha256": "5b39513481170e1900ebb94b40085d8a0025c4d58154d5ebaddab67defd8ed89",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/retained-input/run.log",
+      "uncompressed_sha256": "59c23e3801dc3d10d290c93d47357c9ab12522b81868e0cffd22aa6e520d5823"
+    },
+    "validation/v2/independent/review.txt": {
+      "sha256": "401dcc1419ba7f1d05e1e9a0ce281053156e1d1cf5c19fda38da92b221982b52",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/review.txt",
+      "uncompressed_sha256": "401dcc1419ba7f1d05e1e9a0ce281053156e1d1cf5c19fda38da92b221982b52"
+    },
+    "validation/v2/independent/validation.json": {
+      "sha256": "11267700a3bd211cdf65474d5b1d3261920e9abbece9bf2e64b2ed5ede7a32a6",
+      "source": "/tmp/nntr-lfm2-conv-chunk-view-isolated-review-20261016/validation.json",
+      "uncompressed_sha256": "11267700a3bd211cdf65474d5b1d3261920e9abbece9bf2e64b2ed5ede7a32a6"
+    }
+  }
+}

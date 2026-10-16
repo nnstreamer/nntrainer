@@ -1,0 +1,33 @@
+{
+  "scope": "Profile1 pair: dispatch/copy evidence only; aggregate MB line is MiB formatted at 0.1 precision, not exact byte measurement. Normal TPS is separate.",
+  "runs": [
+    {
+      "tag": "continue-conv-chunk-profile2048-0",
+      "variant": "tl2-gu-direct-epilogue",
+      "config_sha256": "c877d7792cf8830898f49c87b535724d26ce18d62daf5d8c185756cae49f9c71",
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "memory_sha256": "ac5b1f1770eef660b43a6c747f713f12e253424b8e4638592bbe9f6ff46902e8",
+      "full_run_sampled_peak_kib": 3083556.0,
+      "staging_site5861_ms": 87.3,
+      "staging_site5861_reported_mib": 1735.5,
+      "staging_site5861_copies": 120,
+      "all_ids_settings_memory_checks_pass": true
+    },
+    {
+      "tag": "continue-conv-chunk-profile2048-1",
+      "variant": "lfm-conv-chunk-view",
+      "config_sha256": "c877d7792cf8830898f49c87b535724d26ce18d62daf5d8c185756cae49f9c71",
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "memory_sha256": "14185dd02ce46b7f156aeaa2142aaeae10c3ed02e6863a4e336fdbe1ddab2f8e",
+      "full_run_sampled_peak_kib": 3035268.0,
+      "staging_site5861_ms": 13.8,
+      "staging_site5861_reported_mib": 295.5,
+      "staging_site5861_copies": 60,
+      "all_ids_settings_memory_checks_pass": true
+    }
+  ],
+  "expected_30_layer_full_projection_copy_removed_bytes": 1509949440,
+  "printed_staging_copy_delta_mib": 1440.0,
+  "printed_staging_copy_count_delta": 60,
+  "all_checks_pass": true
+}

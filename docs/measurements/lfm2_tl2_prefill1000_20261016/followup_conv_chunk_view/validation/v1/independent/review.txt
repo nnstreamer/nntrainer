@@ -1,0 +1,81 @@
+LFM2048 Conv chunk view: independent review
+
+PASS, no blocker found. Device model parity/performance remains parent-owned.
+Frozen production patch:
+4a6661df1b353699c22151b4d36e60ba5f341811c5c8766e5a615f8fbdec85a7
+Candidate source:
+2392af8742e5ac2c0679bbb26364d50e0d12e0d0254ebc0ed03c17459f89f8f9
+Baseline source:
+bc019abdbf0cadb48e0aaa4ecc3898bc9b0a37e11f28c306d9762f766292869a
+Tests patch:
+2845812902815c03a8b35460314f08b5c2125caed7f9600549f145428353906c
+
+Independent execution
+- Actual extracted app/staging helpers: 82 cases, ASan+UBSan halt/leak checks,
+  no suppressions. Includes 1/4 pthread lanes, finite/signed-zero/subnormal/
+  Inf/NaN values, chunk-boundary history, stale projection poison, aliases,
+  unsupported app guards, both RPC/sync failures with state unchanged, retry,
+  and unchanged default/range helper cases.
+- All six mutants independently rejected for intended failures: local previous
+  row, wrong projection offset, missing input overlap, reading sampled host,
+  premature state update, missing owned-state/from guard.
+- Extra reviewer fixture: 12 cases using actual copyOutOf/trueSource/stageInput.
+  A full input remains only in out_pool or x2_pool; host nonsampled bytes are
+  poisoned. Both1920/128 subranges,1/4 lanes, normal view, forced null-view sync,
+  and second-RPC failure followed by retry using the same retained input pass.
+  No input materialization is needed. Actual source helpers stay unchanged.
+- Whole Android C++ TU compiled independently. Before/candidate stack builds
+  show app frame1760 ->1824B; ranged helper192B. No new large scratch.
+- clang-format14 output is byte-identical to production source.
+- Parent independently ran native NEON82 cases on S26 (binary8293faf7...), PASS.
+  This review read that evidence; it did not use the phone. Native fixture RPC
+  and allocator remain mock, so it is not model/DSP timing proof.
+
+The fixture was executed with runner6edaaffb. Final runnere1d83235 only makes
+SIMDe optional for native ARM and relocates the same include switch; arithmetic,
+extracts, fixture and effective host include order are unchanged. Both runners
+and the inspected delta are preserved. Final C++ fixture282b1eba is unchanged.
+
+Source/lifetime/order proof
+The outer gate requires AArch64,2048 rows,K=C=N2048,affine input/output weights,
+FP32 contiguous input/projection/gated/output,!compare and supported backend.
+It excludes an HTP-owned continuation from>0. Other prompts, Gemma, unsupported
+backends and overlapping tensors follow the original path. No public API or
+platform-specific headers are added; non-AArch64 builds exclude the new helper.
+
+Before any RPC, projection/gated/output/state writes are pairwise disjoint and
+disjoint from the whole input and convolution weights. Each view is validated
+against still-live input,gated,output,state and weights. An unusable view is
+materialized by existing sync_to_host before CPU writes.
+
+Projection rows are local to each chunk (r-first); gated history is global.
+Rows1920/1921 therefore read gated1919/1918 and1920/1919 respectively. The
+per-channel multiply,two FMA,postmultiply order and precise pragmas are unchanged.
+ThreadManager::parallelize waits all workers and issues an acquire fence before
+returning. Both pre-gate and post-gate finish before the next backend call can
+reuse a retained view. No asynchronous lambda captures escape their lifetime.
+
+A false helper return occurs before any RPC. Once started, errors propagate;
+state is saved only after both chunks succeed. Output projection still follows
+the state save. As before, intermediate output buffers after an exception are
+not guaranteed atomic. The retry fixtures verify exact recovery and state.
+
+Capacity versus metadata
+Existing invokeFc atK2048 already uses1920+128 rows. The new batch API uses the
+same cached FC handles, same zero-norm strided output and same staging requests.
+Actual fit/stage fixture verifies identical data allocations:
+ activation: requests15728640+1048576B; capacities15732736+1052672B.
+ output: requests47185920+3145728B; capacities47190016+3149824B.
+Full input+output copy count67108864 ->16777216B removes the50331648B (48MiB)
+projection copy. Small sampled windows remain and are not in that full-copy
+counter. No persistent weight/activation cache, readers, preload, VTCM or tensor
+capacity grows. Existing batch API vectors and ThreadManager callbacks add small
+transient metadata allocations, so this is not a zero-allocation claim.
+
+Limits
+The host tests extract real source but mock Tensor/backend RPC/allocation and
+pool control; they do not prove DSP numerical behavior, FastRPC coherence or
+model latency. Existing single-owner backend and sampled-alias contracts remain.
+Real-model IDs, continuation and peak memory need root device validation. No TPS
+improvement is inferred solely from the removed copies. Root source and phone
+were untouched; all independent artifacts are under this /tmp directory.

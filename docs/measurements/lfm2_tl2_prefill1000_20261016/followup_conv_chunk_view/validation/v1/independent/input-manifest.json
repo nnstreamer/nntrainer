@@ -1,0 +1,14 @@
+{
+  "production.patch": "4a6661df1b353699c22151b4d36e60ba5f341811c5c8766e5a615f8fbdec85a7",
+  "candidate/Applications/CausalLM/layers/conv_block_layer.cpp": "2392af8742e5ac2c0679bbb26364d50e0d12e0d0254ebc0ed03c17459f89f8f9",
+  "before/Applications/CausalLM/layers/conv_block_layer.cpp": "bc019abdbf0cadb48e0aaa4ecc3898bc9b0a37e11f28c306d9762f766292869a",
+  "test/htp/host/lfm2_conv_chunk_check.cpp": "282b1ebacce28958bb9f7049850ca603c622575b469496e8e72258cc824bc669",
+  "test/htp/host/run_lfm2_conv_chunk_check.py": "e1d8323503822e8d7a5997a4f26cf17998d24cf7209fbfb49d70ed8641f80f35",
+  "android-command.json": "b032b13f8db6dee5970d9577572758cd11c9985adeb69b37f12d60ba1994cc64",
+  "test/htp/host/run_lfm2_conv_chunk_check.py.initial": "6edaaffb53bb245188e2f30da1b45e48230e5e5aee5bd2f42c701fa543d3272a",
+  "tests.patch": "2845812902815c03a8b35460314f08b5c2125caed7f9600549f145428353906c",
+  "run_mutants.py": "7da19ddeee8b24f7667fa7d7677723fffb6ea88bf67a7d6d4c40d4c17b3ac549",
+  "root-read/nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "5e75571e5433132d8c9d17691882cbddea73ebbf651e2e8e0b3b6957ac3566df",
+  "root-read/nntrainer/utils/thread_manager.h": "0bce0f003a7999c1b3794168cd4353c29f0b00b3d48d5dcd70de94292bd9c5dd",
+  "root-read/nntrainer/tensor/htp_backend/htp_router_handoff.h": "a50c89171a5a06208482c8be89d7bdad458342db3e38c1a965442258d0801200"
+}

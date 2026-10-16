@@ -1,0 +1,145 @@
+{
+  "before": {
+    "path": "/tmp/nntr-lfm2-conv-chunk-view-20261016/codegen/before/conv.disasm.txt",
+    "sha256": "eadd3f9678f1d293a6ba47e9e6053adeea49fe702e65450c55b68adbcb108084",
+    "app_instruction_count": 1965,
+    "app_code_bytes": 7860,
+    "prologue": [
+      [
+        "fc190fe8",
+        "str\td8, [sp, #-0x70]!"
+      ],
+      [
+        "a9017bfd",
+        "stp\tx29, x30, [sp, #0x10]"
+      ],
+      [
+        "a9026ffc",
+        "stp\tx28, x27, [sp, #0x20]"
+      ],
+      [
+        "a90367fa",
+        "stp\tx26, x25, [sp, #0x30]"
+      ],
+      [
+        "a9045ff8",
+        "stp\tx24, x23, [sp, #0x40]"
+      ],
+      [
+        "a90557f6",
+        "stp\tx22, x21, [sp, #0x50]"
+      ],
+      [
+        "a9064ff4",
+        "stp\tx20, x19, [sp, #0x60]"
+      ],
+      [
+        "910043fd",
+        "add\tx29, sp, #0x10"
+      ],
+      [
+        "d119c3ff",
+        "sub\tsp, sp, #0x670"
+      ]
+    ],
+    "callback_instruction_count": 59,
+    "callback_code_bytes": 236,
+    "callback_instructions_sha256": "04d52c3a17ebf70a2f0072bcf4c02a5538594f618433bec5fa0be605fc4a0e5c",
+    "full_helper_outlined": false
+  },
+  "v1": {
+    "path": "/tmp/nntr-lfm2-conv-chunk-view-20261016/codegen/candidate/conv.disasm.txt",
+    "sha256": "912ddb0cce10b2b92ae6135ba1133ad6230d37263553a107bda35bca350ecd35",
+    "app_instruction_count": 2513,
+    "app_code_bytes": 10052,
+    "prologue": [
+      [
+        "fc190fe8",
+        "str\td8, [sp, #-0x70]!"
+      ],
+      [
+        "a9017bfd",
+        "stp\tx29, x30, [sp, #0x10]"
+      ],
+      [
+        "a9026ffc",
+        "stp\tx28, x27, [sp, #0x20]"
+      ],
+      [
+        "a90367fa",
+        "stp\tx26, x25, [sp, #0x30]"
+      ],
+      [
+        "a9045ff8",
+        "stp\tx24, x23, [sp, #0x40]"
+      ],
+      [
+        "a90557f6",
+        "stp\tx22, x21, [sp, #0x50]"
+      ],
+      [
+        "a9064ff4",
+        "stp\tx20, x19, [sp, #0x60]"
+      ],
+      [
+        "910043fd",
+        "add\tx29, sp, #0x10"
+      ],
+      [
+        "d11ac3ff",
+        "sub\tsp, sp, #0x6b0"
+      ]
+    ]
+  },
+  "v2": {
+    "path": "codegen/candidate-final/conv.disasm.txt",
+    "sha256": "e91c421950864b5395ed3ee635485ce44a2e85493b8371d39655c9b2d2955921",
+    "app_instruction_count": 2053,
+    "app_code_bytes": 8212,
+    "prologue": [
+      [
+        "fc190fe8",
+        "str\td8, [sp, #-0x70]!"
+      ],
+      [
+        "a9017bfd",
+        "stp\tx29, x30, [sp, #0x10]"
+      ],
+      [
+        "a9026ffc",
+        "stp\tx28, x27, [sp, #0x20]"
+      ],
+      [
+        "a90367fa",
+        "stp\tx26, x25, [sp, #0x30]"
+      ],
+      [
+        "a9045ff8",
+        "stp\tx24, x23, [sp, #0x40]"
+      ],
+      [
+        "a90557f6",
+        "stp\tx22, x21, [sp, #0x50]"
+      ],
+      [
+        "a9064ff4",
+        "stp\tx20, x19, [sp, #0x60]"
+      ],
+      [
+        "910043fd",
+        "add\tx29, sp, #0x10"
+      ],
+      [
+        "d119c3ff",
+        "sub\tsp, sp, #0x670"
+      ]
+    ],
+    "callback_instruction_count": 59,
+    "callback_code_bytes": 236,
+    "callback_instructions_sha256": "04d52c3a17ebf70a2f0072bcf4c02a5538594f618433bec5fa0be605fc4a0e5c",
+    "full_helper_outlined": false
+  },
+  "full_callback_raw_instruction_bytes_equal": true,
+  "app_prologue_first9_instructions_equal": true,
+  "limits": "Existing full-row callback and common prologue are exact. Whole app is not byte-identical and these are not cycle/TPS measurements."
+}

@@ -1,0 +1,83 @@
+{
+  "status": "author frozen; host/native helper,mutants,whole TU PASS; independent extra kept-input PASS; root model A/B pending",
+  "base_commit": "7a6f088c13f80f2e6975d76c2cc35416babd8abe",
+  "production_patch_sha256": "4a6661df1b353699c22151b4d36e60ba5f341811c5c8766e5a615f8fbdec85a7",
+  "tests_patch_sha256": "2845812902815c03a8b35460314f08b5c2125caed7f9600549f145428353906c",
+  "scope": "ARM64/native affine LFM K=C=N2048,M2048 app projection consumption; unchanged1920+128 RPC shapes and all quantization",
+  "production_files": [
+    "Applications/CausalLM/layers/conv_block_layer.cpp"
+  ],
+  "source_hashes": "source-hashes.json",
+  "extra_activation_or_staging_capacity_bytes": 0,
+  "extra_persistent_weight_or_activation_cache_bytes": 0,
+  "small_metadata_heap_zero_claim": false,
+  "metadata_description": "README.txt: five one-element argument vectors + handles/chunks; reused ThreadManager callback metadata; no core API expansion",
+  "model_memory_peak": "Pending complete-run root measurement; illustrative class capacities are not total-model peak",
+  "host_actual_helper_cases": 82,
+  "old_route_cases": 48,
+  "mutants_killed": 6,
+  "independent_cases": {
+    "same_helper_cases": 82,
+    "kept_input_extra": 12,
+    "mutants": 6
+  },
+  "native_ARM_cases": 82,
+  "native_ARM_executed_by": "root on S26",
+  "native_ARM_binary_sha256": "8293faf7b7bed96be45d9adb23e8cebfea551d40fc7c3023f81fa961e89ee69c",
+  "native_ARM_scope": "actual NEON/app/staging helpers; fake projection RPC; no model/DSP arithmetic claim",
+  "native_ARM_log": "root-native-arm.log",
+  "production_ndk_compile": "android-command.json",
+  "portable_compiles": "portable-builds.json",
+  "codegen": {
+    "arithmetic_sequence": [
+      "fmul",
+      "fmla",
+      "fmla",
+      "fmul",
+      "store"
+    ],
+    "app_stack_before": 1760,
+    "app_stack_candidate": 1824,
+    "candidate_range_helper_frame": 192,
+    "worker_row_frame": 0,
+    "details": "codegen/results.json"
+  },
+  "copy_payload": {
+    "full_projection_bytes_per_layer_removed": 50331648,
+    "sampled_window_bytes_per_layer": 4224,
+    "input_bytes_per_layer_unchanged": 16777216,
+    "conv_layers": 30,
+    "interpretation": "logical copy payload; not bandwidth,walltime or TPS"
+  },
+  "expected_model_layer_trace": {
+    "logical_conv_layers": 30,
+    "ARM_projection_calls": 60,
+    "rows": [
+      1920,
+      128
+    ],
+    "DSP_projection_kernel_calls": 90,
+    "DSP_rows": [
+      1728,
+      192,
+      128
+    ]
+  },
+  "ownership": [
+    "All host mutable ranges and live inputs/weights disjoint before dispatch",
+    "Each view consumed before next engine call",
+    "Global gated retains tail history",
+    "State updates only after both chunks succeed",
+    "Strided outputs have alias but no copied_out.kept restoration record"
+  ],
+  "constraints": {
+    "C": 16,
+    "page_cache": 0,
+    "preload": 128,
+    "reader_count": "unchanged",
+    "quantization": "unchanged",
+    "Gemma": "shape fallback; no phone benchmark requested"
+  },
+  "no_author_root_or_device_edits": true,
+  "normal_performance_claim": false
+}

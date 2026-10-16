@@ -1,0 +1,140 @@
+{
+  "chunk_local_history": {
+    "source_sha256": "03accad362107c8b02ff96dd886bc1feda073ed6e431d91687e221ee30ee2754",
+    "command": [
+      "python3",
+      "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/test/htp/host/run_lfm2_conv_chunk_check.py",
+      "--repo",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000",
+      "--source",
+      "mutants-final/chunk_local_history",
+      "--baseline",
+      "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/before",
+      "--simde-include",
+      "/tmp/nntr-lfm2-conv-chunk-view-20261016/deps/simde-0.8.2",
+      "--output",
+      "mutants-final/chunk_local_history/checks",
+      "--sanitize"
+    ],
+    "returncode": 1,
+    "killed": true,
+    "reason": [
+      "CONV_CHUNK FAIL: output byte mismatch"
+    ]
+  },
+  "wrong_projection_row": {
+    "source_sha256": "94c196f185047ce7d7571abd24c5acc5bfb654954274a2d70dbe366d9fe87305",
+    "command": [
+      "python3",
+      "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/test/htp/host/run_lfm2_conv_chunk_check.py",
+      "--repo",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000",
+      "--source",
+      "mutants-final/wrong_projection_row",
+      "--baseline",
+      "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/before",
+      "--simde-include",
+      "/tmp/nntr-lfm2-conv-chunk-view-20261016/deps/simde-0.8.2",
+      "--output",
+      "mutants-final/wrong_projection_row/checks",
+      "--sanitize"
+    ],
+    "returncode": 1,
+    "killed": true,
+    "reason": [
+      "CONV_CHUNK FAIL: output byte mismatch"
+    ]
+  },
+  "missing_input_overlap": {
+    "source_sha256": "0c0c5ef4ef7df0636b7b7fed6ef6b2c0ed159eadf01a533e4dc053853ac58128",
+    "command": [
+      "python3",
+      "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/test/htp/host/run_lfm2_conv_chunk_check.py",
+      "--repo",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000",
+      "--source",
+      "mutants-final/missing_input_overlap",
+      "--baseline",
+      "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/before",
+      "--simde-include",
+      "/tmp/nntr-lfm2-conv-chunk-view-20261016/deps/simde-0.8.2",
+      "--output",
+      "mutants-final/missing_input_overlap/checks",
+      "--sanitize"
+    ],
+    "returncode": 1,
+    "killed": true,
+    "reason": [
+      "CONV_CHUNK FAIL: first gated chunk not completed before next RPC"
+    ]
+  },
+  "read_sampled_host": {
+    "source_sha256": "abebeb914bd8c8effe8b25a68fc8be7cf2778c69c0787cb294d679f06d24ebe2",
+    "command": [
+      "python3",
+      "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/test/htp/host/run_lfm2_conv_chunk_check.py",
+      "--repo",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000",
+      "--source",
+      "mutants-final/read_sampled_host",
+      "--baseline",
+      "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/before",
+      "--simde-include",
+      "/tmp/nntr-lfm2-conv-chunk-view-20261016/deps/simde-0.8.2",
+      "--output",
+      "mutants-final/read_sampled_host/checks",
+      "--sanitize"
+    ],
+    "returncode": 1,
+    "killed": true,
+    "reason": [
+      "CONV_CHUNK FAIL: first gated chunk not completed before next RPC"
+    ]
+  },
+  "state_before_success": {
+    "source_sha256": "fa6b7e91159164ef07cb7f68f23916927e714c1a7a2d1bf5965369c00d62de9f",
+    "command": [
+      "python3",
+      "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/test/htp/host/run_lfm2_conv_chunk_check.py",
+      "--repo",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000",
+      "--source",
+      "mutants-final/state_before_success",
+      "--baseline",
+      "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/before",
+      "--simde-include",
+      "/tmp/nntr-lfm2-conv-chunk-view-20261016/deps/simde-0.8.2",
+      "--output",
+      "mutants-final/state_before_success/checks",
+      "--sanitize"
+    ],
+    "returncode": 1,
+    "killed": true,
+    "reason": [
+      "CONV_CHUNK FAIL: failed RPC/sync updated state or swallowed error"
+    ]
+  },
+  "missing_from_guard": {
+    "source_sha256": "99763a48595b99e8c472f3f33dd1de485cc1697f3f14a636a65d7a9a34893bc2",
+    "command": [
+      "python3",
+      "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/test/htp/host/run_lfm2_conv_chunk_check.py",
+      "--repo",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000",
+      "--source",
+      "mutants-final/missing_from_guard",
+      "--baseline",
+      "/tmp/nntr-lfm2-conv-chunk-view-isolated-20261016/before",
+      "--simde-include",
+      "/tmp/nntr-lfm2-conv-chunk-view-20261016/deps/simde-0.8.2",
+      "--output",
+      "mutants-final/missing_from_guard/checks",
+      "--sanitize"
+    ],
+    "returncode": 1,
+    "killed": true,
+    "reason": [
+      "CONV_CHUNK FAIL: actual app guard/fallback path differs"
+    ]
+  }
+}

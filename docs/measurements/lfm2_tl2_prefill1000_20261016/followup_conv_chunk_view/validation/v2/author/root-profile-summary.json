@@ -1,0 +1,19 @@
+{
+  "tag": "continue-conv-isolated-profile2048",
+  "valid": true,
+  "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+  "memory_sha256": "3f75686664b96cafe580db83bdcf5f9f38b9074196df4b903fd721f20194adc4",
+  "rawlog_sha256": "8e4257ec7c18a6a9a73071a189543687ce28042a01e2f7bf8b1bcbab33a348e6",
+  "staging_site5861": {
+    "ms": 13.3,
+    "reported_mib": 295.5,
+    "copies": 60
+  },
+  "prefetch": {
+    "ready": 2304,
+    "required": 2304,
+    "exposed_wait_ms": 0.0,
+    "register_rpc_ms": 2.1
+  },
+  "interpretation": "Matches v1 copy-saving count and same-shape control delta1440MiB/60copies; rounded aggregate counter, not a per-layer branch trace or normal TPS result."
+}

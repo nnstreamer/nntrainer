@@ -1,0 +1,256 @@
+{
+  "result": "PASS; no blocker found; device model parity/performance remain parent-owned",
+  "production_patch_sha256": "4a6661df1b353699c22151b4d36e60ba5f341811c5c8766e5a615f8fbdec85a7",
+  "candidate_sha256": "2392af8742e5ac2c0679bbb26364d50e0d12e0d0254ebc0ed03c17459f89f8f9",
+  "baseline_sha256": "bc019abdbf0cadb48e0aaa4ecc3898bc9b0a37e11f28c306d9762f766292869a",
+  "tests_patch_sha256": "2845812902815c03a8b35460314f08b5c2125caed7f9600549f145428353906c",
+  "input_manifest": {
+    "production.patch": "4a6661df1b353699c22151b4d36e60ba5f341811c5c8766e5a615f8fbdec85a7",
+    "candidate/Applications/CausalLM/layers/conv_block_layer.cpp": "2392af8742e5ac2c0679bbb26364d50e0d12e0d0254ebc0ed03c17459f89f8f9",
+    "before/Applications/CausalLM/layers/conv_block_layer.cpp": "bc019abdbf0cadb48e0aaa4ecc3898bc9b0a37e11f28c306d9762f766292869a",
+    "test/htp/host/lfm2_conv_chunk_check.cpp": "282b1ebacce28958bb9f7049850ca603c622575b469496e8e72258cc824bc669",
+    "test/htp/host/run_lfm2_conv_chunk_check.py": "e1d8323503822e8d7a5997a4f26cf17998d24cf7209fbfb49d70ed8641f80f35",
+    "android-command.json": "b032b13f8db6dee5970d9577572758cd11c9985adeb69b37f12d60ba1994cc64",
+    "test/htp/host/run_lfm2_conv_chunk_check.py.initial": "6edaaffb53bb245188e2f30da1b45e48230e5e5aee5bd2f42c701fa543d3272a",
+    "tests.patch": "2845812902815c03a8b35460314f08b5c2125caed7f9600549f145428353906c",
+    "run_mutants.py": "7da19ddeee8b24f7667fa7d7677723fffb6ea88bf67a7d6d4c40d4c17b3ac549",
+    "root-read/nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "5e75571e5433132d8c9d17691882cbddea73ebbf651e2e8e0b3b6957ac3566df",
+    "root-read/nntrainer/utils/thread_manager.h": "0bce0f003a7999c1b3794168cd4353c29f0b00b3d48d5dcd70de94292bd9c5dd",
+    "root-read/nntrainer/tensor/htp_backend/htp_router_handoff.h": "a50c89171a5a06208482c8be89d7bdad458342db3e38c1a965442258d0801200"
+  },
+  "independent_checks": {
+    "whole_extracted_app_staging_cases": 82,
+    "sanitizers": "ASan+UBSan halt, leak detection, no suppressions",
+    "host_log_sha256": "2d8b9bf42c7e7fa9f66219ed26cb5e0e19d7cf88d4c1f5a725c1ae8fbf976cf6",
+    "reviewer_kept_input_cases": 12,
+    "reviewer_kept_input_scope": "Actual copyOutOf/trueSource/stageInput with nonsampled input host bytes poisoned; out_pool and x2_pool;1/4 pthread lanes; normal/null-view-sync/second-RPC failure and retry without materializing input.",
+    "retained_input_source_sha256": "e7efc207088f00fabbaa53f0266c10ffa102b4df319794d43be5586d876bf9f2",
+    "retained_input_log_sha256": "59c23e3801dc3d10d290c93d47357c9ab12522b81868e0cffd22aa6e520d5823",
+    "mutants": {
+      "chunk_local_history": {
+        "source_sha256": "1619c0e8ffd02f48bc2690386fff2e2df0f061127feeb6fd7574decfda85f66a",
+        "command": [
+          "python3",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/test/htp/host/run_lfm2_conv_chunk_check.py",
+          "--repo",
+          "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000",
+          "--source",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/mutants/chunk_local_history",
+          "--baseline",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/before",
+          "--simde-include",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/deps/simde-0.8.2",
+          "--output",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/mutants/chunk_local_history/checks",
+          "--sanitize"
+        ],
+        "returncode": 1,
+        "killed": true,
+        "reason": [
+          "CONV_CHUNK FAIL: output byte mismatch"
+        ]
+      },
+      "wrong_projection_row": {
+        "source_sha256": "3e3d5340c1570f5d20a5f49ffe13f05ee4ede32a790fa358f6b44471c24c3589",
+        "command": [
+          "python3",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/test/htp/host/run_lfm2_conv_chunk_check.py",
+          "--repo",
+          "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000",
+          "--source",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/mutants/wrong_projection_row",
+          "--baseline",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/before",
+          "--simde-include",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/deps/simde-0.8.2",
+          "--output",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/mutants/wrong_projection_row/checks",
+          "--sanitize"
+        ],
+        "returncode": 1,
+        "killed": true,
+        "reason": [
+          "CONV_CHUNK FAIL: output byte mismatch"
+        ]
+      },
+      "missing_input_overlap": {
+        "source_sha256": "d76cbf2989092a583dcbe3c17ebd7c1c1b18fb6ce8a8015e9802b96a85642e03",
+        "command": [
+          "python3",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/test/htp/host/run_lfm2_conv_chunk_check.py",
+          "--repo",
+          "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000",
+          "--source",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/mutants/missing_input_overlap",
+          "--baseline",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/before",
+          "--simde-include",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/deps/simde-0.8.2",
+          "--output",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/mutants/missing_input_overlap/checks",
+          "--sanitize"
+        ],
+        "returncode": 1,
+        "killed": true,
+        "reason": [
+          "CONV_CHUNK FAIL: first gated chunk not completed before next RPC"
+        ]
+      },
+      "read_sampled_host": {
+        "source_sha256": "08d0ced08d7edba84fc0c47459cc4fa2cf9be118e39543945e5003ea8b4dd14d",
+        "command": [
+          "python3",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/test/htp/host/run_lfm2_conv_chunk_check.py",
+          "--repo",
+          "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000",
+          "--source",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/mutants/read_sampled_host",
+          "--baseline",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/before",
+          "--simde-include",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/deps/simde-0.8.2",
+          "--output",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/mutants/read_sampled_host/checks",
+          "--sanitize"
+        ],
+        "returncode": 1,
+        "killed": true,
+        "reason": [
+          "CONV_CHUNK FAIL: first gated chunk not completed before next RPC"
+        ]
+      },
+      "state_before_success": {
+        "source_sha256": "cc5211f902f0615ecf6ee9c8865c6c7a0a41f47c5874d27c3e7674d9163d8595",
+        "command": [
+          "python3",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/test/htp/host/run_lfm2_conv_chunk_check.py",
+          "--repo",
+          "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000",
+          "--source",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/mutants/state_before_success",
+          "--baseline",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/before",
+          "--simde-include",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/deps/simde-0.8.2",
+          "--output",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/mutants/state_before_success/checks",
+          "--sanitize"
+        ],
+        "returncode": 1,
+        "killed": true,
+        "reason": [
+          "CONV_CHUNK FAIL: failed RPC/sync updated state or swallowed error"
+        ]
+      },
+      "missing_from_guard": {
+        "source_sha256": "3e5c0d040125d22ee14e74915bbf09477b5a2edfa605fe77bca30c9ee9e2a10b",
+        "command": [
+          "python3",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/test/htp/host/run_lfm2_conv_chunk_check.py",
+          "--repo",
+          "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000",
+          "--source",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/mutants/missing_from_guard",
+          "--baseline",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/before",
+          "--simde-include",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/deps/simde-0.8.2",
+          "--output",
+          "/tmp/nntr-lfm2-conv-chunk-view-review-20261016/frozen/mutants/missing_from_guard/checks",
+          "--sanitize"
+        ],
+        "returncode": 1,
+        "killed": true,
+        "reason": [
+          "CONV_CHUNK FAIL: actual app guard/fallback path differs"
+        ]
+      }
+    },
+    "android_whole_translation_unit_compile": "PASS",
+    "android_before_candidate_stack_compile": {
+      "before": {
+        "frames": [
+          {
+            "symbol": "_ZN8causallm14ConvBlockLayer22incremental_forwardingERN9nntrainer15RunLayerContextEjjb",
+            "bytes": 1760,
+            "kind": "static"
+          }
+        ],
+        "object_sha256": "92e205a684c8c6ba09abb391910ba66a0ca86500dddab7d581c77b096b97fddb"
+      },
+      "candidate": {
+        "frames": [
+          {
+            "symbol": "_ZN8causallm14ConvBlockLayer22incremental_forwardingERN9nntrainer15RunLayerContextEjjb",
+            "bytes": 1824,
+            "kind": "static"
+          },
+          {
+            "symbol": "_ZN8causallmL22lfmConvPostGatePrefillEPKfS1_S1_Pfjjjj",
+            "bytes": 192,
+            "kind": "static"
+          }
+        ],
+        "object_sha256": "219f7af489538a6ccd81a5d1d1630f927278a356b859990f17b482cf6ab59b69"
+      }
+    },
+    "clang_format14_source_exact": true
+  },
+  "runner_final_revision": {
+    "executed_runner_sha256": "6edaaffb53bb245188e2f30da1b45e48230e5e5aee5bd2f42c701fa543d3272a",
+    "final_runner_sha256": "e1d8323503822e8d7a5997a4f26cf17998d24cf7209fbfb49d70ed8641f80f35",
+    "delta": "Only allow missing --simde-include under --native-arm and move optional include switch before ordinary flags. Actual fixture, extracted code and host include search order unchanged. Diff independently inspected; original tested runner archived."
+  },
+  "capacity": {
+    "first_rows": 1920,
+    "tail_rows": 128,
+    "activation_requests": [
+      15728640,
+      1048576
+    ],
+    "activation_capacities": [
+      15732736,
+      1052672
+    ],
+    "output_requests": [
+      47185920,
+      3145728
+    ],
+    "output_capacities": [
+      47190016,
+      3149824
+    ],
+    "all_requests_and_capacities_same_as_baseline": true,
+    "staged_input_plus_output_full_copy_bytes_before": 67108864,
+    "after": 16777216,
+    "projection_full_copy_bytes_removed": 50331648,
+    "sampled_windows": "Remain; fixture full-copy counter does not include the small sampledCopy windows."
+  },
+  "parent_native_evidence": {
+    "binary_sha256": "8293faf7b7bed96be45d9adb23e8cebfea551d40fc7c3023f81fa961e89ee69c",
+    "device": "R3CY70LV96T",
+    "command": [
+      "/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/conv-chunk-check"
+    ],
+    "returncode": 0,
+    "log_sha256": "2d8b9bf42c7e7fa9f66219ed26cb5e0e19d7cf88d4c1f5a725c1ae8fbf976cf6",
+    "scope": "Native NEON exact source helpers with mock RPC/allocator data; no model TPS or physical DSP concurrency claim"
+  },
+  "source_proof": [
+    "Outer gate requires AArch64,rows2048,K=C=N2048,affine input/output weights,FP32 contiguous input/projection/gated/output,!compare,backend support, and no htp-owned continuation from>0. Other shapes, Gemma and unsupported backends retain old flow.",
+    "All writable projection/gated/output/state ranges are pairwise disjoint and disjoint from input and convolution weights before first RPC. Each returned view must also be disjoint from those live ranges; otherwise existing sync_to_host materializes that chunk.",
+    "Global gated buffer preserves prior rows. Projection index is local r-first while convolution prev1/prev2 uses global r. Per-channel multiply,FMA,FMA,postmultiply order unchanged under existing precise helper pragmas.",
+    "ThreadManager parallelize waits all worker threads and acquire-fences before returning; both chunk pre-gate and post-gate finish before next RPC can reuse the view. Lambdas capture only synchronous live references.",
+    "False fallback returns occur before starting chunk RPCs. Later errors propagate; state copy happens only after both chunks succeed. Output projection occurs after state copy exactly as original. Partial output buffers after exceptions are not claimed atomic.",
+    "Existing K2048 fcMaxRows derives1920 and normal invokeFc already makes1920+128 calls. Batch_norm uses same cached FC handles and strided norm_ld output with all post chunks zero, no added normalization.",
+    "No tensor/ION/VTCM/cache/reader allocation or capacity changes. Existing batch API creates additional small transient vectors and ThreadManager callbacks; no zero-heap-allocation claim. App frame+64B and standalone ranged helper192B are independently compiled values."
+  ],
+  "limits": [
+    "Host executable extracts actual app arithmetic, app route and staging helpers but uses mock Tensor,allocator,ComputeOps RPC and ThreadManager. It is not a full model or DSP numerical test.",
+    "Independent12case extension only changes fixture input expectation to compare staged bytes with immutable reference; production helpers stay byte-identical to frozen82case extracts.",
+    "Host SIMDe NEON is not native ARM proof; root separately executed the exact82case fixture on S26 with native NEON and mock RPC, PASS. Reviewer did not use phone.",
+    "Full model output/state continuity, actual FastRPC visibility, normal latency and peak memory must come from root device runs. No TPS improvement inferred from byte counts.",
+    "Existing single-owner HTP backend and sampled alias recognition contracts remain. The patch does not introduce cross-thread backend use or change those generic contracts.",
+    "Metadata vectors and callback objects can allocate; only large data-buffer capacities are proven unchanged."
+  ]
+}

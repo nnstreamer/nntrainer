@@ -1,0 +1,17 @@
+{
+  "source": {
+    "candidate/Applications/CausalLM/layers/conv_block_layer.cpp": "846921eaa9b7da92bb20b7ee891e918b317017e471b0048a1e2b3a05b4708de3",
+    "before/Applications/CausalLM/layers/conv_block_layer.cpp": "bc019abdbf0cadb48e0aaa4ecc3898bc9b0a37e11f28c306d9762f766292869a"
+  },
+  "exports": {
+    "production.patch": "94ae618667ce4f9d822b68d7d03814d0f1100110f7685be012cad17ea7331342",
+    "v1-to-v2.patch": "40881519824b79fdbc02b8e9f6a1659bc9362595ef94928596a75d6e634c23b3",
+    "tests.patch": "0a1754e918f1d7cb50c94e415dd3337607d4caa79ee289e677801d32507c3708",
+    "tests-v1-to-v2.patch": "f301155437bcb0f579f1758a02291afc1c5ed9561a4c989413ab595cd565cb3d"
+  },
+  "test": {
+    "test/htp/host/lfm2_conv_chunk_check.cpp": "1f66b7fd088da2543517bfb696578e2fb7c9bc12221f67be551ed6ccd0944f7a",
+    "test/htp/host/run_lfm2_conv_chunk_check.py": "3a82845a2e79dab500fbc00e4c5466b144e3a6217a40a57f767633247248b81d"
+  },
+  "mutants": "629b5ff512aa8343700049ba293d1279109adfe9b27d5c489f2ed913b8c8b67a"
+}
