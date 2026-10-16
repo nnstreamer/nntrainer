@@ -1,0 +1,12 @@
+{
+  "binary_sha256": "afe73bf91c4f9a4cfc86060934f0cd56c8e25aeb98fb347072225ee1a01dccbd",
+  "command": [
+    "env",
+    "NNTR_LFM2_CONV_GATE_TILE=1",
+    "/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/conv-gate-tile-v2-check"
+  ],
+  "device": "R3CY70LV96T",
+  "returncode": 0,
+  "log_sha256": "ed0114af108967efb83439504adc47678322cfb9f316781b0192f1caaef8fcca",
+  "scope": "Actual v2 app/NEON helpers with mock RPC; not DSP arithmetic or performance evidence."
+}

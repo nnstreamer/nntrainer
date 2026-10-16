@@ -1,0 +1,10 @@
+{
+  "candidate/Applications/CausalLM/layers/conv_block_layer.cpp": {
+    "exact": true,
+    "formatted_sha256": "afb5021ff5f95ed4f1287357b5dce77bc8032c9ec07045c5f5944f1e3c305e8c"
+  },
+  "test/htp/host/lfm2_conv_gate_tile_check.cpp": {
+    "exact": true,
+    "formatted_sha256": "1efcbd03d9ad42b78027b5e618937fb205d48483f271bae79f4c734441983188"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "g++": {
+    "compile": [
+      "g++",
+      "-std=c++17",
+      "-O3",
+      "-ffast-math",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/non-arm/check.cpp",
+      "-o",
+      "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/non-arm/gxx"
+    ],
+    "compile_rc": 0,
+    "run_rc": 0
+  }
+}

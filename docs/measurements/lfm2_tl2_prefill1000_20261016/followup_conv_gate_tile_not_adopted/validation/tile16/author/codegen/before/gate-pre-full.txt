@@ -1,0 +1,61 @@
+0000000000000000 <std::__ndk1::__function::__func<causallm::ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext&, unsigned int, unsigned int, bool)::$_0, std::__ndk1::allocator<causallm::ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext&, unsigned int, unsigned int, bool)::$_0>, void (unsigned long)>::operator()(unsigned long&&)>:
+       0: f9400808     	ldr	x8, [x0, #0x10]
+       4: b9400109     	ldr	w9, [x8]
+       8: 34000349     	cbz	w9, 0x70 <std::__ndk1::__function::__func<causallm::ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext&, unsigned int, unsigned int, bool)::$_0, std::__ndk1::allocator<causallm::ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext&, unsigned int, unsigned int, bool)::$_0>, void (unsigned long)>::operator()(unsigned long&&)+0x70>
+       c: f9400028     	ldr	x8, [x1]
+      10: f9400c0d     	ldr	x13, [x0, #0x18]
+      14: 7100313f     	cmp	w9, #0xc
+      18: 9b097d0a     	mul	x10, x8, x9
+      1c: f9400408     	ldr	x8, [x0, #0x8]
+      20: f94001ad     	ldr	x13, [x13]
+      24: f940010c     	ldr	x12, [x8]
+      28: 531f7928     	lsl	w8, w9, #1
+      2c: 8b0a054b     	add	x11, x10, x10, lsl #1
+      30: d37ef56b     	lsl	x11, x11, #2
+      34: 54000202     	b.hs	0x74 <std::__ndk1::__function::__func<causallm::ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext&, unsigned int, unsigned int, bool)::$_0, std::__ndk1::allocator<causallm::ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext&, unsigned int, unsigned int, bool)::$_0>, void (unsigned long)>::operator()(unsigned long&&)+0x74>
+      38: aa1f03ee     	mov	x14, xzr
+      3c: d37ef5cf     	lsl	x15, x14, #2
+      40: cb0e0129     	sub	x9, x9, x14
+      44: 8b0a09ea     	add	x10, x15, x10, lsl #2
+      48: 8b0f018c     	add	x12, x12, x15
+      4c: 8b0b018b     	add	x11, x12, x11
+      50: 8b0a01aa     	add	x10, x13, x10
+      54: bd400160     	ldr	s0, [x11]
+      58: bc687961     	ldr	s1, [x11, x8, lsl #2]
+      5c: f1000529     	subs	x9, x9, #0x1
+      60: 9100116b     	add	x11, x11, #0x4
+      64: 1e200820     	fmul	s0, s1, s0
+      68: bc004540     	str	s0, [x10], #0x4
+      6c: 54ffff41     	b.ne	0x54 <std::__ndk1::__function::__func<causallm::ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext&, unsigned int, unsigned int, bool)::$_0, std::__ndk1::allocator<causallm::ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext&, unsigned int, unsigned int, bool)::$_0>, void (unsigned long)>::operator()(unsigned long&&)+0x54>
+      70: d65f03c0     	ret
+      74: 8b0a0d8e     	add	x14, x12, x10, lsl #3
+      78: d37ef511     	lsl	x17, x8, #2
+      7c: cb0e01af     	sub	x15, x13, x14
+      80: cb1101ee     	sub	x14, x15, x17
+      84: f10081df     	cmp	x14, #0x20
+      88: aa1f03ee     	mov	x14, xzr
+      8c: 54fffd83     	b.lo	0x3c <std::__ndk1::__function::__func<causallm::ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext&, unsigned int, unsigned int, bool)::$_0, std::__ndk1::allocator<causallm::ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext&, unsigned int, unsigned int, bool)::$_0>, void (unsigned long)>::operator()(unsigned long&&)+0x3c>
+      90: f10081ff     	cmp	x15, #0x20
+      94: 54fffd43     	b.lo	0x3c <std::__ndk1::__function::__func<causallm::ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext&, unsigned int, unsigned int, bool)::$_0, std::__ndk1::allocator<causallm::ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext&, unsigned int, unsigned int, bool)::$_0>, void (unsigned long)>::operator()(unsigned long&&)+0x3c>
+      98: 8b0c016f     	add	x15, x11, x12
+      9c: 8b0a09b0     	add	x16, x13, x10, lsl #2
+      a0: 927d712e     	and	x14, x9, #0xfffffff8
+      a4: 910041ef     	add	x15, x15, #0x10
+      a8: aa0e03e0     	mov	x0, x14
+      ac: 91004210     	add	x16, x16, #0x10
+      b0: 8b1101f1     	add	x17, x15, x17
+      b4: ad7f8e20     	ldp	q0, q3, [x17, #-0x10]
+      b8: f1002000     	subs	x0, x0, #0x8
+      bc: ad7f89e1     	ldp	q1, q2, [x15, #-0x10]
+      c0: 910081ef     	add	x15, x15, #0x20
+      c4: 91008231     	add	x17, x17, #0x20
+      c8: 6e21dc00     	fmul	v0.4s, v0.4s, v1.4s
+      cc: 6e22dc61     	fmul	v1.4s, v3.4s, v2.4s
+      d0: ad3f8600     	stp	q0, q1, [x16, #-0x10]
+      d4: 91008210     	add	x16, x16, #0x20
+      d8: 54fffee1     	b.ne	0xb4 <std::__ndk1::__function::__func<causallm::ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext&, unsigned int, unsigned int, bool)::$_0, std::__ndk1::allocator<causallm::ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext&, unsigned int, unsigned int, bool)::$_0>, void (unsigned long)>::operator()(unsigned long&&)+0xb4>
+      dc: eb0901df     	cmp	x14, x9
+      e0: 54fffae1     	b.ne	0x3c <std::__ndk1::__function::__func<causallm::ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext&, unsigned int, unsigned int, bool)::$_0, std::__ndk1::allocator<causallm::ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext&, unsigned int, unsigned int, bool)::$_0>, void (unsigned long)>::operator()(unsigned long&&)+0x3c>
+      e4: 17ffffe3     	b	0x70 <std::__ndk1::__function::__func<causallm::ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext&, unsigned int, unsigned int, bool)::$_0, std::__ndk1::allocator<causallm::ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext&, unsigned int, unsigned int, bool)::$_0>, void (unsigned long)>::operator()(unsigned long&&)+0x70>
+
+Disassembly of section .text._ZNKSt6__ndk110__function6__funcIZN8causallm14ConvBlockLayer22incremental_forwardingERN9nntrainer15RunLayerContextEjjbE3$_0NS_9allocatorIS7_EEFvmEE6targetERKSt9type_info:

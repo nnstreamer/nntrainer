@@ -1,0 +1,12 @@
+{
+  "binary_sha256": "f5fa22c89d67c1d93f40f987ee9c850f02e0867ae827e18a0ac644ba3c7ea9e3",
+  "command": [
+    "env",
+    "NNTR_LFM2_CONV_GATE_TILE=1",
+    "/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/conv-gate-tile8-check"
+  ],
+  "device": "R3CY70LV96T",
+  "returncode": 0,
+  "log_sha256": "ed0114af108967efb83439504adc47678322cfb9f316781b0192f1caaef8fcca",
+  "scope": "Actual Tile8 app/NEON helpers with mock RPC; not DSP arithmetic or performance evidence."
+}

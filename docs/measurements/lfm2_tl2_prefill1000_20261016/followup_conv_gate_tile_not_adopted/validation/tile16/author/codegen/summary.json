@@ -1,0 +1,30 @@
+{
+  "before": {
+    "source_sha256": "846921eaa9b7da92bb20b7ee891e918b317017e471b0048a1e2b3a05b4708de3",
+    "object_sha256": "974305073a12b73d3363f75da3064093ce3299b71e5ec573e23e1e64e37b7c5b",
+    "asm_sha256": "09850d757e8392d8272d0872fb22b310f9840edaf47d18b7c53f6359390f48fa",
+    "gate_pre": {
+      "gate-pre-chunk": "9e5f4c7b05e99cf926a66f87ddc6e65db1721d114104158a5da26e7c86fc2ef6",
+      "gate-pre-full": "906b5c2733fab780000f6a1faacc51eb9a04fc0ccb302989a2fd5f5af8d37cd1"
+    },
+    "stack_source_lines": [
+      "/tmp/nntr-lfm2-conv-gate-tile-20261016/before/Applications/CausalLM/layers/conv_block_layer.cpp:381:_ZN8causallm14ConvBlockLayer22incremental_forwardingERN9nntrainer15RunLayerContextEjjb\t1760\tstatic",
+      "/tmp/nntr-lfm2-conv-gate-tile-20261016/before/Applications/CausalLM/layers/conv_block_layer.cpp:206:_ZN8causallmL21lfmConvChunkedPrefillEPN9nntrainer10ComputeOpsEPvPfS4_S4_S4_PKfS4_S4_jj\t464\tstatic"
+    ]
+  },
+  "candidate": {
+    "source_sha256": "25bd544f784d87ec696e8a3e8c52006ddc2657e05bc065c3e87c75e12bb6dd26",
+    "object_sha256": "1bb0b8e7e3747fa7925d4ba4c78621b4c639ee22d0eda553d1f1755ad2b81ca0",
+    "asm_sha256": "5a381c3ed0f769676c6f34a278948cdf657a3077e3282aa2660aac9ee007e365",
+    "gate_pre": {
+      "gate-pre-chunk": "9e5f4c7b05e99cf926a66f87ddc6e65db1721d114104158a5da26e7c86fc2ef6",
+      "gate-pre-full": "906b5c2733fab780000f6a1faacc51eb9a04fc0ccb302989a2fd5f5af8d37cd1"
+    },
+    "stack_source_lines": [
+      "/tmp/nntr-lfm2-conv-gate-tile-20261016/candidate/Applications/CausalLM/layers/conv_block_layer.cpp:487:_ZN8causallm14ConvBlockLayer22incremental_forwardingERN9nntrainer15RunLayerContextEjjb\t1760\tstatic",
+      "/tmp/nntr-lfm2-conv-gate-tile-20261016/candidate/Applications/CausalLM/layers/conv_block_layer.cpp:308:_ZN8causallmL21lfmConvChunkedPrefillEPN9nntrainer10ComputeOpsEPvPfS4_S4_S4_PKfS4_S4_jj\t464\tstatic",
+      "/tmp/nntr-lfm2-conv-gate-tile-20261016/candidate/Applications/CausalLM/layers/conv_block_layer.cpp:97:_ZN8causallmL22lfmConvGateTilePrefillEPKfS1_PfS2_jjjj\t128\tstatic",
+      "/tmp/nntr-lfm2-conv-gate-tile-20261016/candidate/Applications/CausalLM/layers/conv_block_layer.cpp:130:_ZZN8causallmL22lfmConvGateTilePrefillEPKfS1_PfS2_jjjjENK3$_0clEm\t0\tstatic"
+    ]
+  }
+}

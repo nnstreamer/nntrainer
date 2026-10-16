@@ -1,0 +1,16 @@
+{
+  "binary_sha256": "60026c3523491333ac4e17e4a4d29e53c527ddd58dc8f8cb0811c825aa7b97d5",
+  "omp_sha256": "8d46abf1facc83773dc172c5094115d0d59dca247561c85a5412912da9139cc5",
+  "runtime_manifest_sha256": "ddaab76e8e750310fd03cd3d13c1a92e21207d8f3b4da08464274082785fc9df",
+  "command": "env LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated:/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/tile-ion ADSP_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated NNTR_NUM_THREADS=8 NNTR_HTP_PAGE_CACHE=0 NNTR_LFM2_CONV_GATE_TILE=1 timeout 60 /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/tile-ion/lfm2_conv_gate_tile_threeway_check 31",
+  "environment": {
+    "LD_LIBRARY_PATH": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated:/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/tile-ion",
+    "ADSP_LIBRARY_PATH": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated",
+    "NNTR_NUM_THREADS": "8",
+    "NNTR_HTP_PAGE_CACHE": "0",
+    "NNTR_LFM2_CONV_GATE_TILE": "1"
+  },
+  "returncode": 0,
+  "log_sha256": "34417766b00774aac289e8f6f5c86c11ce36dcbff15a0decbeb39e552d9e2e7b",
+  "scope": "Three-way existing/Tile16/Tile8 cached-ION CPU-region micro with six cyclic execution orders; no DSP projection or concurrent expert I/O."
+}

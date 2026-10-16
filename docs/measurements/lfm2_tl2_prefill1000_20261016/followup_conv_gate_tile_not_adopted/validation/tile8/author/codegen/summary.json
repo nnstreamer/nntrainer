@@ -1,0 +1,34 @@
+{
+  "base_source_sha256": "846921eaa9b7da92bb20b7ee891e918b317017e471b0048a1e2b3a05b4708de3",
+  "source_sha256": "afb5021ff5f95ed4f1287357b5dce77bc8032c9ec07045c5f5944f1e3c305e8c",
+  "before_object_sha256": "974305073a12b73d3363f75da3064093ce3299b71e5ec573e23e1e64e37b7c5b",
+  "candidate_object_sha256": "d200b08483dc481f9ea312450c66dc0a1c1140cc89cf920199a2a9e7a36d5932",
+  "frames_bytes": {
+    "entry_before": 1760,
+    "entry_candidate": 1760,
+    "chunk_before": 464,
+    "chunk_candidate": 464,
+    "tile_helper": 128,
+    "tile_parallel_for": 96,
+    "tile_arithmetic_callback": 0
+  },
+  "nested_new_frames_bytes": 224,
+  "vector_spills_in_tile_callback": 0,
+  "task_payload_bytes": 56,
+  "stdlib_function_object_requested_bytes": 64,
+  "previous_full_post_function_requested_bytes": 48,
+  "previous_chunk_post_function_requested_bytes": 56,
+  "remarks": [
+    "The ThreadManager task_ slot already exists. Its closure allocation is replaced on the next dispatch; this is not activation or weight-cache storage.",
+    "The old callbacks remain generic. An environment guard in their parent changes control flow, so unchanged callback codegen is not a whole-model timing guarantee."
+  ],
+  "unchanged_callbacks": {
+    "0000000000000000 <std::__ndk1::__function::__func<causallm::lfmConvChunkedPrefill(nntrainer::ComputeOps*, void*, float*, float*, float*, float*, float const*, float*, float*, unsigned int, unsigned int)::$_0, std::__ndk1::allocator<causallm::lfmConvChunkedPrefill(nntrainer::ComputeOps*, void*, float*, float*, float*, float*, float const*, float*, float*, unsigned int, unsigned int)::$_0>, void (unsigned long)>::operator()(unsigned long&&)>:": true,
+    "0000000000000000 <causallm::lfmConvPostGatePrefillRange(float const*, float const*, float const*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0::operator()(unsigned long) const>:": true,
+    "0000000000000000 <std::__ndk1::__function::__func<causallm::lfmConvPostGatePrefillRange(float const*, float const*, float const*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0, std::__ndk1::allocator<causallm::lfmConvPostGatePrefillRange(float const*, float const*, float const*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0>, void (unsigned long)>::operator()(unsigned long&&)>:": true,
+    "0000000000000000 <std::__ndk1::__function::__func<causallm::ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext&, unsigned int, unsigned int, bool)::$_0, std::__ndk1::allocator<causallm::ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext&, unsigned int, unsigned int, bool)::$_0>, void (unsigned long)>::operator()(unsigned long&&)>:": true,
+    "0000000000000000 <causallm::lfmConvPostGatePrefill(float const*, float const*, float const*, float*, unsigned int, unsigned int)::$_0::operator()(unsigned long) const>:": true,
+    "0000000000000000 <std::__ndk1::__function::__func<causallm::lfmConvPostGatePrefill(float const*, float const*, float const*, float*, unsigned int, unsigned int)::$_0, std::__ndk1::allocator<causallm::lfmConvPostGatePrefill(float const*, float const*, float const*, float*, unsigned int, unsigned int)::$_0>, void (unsigned long)>::operator()(unsigned long&&)>:": true,
+    "0000000000000000 <std::__ndk1::__function::__func<causallm::ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext&, unsigned int, unsigned int, bool)::$_1, std::__ndk1::allocator<causallm::ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext&, unsigned int, unsigned int, bool)::$_1>, void (unsigned long)>::operator()(unsigned long&&)>:": true
+  }
+}

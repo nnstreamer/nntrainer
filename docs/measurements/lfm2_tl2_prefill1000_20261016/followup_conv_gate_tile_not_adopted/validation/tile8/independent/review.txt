@@ -1,0 +1,166 @@
+Independent review: Tile8 LFM prefill gate/conv fusion
+
+Conclusion: no correctness/build blocker found in frozen production afb5021f.
+This review did not edit root, use the phone, commit, or push. Root alone runs
+model A/B. Microbenchmarks establish only the measured CPU-region result.
+
+Frozen identity and scope
+  Production patch ba054f78c730430438408231fbb465841b9acdebb5bf06e7f4b3f2e66f5427cc
+  App source afb5021ff5f95ed4f1287357b5dce77bc8032c9ec07045c5f5944f1e3c305e8c
+  Tests patch 9ec53b34354f41b88d64d9831b8a797732e598597c809d334d41880910b50a92
+  Base ccea0d476 / v2 app846921eaa9b7da92bb20b7ee891e918b317017e471b0048a1e2b3a05b4708de3.
+  Test arithmetic reference is original appbc019abdbf0cadb48e0aaa4ecc3898bc9b0a37e11f28c306d9762f766292869a;
+  its full helper is the byte-identical helper restored in v2. Codegen comparisons
+  use the actual v2 object846921, not the earlier v1 object. Detailed identities
+  and executable/extracted-source hashes are retained in input-manifest.json,
+  frozen/, host-san/commands.json and author-frozen-final.json.
+
+  One app file adds an opt-in NNTR_LFM2_CONV_GATE_TILE=1 path. The existing LFM
+  affine/FP32/contiguous K2048,N2048 prefill route remains the outer guard, and
+  the tile helper requires C2048, either M1024 full range or the two existing
+  M2048 ranges [0,1920),[1920,2048). All are divisible by8. Invalid spans or
+  output/gated/source/weight overlaps return false before any work. The
+  original paths handle disabled/unsupported cases. M1 and Gemma's other shape
+  do not select this helper; non-AArch64 helper returns false. There is no new
+  core/DSP/API/cache/reader/preload/staging-capacity or persistent data buffer.
+  ConvBlockLayer explicitly does not support backwarding; GATED is an internal
+  workspace, and the only retained consumer needs its final two rows as state.
+
+Ownership, arbitrary execution order, and halo proof
+  Each tile owns exactly8 distinct output rows. It uses immutable projection
+  rows to recompute the two halo gates at interior tile boundaries. Therefore
+  reversed, shuffled, or stolen tasks do not depend on another concurrent tile
+  writing GATED. At the one RPC boundary1920, the first tile reads only saved
+  GATED rows1918/1919. They were completed before the prior parallel_for joined
+  and before the next RPC could invalidate its projection. Only1918/1919 and
+  2046/2047 are written for M2048; only1022/1023 for M1024. Other GATED rows are
+  intentionally untouched and can remain poisoned. The direct helper has no
+  global progress state and makes no nested parallel_for call.
+
+  ThreadManager's real scheduler has one owner per index via range_length and
+  range_end atomics. It waits all workers and applies an acquire fence before
+  parallel_for returns. Captured argument references stay alive through that
+  join. task_ can retain a completed callback until the next dispatch, as before;
+  it does not execute the stale references after the join. No asynchronous
+  projection view escapes its RPC chunk. The existing sync fallback and the
+  pre-work input/workspace/state alias checks remain in force. The later
+  projection/CPU errors propagate without a new false-return retry. State is
+  saved only after all chunks succeed, with the old out-projection ordering.
+
+FP32/order evidence
+  Each output preserves pre-gate FP32 multiply, cur*w0, FMA(prev1,w1),
+  FMA(prev2,w2), and multiplication by B. The explicit vector code is inside
+  the original precise-FP scope. The original scalar pregate source says A*C,
+  but the actual NDK vector and scalar instructions use C then A. New cur and
+  recomputed halos use that same C,A operand order, relevant to NaN payloads.
+  Actual old full/range epilogue and new callback instructions retain the two
+  FMAs in order; FP32 register values do not add extended-precision storage.
+  Halo recomputation does add repeated multiply operations, not an arithmetic
+  reduction or reordering of an output's chain. We claim output/state parity,
+  not an identical total instruction/FP-operation trace.
+
+  Tile8 only changes tile_rows16->8 and its comment from the reviewed Tile16
+  algorithm. This was nevertheless rechecked on the final8 source:128 tile
+  jobs at1024 and240+16 at2048, instead of64 and120+8. Baseline remains the same
+  1024+1024 or1920+1920+128+128 row-job topology. Eight-row halos, final-row
+  writes, and bad partial-tile guards are exercised by the final fixtures.
+
+Independent execution on final Tile8
+  - 112 actual extracted app/staging cases with Tile8 ON pass ASan+UBSan,
+    detect_leaks and halt-on-error, with no suppression. The same binary with
+    the flag OFF passes112. Source is extracted from the frozen whole app;
+    stageInput, fit, stage, host_view, sync/alias helpers come from actual core.
+    Fixture uses1/8 concurrent pthread lanes with forward/reverse/shuffled
+    tasks; padding/dead GATED rows and old ION views are ASan-poisoned. Cases
+    include signed zeros, denormals, Inf, qNaN/sNaN payloads, ulp boundaries,
+    distinct row/halo patterns, repeated generations, exact saved state,
+    fallback guards, RPC/sync errors and retry, capacities and canaries.
+  - Eight mutants independently compile then fail at intended runtime checks:
+    lost chunk halo; reading dead gated rows; writing dead gated rows; missing
+    post-gate; swapped FMA order; global instead of chunk-local projection row;
+    missing projection/output overlap guard; accepting a partial tile.
+    See mutants-san/results.json and each run.log. Compilation failure does
+    not count as detection.
+  - Whole actual Android AArch64 TU builds with original NDK fast-math flags
+    and stack reporting; Android x86_64 Clang and Linux x86 GCC actual object
+    builds pass with Werror=unused-function. Native ARM fixture cross-build
+    also passes (reviewer binary6bb629fc599381e4e42c253936aea9a1216154d13fc5e56b9720880a718cd74e;
+    built, not run by reviewer). Production and new C++ fixture are exactly
+    clang-format14 output.
+  - Own actual Android objects show all7 existing math callable instruction
+    streams are byte-identical to v2. Tile8's new callback is448 bytes, has
+    a0-byte frame and no SP spill references. App1760 and chunk464-byte frames
+    are unchanged. The new helper has128B and its parallel_for specialization
+    has96B frames. These selected frames are not a whole-callstack maximum.
+    See codegen.json and before/candidate disassembly. No DSP/v81 code changes.
+
+Independent readback of root-only native tests
+  Root final Tile8 native112 passed, including the special FP inputs. Readback
+  matched log SHA and local executable SHA
+  f5fa22c89d67c1d93f40f987ee9c850f02e0867ae827e18a0ac644ba3c7ea9e3.
+  This fixture executes real NEON with fake projection RPC, not DSP arithmetic.
+  Root's three-way micro additionally executes the actual ThreadManager with
+ 8 threads and actual cached ION allocated through HtpBackend::alloc_shared.
+  Source/default rpcmem flags establish cached allocation; fd>=0 excludes its
+  heap fallback. Its actual Tile8 helper is included from production; its
+  embedded Tile16 helper is byte-identical to frozen16 and wrapped in a precise
+  FP scope. Original full/range epilogues are actual app functions; reference
+  pregate is the same scalar operation, with actual C,A codegen checked.
+
+  Strict raw readback verified33 lines:1 thread record,3 shape/capacity records,
+  12 exact checks,12 timing records and4 ratios plus final PASS. The12 checks
+  are six per tile size:1024 normal/special and2048 normal/special crossed with
+  previous ION view poisoned or retained. All pass. Each timing cohort has31
+  values per path; printed medians/min/max are finite/ordered and all printed
+  ratios reproduce within rounding tolerance. Raw log34417766b00774aac289e8f6f5c86c11ce36dcbff15a0decbeb39e552d9e2e7b,
+  binary60026c3523491333ac4e17e4a4d29e53c527ddd58dc8f8cb0811c825aa7b97d5.
+
+  CPU-region medians us, existing / Tile16 / Tile8:
+    1024 warm:863.490 /768.594 /619.010
+    1024 host sweep:1020.312 /925.157 /790.729
+    2048 warm:2238.646 /2144.271 /1770.833
+    2048 host sweep:2502.552 /2451.719 /2066.615
+  These are micro results, not an end-to-end model claim or a bound on removable
+  prefill time. Actual model normal12 A/B remains root-owned and was in progress
+  when this review froze.
+
+Timing and memory controls/limits
+  All three paths share the same buffers, projection values, weights and state
+  lifetime. Each has3 warmups. The six cyclic permutations balance each position
+ 10 times plus one additional012 order across31 repetitions. Timed regions
+  include common sampledCopy plus33 memcmp checks per chunk and final state
+  copy; allocation, fill, exact comparisons and optional host sweep are outside
+  the timer. No per-iteration samples are printed, so paired variance or a
+  confidence interval cannot be reconstructed from median/min/max alone.
+
+  Alternation reduces order bias but does NOT equalize cache state: baseline
+  writes all GATED rows while tiles write only the final rows, so a preceding
+  path changes the next path's residency/dirty lines. Sweeping the existing
+  host projection is not an explicit flush and cannot certify a cold or equal
+  cache. Frequency/interrupt/background state is not controlled by this tool.
+  ION is CPU-filled and then CPU-read; no DSP-produced data invalidation,
+  projection execution, concurrent expert I/O, or full-model memory pressure
+  is simulated. The initial1024 warm maxima contain large scheduling outliers.
+
+  The production workspace layout/allocations stay unchanged. The code avoids
+  writing most existing GATED rows, not allocating a smaller tensor. The tile
+  lambda is56B (seven references), and the actual std::function wrapper is64B
+  versus existing fullpost48/rangepost56. It replaces the existing task_, with
+  the same temporary old/new coexistence and later-dispatch release contract.
+  Thus no new persistent data cache exists, but zero metadata/stack cost is not
+  claimed; allocator overhead is not measured by sizeof or source inspection.
+  Existing2048 staging requests/capacities and48MiB copy removal are properties
+  of the already-reviewed chunk-view base, not a new Tile8 improvement.
+
+Reproduction
+  python3 frozen/test/htp/host/run_lfm2_conv_gate_tile_check.py --repo R
+    --source frozen/candidate --baseline frozen/baseline
+    --simde-include <SIMDe0.8.2> --output <new> --sanitize --tile-on
+  env ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1
+    NNTR_LFM2_CONV_GATE_TILE=0 <new>/check
+  python3 frozen/test/htp/host/run_lfm2_conv_gate_tile_mutations.py --repo R
+    --source frozen/candidate --baseline frozen/baseline
+    --simde-include <SIMDe0.8.2> --output <new-mutants>
+  All exact compiler commands and extracted input hashes are retained beside
+  their outputs. Earlier independent Tile16 evidence remains in the parent
+  review directory and has not been overwritten.

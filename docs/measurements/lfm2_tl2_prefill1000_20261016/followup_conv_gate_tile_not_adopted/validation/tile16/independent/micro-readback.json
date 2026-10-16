@@ -1,0 +1,111 @@
+{
+  "raw_sha256": "5344e8d51637a42e0462f038742f7d65cb8013a1ab609b601f7f4437b8c7368e",
+  "raw_records": 23,
+  "exact_cases": [
+    [
+      1024,
+      0,
+      0
+    ],
+    [
+      1024,
+      1,
+      0
+    ],
+    [
+      2048,
+      0,
+      0
+    ],
+    [
+      2048,
+      0,
+      1
+    ],
+    [
+      2048,
+      1,
+      0
+    ],
+    [
+      2048,
+      1,
+      1
+    ]
+  ],
+  "threads": 8,
+  "parent_executed": true,
+  "benchmarks": [
+    {
+      "rows": 1024,
+      "host_sweep": 0,
+      "reference": {
+        "median_us": 883.697,
+        "min_us": 787.136,
+        "max_us": 7828.75
+      },
+      "tile16": {
+        "median_us": 780.261,
+        "min_us": 740.521,
+        "max_us": 4792.187
+      },
+      "ratio": 0.8829508304316978,
+      "delta_median_us": -103.43600000000004
+    },
+    {
+      "rows": 1024,
+      "host_sweep": 1,
+      "reference": {
+        "median_us": 1044.166,
+        "min_us": 981.25,
+        "max_us": 6751.302
+      },
+      "tile16": {
+        "median_us": 948.594,
+        "min_us": 894.114,
+        "max_us": 6622.448
+      },
+      "ratio": 0.9084704922397397,
+      "delta_median_us": -95.57199999999989
+    },
+    {
+      "rows": 2048,
+      "host_sweep": 0,
+      "reference": {
+        "median_us": 2268.958,
+        "min_us": 2230.52,
+        "max_us": 2335.365
+      },
+      "tile16": {
+        "median_us": 2219.896,
+        "min_us": 2158.073,
+        "max_us": 2329.479
+      },
+      "ratio": 0.9783768584522059,
+      "delta_median_us": -49.0619999999999
+    },
+    {
+      "rows": 2048,
+      "host_sweep": 1,
+      "reference": {
+        "median_us": 2549.792,
+        "min_us": 2514.844,
+        "max_us": 2695.156
+      },
+      "tile16": {
+        "median_us": 2508.125,
+        "min_us": 2381.927,
+        "max_us": 2870.469
+      },
+      "ratio": 0.9836586670599013,
+      "delta_median_us": -41.666999999999916
+    }
+  ],
+  "limits": [
+    "Medians of31 perpath runs, not paired-difference distribution; raw per-iteration samples not printed",
+    "ABBA ordering and host sweep do not equalize all cache/memory/frequency state",
+    "CPU-filled cached ION; no DSP/cache-coherency/expertI/O workload",
+    "Timing includes common sample copy with33memcmps and final state copy; excludes allocations/fill/sweep",
+    "No end-to-end model speed or maximum bound inferred"
+  ]
+}

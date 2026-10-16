@@ -1,0 +1,16 @@
+{
+  "candidate/Applications/CausalLM/layers/conv_block_layer.cpp": "25bd544f784d87ec696e8a3e8c52006ddc2657e05bc065c3e87c75e12bb6dd26",
+  "candidate/tools/lfm2_conv_gate_tile_ion_check.cpp": "518255cb497613a1cb5f05338249595b7b2783da0c98141497d072291a469881",
+  "before/Applications/CausalLM/layers/conv_block_layer.cpp": "846921eaa9b7da92bb20b7ee891e918b317017e471b0048a1e2b3a05b4708de3",
+  "baseline/Applications/CausalLM/layers/conv_block_layer.cpp": "bc019abdbf0cadb48e0aaa4ecc3898bc9b0a37e11f28c306d9762f766292869a",
+  "test/htp/host/lfm2_conv_chunk_check.cpp": "577c42323a199cd77fdff3b0abcacf9c45f6361f21ebd515efae3b77605e936f",
+  "test/htp/host/run_lfm2_conv_chunk_check.py": "be8bb77561b364abc590edc30fb0b4f45f4516697b1aed2b5af98ae85f0c2628",
+  "production.patch": "2f0798b1c8ffe6611c442050522b202107db9c8ab8ef58aa324276b19656d172",
+  "frozen.json": "fb458acf07c266203269db2bb554242e28df0ef3a882d1d44336853f64fa5ee5",
+  "ion-build-command.json": "e1b38b4a7bb5d37fee1e46019bdecb2541079cc5d0a6b5a46e2f0d5accbf59e2",
+  "root-ion-micro.log": "5344e8d51637a42e0462f038742f7d65cb8013a1ab609b601f7f4437b8c7368e",
+  "root-ion-micro.json": "deaeb11f7a54ebe7da60c8eebe523891b0844c6cf4a919b4b21e2a64b0b41693",
+  "test/htp/host/run_lfm2_conv_gate_tile_mutations.py": "96376ef6c8ffab078e55c2ac2ceda3f6a6ce06bdbb2917482e1fefefc8f193a6",
+  "root-native-v2.json": "9bd4b9c3c711dfd0836e97c363638bfac9b271639ed2230e31bd131e4ddc6135",
+  "root-native-v2.log": "ed0114af108967efb83439504adc47678322cfb9f316781b0192f1caaef8fcca"
+}

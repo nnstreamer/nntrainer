@@ -1,0 +1,74 @@
+0000000000000000 <std::__ndk1::__function::__func<causallm::lfmConvChunkedPrefill(nntrainer::ComputeOps*, void*, float*, float*, float*, float*, float const*, float*, float*, unsigned int, unsigned int)::$_0, std::__ndk1::allocator<causallm::lfmConvChunkedPrefill(nntrainer::ComputeOps*, void*, float*, float*, float*, float*, float const*, float*, float*, unsigned int, unsigned int)::$_0>, void (unsigned long)>::operator()(unsigned long&&)>:
+       0: f9400c08     	ldr	x8, [x0, #0x18]
+       4: b9400109     	ldr	w9, [x8]
+       8: 34000389     	cbz	w9, 0x78 <std::__ndk1::__function::__func<causallm::lfmConvChunkedPrefill(nntrainer::ComputeOps*, void*, float*, float*, float*, float*, float const*, float*, float*, unsigned int, unsigned int)::$_0, std::__ndk1::allocator<causallm::lfmConvChunkedPrefill(nntrainer::ComputeOps*, void*, float*, float*, float*, float*, float const*, float*, float*, unsigned int, unsigned int)::$_0>, void (unsigned long)>::operator()(unsigned long&&)+0x78>
+       c: a940ac08     	ldp	x8, x11, [x0, #0x8]
+      10: 7100513f     	cmp	w9, #0x14
+      14: f940100d     	ldr	x13, [x0, #0x20]
+      18: f940002c     	ldr	x12, [x1]
+      1c: b940016f     	ldr	w15, [x11]
+      20: f940010a     	ldr	x10, [x8]
+      24: 531f7928     	lsl	w8, w9, #1
+      28: f94001ab     	ldr	x11, [x13]
+      2c: cb0f018d     	sub	x13, x12, x15
+      30: 54000262     	b.hs	0x7c <std::__ndk1::__function::__func<causallm::lfmConvChunkedPrefill(nntrainer::ComputeOps*, void*, float*, float*, float*, float*, float const*, float*, float*, unsigned int, unsigned int)::$_0, std::__ndk1::allocator<causallm::lfmConvChunkedPrefill(nntrainer::ComputeOps*, void*, float*, float*, float*, float*, float const*, float*, float*, unsigned int, unsigned int)::$_0>, void (unsigned long)>::operator()(unsigned long&&)+0x7c>
+      34: aa1f03ee     	mov	x14, xzr
+      38: 9b097dad     	mul	x13, x13, x9
+      3c: 5280018f     	mov	w15, #0xc               // =12
+      40: d37ef5d0     	lsl	x16, x14, #2
+      44: 9b097d8c     	mul	x12, x12, x9
+      48: cb0e0129     	sub	x9, x9, x14
+      4c: 9b0f41ad     	madd	x13, x13, x15, x16
+      50: 8b0c0a0c     	add	x12, x16, x12, lsl #2
+      54: 8b0c016b     	add	x11, x11, x12
+      58: 8b0d014a     	add	x10, x10, x13
+      5c: bd400140     	ldr	s0, [x10]
+      60: bc687941     	ldr	s1, [x10, x8, lsl #2]
+      64: f1000529     	subs	x9, x9, #0x1
+      68: 9100114a     	add	x10, x10, #0x4
+      6c: 1e200820     	fmul	s0, s1, s0
+      70: bc004560     	str	s0, [x11], #0x4
+      74: 54ffff41     	b.ne	0x5c <std::__ndk1::__function::__func<causallm::lfmConvChunkedPrefill(nntrainer::ComputeOps*, void*, float*, float*, float*, float*, float const*, float*, float*, unsigned int, unsigned int)::$_0, std::__ndk1::allocator<causallm::lfmConvChunkedPrefill(nntrainer::ComputeOps*, void*, float*, float*, float*, float*, float const*, float*, float*, unsigned int, unsigned int)::$_0>, void (unsigned long)>::operator()(unsigned long&&)+0x5c>
+      78: d65f03c0     	ret
+      7c: 9b097d8e     	mul	x14, x12, x9
+      80: 9b097db1     	mul	x17, x13, x9
+      84: d37ef5d0     	lsl	x16, x14, #2
+      88: 8b11062e     	add	x14, x17, x17, lsl #1
+      8c: d37ef511     	lsl	x17, x8, #2
+      90: 8b0b0201     	add	x1, x16, x11
+      94: d37ef5c0     	lsl	x0, x14, #2
+      98: 8b11014e     	add	x14, x10, x17
+      9c: cb0e002e     	sub	x14, x1, x14
+      a0: cb0001ce     	sub	x14, x14, x0
+      a4: f10081df     	cmp	x14, #0x20
+      a8: aa1f03ee     	mov	x14, xzr
+      ac: 54fffc63     	b.lo	0x38 <std::__ndk1::__function::__func<causallm::lfmConvChunkedPrefill(nntrainer::ComputeOps*, void*, float*, float*, float*, float*, float const*, float*, float*, unsigned int, unsigned int)::$_0, std::__ndk1::allocator<causallm::lfmConvChunkedPrefill(nntrainer::ComputeOps*, void*, float*, float*, float*, float*, float const*, float*, float*, unsigned int, unsigned int)::$_0>, void (unsigned long)>::operator()(unsigned long&&)+0x38>
+      b0: 52800181     	mov	w1, #0xc                // =12
+      b4: 9ba17def     	umull	x15, w15, w1
+      b8: cb0c0def     	sub	x15, x15, x12, lsl #3
+      bc: 9b092def     	madd	x15, x15, x9, x11
+      c0: cb0a01ef     	sub	x15, x15, x10
+      c4: f10081ff     	cmp	x15, #0x20
+      c8: 54fffb83     	b.lo	0x38 <std::__ndk1::__function::__func<causallm::lfmConvChunkedPrefill(nntrainer::ComputeOps*, void*, float*, float*, float*, float*, float const*, float*, float*, unsigned int, unsigned int)::$_0, std::__ndk1::allocator<causallm::lfmConvChunkedPrefill(nntrainer::ComputeOps*, void*, float*, float*, float*, float*, float const*, float*, float*, unsigned int, unsigned int)::$_0>, void (unsigned long)>::operator()(unsigned long&&)+0x38>
+      cc: 8b0a000f     	add	x15, x0, x10
+      d0: 927d712e     	and	x14, x9, #0xfffffff8
+      d4: 8b0b0210     	add	x16, x16, x11
+      d8: 910041ef     	add	x15, x15, #0x10
+      dc: 91004210     	add	x16, x16, #0x10
+      e0: aa0e03e0     	mov	x0, x14
+      e4: 8b1101f1     	add	x17, x15, x17
+      e8: ad7f8e20     	ldp	q0, q3, [x17, #-0x10]
+      ec: f1002000     	subs	x0, x0, #0x8
+      f0: ad7f89e1     	ldp	q1, q2, [x15, #-0x10]
+      f4: 910081ef     	add	x15, x15, #0x20
+      f8: 91008231     	add	x17, x17, #0x20
+      fc: 6e21dc00     	fmul	v0.4s, v0.4s, v1.4s
+     100: 6e22dc61     	fmul	v1.4s, v3.4s, v2.4s
+     104: ad3f8600     	stp	q0, q1, [x16, #-0x10]
+     108: 91008210     	add	x16, x16, #0x20
+     10c: 54fffee1     	b.ne	0xe8 <std::__ndk1::__function::__func<causallm::lfmConvChunkedPrefill(nntrainer::ComputeOps*, void*, float*, float*, float*, float*, float const*, float*, float*, unsigned int, unsigned int)::$_0, std::__ndk1::allocator<causallm::lfmConvChunkedPrefill(nntrainer::ComputeOps*, void*, float*, float*, float*, float*, float const*, float*, float*, unsigned int, unsigned int)::$_0>, void (unsigned long)>::operator()(unsigned long&&)+0xe8>
+     110: eb0901df     	cmp	x14, x9
+     114: 54fff921     	b.ne	0x38 <std::__ndk1::__function::__func<causallm::lfmConvChunkedPrefill(nntrainer::ComputeOps*, void*, float*, float*, float*, float*, float const*, float*, float*, unsigned int, unsigned int)::$_0, std::__ndk1::allocator<causallm::lfmConvChunkedPrefill(nntrainer::ComputeOps*, void*, float*, float*, float*, float*, float const*, float*, float*, unsigned int, unsigned int)::$_0>, void (unsigned long)>::operator()(unsigned long&&)+0x38>
+     118: 17ffffd8     	b	0x78 <std::__ndk1::__function::__func<causallm::lfmConvChunkedPrefill(nntrainer::ComputeOps*, void*, float*, float*, float*, float*, float const*, float*, float*, unsigned int, unsigned int)::$_0, std::__ndk1::allocator<causallm::lfmConvChunkedPrefill(nntrainer::ComputeOps*, void*, float*, float*, float*, float*, float const*, float*, float*, unsigned int, unsigned int)::$_0>, void (unsigned long)>::operator()(unsigned long&&)+0x78>
+
+Disassembly of section .text._ZNKSt6__ndk110__function6__funcIZN8causallmL21lfmConvChunkedPrefillEPN9nntrainer10ComputeOpsEPvPfS7_S7_S7_PKfS7_S7_jjE3$_0NS_9allocatorISA_EEFvmEE6targetERKSt9type_info:

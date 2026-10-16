@@ -1,0 +1,121 @@
+0000000000000000 <void nntrainer::ThreadManager::parallel_for<causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0>(unsigned long, unsigned long, causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0&&)>:
+       0: d10183ff     	sub	sp, sp, #0x60
+       4: a9037bfd     	stp	x29, x30, [sp, #0x30]
+       8: f90023f5     	str	x21, [sp, #0x40]
+       c: a9054ff4     	stp	x20, x19, [sp, #0x50]
+      10: 9100c3fd     	add	x29, sp, #0x30
+      14: b4000521     	cbz	x1, 0xb8 <void nntrainer::ThreadManager::parallel_for<causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0>(unsigned long, unsigned long, causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0&&)+0xb8>
+      18: aa0203f5     	mov	x21, x2
+      1c: aa0103f4     	mov	x20, x1
+      20: f100043f     	cmp	x1, #0x1
+      24: 540003c0     	b.eq	0x9c <void nntrainer::ThreadManager::parallel_for<causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0>(unsigned long, unsigned long, causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0&&)+0x9c>
+      28: a9412408     	ldp	x8, x9, [x0, #0x10]
+      2c: aa0003f3     	mov	x19, x0
+      30: eb09011f     	cmp	x8, x9
+      34: 54000340     	b.eq	0x9c <void nntrainer::ThreadManager::parallel_for<causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0>(unsigned long, unsigned long, causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0&&)+0x9c>
+      38: 9100c260     	add	x0, x19, #0x30
+      3c: 94000000     	bl	0x3c <void nntrainer::ThreadManager::parallel_for<causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0>(unsigned long, unsigned long, causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0&&)+0x3c>
+      40: 52800800     	mov	w0, #0x40               // =64
+      44: 94000000     	bl	0x44 <void nntrainer::ThreadManager::parallel_for<causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0>(unsigned long, unsigned long, causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0&&)+0x44>
+      48: 90000008     	adrp	x8, 0x0 <void nntrainer::ThreadManager::parallel_for<causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0>(unsigned long, unsigned long, causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0&&)>
+      4c: 91000108     	add	x8, x8, #0x0
+      50: 3dc00aa2     	ldr	q2, [x21, #0x20]
+      54: ad4006a0     	ldp	q0, q1, [x21]
+      58: f9000008     	str	x8, [x0]
+      5c: f9401aa8     	ldr	x8, [x21, #0x30]
+      60: 3c828002     	stur	q2, [x0, #0x28]
+      64: 91018261     	add	x1, x19, #0x60
+      68: f90013e0     	str	x0, [sp, #0x20]
+      6c: 910003f5     	mov	x21, sp
+      70: 3c808000     	stur	q0, [x0, #0x8]
+      74: 3c818001     	stur	q1, [x0, #0x18]
+      78: f9001c08     	str	x8, [x0, #0x38]
+      7c: 910003e0     	mov	x0, sp
+      80: 94000000     	bl	0x80 <void nntrainer::ThreadManager::parallel_for<causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0>(unsigned long, unsigned long, causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0&&)+0x80>
+      84: f94013e0     	ldr	x0, [sp, #0x20]
+      88: eb15001f     	cmp	x0, x21
+      8c: 54000200     	b.eq	0xcc <void nntrainer::ThreadManager::parallel_for<causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0>(unsigned long, unsigned long, causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0&&)+0xcc>
+      90: b4000260     	cbz	x0, 0xdc <void nntrainer::ThreadManager::parallel_for<causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0>(unsigned long, unsigned long, causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0&&)+0xdc>
+      94: 52800508     	mov	w8, #0x28               // =40
+      98: 1400000e     	b	0xd0 <void nntrainer::ThreadManager::parallel_for<causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0>(unsigned long, unsigned long, causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0&&)+0xd0>
+      9c: aa1f03f3     	mov	x19, xzr
+      a0: aa1503e0     	mov	x0, x21
+      a4: aa1303e1     	mov	x1, x19
+      a8: 94000000     	bl	0xa8 <void nntrainer::ThreadManager::parallel_for<causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0>(unsigned long, unsigned long, causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0&&)+0xa8>
+      ac: 91000673     	add	x19, x19, #0x1
+      b0: eb13029f     	cmp	x20, x19
+      b4: 54ffff61     	b.ne	0xa0 <void nntrainer::ThreadManager::parallel_for<causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0>(unsigned long, unsigned long, causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0&&)+0xa0>
+      b8: a9454ff4     	ldp	x20, x19, [sp, #0x50]
+      bc: f94023f5     	ldr	x21, [sp, #0x40]
+      c0: a9437bfd     	ldp	x29, x30, [sp, #0x30]
+      c4: 910183ff     	add	sp, sp, #0x60
+      c8: d65f03c0     	ret
+      cc: 52800408     	mov	w8, #0x20               // =32
+      d0: f9400009     	ldr	x9, [x0]
+      d4: f8686928     	ldr	x8, [x9, x8]
+      d8: d63f0100     	blr	x8
+      dc: a9412a6b     	ldp	x11, x10, [x19, #0x10]
+      e0: aa1f03e8     	mov	x8, xzr
+      e4: aa1f03ec     	mov	x12, xzr
+      e8: aa1f03e9     	mov	x9, xzr
+      ec: cb0b014a     	sub	x10, x10, x11
+      f0: 9343fd4d     	asr	x13, x10, #3
+      f4: 910005ae     	add	x14, x13, #0x1
+      f8: f900826d     	str	x13, [x19, #0x100]
+      fc: 9ace0a8a     	udiv	x10, x20, x14
+     100: f10005df     	cmp	x14, #0x1
+     104: 9b0ed14b     	msub	x11, x10, x14, x20
+     108: 5280002e     	mov	w14, #0x1               // =1
+     10c: 9a8d95cd     	csinc	x13, x14, x13, ls
+     110: b901426e     	str	w14, [x19, #0x140]
+     114: f940166e     	ldr	x14, [x19, #0x28]
+     118: eb0b013f     	cmp	x9, x11
+     11c: 91000529     	add	x9, x9, #0x1
+     120: 9a8a254f     	cinc	x15, x10, lo
+     124: eb0901bf     	cmp	x13, x9
+     128: f82869cc     	str	x12, [x14, x8]
+     12c: 8b0c01ec     	add	x12, x15, x12
+     130: f940166e     	ldr	x14, [x19, #0x28]
+     134: 8b0801ce     	add	x14, x14, x8
+     138: f90021cc     	str	x12, [x14, #0x40]
+     13c: f940166e     	ldr	x14, [x19, #0x28]
+     140: 8b0801ce     	add	x14, x14, x8
+     144: 91030108     	add	x8, x8, #0xc0
+     148: f90041cf     	str	x15, [x14, #0x80]
+     14c: 54fffe41     	b.ne	0x114 <void nntrainer::ThreadManager::parallel_for<causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0>(unsigned long, unsigned long, causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0&&)+0x114>
+     150: b940c268     	ldr	w8, [x19, #0xc0]
+     154: b9414a69     	ldr	w9, [x19, #0x148]
+     158: 91030261     	add	x1, x19, #0xc0
+     15c: 2a080128     	orr	w8, w9, w8
+     160: 2a2803e8     	mvn	w8, w8
+     164: 32000108     	orr	w8, w8, #0x1
+     168: 889ffc28     	stlr	w8, [x1]
+     16c: 52800c40     	mov	w0, #0x62               // =98
+     170: 52801022     	mov	w2, #0x81               // =129
+     174: 12b00003     	mov	w3, #0x7fffffff         // =2147483647
+     178: 94000000     	bl	0x178 <void nntrainer::ThreadManager::parallel_for<causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0>(unsigned long, unsigned long, causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0&&)+0x178>
+     17c: aa1303e0     	mov	x0, x19
+     180: aa1f03e1     	mov	x1, xzr
+     184: 94000000     	bl	0x184 <void nntrainer::ThreadManager::parallel_for<causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0>(unsigned long, unsigned long, causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0&&)+0x184>
+     188: aa1303e0     	mov	x0, x19
+     18c: 94000000     	bl	0x18c <void nntrainer::ThreadManager::parallel_for<causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0>(unsigned long, unsigned long, causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0&&)+0x18c>
+     190: 9100c260     	add	x0, x19, #0x30
+     194: d50339bf     	dmb	ishld
+     198: 94000000     	bl	0x198 <void nntrainer::ThreadManager::parallel_for<causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0>(unsigned long, unsigned long, causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0&&)+0x198>
+     19c: a9454ff4     	ldp	x20, x19, [sp, #0x50]
+     1a0: f94023f5     	ldr	x21, [sp, #0x40]
+     1a4: a9437bfd     	ldp	x29, x30, [sp, #0x30]
+     1a8: 910183ff     	add	sp, sp, #0x60
+     1ac: d65f03c0     	ret
+     1b0: aa0003f4     	mov	x20, x0
+     1b4: 9100c260     	add	x0, x19, #0x30
+     1b8: 94000000     	bl	0x1b8 <void nntrainer::ThreadManager::parallel_for<causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0>(unsigned long, unsigned long, causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0&&)+0x1b8>
+     1bc: aa1403e0     	mov	x0, x20
+     1c0: 94000000     	bl	0x1c0 <void nntrainer::ThreadManager::parallel_for<causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0>(unsigned long, unsigned long, causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0&&)+0x1c0>
+     1c4: aa0003f4     	mov	x20, x0
+     1c8: 9100c260     	add	x0, x19, #0x30
+     1cc: 94000000     	bl	0x1cc <void nntrainer::ThreadManager::parallel_for<causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0>(unsigned long, unsigned long, causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0&&)+0x1cc>
+     1d0: aa1403e0     	mov	x0, x20
+     1d4: 94000000     	bl	0x1d4 <void nntrainer::ThreadManager::parallel_for<causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0>(unsigned long, unsigned long, causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0&&)+0x1d4>
+
+Disassembly of section .text._ZZN8causallmL22lfmConvGateTilePrefillEPKfS1_PfS2_jjjjENK3$_0clEm:

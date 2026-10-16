@@ -1,0 +1,271 @@
+{
+  "status": "PASS; no correctness/build blocker found",
+  "topic": "Tile8 LFM prefill gate/conv fusion",
+  "frozen": {
+    "candidate/Applications/CausalLM/layers/conv_block_layer.cpp": "afb5021ff5f95ed4f1287357b5dce77bc8032c9ec07045c5f5944f1e3c305e8c",
+    "candidate/tools/lfm2_conv_gate_tile_ion_check.cpp": "5f567210ceebaa66d6f123cc7e16afddd6472a604cfc54e111bed9195a67078c",
+    "candidate/tools/tile16_helper.inc": "6fc3d64577a6d7edcef6fa19e9be3a27d41c706ee15090bf6d6481ce3d3c58dc",
+    "test/htp/host/lfm2_conv_gate_tile_check.cpp": "1efcbd03d9ad42b78027b5e618937fb205d48483f271bae79f4c734441983188",
+    "test/htp/host/run_lfm2_conv_gate_tile_check.py": "81747a274cf0c647417fdf18e3b61f619619370841e8424b6507876a294e566a",
+    "test/htp/host/run_lfm2_conv_gate_tile_mutations.py": "2c6c6d7cd32e67efd0a5725483b29d1177387e7dba38fc033ef9675ea4aa2826",
+    "production.patch": "ba054f78c730430438408231fbb465841b9acdebb5bf06e7f4b3f2e66f5427cc",
+    "tests.patch": "9ec53b34354f41b88d64d9831b8a797732e598597c809d334d41880910b50a92",
+    "frozen.json": "b68b52676e63e499606dde57e4bfde46b703c8db0019f35aaafe9436a898dd97",
+    "ion-build-command.json": "e742033725fde853e90e6c59007b150b1c2610d483e2cdcb30820e891e855460",
+    "baseline/Applications/CausalLM/layers/conv_block_layer.cpp": "bc019abdbf0cadb48e0aaa4ecc3898bc9b0a37e11f28c306d9762f766292869a",
+    "before/Applications/CausalLM/layers/conv_block_layer.cpp": "846921eaa9b7da92bb20b7ee891e918b317017e471b0048a1e2b3a05b4708de3"
+  },
+  "independently_executed": {
+    "actual_source_asan_ubsan_on": 112,
+    "same_binary_off": 112,
+    "mutants_intended_runtime_rejected": 8,
+    "sanitizer_suppressions": false,
+    "ndk_aarch64_whole_tu": true,
+    "ndk_x86_whole_tu": true,
+    "linux_gcc_whole_tu": true,
+    "native_arm_fixture_built_not_run": true,
+    "format14_production_and_test_exact": true
+  },
+  "codegen": {
+    "old_math_callables_exact": 7,
+    "new_callback_bytes": 448,
+    "new_callback_frame_bytes": 0,
+    "new_callback_no_sp_refs": true,
+    "app_frame_bytes": 1760,
+    "chunk_frame_bytes": 464,
+    "new_helper_frame_bytes": 128,
+    "new_parallel_for_frame_bytes": 96,
+    "whole_app_byte_identical": false,
+    "actual_parent_micro_reference_C_A_operands": true,
+    "actual_parent_micro_C_offset_bytes": 16384
+  },
+  "parent_executed_native": {
+    "binary_sha256": "f5fa22c89d67c1d93f40f987ee9c850f02e0867ae827e18a0ac644ba3c7ea9e3",
+    "command": [
+      "env",
+      "NNTR_LFM2_CONV_GATE_TILE=1",
+      "/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/conv-gate-tile8-check"
+    ],
+    "device": "R3CY70LV96T",
+    "returncode": 0,
+    "log_sha256": "ed0114af108967efb83439504adc47678322cfb9f316781b0192f1caaef8fcca",
+    "scope": "Actual Tile8 app/NEON helpers with mock RPC; not DSP arithmetic or performance evidence."
+  },
+  "parent_executed_ion_micro": {
+    "raw_sha256": "34417766b00774aac289e8f6f5c86c11ce36dcbff15a0decbeb39e552d9e2e7b",
+    "raw_records": 33,
+    "exact_cases": [
+      [
+        1024,
+        0,
+        0,
+        16
+      ],
+      [
+        1024,
+        1,
+        0,
+        16
+      ],
+      [
+        1024,
+        0,
+        0,
+        8
+      ],
+      [
+        1024,
+        1,
+        0,
+        8
+      ],
+      [
+        2048,
+        0,
+        0,
+        16
+      ],
+      [
+        2048,
+        0,
+        1,
+        16
+      ],
+      [
+        2048,
+        1,
+        0,
+        16
+      ],
+      [
+        2048,
+        1,
+        1,
+        16
+      ],
+      [
+        2048,
+        0,
+        0,
+        8
+      ],
+      [
+        2048,
+        0,
+        1,
+        8
+      ],
+      [
+        2048,
+        1,
+        0,
+        8
+      ],
+      [
+        2048,
+        1,
+        1,
+        8
+      ]
+    ],
+    "threads": 8,
+    "parent_executed": true,
+    "benchmarks": [
+      {
+        "rows": 1024,
+        "host_sweep": 0,
+        "paths": {
+          "0": {
+            "median_us": 863.49,
+            "min_us": 817.239,
+            "max_us": 5141.354
+          },
+          "8": {
+            "median_us": 619.01,
+            "min_us": 595.677,
+            "max_us": 4691.355
+          },
+          "16": {
+            "median_us": 768.594,
+            "min_us": 727.031,
+            "max_us": 5201.666
+          }
+        },
+        "ratios": {
+          "tile16": 0.8901017961991454,
+          "tile8": 0.7168699116376565,
+          "eight_vs_sixteen": 0.805379693310122
+        }
+      },
+      {
+        "rows": 1024,
+        "host_sweep": 1,
+        "paths": {
+          "0": {
+            "median_us": 1020.312,
+            "min_us": 967.708,
+            "max_us": 1059.322
+          },
+          "8": {
+            "median_us": 790.729,
+            "min_us": 757.344,
+            "max_us": 836.979
+          },
+          "16": {
+            "median_us": 925.157,
+            "min_us": 861.562,
+            "max_us": 979.687
+          }
+        },
+        "ratios": {
+          "tile16": 0.9067393111126792,
+          "tile8": 0.774987454817742,
+          "eight_vs_sixteen": 0.8546970946552855
+        }
+      },
+      {
+        "rows": 2048,
+        "host_sweep": 0,
+        "paths": {
+          "0": {
+            "median_us": 2238.646,
+            "min_us": 2197.708,
+            "max_us": 2275.416
+          },
+          "8": {
+            "median_us": 1770.833,
+            "min_us": 1727.187,
+            "max_us": 1814.896
+          },
+          "16": {
+            "median_us": 2144.271,
+            "min_us": 2058.646,
+            "max_us": 2220.365
+          }
+        },
+        "ratios": {
+          "tile16": 0.9578428210623743,
+          "tile8": 0.7910285949632054,
+          "eight_vs_sixteen": 0.8258438415666676
+        }
+      },
+      {
+        "rows": 2048,
+        "host_sweep": 1,
+        "paths": {
+          "0": {
+            "median_us": 2502.552,
+            "min_us": 2478.489,
+            "max_us": 2585.521
+          },
+          "8": {
+            "median_us": 2066.615,
+            "min_us": 1981.459,
+            "max_us": 2151.771
+          },
+          "16": {
+            "median_us": 2451.719,
+            "min_us": 2295.208,
+            "max_us": 2574.219
+          }
+        },
+        "ratios": {
+          "tile16": 0.9796875349643084,
+          "tile8": 0.8258030202769012,
+          "eight_vs_sixteen": 0.8429249028946628
+        }
+      }
+    ],
+    "limits": [
+      "Median of31 measurements perpath, not paired-difference interval",
+      "Sixpermutation cyclic ordering gives eachposition10times plusoneextra012; reducesbutdoesnoteliminateorderbias",
+      "Priorpath has differentgatedwrites/cachefootprint; host sweep isnotexplicitflushanddoesnotnormalizeallcache/frequency state",
+      "CPU-filledcachedION; noDSPprojection/cacheinvalidateorconcurrentexpertI/O",
+      "Includes33samplecopy+memcmp/chunk andstatecopy; excludesallocation/fill/hostsweep",
+      "No end-to-end model speed claim"
+    ]
+  },
+  "limits": [
+    "Host fake RPC and SIMDe tests are not DSP/coherency/timing proof",
+    "Native112 realNEON mockRPC executed only byroot",
+    "IONmicro12 exact actual8threads cachedION CPU-filled",
+    "No end-to-end model gain claim; no paired variance without per-iteration samples",
+    "Cache/frequency/preceding path residency not fully normalized",
+    "No zero-heap/zero-stack claim; existing task_ metadata changes",
+    "No root/device edits byreviewer"
+  ],
+  "artifacts": {
+    "review.txt": "a62839788e1bfcc7ea89052c4ace26a0d5bd94de8fae1029020afac3c983e319",
+    "host-san.log": "ed0114af108967efb83439504adc47678322cfb9f316781b0192f1caaef8fcca",
+    "host-san-off.log": "ed0114af108967efb83439504adc47678322cfb9f316781b0192f1caaef8fcca",
+    "mutants-san/results.json": "0bcc94253f87f056e0742d057afdb4cad71a16fb76b502999333b4e454849451",
+    "codegen.json": "f2eda56a19ee9001b15ccb7b0d67e427f00948da03c2152aba7774795aad4805",
+    "candidate.o": "d200b08483dc481f9ea312450c66dc0a1c1140cc89cf920199a2a9e7a36d5932",
+    "format.json": "cc9fd00b7dd3a223f1f35baa233a5db55ef405b5b5e065e6d028ee2599d041a8",
+    "micro-readback.json": "45a16274d9af4de89de08719c963e1d4ef1678334ecf4f6cd08c4a68c8c4697e",
+    "micro-source-proof.json": "d971bc27b27587d69965c3507ad23b2c5906df028bff3edcf5115799468ffcd8",
+    "root-native-arm.log": "ed0114af108967efb83439504adc47678322cfb9f316781b0192f1caaef8fcca",
+    "parent-micro.disasm.txt": "d95e130ebda6d86f92a0ecd2622ce62fff9a216706f51bab3d54a2250a17b6dc",
+    "micro-reference-pregate.disasm.txt": "683826473153ddc110bc760a5e6f8b9e722008c00f5a8763758585d98ae45f49"
+  }
+}

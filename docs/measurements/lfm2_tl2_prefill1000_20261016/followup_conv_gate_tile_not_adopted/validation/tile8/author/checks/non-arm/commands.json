@@ -1,0 +1,19 @@
+{
+  "compile": [
+    "g++",
+    "-std=c++17",
+    "-O3",
+    "-ffast-math",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/non-arm/check.cpp",
+    "-o",
+    "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/non-arm/check"
+  ],
+  "run": [
+    "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/non-arm/check"
+  ],
+  "compile_rc": 0,
+  "run_rc": 0
+}

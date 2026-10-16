@@ -1,0 +1,194 @@
+{
+  "raw_sha256": "34417766b00774aac289e8f6f5c86c11ce36dcbff15a0decbeb39e552d9e2e7b",
+  "raw_records": 33,
+  "exact_cases": [
+    [
+      1024,
+      0,
+      0,
+      16
+    ],
+    [
+      1024,
+      1,
+      0,
+      16
+    ],
+    [
+      1024,
+      0,
+      0,
+      8
+    ],
+    [
+      1024,
+      1,
+      0,
+      8
+    ],
+    [
+      2048,
+      0,
+      0,
+      16
+    ],
+    [
+      2048,
+      0,
+      1,
+      16
+    ],
+    [
+      2048,
+      1,
+      0,
+      16
+    ],
+    [
+      2048,
+      1,
+      1,
+      16
+    ],
+    [
+      2048,
+      0,
+      0,
+      8
+    ],
+    [
+      2048,
+      0,
+      1,
+      8
+    ],
+    [
+      2048,
+      1,
+      0,
+      8
+    ],
+    [
+      2048,
+      1,
+      1,
+      8
+    ]
+  ],
+  "threads": 8,
+  "parent_executed": true,
+  "benchmarks": [
+    {
+      "rows": 1024,
+      "host_sweep": 0,
+      "paths": {
+        "0": {
+          "median_us": 863.49,
+          "min_us": 817.239,
+          "max_us": 5141.354
+        },
+        "8": {
+          "median_us": 619.01,
+          "min_us": 595.677,
+          "max_us": 4691.355
+        },
+        "16": {
+          "median_us": 768.594,
+          "min_us": 727.031,
+          "max_us": 5201.666
+        }
+      },
+      "ratios": {
+        "tile16": 0.8901017961991454,
+        "tile8": 0.7168699116376565,
+        "eight_vs_sixteen": 0.805379693310122
+      }
+    },
+    {
+      "rows": 1024,
+      "host_sweep": 1,
+      "paths": {
+        "0": {
+          "median_us": 1020.312,
+          "min_us": 967.708,
+          "max_us": 1059.322
+        },
+        "8": {
+          "median_us": 790.729,
+          "min_us": 757.344,
+          "max_us": 836.979
+        },
+        "16": {
+          "median_us": 925.157,
+          "min_us": 861.562,
+          "max_us": 979.687
+        }
+      },
+      "ratios": {
+        "tile16": 0.9067393111126792,
+        "tile8": 0.774987454817742,
+        "eight_vs_sixteen": 0.8546970946552855
+      }
+    },
+    {
+      "rows": 2048,
+      "host_sweep": 0,
+      "paths": {
+        "0": {
+          "median_us": 2238.646,
+          "min_us": 2197.708,
+          "max_us": 2275.416
+        },
+        "8": {
+          "median_us": 1770.833,
+          "min_us": 1727.187,
+          "max_us": 1814.896
+        },
+        "16": {
+          "median_us": 2144.271,
+          "min_us": 2058.646,
+          "max_us": 2220.365
+        }
+      },
+      "ratios": {
+        "tile16": 0.9578428210623743,
+        "tile8": 0.7910285949632054,
+        "eight_vs_sixteen": 0.8258438415666676
+      }
+    },
+    {
+      "rows": 2048,
+      "host_sweep": 1,
+      "paths": {
+        "0": {
+          "median_us": 2502.552,
+          "min_us": 2478.489,
+          "max_us": 2585.521
+        },
+        "8": {
+          "median_us": 2066.615,
+          "min_us": 1981.459,
+          "max_us": 2151.771
+        },
+        "16": {
+          "median_us": 2451.719,
+          "min_us": 2295.208,
+          "max_us": 2574.219
+        }
+      },
+      "ratios": {
+        "tile16": 0.9796875349643084,
+        "tile8": 0.8258030202769012,
+        "eight_vs_sixteen": 0.8429249028946628
+      }
+    }
+  ],
+  "limits": [
+    "Median of31 measurements perpath, not paired-difference interval",
+    "Sixpermutation cyclic ordering gives eachposition10times plusoneextra012; reducesbutdoesnoteliminateorderbias",
+    "Priorpath has differentgatedwrites/cachefootprint; host sweep isnotexplicitflushanddoesnotnormalizeallcache/frequency state",
+    "CPU-filledcachedION; noDSPprojection/cacheinvalidateorconcurrentexpertI/O",
+    "Includes33samplecopy+memcmp/chunk andstatecopy; excludesallocation/fill/hostsweep",
+    "No end-to-end model speed claim"
+  ]
+}

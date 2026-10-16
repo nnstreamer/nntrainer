@@ -1,0 +1,16 @@
+{
+  "normal_runs_validated": 12,
+  "all_raw_memory_hashes_exact": true,
+  "65_ids_each": true,
+  "fixed_c16_page0_preload128": true,
+  "direct_reader_marker_each": true,
+  "same_seven_binaries_off_on": true,
+  "author_and_integrated_patch_replayed": true,
+  "restored_record_validated": true,
+  "live_root_clean_not_required": true,
+  "no_device_actions": true,
+  "source": "afb5021ff5f95ed4f1287357b5dce77bc8032c9ec07045c5f5944f1e3c305e8c",
+  "author_patch": "ba054f78c730430438408231fbb465841b9acdebb5bf06e7f4b3f2e66f5427cc",
+  "applied_patch": "08cf3d86e7af67084e6ef63ddee65dfb1da94dd1fbd9f8a9ac64f19aa27dc829",
+  "normal_summary_recomputed": true
+}

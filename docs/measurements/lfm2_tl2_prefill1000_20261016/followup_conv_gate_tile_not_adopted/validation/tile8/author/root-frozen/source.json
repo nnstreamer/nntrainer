@@ -1,0 +1,11 @@
+{
+  "base_commit": "ccea0d476daf43ddd5dbe201178755e6ff978dfd",
+  "source_sha256": "afb5021ff5f95ed4f1287357b5dce77bc8032c9ec07045c5f5944f1e3c305e8c",
+  "author_patch_sha256": "ba054f78c730430438408231fbb465841b9acdebb5bf06e7f4b3f2e66f5427cc",
+  "applied_patch_sha256": "08cf3d86e7af67084e6ef63ddee65dfb1da94dd1fbd9f8a9ac64f19aa27dc829",
+  "app_binaries_sha256": {
+    "libcausallm.so": "f253f3d75aaea869277e2563305fe60e9b4c5995f19ccbd5f514f2de1dc08126",
+    "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76"
+  },
+  "normal_dsp_sha256": "3baddb92d14d1d23fe9b6c6a7cacfe3a6cd4708001c110bb8b15e1b0b7276f7c"
+}

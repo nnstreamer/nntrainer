@@ -1,0 +1,36 @@
+{
+  "source_frozen": true,
+  "production_option_default": "off",
+  "checks": {
+    "actual_source_112_on": true,
+    "actual_source_112_off": true,
+    "eight_mutants": true,
+    "existing_chunk_82_unset": true,
+    "existing_chunk_82_off": true,
+    "non_arm_helper_8": true,
+    "whole_android_compile": true,
+    "native_112_root": true,
+    "native_ion_12_root": true
+  },
+  "artifact_sha256": {
+    "production.patch": "ba054f78c730430438408231fbb465841b9acdebb5bf06e7f4b3f2e66f5427cc",
+    "tests.patch": "9ec53b34354f41b88d64d9831b8a797732e598597c809d334d41880910b50a92",
+    "candidate/Applications/CausalLM/layers/conv_block_layer.cpp": "afb5021ff5f95ed4f1287357b5dce77bc8032c9ec07045c5f5944f1e3c305e8c",
+    "test/htp/host/lfm2_conv_gate_tile_check.cpp": "1efcbd03d9ad42b78027b5e618937fb205d48483f271bae79f4c734441983188",
+    "test/htp/host/run_lfm2_conv_gate_tile_check.py": "81747a274cf0c647417fdf18e3b61f619619370841e8424b6507876a294e566a",
+    "test/htp/host/run_lfm2_conv_gate_tile_mutations.py": "2c6c6d7cd32e67efd0a5725483b29d1177387e7dba38fc033ef9675ea4aa2826",
+    "final-san.log": "ed0114af108967efb83439504adc47678322cfb9f316781b0192f1caaef8fcca",
+    "final-off.log": "ed0114af108967efb83439504adc47678322cfb9f316781b0192f1caaef8fcca",
+    "mutations.log": "9e42d1132f844600165b0f35110b9821a5ea0c733f2913cc211148eb43c2257a",
+    "existing-chunk-san.log": "2d8b9bf42c7e7fa9f66219ed26cb5e0e19d7cf88d4c1f5a725c1ae8fbf976cf6",
+    "existing-chunk-off.log": "2d8b9bf42c7e7fa9f66219ed26cb5e0e19d7cf88d4c1f5a725c1ae8fbf976cf6",
+    "checks/mutants/results.json": "10357cdc3c60f6a27f83d4a6a73dd074daf76084c3b3da35c5d24a7915e0e1df",
+    "checks/non-arm/check.log": "2239f240dae6554454a0781e78d83395bd3512ce52e06b04be9f3b79f6f9e90f",
+    "codegen/summary.json": "f28b52d8824589db722bb868aa3d194db5bb19f56b74f34798d559f92458a4a7",
+    "root-ion-micro.log": "34417766b00774aac289e8f6f5c86c11ce36dcbff15a0decbeb39e552d9e2e7b",
+    "root-ion-micro.json": "83b148d6afc919afc62a2ecfc95c6031d404e702c76ef836521858f327e6341b",
+    "README.txt": "202d441d05e490a8877575d098daf9ee571786bca6ed303f4a4418d093fbc45c",
+    "root-native-arm.log": "ed0114af108967efb83439504adc47678322cfb9f316781b0192f1caaef8fcca",
+    "root-native-arm.json": "d3381b6af1c903fe3be37441a618d9ed909d86ce4fe8e9a2aeaa92144af24e31"
+  }
+}

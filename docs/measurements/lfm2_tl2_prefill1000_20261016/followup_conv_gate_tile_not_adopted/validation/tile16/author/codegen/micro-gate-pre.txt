@@ -1,0 +1,46 @@
+0000000000026194 <std::__ndk1::__function::__func<(anonymous namespace)::Fixture::run(bool, bool, bool)::'lambda'(unsigned long), std::__ndk1::allocator<(anonymous namespace)::Fixture::run(bool, bool, bool)::'lambda'(unsigned long)>, void (unsigned long)>::operator()(unsigned long&&)>:
+   26194: a940a009     	ldp	x9, x8, [x0, #0x8]
+   26198: 928bffea     	mov	x10, #-0x6000           // =-24576
+   2619c: f940002b     	ldr	x11, [x1]
+   261a0: 528c000c     	mov	w12, #0x6000            // =24576
+   261a4: b9400108     	ldr	w8, [x8]
+   261a8: f9400129     	ldr	x9, [x9]
+   261ac: d503201f     	nop
+   261b0: 9b0a250a     	madd	x10, x8, x10, x9
+   261b4: cb080168     	sub	x8, x11, x8
+   261b8: 9b0c2508     	madd	x8, x8, x12, x9
+   261bc: 9b0c296d     	madd	x13, x11, x12, x10
+   261c0: f9400c0a     	ldr	x10, [x0, #0x18]
+   261c4: d373c96b     	lsl	x11, x11, #13
+   261c8: f940214a     	ldr	x10, [x10, #0x40]
+   261cc: 8b0b0149     	add	x9, x10, x11
+   261d0: 914019ac     	add	x12, x13, #0x6, lsl #12 // =0x6000
+   261d4: 9140092d     	add	x13, x9, #0x2, lsl #12  // =0x2000
+   261d8: eb0c013f     	cmp	x9, x12
+   261dc: fa4d3102     	ccmp	x8, x13, #0x2, lo
+   261e0: 540001e3     	b.lo	0x2621c <std::__ndk1::__function::__func<(anonymous namespace)::Fixture::run(bool, bool, bool)::'lambda'(unsigned long), std::__ndk1::allocator<(anonymous namespace)::Fixture::run(bool, bool, bool)::'lambda'(unsigned long)>, void (unsigned long)>::operator()(unsigned long&&)+0x88>
+   261e4: 8b0a0169     	add	x9, x11, x10
+   261e8: 5281000a     	mov	w10, #0x800             // =2048
+   261ec: 91004129     	add	x9, x9, #0x10
+   261f0: ad400901     	ldp	q1, q2, [x8]
+   261f4: f100214a     	subs	x10, x10, #0x8
+   261f8: 3dd00100     	ldr	q0, [x8, #0x4000]
+   261fc: 3dd00503     	ldr	q3, [x8, #0x4010]
+   26200: 91008108     	add	x8, x8, #0x20
+   26204: 6e21dc00     	fmul	v0.4s, v0.4s, v1.4s
+   26208: 6e22dc61     	fmul	v1.4s, v3.4s, v2.4s
+   2620c: ad3f8520     	stp	q0, q1, [x9, #-0x10]
+   26210: 91008129     	add	x9, x9, #0x20
+   26214: 54fffee1     	b.ne	0x261f0 <std::__ndk1::__function::__func<(anonymous namespace)::Fixture::run(bool, bool, bool)::'lambda'(unsigned long), std::__ndk1::allocator<(anonymous namespace)::Fixture::run(bool, bool, bool)::'lambda'(unsigned long)>, void (unsigned long)>::operator()(unsigned long&&)+0x5c>
+   26218: 1400000b     	b	0x26244 <std::__ndk1::__function::__func<(anonymous namespace)::Fixture::run(bool, bool, bool)::'lambda'(unsigned long), std::__ndk1::allocator<(anonymous namespace)::Fixture::run(bool, bool, bool)::'lambda'(unsigned long)>, void (unsigned long)>::operator()(unsigned long&&)+0xb0>
+   2621c: aa1f03ea     	mov	x10, xzr
+   26220: 5288000b     	mov	w11, #0x4000            // =16384
+   26224: 8b0a010c     	add	x12, x8, x10
+   26228: bd400180     	ldr	s0, [x12]
+   2622c: bc6b6981     	ldr	s1, [x12, x11]
+   26230: 1e200820     	fmul	s0, s1, s0
+   26234: bc2a6920     	str	s0, [x9, x10]
+   26238: 9100114a     	add	x10, x10, #0x4
+   2623c: f140095f     	cmp	x10, #0x2, lsl #12      // =0x2000
+   26240: 54ffff21     	b.ne	0x26224 <std::__ndk1::__function::__func<(anonymous namespace)::Fixture::run(bool, bool, bool)::'lambda'(unsigned long), std::__ndk1::allocator<(anonymous namespace)::Fixture::run(bool, bool, bool)::'lambda'(unsigned long)>, void (unsigned long)>::operator()(unsigned long&&)+0x90>
+   26244: d65f03c0     	ret

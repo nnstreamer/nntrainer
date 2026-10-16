@@ -1,0 +1,2537 @@
+{
+  "decision": "not_adopted",
+  "source_base_commit": "ccea0d476daf43ddd5dbe201178755e6ff978dfd",
+  "reproduction": {
+    "core_sha256": "5e75571e5433132d8c9d17691882cbddea73ebbf651e2e8e0b3b6957ac3566df"
+  },
+  "files": {
+    "README.txt": {
+      "sha256": "04d5db3483d07d280a453071db10905cfa31588e7aafd47adaded0e7f03d6d12",
+      "uncompressed_sha256": "04d5db3483d07d280a453071db10905cfa31588e7aafd47adaded0e7f03d6d12",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-archive-20261016/README.txt",
+      "stored_bytes": 9688,
+      "uncompressed_bytes": 9688
+    },
+    "artifacts/lfm-conv-chunk-isolated.json": {
+      "sha256": "ddaab76e8e750310fd03cd3d13c1a92e21207d8f3b4da08464274082785fc9df",
+      "uncompressed_sha256": "ddaab76e8e750310fd03cd3d13c1a92e21207d8f3b4da08464274082785fc9df",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/lfm-conv-chunk-isolated-artifacts.json",
+      "stored_bytes": 855,
+      "uncompressed_bytes": 855
+    },
+    "artifacts/lfm-conv-chunk-isolated.source.patch.gz": {
+      "sha256": "a221b592df431e8d82cc48ce4bd3a2c25abc72f60e0c00ce74f3169028da6834",
+      "uncompressed_sha256": "1ac6823822a127e3a2aceeb3defbf6ea1e3b0d7b70320b36c15aa703b929fbc3",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/lfm-conv-chunk-isolated.source.patch",
+      "stored_bytes": 2683,
+      "uncompressed_bytes": 8503
+    },
+    "artifacts/lfm-conv-gate-tile8-off.json": {
+      "sha256": "25133f688e81e79b75d97fc3325b6c7023954021524ab3edea50ea1661455baa",
+      "uncompressed_sha256": "25133f688e81e79b75d97fc3325b6c7023954021524ab3edea50ea1661455baa",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/lfm-conv-gate-tile8-off-artifacts.json",
+      "stored_bytes": 856,
+      "uncompressed_bytes": 856
+    },
+    "artifacts/lfm-conv-gate-tile8-off.source.patch.gz": {
+      "sha256": "1bf6a56ff05a33a8e97ce14c76437fb49c03c11d31df1e70e975306de4912494",
+      "uncompressed_sha256": "08cf3d86e7af67084e6ef63ddee65dfb1da94dd1fbd9f8a9ac64f19aa27dc829",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/lfm-conv-gate-tile8-off.source.patch",
+      "stored_bytes": 2418,
+      "uncompressed_bytes": 8167
+    },
+    "artifacts/lfm-conv-gate-tile8-on.json": {
+      "sha256": "199c949cedf9b45f3a2b589abeb811d933a1e1b5887c62f24721ef79f8690f29",
+      "uncompressed_sha256": "199c949cedf9b45f3a2b589abeb811d933a1e1b5887c62f24721ef79f8690f29",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/lfm-conv-gate-tile8-on-artifacts.json",
+      "stored_bytes": 856,
+      "uncompressed_bytes": 856
+    },
+    "artifacts/lfm-conv-gate-tile8-on.source.patch.gz": {
+      "sha256": "1bf6a56ff05a33a8e97ce14c76437fb49c03c11d31df1e70e975306de4912494",
+      "uncompressed_sha256": "08cf3d86e7af67084e6ef63ddee65dfb1da94dd1fbd9f8a9ac64f19aa27dc829",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/lfm-conv-gate-tile8-on.source.patch",
+      "stored_bytes": 2418,
+      "uncompressed_bytes": 8167
+    },
+    "artifacts/lfm-conv-gate-tile8-reverted.json": {
+      "sha256": "ff021c2fc48e0afe9a13a3c67a9c8bcdde474d020d73bca7dc8eec606ae2c31b",
+      "uncompressed_sha256": "ff021c2fc48e0afe9a13a3c67a9c8bcdde474d020d73bca7dc8eec606ae2c31b",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/lfm-conv-gate-tile8-reverted-artifacts.json",
+      "stored_bytes": 856,
+      "uncompressed_bytes": 856
+    },
+    "artifacts/lfm-conv-gate-tile8-reverted.source.patch.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/lfm-conv-gate-tile8-reverted.source.patch",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "configuration/lfm2-1024/config.json": {
+      "sha256": "f9026f89cee3a59b76640a771fbfed250057efe332fe7c5b3169073bbf3d67eb",
+      "uncompressed_sha256": "f9026f89cee3a59b76640a771fbfed250057efe332fe7c5b3169073bbf3d67eb",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/repro/models/lfm2-1024/config.json",
+      "stored_bytes": 1459,
+      "uncompressed_bytes": 1459
+    },
+    "configuration/lfm2-1024/generation_config.json": {
+      "sha256": "981772065f7dd9eaa8f7d01a0f24c04884ae7e01ba50fa96eab71a47f1275a8f",
+      "uncompressed_sha256": "981772065f7dd9eaa8f7d01a0f24c04884ae7e01ba50fa96eab71a47f1275a8f",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/repro/models/lfm2-1024/generation_config.json",
+      "stored_bytes": 176,
+      "uncompressed_bytes": 176
+    },
+    "configuration/lfm2-1024/nntr_config.json": {
+      "sha256": "25e976ccca0d49737bc9097a8212086036bbb9dd6ca999d318e6add06b95f79c",
+      "uncompressed_sha256": "25e976ccca0d49737bc9097a8212086036bbb9dd6ca999d318e6add06b95f79c",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/repro/models/lfm2-1024/nntr_config.json",
+      "stored_bytes": 6400,
+      "uncompressed_bytes": 6400
+    },
+    "configuration/lfm2-2048/config.json": {
+      "sha256": "f9026f89cee3a59b76640a771fbfed250057efe332fe7c5b3169073bbf3d67eb",
+      "uncompressed_sha256": "f9026f89cee3a59b76640a771fbfed250057efe332fe7c5b3169073bbf3d67eb",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/repro/models/lfm2-2048/config.json",
+      "stored_bytes": 1459,
+      "uncompressed_bytes": 1459
+    },
+    "configuration/lfm2-2048/generation_config.json": {
+      "sha256": "981772065f7dd9eaa8f7d01a0f24c04884ae7e01ba50fa96eab71a47f1275a8f",
+      "uncompressed_sha256": "981772065f7dd9eaa8f7d01a0f24c04884ae7e01ba50fa96eab71a47f1275a8f",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/repro/models/lfm2-2048/generation_config.json",
+      "stored_bytes": 176,
+      "uncompressed_bytes": 176
+    },
+    "configuration/lfm2-2048/nntr_config.json": {
+      "sha256": "c877d7792cf8830898f49c87b535724d26ce18d62daf5d8c185756cae49f9c71",
+      "uncompressed_sha256": "c877d7792cf8830898f49c87b535724d26ce18d62daf5d8c185756cae49f9c71",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/repro/models/lfm2-2048/nntr_config.json",
+      "stored_bytes": 12086,
+      "uncompressed_bytes": 12086
+    },
+    "raw/continue-conv-gate-tile8-0-r1.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile8-0-r1.ids",
+      "stored_bytes": 324,
+      "uncompressed_bytes": 324
+    },
+    "raw/continue-conv-gate-tile8-0-r1.json": {
+      "sha256": "9430faa85afc4e15983f02e50bde96f57a10e672af46713990572e4a33497139",
+      "uncompressed_sha256": "9430faa85afc4e15983f02e50bde96f57a10e672af46713990572e4a33497139",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile8-0-r1.json",
+      "stored_bytes": 6385,
+      "uncompressed_bytes": 6385
+    },
+    "raw/continue-conv-gate-tile8-0-r1.log.gz": {
+      "sha256": "a133ad48f2b154bbf3c600b30834e189774501e87acbf147d04068a9d257241a",
+      "uncompressed_sha256": "a468ce910d0ba8e653b1dc6a961fb128e63debd39173e0e48eba45061f99070c",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile8-0-r1.log",
+      "stored_bytes": 2987,
+      "uncompressed_bytes": 11308
+    },
+    "raw/continue-conv-gate-tile8-0-r1.memory.json.gz": {
+      "sha256": "22c056fa7ada4f7f79ceb336adc38a3021470338011450f2b79dee396d7cd09c",
+      "uncompressed_sha256": "7753b87aac868fd67c550d31ffa5074fb658f9b759ee34d33dacc46a42319e02",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile8-0-r1.memory.json",
+      "stored_bytes": 12936,
+      "uncompressed_bytes": 248028
+    },
+    "raw/continue-conv-gate-tile8-0-r2.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile8-0-r2.ids",
+      "stored_bytes": 324,
+      "uncompressed_bytes": 324
+    },
+    "raw/continue-conv-gate-tile8-0-r2.json": {
+      "sha256": "d4f196e279de25a3842214b5e089905915e6cff3c3e4be6cffcbc83b91480223",
+      "uncompressed_sha256": "d4f196e279de25a3842214b5e089905915e6cff3c3e4be6cffcbc83b91480223",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile8-0-r2.json",
+      "stored_bytes": 6386,
+      "uncompressed_bytes": 6386
+    },
+    "raw/continue-conv-gate-tile8-0-r2.log.gz": {
+      "sha256": "077332c9ea2d6facd7a42b07ed469c882159354f4f40922b474bd6160212cf7b",
+      "uncompressed_sha256": "94a6ac1c3b21ba932d2cdcda8986651c8415e0187a0cace2789c43dacdc0decb",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile8-0-r2.log",
+      "stored_bytes": 2995,
+      "uncompressed_bytes": 11310
+    },
+    "raw/continue-conv-gate-tile8-0-r2.memory.json.gz": {
+      "sha256": "d07fbb3f34352f1d43cac73107e019a270cc8cb70d291f1cce0a0a0f5b7049ed",
+      "uncompressed_sha256": "0a8bc3433566cf53943ed0871006194895ccb81dc20e38741cf85335b88bc2e0",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile8-0-r2.memory.json",
+      "stored_bytes": 12791,
+      "uncompressed_bytes": 246354
+    },
+    "raw/continue-conv-gate-tile8-0-r3.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile8-0-r3.ids",
+      "stored_bytes": 324,
+      "uncompressed_bytes": 324
+    },
+    "raw/continue-conv-gate-tile8-0-r3.json": {
+      "sha256": "8303612e04dcc500c6b9901031d3f0086dd99a61cc6ad1e05db0e0afdcb9884d",
+      "uncompressed_sha256": "8303612e04dcc500c6b9901031d3f0086dd99a61cc6ad1e05db0e0afdcb9884d",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile8-0-r3.json",
+      "stored_bytes": 6386,
+      "uncompressed_bytes": 6386
+    },
+    "raw/continue-conv-gate-tile8-0-r3.log.gz": {
+      "sha256": "0762d57afd131da4db692ba3b3913e7347b9b95ef5c984874c3b7faf19e3a436",
+      "uncompressed_sha256": "b622696ef616ef79fdae66ba6e7e6c07d2f73d024942c36cfd9c416ad3c8656e",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile8-0-r3.log",
+      "stored_bytes": 2983,
+      "uncompressed_bytes": 11311
+    },
+    "raw/continue-conv-gate-tile8-0-r3.memory.json.gz": {
+      "sha256": "a75e007fa04541183a45b1d94cc33b4bf217943c2c5c2e27fce699da8f968ff3",
+      "uncompressed_sha256": "93ac7ba6a16d4a47bb65d1719874f17e5f820fb81afda93ab300c5cc7130a38b",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile8-0-r3.memory.json",
+      "stored_bytes": 12844,
+      "uncompressed_bytes": 247194
+    },
+    "raw/continue-conv-gate-tile8-1-r1.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile8-1-r1.ids",
+      "stored_bytes": 324,
+      "uncompressed_bytes": 324
+    },
+    "raw/continue-conv-gate-tile8-1-r1.json": {
+      "sha256": "070333afe794d8c8708fd3115969d52d971883cea7d7c395561ff38b6dc08afd",
+      "uncompressed_sha256": "070333afe794d8c8708fd3115969d52d971883cea7d7c395561ff38b6dc08afd",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile8-1-r1.json",
+      "stored_bytes": 6380,
+      "uncompressed_bytes": 6380
+    },
+    "raw/continue-conv-gate-tile8-1-r1.log.gz": {
+      "sha256": "122c9d1c88b3cc4dde2e9f053f65e4df4c0759b04b864813e0db9bdb18adbbfd",
+      "uncompressed_sha256": "5bf35ad165fc22c14126aba135f67fafd3a2ac4b9adfdb017e4657adacd687c1",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile8-1-r1.log",
+      "stored_bytes": 2992,
+      "uncompressed_bytes": 11309
+    },
+    "raw/continue-conv-gate-tile8-1-r1.memory.json.gz": {
+      "sha256": "b5cec8811b8f575fd656eced0feb6ac4fc125fd86b19916ea01ba7ee3c83a79d",
+      "uncompressed_sha256": "7e31ae3284ce7a3f78644c826a655ce0e9f6482f1cd059adedbfea131deea74a",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile8-1-r1.memory.json",
+      "stored_bytes": 12695,
+      "uncompressed_bytes": 243900
+    },
+    "raw/continue-conv-gate-tile8-1-r2.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile8-1-r2.ids",
+      "stored_bytes": 324,
+      "uncompressed_bytes": 324
+    },
+    "raw/continue-conv-gate-tile8-1-r2.json": {
+      "sha256": "a312801ae847cb72d58a47b0d79d1b4ce0f65ac3b95e28dd6daf2b4491f85953",
+      "uncompressed_sha256": "a312801ae847cb72d58a47b0d79d1b4ce0f65ac3b95e28dd6daf2b4491f85953",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile8-1-r2.json",
+      "stored_bytes": 6380,
+      "uncompressed_bytes": 6380
+    },
+    "raw/continue-conv-gate-tile8-1-r2.log.gz": {
+      "sha256": "25a816833b44f7be94c3c4676d3175ed05d3548764d719c3b51705403b7e70cd",
+      "uncompressed_sha256": "ef27ab39eacdc03816889b0138972ae541d7d981795dda2e85e46f80af69668f",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile8-1-r2.log",
+      "stored_bytes": 2994,
+      "uncompressed_bytes": 11310
+    },
+    "raw/continue-conv-gate-tile8-1-r2.memory.json.gz": {
+      "sha256": "254c12d55aa99074bde65eb2bbc2d951c245ea7499845b7fd1b76ed09c7efe53",
+      "uncompressed_sha256": "c1f69e584ad613591b5091c5cb2e645fbb52c833accc0089cb2ea401c41085ba",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile8-1-r2.memory.json",
+      "stored_bytes": 13054,
+      "uncompressed_bytes": 254700
+    },
+    "raw/continue-conv-gate-tile8-1-r3.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile8-1-r3.ids",
+      "stored_bytes": 324,
+      "uncompressed_bytes": 324
+    },
+    "raw/continue-conv-gate-tile8-1-r3.json": {
+      "sha256": "89361b144f36288c890ff3de607202b0817c8125a8145d686f762eb539625cae",
+      "uncompressed_sha256": "89361b144f36288c890ff3de607202b0817c8125a8145d686f762eb539625cae",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile8-1-r3.json",
+      "stored_bytes": 6381,
+      "uncompressed_bytes": 6381
+    },
+    "raw/continue-conv-gate-tile8-1-r3.log.gz": {
+      "sha256": "1d31e41454f1a416c622a09e0f3b92b24e24d0e61ed7d59f1402fa1138070a58",
+      "uncompressed_sha256": "e45785740b4aeb72f0a020017fcef69b32aeb492cf9aebf54315287551c443a9",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile8-1-r3.log",
+      "stored_bytes": 2992,
+      "uncompressed_bytes": 11311
+    },
+    "raw/continue-conv-gate-tile8-1-r3.memory.json.gz": {
+      "sha256": "e6507f9345ac3b022a7d8bedf71e4075b4ae05c96d581cdf0e5a69cb7c514928",
+      "uncompressed_sha256": "c0c210e4cded8dd907f12eeaa413383dce314810b36e45f26e6b4616e2c0f421",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile8-1-r3.memory.json",
+      "stored_bytes": 12813,
+      "uncompressed_bytes": 249712
+    },
+    "raw/continue-conv-gate-tile82048-0-r1.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile82048-0-r1.ids",
+      "stored_bytes": 326,
+      "uncompressed_bytes": 326
+    },
+    "raw/continue-conv-gate-tile82048-0-r1.json": {
+      "sha256": "ef12bb11448b17b557438b5f75fc5f0601db60840d7bdc7ecd67b1cbf80352ce",
+      "uncompressed_sha256": "ef12bb11448b17b557438b5f75fc5f0601db60840d7bdc7ecd67b1cbf80352ce",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile82048-0-r1.json",
+      "stored_bytes": 6411,
+      "uncompressed_bytes": 6411
+    },
+    "raw/continue-conv-gate-tile82048-0-r1.log.gz": {
+      "sha256": "a6a41d0c32fea05af833b961d98f49d0dd4cbd1ac657e9034fa4dcf8d44380e3",
+      "uncompressed_sha256": "278b3b0829533a210b72a4a5c7f646cb461603d6ee906671f1e73580e6d1cdcf",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile82048-0-r1.log",
+      "stored_bytes": 3070,
+      "uncompressed_bytes": 17013
+    },
+    "raw/continue-conv-gate-tile82048-0-r1.memory.json.gz": {
+      "sha256": "aad81e0a9bec942566a69dcf34ed4b3f7afd38f709b1a9ae3973bf084852069d",
+      "uncompressed_sha256": "ac7b78c77a10ad42478ce0df122333110a5e450cad32b9df4c882bb4e8642770",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile82048-0-r1.memory.json",
+      "stored_bytes": 14947,
+      "uncompressed_bytes": 298776
+    },
+    "raw/continue-conv-gate-tile82048-0-r2.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile82048-0-r2.ids",
+      "stored_bytes": 326,
+      "uncompressed_bytes": 326
+    },
+    "raw/continue-conv-gate-tile82048-0-r2.json": {
+      "sha256": "d45862bf451d2fe5af7b9077ed4547dd44e0a0a21eff22e425e250e15436dc5c",
+      "uncompressed_sha256": "d45862bf451d2fe5af7b9077ed4547dd44e0a0a21eff22e425e250e15436dc5c",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile82048-0-r2.json",
+      "stored_bytes": 6409,
+      "uncompressed_bytes": 6409
+    },
+    "raw/continue-conv-gate-tile82048-0-r2.log.gz": {
+      "sha256": "299fe283768b83fc0ab5f49f4a5ed557ee6fb76f479fd74ebb46e0fd26f3e2f7",
+      "uncompressed_sha256": "bd77cb00269d9758b6135eac20e93f967d57349f2ed26b0e6cef052f3f7d463e",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile82048-0-r2.log",
+      "stored_bytes": 3067,
+      "uncompressed_bytes": 17014
+    },
+    "raw/continue-conv-gate-tile82048-0-r2.memory.json.gz": {
+      "sha256": "d27d9274c76b3159454fcf2b6cbdbc05a0d1744db0ca322c3c184d79e0d9fbfc",
+      "uncompressed_sha256": "2cc77766cb02989b80426e1dd84193336f6bb057698ab709f44e4630381430f8",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile82048-0-r2.memory.json",
+      "stored_bytes": 14851,
+      "uncompressed_bytes": 297118
+    },
+    "raw/continue-conv-gate-tile82048-0-r3.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile82048-0-r3.ids",
+      "stored_bytes": 326,
+      "uncompressed_bytes": 326
+    },
+    "raw/continue-conv-gate-tile82048-0-r3.json": {
+      "sha256": "c428e84e42100f5a4768af306ad0cb452b73b6e7b8eddc7dff6e3d7b98815aef",
+      "uncompressed_sha256": "c428e84e42100f5a4768af306ad0cb452b73b6e7b8eddc7dff6e3d7b98815aef",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile82048-0-r3.json",
+      "stored_bytes": 6409,
+      "uncompressed_bytes": 6409
+    },
+    "raw/continue-conv-gate-tile82048-0-r3.log.gz": {
+      "sha256": "09279e803d6a52422f21588cb859ee3720764ec244d500d07e54afda4c355e39",
+      "uncompressed_sha256": "a0e504df24690acbd4abd42710b6519d206ad00ef003a0d43ff1b6fb8f7138e9",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile82048-0-r3.log",
+      "stored_bytes": 3081,
+      "uncompressed_bytes": 17013
+    },
+    "raw/continue-conv-gate-tile82048-0-r3.memory.json.gz": {
+      "sha256": "144bd67650cc8b0e703a5f6761e1c86f07cf5e741dea1aab945e67a66f9475f4",
+      "uncompressed_sha256": "05991ab5813ae2a7201e5370057d32bb008f00bf73fe05f08b1c835387ad9382",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile82048-0-r3.memory.json",
+      "stored_bytes": 15352,
+      "uncompressed_bytes": 309619
+    },
+    "raw/continue-conv-gate-tile82048-1-r1.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile82048-1-r1.ids",
+      "stored_bytes": 326,
+      "uncompressed_bytes": 326
+    },
+    "raw/continue-conv-gate-tile82048-1-r1.json": {
+      "sha256": "e0eab01f7cd4494bc3019629ca4499bbd57c4a71c5b45741ac099038744a7deb",
+      "uncompressed_sha256": "e0eab01f7cd4494bc3019629ca4499bbd57c4a71c5b45741ac099038744a7deb",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile82048-1-r1.json",
+      "stored_bytes": 6404,
+      "uncompressed_bytes": 6404
+    },
+    "raw/continue-conv-gate-tile82048-1-r1.log.gz": {
+      "sha256": "ad6a8769e7ab9da930f127fb8b13f0ad0a585363f12c8860fbcc917d2d344ffc",
+      "uncompressed_sha256": "5728a72e6ccf6427d2355ffc6a81ea0ec6873c0cd960c05536152fe7052adb1b",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile82048-1-r1.log",
+      "stored_bytes": 3062,
+      "uncompressed_bytes": 17013
+    },
+    "raw/continue-conv-gate-tile82048-1-r1.memory.json.gz": {
+      "sha256": "e68ae2987425a8ac89123e6db5b103d89af02acb774c5a995fa0d5f7d954c873",
+      "uncompressed_sha256": "5d198a69110d4862979f2d137b0662779d007a6185e321d228fb09faa215a149",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile82048-1-r1.memory.json",
+      "stored_bytes": 14666,
+      "uncompressed_bytes": 293821
+    },
+    "raw/continue-conv-gate-tile82048-1-r2.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile82048-1-r2.ids",
+      "stored_bytes": 326,
+      "uncompressed_bytes": 326
+    },
+    "raw/continue-conv-gate-tile82048-1-r2.json": {
+      "sha256": "107804660b32030f28d42d9e57e4a3a2868517dd01c6dd88b1985d1a55c4800d",
+      "uncompressed_sha256": "107804660b32030f28d42d9e57e4a3a2868517dd01c6dd88b1985d1a55c4800d",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile82048-1-r2.json",
+      "stored_bytes": 6405,
+      "uncompressed_bytes": 6405
+    },
+    "raw/continue-conv-gate-tile82048-1-r2.log.gz": {
+      "sha256": "52fcef3e992c453093506e78e503f323b790d1603d530e9ae8b0aebaef4f883b",
+      "uncompressed_sha256": "25d856dc460a1e730025b9599efa9e4e264b504492fb64e9cd850d390d3e44ec",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile82048-1-r2.log",
+      "stored_bytes": 3081,
+      "uncompressed_bytes": 17013
+    },
+    "raw/continue-conv-gate-tile82048-1-r2.memory.json.gz": {
+      "sha256": "8dcdebb0db496fc2c3d7d30be5055b6750803c629209fd4b7ede488d21fddde4",
+      "uncompressed_sha256": "a31526e8030be54b22f563d10014b87f71cf39e7dd4b760b712b36848c7bfaa2",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile82048-1-r2.memory.json",
+      "stored_bytes": 15284,
+      "uncompressed_bytes": 306278
+    },
+    "raw/continue-conv-gate-tile82048-1-r3.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile82048-1-r3.ids",
+      "stored_bytes": 326,
+      "uncompressed_bytes": 326
+    },
+    "raw/continue-conv-gate-tile82048-1-r3.json": {
+      "sha256": "b9198ad93c2b4bfae0839c283bfdfecc03859a16a8153877d2a73daefa4b2167",
+      "uncompressed_sha256": "b9198ad93c2b4bfae0839c283bfdfecc03859a16a8153877d2a73daefa4b2167",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile82048-1-r3.json",
+      "stored_bytes": 6403,
+      "uncompressed_bytes": 6403
+    },
+    "raw/continue-conv-gate-tile82048-1-r3.log.gz": {
+      "sha256": "3466baf1b5e1ec787ce1ff747541dafc9db8a4a79ee110a5927612b9eb05f274",
+      "uncompressed_sha256": "8d5c0faa1e25a1e4caa104dc31b3a09e47b6a1bea04b9fc3a4c0341f797d6775",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile82048-1-r3.log",
+      "stored_bytes": 3076,
+      "uncompressed_bytes": 17013
+    },
+    "raw/continue-conv-gate-tile82048-1-r3.memory.json.gz": {
+      "sha256": "82e080082cc2e13b6121a4c88e698539027b20984576e33a9713b5e5383c6f9e",
+      "uncompressed_sha256": "3e3e68a10b2fe4aca25cfcc9787c762da7847e7054f7e8d394db0b2295b90abb",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-gate-tile82048-1-r3.memory.json",
+      "stored_bytes": 15808,
+      "uncompressed_bytes": 317188
+    },
+    "reproduction/bench.py": {
+      "sha256": "1adff089388ee972a411c1467f653d24b76ef9c28079602e03595bc76da0df25",
+      "uncompressed_sha256": "1adff089388ee972a411c1467f653d24b76ef9c28079602e03595bc76da0df25",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/bench.py",
+      "stored_bytes": 9105,
+      "uncompressed_bytes": 9105
+    },
+    "reproduction/curate_conv_gate_tile.py": {
+      "sha256": "5dd7d5ffcfe1468feb072b158105689f8d95d37f66c8d5f5513202183ef1f6f6",
+      "uncompressed_sha256": "5dd7d5ffcfe1468feb072b158105689f8d95d37f66c8d5f5513202183ef1f6f6",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-archive-20261016/curate_conv_gate_tile.py",
+      "stored_bytes": 18776,
+      "uncompressed_bytes": 18776
+    },
+    "reproduction/device.json": {
+      "sha256": "81413d28b2a4ae5faafd855a1aefa6b0844ba45a44c9a41b3f36a43dd7d87f11",
+      "uncompressed_sha256": "81413d28b2a4ae5faafd855a1aefa6b0844ba45a44c9a41b3f36a43dd7d87f11",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/device.json",
+      "stored_bytes": 230,
+      "uncompressed_bytes": 230
+    },
+    "reproduction/memory_monitor.cpp.gz": {
+      "sha256": "6cd8dcdc414862cb9ff0cdff898e3a9b2e25b30938d58137b676a311d2fd679d",
+      "uncompressed_sha256": "fb92e1591fe70904b392adbfeb14a44853b03416c9ce0fe0a433232ee84660bc",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/validation/memory_monitor.cpp",
+      "stored_bytes": 6144,
+      "uncompressed_bytes": 21151
+    },
+    "reproduction/original-run_matrix.py": {
+      "sha256": "73449d8cc1f9b6b2d03756fa613e7fd986f9b80735b28aecf84de9330274e050",
+      "uncompressed_sha256": "73449d8cc1f9b6b2d03756fa613e7fd986f9b80735b28aecf84de9330274e050",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/run_matrix.py",
+      "stored_bytes": 1065,
+      "uncompressed_bytes": 1065
+    },
+    "reproduction/original-summarize_pair.py": {
+      "sha256": "e0404228e565eb14cfb76a9e3425d5ed633a33e18e0878eb52746f7a6237550b",
+      "uncompressed_sha256": "e0404228e565eb14cfb76a9e3425d5ed633a33e18e0878eb52746f7a6237550b",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/summarize_pair.py",
+      "stored_bytes": 3363,
+      "uncompressed_bytes": 3363
+    },
+    "reproduction/reproduce_host.py": {
+      "sha256": "4982f295956b025c0999cda80457cc1450bf1ab1540f78718f0aa189e8cf5e7e",
+      "uncompressed_sha256": "4982f295956b025c0999cda80457cc1450bf1ab1540f78718f0aa189e8cf5e7e",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-archive-20261016/reproduce_host.py",
+      "stored_bytes": 3293,
+      "uncompressed_bytes": 3293
+    },
+    "reproduction/verify_archive.py": {
+      "sha256": "a0c4ca2ed5edd7cc94b048f7625c119d597e3893c937fb89b099106cf04b9f26",
+      "uncompressed_sha256": "a0c4ca2ed5edd7cc94b048f7625c119d597e3893c937fb89b099106cf04b9f26",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-archive-20261016/verify_archive.py",
+      "stored_bytes": 1191,
+      "uncompressed_bytes": 1191
+    },
+    "summary.json": {
+      "sha256": "61af2610f9dd8c6ea575289cb147d6d024afd75b219cb25a65cd889cd4e0d674",
+      "uncompressed_sha256": "61af2610f9dd8c6ea575289cb147d6d024afd75b219cb25a65cd889cd4e0d674",
+      "gzip": false,
+      "source": "generated",
+      "stored_bytes": 7819,
+      "uncompressed_bytes": 7819
+    },
+    "validation/archive-checks.json": {
+      "sha256": "ab9cc2b9f2ef3e0086f38666ecdba9cc1a787a5a98c9c8b817568f94214ff4ff",
+      "uncompressed_sha256": "ab9cc2b9f2ef3e0086f38666ecdba9cc1a787a5a98c9c8b817568f94214ff4ff",
+      "gzip": false,
+      "source": "generated",
+      "stored_bytes": 653,
+      "uncompressed_bytes": 653
+    },
+    "validation/baseline/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "b23efb15c6e1073a040d6da9ee97c23fdee1dcbca9c28170d3cf1d0825091d92",
+      "uncompressed_sha256": "bc019abdbf0cadb48e0aaa4ecc3898bc9b0a37e11f28c306d9762f766292869a",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/baseline/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "stored_bytes": 6297,
+      "uncompressed_bytes": 20324
+    },
+    "validation/before/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "c5b5c314d5664e442df2a25fec267f9ca08a53e451dd97ee65ca0899a71e606f",
+      "uncompressed_sha256": "846921eaa9b7da92bb20b7ee891e918b317017e471b0048a1e2b3a05b4708de3",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/before/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "stored_bytes": 7650,
+      "uncompressed_bytes": 27635
+    },
+    "validation/root-removed-canonical/conv_block_layer.cpp.gz": {
+      "sha256": "d81db94741d870d52373b38483f4cccde131224e255c5d95b76361f3effb6bf0",
+      "uncompressed_sha256": "afb5021ff5f95ed4f1287357b5dce77bc8032c9ec07045c5f5944f1e3c305e8c",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/root-rejected-canonical/conv_block_layer.cpp",
+      "stored_bytes": 8443,
+      "uncompressed_bytes": 32209
+    },
+    "validation/root-removed-canonical/lfm2_conv_gate_tile_check.cpp.gz": {
+      "sha256": "f8449105497c69b7fabfd3cab68b4a6c3e11ef73082ade2e4ad83b41bc741744",
+      "uncompressed_sha256": "1efcbd03d9ad42b78027b5e618937fb205d48483f271bae79f4c734441983188",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/root-rejected-canonical/lfm2_conv_gate_tile_check.cpp",
+      "stored_bytes": 7283,
+      "uncompressed_bytes": 27411
+    },
+    "validation/root-removed-canonical/run_lfm2_conv_gate_tile_check.py": {
+      "sha256": "81747a274cf0c647417fdf18e3b61f619619370841e8424b6507876a294e566a",
+      "uncompressed_sha256": "81747a274cf0c647417fdf18e3b61f619619370841e8424b6507876a294e566a",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/root-rejected-canonical/run_lfm2_conv_gate_tile_check.py",
+      "stored_bytes": 3945,
+      "uncompressed_bytes": 3945
+    },
+    "validation/root-removed-canonical/run_lfm2_conv_gate_tile_mutations.py": {
+      "sha256": "2c6c6d7cd32e67efd0a5725483b29d1177387e7dba38fc033ef9675ea4aa2826",
+      "uncompressed_sha256": "2c6c6d7cd32e67efd0a5725483b29d1177387e7dba38fc033ef9675ea4aa2826",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/root-rejected-canonical/run_lfm2_conv_gate_tile_mutations.py",
+      "stored_bytes": 3966,
+      "uncompressed_bytes": 3966
+    },
+    "validation/tile16/author/candidate/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "6cddb9a8d98eb1c4fba9d44fe7696a0cf0496dbcaaa7effaf8df394a8229d45f",
+      "uncompressed_sha256": "25bd544f784d87ec696e8a3e8c52006ddc2657e05bc065c3e87c75e12bb6dd26",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/candidate/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "stored_bytes": 8444,
+      "uncompressed_bytes": 32211
+    },
+    "validation/tile16/author/candidate/tools/lfm2_conv_gate_tile_ion_check.cpp.gz": {
+      "sha256": "0a4a4773ae44637e1c4fdf5d8e2661e3044c4f67a5b098d0ab49fa24b23e8d5d",
+      "uncompressed_sha256": "518255cb497613a1cb5f05338249595b7b2783da0c98141497d072291a469881",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/candidate/tools/lfm2_conv_gate_tile_ion_check.cpp",
+      "stored_bytes": 2833,
+      "uncompressed_bytes": 8061
+    },
+    "validation/tile16/author/checks/mutants/chunk_projection_global_row/check/commands.json": {
+      "sha256": "dc13a81f553fbd7633f8baaabee4fe22c794fe1343defd73be2d96254743eb6d",
+      "uncompressed_sha256": "dc13a81f553fbd7633f8baaabee4fe22c794fe1343defd73be2d96254743eb6d",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/chunk_projection_global_row/check/commands.json",
+      "stored_bytes": 2168,
+      "uncompressed_bytes": 2168
+    },
+    "validation/tile16/author/checks/mutants/chunk_projection_global_row/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/chunk_projection_global_row/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile16/author/checks/mutants/chunk_projection_global_row/run.log.gz": {
+      "sha256": "1124e5c6240dabec4c7cb10f08b7753938d4ae95488f304f547afddce44c5ab3",
+      "uncompressed_sha256": "11f854a25e1373ab507a995300bb65e5a65f964bfe71febaad4f7e87252e90e8",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/chunk_projection_global_row/run.log",
+      "stored_bytes": 61,
+      "uncompressed_bytes": 41
+    },
+    "validation/tile16/author/checks/mutants/lost_chunk_halo/check/commands.json": {
+      "sha256": "23908126b86da156b78dc3cd9ca06dd89e7874975e2f197f3ef837bf7255b8ac",
+      "uncompressed_sha256": "23908126b86da156b78dc3cd9ca06dd89e7874975e2f197f3ef837bf7255b8ac",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/lost_chunk_halo/check/commands.json",
+      "stored_bytes": 2132,
+      "uncompressed_bytes": 2132
+    },
+    "validation/tile16/author/checks/mutants/lost_chunk_halo/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/lost_chunk_halo/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile16/author/checks/mutants/lost_chunk_halo/run.log.gz": {
+      "sha256": "a77b9a644ae66a2909a4e7f0f95a626c876f1cd53daed4f7310d1ee57a283f16",
+      "uncompressed_sha256": "1fa2ed088d7356ad7ce21b794d8d4e018afc953a15f25846e856e5decb7a13eb",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/lost_chunk_halo/run.log",
+      "stored_bytes": 87,
+      "uncompressed_bytes": 69
+    },
+    "validation/tile16/author/checks/mutants/missing_output_overlap_guard/check/commands.json": {
+      "sha256": "0f341c5903bc9d129ae297799445a16d74ee145d388def0106f4253b994c4c1e",
+      "uncompressed_sha256": "0f341c5903bc9d129ae297799445a16d74ee145d388def0106f4253b994c4c1e",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/missing_output_overlap_guard/check/commands.json",
+      "stored_bytes": 2171,
+      "uncompressed_bytes": 2171
+    },
+    "validation/tile16/author/checks/mutants/missing_output_overlap_guard/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/missing_output_overlap_guard/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile16/author/checks/mutants/missing_output_overlap_guard/run.log.gz": {
+      "sha256": "094141cd9f222c70d53749d0b671cf272ce8a19a1e8ed15155f0672efeb19ba4",
+      "uncompressed_sha256": "a01d720373075390dda57c4e77aa2b39c43e2e2ea1d58f39f4b47e890c29f4a6",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/missing_output_overlap_guard/run.log",
+      "stored_bytes": 69,
+      "uncompressed_bytes": 49
+    },
+    "validation/tile16/author/checks/mutants/missing_postgate/check/commands.json": {
+      "sha256": "eef19650b7b79fada4bec6e6721f41f34b70253b4f97725002cd6fa324df9c81",
+      "uncompressed_sha256": "eef19650b7b79fada4bec6e6721f41f34b70253b4f97725002cd6fa324df9c81",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/missing_postgate/check/commands.json",
+      "stored_bytes": 2135,
+      "uncompressed_bytes": 2135
+    },
+    "validation/tile16/author/checks/mutants/missing_postgate/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/missing_postgate/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile16/author/checks/mutants/missing_postgate/run.log.gz": {
+      "sha256": "c01393dfac437448dc031a97112a172fa6f7ead1f5b293c5855f32c0195bb66d",
+      "uncompressed_sha256": "e92f22f7657d0986f668404c397de5fd6ea871beb65fb10d9bff70f5b0417cd8",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/missing_postgate/run.log",
+      "stored_bytes": 66,
+      "uncompressed_bytes": 46
+    },
+    "validation/tile16/author/checks/mutants/partial_tile_accepted/check/commands.json": {
+      "sha256": "cd7c78159c0de0b572bc17367ca2a2bec0a8d8d97ed52f608040be70b9474715",
+      "uncompressed_sha256": "cd7c78159c0de0b572bc17367ca2a2bec0a8d8d97ed52f608040be70b9474715",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/partial_tile_accepted/check/commands.json",
+      "stored_bytes": 2150,
+      "uncompressed_bytes": 2150
+    },
+    "validation/tile16/author/checks/mutants/partial_tile_accepted/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/partial_tile_accepted/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile16/author/checks/mutants/partial_tile_accepted/run.log.gz": {
+      "sha256": "0449cdf3422a6bc1ccb73eabe12d85d5e679a3f45e97f0d637f53e4b8a1266a6",
+      "uncompressed_sha256": "a1027155a467d538d03558d9a8aa220706c044885625f6e51785da2d7812ae87",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/partial_tile_accepted/run.log",
+      "stored_bytes": 684,
+      "uncompressed_bytes": 1851
+    },
+    "validation/tile16/author/checks/mutants/read_dead_gated_rows/check/commands.json": {
+      "sha256": "7455ebcd4fce0233d6fbbb429d147c13bfe708d7a941ead58819ef58db3ac80e",
+      "uncompressed_sha256": "7455ebcd4fce0233d6fbbb429d147c13bfe708d7a941ead58819ef58db3ac80e",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/read_dead_gated_rows/check/commands.json",
+      "stored_bytes": 2147,
+      "uncompressed_bytes": 2147
+    },
+    "validation/tile16/author/checks/mutants/read_dead_gated_rows/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/read_dead_gated_rows/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile16/author/checks/mutants/read_dead_gated_rows/run.log.gz": {
+      "sha256": "27a717948952c2c22c259efcb75b4e1e51c73f8d2c0e0ce40146a55ca7d09697",
+      "uncompressed_sha256": "12f28a1b5224f4106a2f46586e94b7c13c6fed875dfc8fb3e609e44538f4a5e2",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/read_dead_gated_rows/run.log",
+      "stored_bytes": 1389,
+      "uncompressed_bytes": 5448
+    },
+    "validation/tile16/author/checks/mutants/reordered_fma/check/commands.json": {
+      "sha256": "6adb1d1c3db33f594ad823d4962d6eae2116a744458edb1edd78502d1567895c",
+      "uncompressed_sha256": "6adb1d1c3db33f594ad823d4962d6eae2116a744458edb1edd78502d1567895c",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/reordered_fma/check/commands.json",
+      "stored_bytes": 2126,
+      "uncompressed_bytes": 2126
+    },
+    "validation/tile16/author/checks/mutants/reordered_fma/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/reordered_fma/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile16/author/checks/mutants/reordered_fma/run.log.gz": {
+      "sha256": "c01393dfac437448dc031a97112a172fa6f7ead1f5b293c5855f32c0195bb66d",
+      "uncompressed_sha256": "e92f22f7657d0986f668404c397de5fd6ea871beb65fb10d9bff70f5b0417cd8",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/reordered_fma/run.log",
+      "stored_bytes": 66,
+      "uncompressed_bytes": 46
+    },
+    "validation/tile16/author/checks/mutants/results.json": {
+      "sha256": "79b5c550bfa13bc033b29842e76d285e6ed46e474fc6da74bc4ce70072e2f27c",
+      "uncompressed_sha256": "79b5c550bfa13bc033b29842e76d285e6ed46e474fc6da74bc4ce70072e2f27c",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/results.json",
+      "stored_bytes": 7182,
+      "uncompressed_bytes": 7182
+    },
+    "validation/tile16/author/checks/mutants/write_dead_gated_rows/check/commands.json": {
+      "sha256": "c1b69dd49e77f5ec598a256dd9cff8ab022ee74e5491f194082c7e6fa9ea75ce",
+      "uncompressed_sha256": "c1b69dd49e77f5ec598a256dd9cff8ab022ee74e5491f194082c7e6fa9ea75ce",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/write_dead_gated_rows/check/commands.json",
+      "stored_bytes": 2150,
+      "uncompressed_bytes": 2150
+    },
+    "validation/tile16/author/checks/mutants/write_dead_gated_rows/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/write_dead_gated_rows/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile16/author/checks/mutants/write_dead_gated_rows/run.log.gz": {
+      "sha256": "d5467c9d995cec35dcb64b62a1f409d4a8d252b0cf8fec845d214c2e4ddbdf5d",
+      "uncompressed_sha256": "4f13970d4e0a3cce616f1d44d45717e32cd3502a252b36dfcd67449005cc7955",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/mutants/write_dead_gated_rows/run.log",
+      "stored_bytes": 1393,
+      "uncompressed_bytes": 5455
+    },
+    "validation/tile16/author/checks/native-arm/commands.json": {
+      "sha256": "0895adc3bd36565597369bcb13a17d0a2227a2b9f5ca4ebe1de66f58b4d5d2f1",
+      "uncompressed_sha256": "0895adc3bd36565597369bcb13a17d0a2227a2b9f5ca4ebe1de66f58b4d5d2f1",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/native-arm/commands.json",
+      "stored_bytes": 2063,
+      "uncompressed_bytes": 2063
+    },
+    "validation/tile16/author/checks/non-arm/clangxx.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/non-arm/clangxx.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile16/author/checks/non-arm/commands.json": {
+      "sha256": "45af6526b4cb2d1dc7038b3f4e2128861a94a3c7d415ff47c7ad0efa8dd57b56",
+      "uncompressed_sha256": "45af6526b4cb2d1dc7038b3f4e2128861a94a3c7d415ff47c7ad0efa8dd57b56",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/non-arm/commands.json",
+      "stored_bytes": 347,
+      "uncompressed_bytes": 347
+    },
+    "validation/tile16/author/checks/non-arm/gxx.log.gz": {
+      "sha256": "a211cfa40c13c3773f1093a699b7d4d6ab3f71d8e1670ee99d1db4fc6e0655c7",
+      "uncompressed_sha256": "2239f240dae6554454a0781e78d83395bd3512ce52e06b04be9f3b79f6f9e90f",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/non-arm/gxx.log",
+      "stored_bytes": 50,
+      "uncompressed_bytes": 30
+    },
+    "validation/tile16/author/checks/v2-final-san/commands.json": {
+      "sha256": "38fdac9c0de2382a570db5cd5772921516c332858b067fff01499393691a0072",
+      "uncompressed_sha256": "38fdac9c0de2382a570db5cd5772921516c332858b067fff01499393691a0072",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/v2-final-san/commands.json",
+      "stored_bytes": 2081,
+      "uncompressed_bytes": 2081
+    },
+    "validation/tile16/author/checks/v2-native-arm/commands.json": {
+      "sha256": "d8e29de24206bc402e1e17f06faadc2ef4cd6068e9c03d485fac8c05d4fa1ba0",
+      "uncompressed_sha256": "d8e29de24206bc402e1e17f06faadc2ef4cd6068e9c03d485fac8c05d4fa1ba0",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/v2-native-arm/commands.json",
+      "stored_bytes": 2123,
+      "uncompressed_bytes": 2123
+    },
+    "validation/tile16/author/codegen/before/build.log.gz": {
+      "sha256": "a18289128056be08a738564d5e9b8d4754d0c0ac7b218250d1487c1f1bb0d729",
+      "uncompressed_sha256": "ce38e09bb9bf9d60262734eca0025ac66e7e024198a94b75e9729b9074739d28",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/codegen/before/build.log",
+      "stored_bytes": 548,
+      "uncompressed_bytes": 2454
+    },
+    "validation/tile16/author/codegen/before/compile.log.gz": {
+      "sha256": "a18289128056be08a738564d5e9b8d4754d0c0ac7b218250d1487c1f1bb0d729",
+      "uncompressed_sha256": "ce38e09bb9bf9d60262734eca0025ac66e7e024198a94b75e9729b9074739d28",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/codegen/before/compile.log",
+      "stored_bytes": 548,
+      "uncompressed_bytes": 2454
+    },
+    "validation/tile16/author/codegen/before/conv.su.gz": {
+      "sha256": "3e66d27129e178eafae7aa33b0f0d28bf87084c05df15dcc81c2aef0800fea94",
+      "uncompressed_sha256": "a99e9a751f77287cb18c648774767e61920810e50a7c2f3699eebefedbd6cc49",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/codegen/before/conv.su",
+      "stored_bytes": 5805,
+      "uncompressed_bytes": 66097
+    },
+    "validation/tile16/author/codegen/before/gate-pre-chunk.txt": {
+      "sha256": "9e5f4c7b05e99cf926a66f87ddc6e65db1721d114104158a5da26e7c86fc2ef6",
+      "uncompressed_sha256": "9e5f4c7b05e99cf926a66f87ddc6e65db1721d114104158a5da26e7c86fc2ef6",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/codegen/before/gate-pre-chunk.txt",
+      "stored_bytes": 7077,
+      "uncompressed_bytes": 7077
+    },
+    "validation/tile16/author/codegen/before/gate-pre-full.txt": {
+      "sha256": "906b5c2733fab780000f6a1faacc51eb9a04fc0ccb302989a2fd5f5af8d37cd1",
+      "uncompressed_sha256": "906b5c2733fab780000f6a1faacc51eb9a04fc0ccb302989a2fd5f5af8d37cd1",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/codegen/before/gate-pre-full.txt",
+      "stored_bytes": 5759,
+      "uncompressed_bytes": 5759
+    },
+    "validation/tile16/author/codegen/candidate/build.log.gz": {
+      "sha256": "c989045afe4e3f9c2cd1046e2ef86cb19cb8a9b1042d802d1442d11d3851cb52",
+      "uncompressed_sha256": "cfb4348355d4bf636cdca7310fc622178b61ec25756fbf80caadc10eaf67c3b9",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/codegen/candidate/build.log",
+      "stored_bytes": 550,
+      "uncompressed_bytes": 2460
+    },
+    "validation/tile16/author/codegen/candidate/compile.log.gz": {
+      "sha256": "c989045afe4e3f9c2cd1046e2ef86cb19cb8a9b1042d802d1442d11d3851cb52",
+      "uncompressed_sha256": "cfb4348355d4bf636cdca7310fc622178b61ec25756fbf80caadc10eaf67c3b9",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/codegen/candidate/compile.log",
+      "stored_bytes": 550,
+      "uncompressed_bytes": 2460
+    },
+    "validation/tile16/author/codegen/candidate/conv.su.gz": {
+      "sha256": "14e527df55c0180349a8b884a40aab65377c78db1b82e7b0b097b7d245a6e2b4",
+      "uncompressed_sha256": "82fa30c20a289d16e0960b55b789c8de0e171f9b9410c34afb319400b4a7d777",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/codegen/candidate/conv.su",
+      "stored_bytes": 5946,
+      "uncompressed_bytes": 68828
+    },
+    "validation/tile16/author/codegen/candidate/gate-pre-chunk.txt": {
+      "sha256": "9e5f4c7b05e99cf926a66f87ddc6e65db1721d114104158a5da26e7c86fc2ef6",
+      "uncompressed_sha256": "9e5f4c7b05e99cf926a66f87ddc6e65db1721d114104158a5da26e7c86fc2ef6",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/codegen/candidate/gate-pre-chunk.txt",
+      "stored_bytes": 7077,
+      "uncompressed_bytes": 7077
+    },
+    "validation/tile16/author/codegen/candidate/gate-pre-full.txt": {
+      "sha256": "906b5c2733fab780000f6a1faacc51eb9a04fc0ccb302989a2fd5f5af8d37cd1",
+      "uncompressed_sha256": "906b5c2733fab780000f6a1faacc51eb9a04fc0ccb302989a2fd5f5af8d37cd1",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/codegen/candidate/gate-pre-full.txt",
+      "stored_bytes": 5759,
+      "uncompressed_bytes": 5759
+    },
+    "validation/tile16/author/codegen/candidate/tile-lambda.txt": {
+      "sha256": "e8d0c45ec1b37661a76adb3f5d4f322d0d0ff354cd0ceb730642c3a600429ec9",
+      "uncompressed_sha256": "e8d0c45ec1b37661a76adb3f5d4f322d0d0ff354cd0ceb730642c3a600429ec9",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/codegen/candidate/tile-lambda.txt",
+      "stored_bytes": 7309,
+      "uncompressed_bytes": 7309
+    },
+    "validation/tile16/author/codegen/candidate/tile-parallel-for.txt": {
+      "sha256": "c30216e884e5c6c77c1244949957385d925e4788deff51c30d44252db7fcb8ec",
+      "uncompressed_sha256": "c30216e884e5c6c77c1244949957385d925e4788deff51c30d44252db7fcb8ec",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/codegen/candidate/tile-parallel-for.txt",
+      "stored_bytes": 12890,
+      "uncompressed_bytes": 12890
+    },
+    "validation/tile16/author/codegen/commands.json": {
+      "sha256": "da74adc13c8cd68e6bc977345b5e936f0d30ebe58d0ede5659ed478eb9f23eae",
+      "uncompressed_sha256": "da74adc13c8cd68e6bc977345b5e936f0d30ebe58d0ede5659ed478eb9f23eae",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/codegen/commands.json",
+      "stored_bytes": 9848,
+      "uncompressed_bytes": 9848
+    },
+    "validation/tile16/author/codegen/micro-gate-pre.txt": {
+      "sha256": "4397d97d2995088838f7a0d08c3466f60f3b0706ea1015f4ede728ac5b8918c3",
+      "uncompressed_sha256": "4397d97d2995088838f7a0d08c3466f60f3b0706ea1015f4ede728ac5b8918c3",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/codegen/micro-gate-pre.txt",
+      "stored_bytes": 3391,
+      "uncompressed_bytes": 3391
+    },
+    "validation/tile16/author/codegen/summary.json": {
+      "sha256": "b09408febbbbf09272ea2aeda8a5f40df082f1ff7d78bf33a486470549eda72d",
+      "uncompressed_sha256": "b09408febbbbf09272ea2aeda8a5f40df082f1ff7d78bf33a486470549eda72d",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/codegen/summary.json",
+      "stored_bytes": 2263,
+      "uncompressed_bytes": 2263
+    },
+    "validation/tile16/author/codegen/tile-lambda.txt": {
+      "sha256": "e8d0c45ec1b37661a76adb3f5d4f322d0d0ff354cd0ceb730642c3a600429ec9",
+      "uncompressed_sha256": "e8d0c45ec1b37661a76adb3f5d4f322d0d0ff354cd0ceb730642c3a600429ec9",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/codegen/tile-lambda.txt",
+      "stored_bytes": 7309,
+      "uncompressed_bytes": 7309
+    },
+    "validation/tile16/author/codegen/unchanged-callbacks.json": {
+      "sha256": "af3bf9b3bc4635b67ca3c6588da40c5f1b1f8bc6a088c3d6794d973268e8877f",
+      "uncompressed_sha256": "af3bf9b3bc4635b67ca3c6588da40c5f1b1f8bc6a088c3d6794d973268e8877f",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/codegen/unchanged-callbacks.json",
+      "stored_bytes": 2410,
+      "uncompressed_bytes": 2410
+    },
+    "validation/tile16/author/frozen.json": {
+      "sha256": "fb458acf07c266203269db2bb554242e28df0ef3a882d1d44336853f64fa5ee5",
+      "uncompressed_sha256": "fb458acf07c266203269db2bb554242e28df0ef3a882d1d44336853f64fa5ee5",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/frozen.json",
+      "stored_bytes": 993,
+      "uncompressed_bytes": 993
+    },
+    "validation/tile16/author/host-v2-final-off.log.gz": {
+      "sha256": "82fdd279843ad453d5861763895e69f1c6e2690c90691392f0a3bbc2f31a9cd4",
+      "uncompressed_sha256": "ed0114af108967efb83439504adc47678322cfb9f316781b0192f1caaef8fcca",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/host-v2-final-off.log",
+      "stored_bytes": 148,
+      "uncompressed_bytes": 144
+    },
+    "validation/tile16/author/host-v2-final-san.log.gz": {
+      "sha256": "82fdd279843ad453d5861763895e69f1c6e2690c90691392f0a3bbc2f31a9cd4",
+      "uncompressed_sha256": "ed0114af108967efb83439504adc47678322cfb9f316781b0192f1caaef8fcca",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/host-v2-final-san.log",
+      "stored_bytes": 148,
+      "uncompressed_bytes": 144
+    },
+    "validation/tile16/author/ion-build-command.json": {
+      "sha256": "e1b38b4a7bb5d37fee1e46019bdecb2541079cc5d0a6b5a46e2f0d5accbf59e2",
+      "uncompressed_sha256": "e1b38b4a7bb5d37fee1e46019bdecb2541079cc5d0a6b5a46e2f0d5accbf59e2",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/ion-build-command.json",
+      "stored_bytes": 4954,
+      "uncompressed_bytes": 4954
+    },
+    "validation/tile16/author/mutations.log.gz": {
+      "sha256": "3cb366d42d860aedefd965f4eac3e458e2448948f94c4127b6d8b8a3f95cbfde",
+      "uncompressed_sha256": "9e42d1132f844600165b0f35110b9821a5ea0c733f2913cc211148eb43c2257a",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/mutations.log",
+      "stored_bytes": 182,
+      "uncompressed_bytes": 455
+    },
+    "validation/tile16/author/native-v2-build.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/native-v2-build.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile16/author/preliminary-native-extracts/app_route.inc.gz": {
+      "sha256": "a088f069c9bc4fe3bf0edb2aee58066705c95cb407963c754767c96cdc8d3618",
+      "uncompressed_sha256": "48780f7651d1f0ccccf683c0f49d8d01d2ba2842fb2cd5a1a2503abea46872e2",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/native-arm/app_route.inc",
+      "stored_bytes": 917,
+      "uncompressed_bytes": 2210
+    },
+    "validation/tile16/author/preliminary-native-extracts/baseline_helpers.inc.gz": {
+      "sha256": "15d1b0bf1a607aa34da952c1477867461fe8461b0557e6bd4497c27a61943923",
+      "uncompressed_sha256": "db278b294e0afbc00b4c4a47957ab05bf6858b6aa2d49b47cc8acf36fcb2e882",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/native-arm/baseline_helpers.inc",
+      "stored_bytes": 1018,
+      "uncompressed_bytes": 2591
+    },
+    "validation/tile16/author/preliminary-native-extracts/candidate_helpers.inc.gz": {
+      "sha256": "6c5e9b2481237591c799a54bbe44cfcf6d96c5a0d460943b68e734a56109a976",
+      "uncompressed_sha256": "f04d35298c5f7318692152fd65298a3700b21d85b485f9cade165d66f2f6f239",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/native-arm/candidate_helpers.inc",
+      "stored_bytes": 2983,
+      "uncompressed_bytes": 11534
+    },
+    "validation/tile16/author/preliminary-native-extracts/full_route.inc.gz": {
+      "sha256": "16b8adf5b77d4bfd08a774ce323928206be4d4630ae01a2e3efc89ed9015d764",
+      "uncompressed_sha256": "abc0a272d98172c1eaf28a51dad33a0aa0cfbe79f09dc43ed0532da43a98d478",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/native-arm/full_route.inc",
+      "stored_bytes": 318,
+      "uncompressed_bytes": 789
+    },
+    "validation/tile16/author/preliminary-native-extracts/gate_pre.inc.gz": {
+      "sha256": "90e9b3c8985b9da2e4c9fb24bbf3de0038d734f4c37e034578c4f7a1b5c44f9f",
+      "uncompressed_sha256": "505a7ed0cd35366e47ef9a72936a3a4d0041cbf20c2a127055dbf9f81ce0766b",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/native-arm/gate_pre.inc",
+      "stored_bytes": 151,
+      "uncompressed_bytes": 202
+    },
+    "validation/tile16/author/preliminary-native-extracts/gates.inc.gz": {
+      "sha256": "15b9a4c5300235a6767504f192e8d5b66bdc729143eac54c9bed8e9d8aba5369",
+      "uncompressed_sha256": "16f7ad134e573dbaf5aae1c8afff01b6e61b7bb310e766f2363a03e08fe32644",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/native-arm/gates.inc",
+      "stored_bytes": 184,
+      "uncompressed_bytes": 378
+    },
+    "validation/tile16/author/preliminary-native-extracts/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "326ab817bd4dcf140020903e854da78d77971eb5b6832b277f47908b0cdfcfda",
+      "uncompressed_sha256": "0afc47bffd6f33454891b38c9d7f1abf669cf4be3d7adfb371e38a4ffb547315",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/native-arm/lfm2_conv_chunk_check.cpp",
+      "stored_bytes": 7221,
+      "uncompressed_bytes": 25782
+    },
+    "validation/tile16/author/preliminary-native-extracts/staging.inc.gz": {
+      "sha256": "b6adc42a0ffd7779f83ef981b672d427009935269da6017714fc32d3eb0f3e3c",
+      "uncompressed_sha256": "ae89a657bf3972e8e0f55e4479b492d3a939d50dc253b7360320662a12056df9",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/native-arm/staging.inc",
+      "stored_bytes": 4874,
+      "uncompressed_bytes": 15243
+    },
+    "validation/tile16/author/preliminary-native-extracts/views.inc.gz": {
+      "sha256": "3b337ae5fb9005191bd2cabeb80f5b5c6a3eda6a96477830ad331d0d4a94dba9",
+      "uncompressed_sha256": "a3de08248229143dce1ecf322b0891d65a1eeffd98aea05474d5b44786af2e0e",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/checks/native-arm/views.inc",
+      "stored_bytes": 311,
+      "uncompressed_bytes": 615
+    },
+    "validation/tile16/author/production.patch.gz": {
+      "sha256": "9f8bb03d7f105a82127e731dfb659a80ae1305d6d1f20c9f171e079c51d01b24",
+      "uncompressed_sha256": "2f0798b1c8ffe6611c442050522b202107db9c8ab8ef58aa324276b19656d172",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/production.patch",
+      "stored_bytes": 2279,
+      "uncompressed_bytes": 7804
+    },
+    "validation/tile16/author/root-ion-micro.json": {
+      "sha256": "deaeb11f7a54ebe7da60c8eebe523891b0844c6cf4a919b4b21e2a64b0b41693",
+      "uncompressed_sha256": "deaeb11f7a54ebe7da60c8eebe523891b0844c6cf4a919b4b21e2a64b0b41693",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/root-ion-micro.json",
+      "stored_bytes": 1326,
+      "uncompressed_bytes": 1326
+    },
+    "validation/tile16/author/root-ion-micro.log.gz": {
+      "sha256": "3c644fc470727ac8d13444f41e647c16e4d95f14387c92d9491e5aaa1e7345c3",
+      "uncompressed_sha256": "5344e8d51637a42e0462f038742f7d65cb8013a1ab609b601f7f4437b8c7368e",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/root-ion-micro.log",
+      "stored_bytes": 472,
+      "uncompressed_bytes": 1499
+    },
+    "validation/tile16/author/root-native-arm.json": {
+      "sha256": "86494753d1e9b08c4609e9ca52a98816c0de8c1e29241476fffd9a9dce363db3",
+      "uncompressed_sha256": "86494753d1e9b08c4609e9ca52a98816c0de8c1e29241476fffd9a9dce363db3",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/root-native-arm.json",
+      "stored_bytes": 493,
+      "uncompressed_bytes": 493
+    },
+    "validation/tile16/author/root-native-arm.log.gz": {
+      "sha256": "82fdd279843ad453d5861763895e69f1c6e2690c90691392f0a3bbc2f31a9cd4",
+      "uncompressed_sha256": "ed0114af108967efb83439504adc47678322cfb9f316781b0192f1caaef8fcca",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/root-native-arm.log",
+      "stored_bytes": 148,
+      "uncompressed_bytes": 144
+    },
+    "validation/tile16/author/root-native-v2.json": {
+      "sha256": "9bd4b9c3c711dfd0836e97c363638bfac9b271639ed2230e31bd131e4ddc6135",
+      "uncompressed_sha256": "9bd4b9c3c711dfd0836e97c363638bfac9b271639ed2230e31bd131e4ddc6135",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/root-native-v2.json",
+      "stored_bytes": 473,
+      "uncompressed_bytes": 473
+    },
+    "validation/tile16/author/root-native-v2.log.gz": {
+      "sha256": "82fdd279843ad453d5861763895e69f1c6e2690c90691392f0a3bbc2f31a9cd4",
+      "uncompressed_sha256": "ed0114af108967efb83439504adc47678322cfb9f316781b0192f1caaef8fcca",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/root-native-v2.log",
+      "stored_bytes": 148,
+      "uncompressed_bytes": 144
+    },
+    "validation/tile16/author/test/htp/host/lfm2_conv_chunk_check.cpp.gz": {
+      "sha256": "183b7b46634b38d3a6239561d32eb45070cc97aed03608400be4d6a97c563527",
+      "uncompressed_sha256": "577c42323a199cd77fdff3b0abcacf9c45f6361f21ebd515efae3b77605e936f",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/test/htp/host/lfm2_conv_chunk_check.cpp",
+      "stored_bytes": 7283,
+      "uncompressed_bytes": 27409
+    },
+    "validation/tile16/author/test/htp/host/run_lfm2_conv_chunk_check.py": {
+      "sha256": "be8bb77561b364abc590edc30fb0b4f45f4516697b1aed2b5af98ae85f0c2628",
+      "uncompressed_sha256": "be8bb77561b364abc590edc30fb0b4f45f4516697b1aed2b5af98ae85f0c2628",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/test/htp/host/run_lfm2_conv_chunk_check.py",
+      "stored_bytes": 3937,
+      "uncompressed_bytes": 3937
+    },
+    "validation/tile16/author/test/htp/host/run_lfm2_conv_gate_tile_mutations.py": {
+      "sha256": "96376ef6c8ffab078e55c2ac2ceda3f6a6ce06bdbb2917482e1fefefc8f193a6",
+      "uncompressed_sha256": "96376ef6c8ffab078e55c2ac2ceda3f6a6ce06bdbb2917482e1fefefc8f193a6",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/test/htp/host/run_lfm2_conv_gate_tile_mutations.py",
+      "stored_bytes": 3963,
+      "uncompressed_bytes": 3963
+    },
+    "validation/tile16/independent/android-build.log.gz": {
+      "sha256": "512163c3aeddecf24affa35e8439c7358c7e34ff3e47e7b9a61a19e948d48005",
+      "uncompressed_sha256": "14d08b74e74ad205e1dca86eebb0883387546582acb8c86e82b53a489b8e8bb0",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/android-build.log",
+      "stored_bytes": 559,
+      "uncompressed_bytes": 2488
+    },
+    "validation/tile16/independent/android-command.json": {
+      "sha256": "2d7a82ae3b9890b356304a77b40b49d4d7453d4167e303615ade1c379f6e63b1",
+      "uncompressed_sha256": "2d7a82ae3b9890b356304a77b40b49d4d7453d4167e303615ade1c379f6e63b1",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/android-command.json",
+      "stored_bytes": 4791,
+      "uncompressed_bytes": 4791
+    },
+    "validation/tile16/independent/android-x86-clang-command.json": {
+      "sha256": "3fae169f8590e9821bc643b3b45b86182eede71b5c98fe94a5824685f97cd78d",
+      "uncompressed_sha256": "3fae169f8590e9821bc643b3b45b86182eede71b5c98fe94a5824685f97cd78d",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/android-x86-clang-command.json",
+      "stored_bytes": 4672,
+      "uncompressed_bytes": 4672
+    },
+    "validation/tile16/independent/android-x86-clang.log.gz": {
+      "sha256": "512163c3aeddecf24affa35e8439c7358c7e34ff3e47e7b9a61a19e948d48005",
+      "uncompressed_sha256": "14d08b74e74ad205e1dca86eebb0883387546582acb8c86e82b53a489b8e8bb0",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/android-x86-clang.log",
+      "stored_bytes": 559,
+      "uncompressed_bytes": 2488
+    },
+    "validation/tile16/independent/candidate.su.gz": {
+      "sha256": "17c8eadc7f7b3b4a259df064779f40cd4c8472370db353c68aa3c4e43e4fb5a2",
+      "uncompressed_sha256": "7cdfe5ae580288e4f6e9c336a306e0128fab7b4d6d0e11bfb62744f3a05902b3",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/candidate.su",
+      "stored_bytes": 5958,
+      "uncompressed_bytes": 69066
+    },
+    "validation/tile16/independent/frozen-status-at-review.json": {
+      "sha256": "fb458acf07c266203269db2bb554242e28df0ef3a882d1d44336853f64fa5ee5",
+      "uncompressed_sha256": "fb458acf07c266203269db2bb554242e28df0ef3a882d1d44336853f64fa5ee5",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/frozen/frozen.json",
+      "stored_bytes": 993,
+      "uncompressed_bytes": 993
+    },
+    "validation/tile16/independent/host-san-off.log.gz": {
+      "sha256": "82fdd279843ad453d5861763895e69f1c6e2690c90691392f0a3bbc2f31a9cd4",
+      "uncompressed_sha256": "ed0114af108967efb83439504adc47678322cfb9f316781b0192f1caaef8fcca",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/host-san-off.log",
+      "stored_bytes": 148,
+      "uncompressed_bytes": 144
+    },
+    "validation/tile16/independent/host-san.log.gz": {
+      "sha256": "82fdd279843ad453d5861763895e69f1c6e2690c90691392f0a3bbc2f31a9cd4",
+      "uncompressed_sha256": "ed0114af108967efb83439504adc47678322cfb9f316781b0192f1caaef8fcca",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/host-san.log",
+      "stored_bytes": 148,
+      "uncompressed_bytes": 144
+    },
+    "validation/tile16/independent/host-san/commands.json": {
+      "sha256": "d1ec50e37464b59f48eee0101acd023167820af184bbbe3d17745defee0b37aa",
+      "uncompressed_sha256": "d1ec50e37464b59f48eee0101acd023167820af184bbbe3d17745defee0b37aa",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/host-san/commands.json",
+      "stored_bytes": 2069,
+      "uncompressed_bytes": 2069
+    },
+    "validation/tile16/independent/input-manifest.json": {
+      "sha256": "70967be1861a2226b51cd4579ee82f449233a29cb9605d03d296a99643acf28f",
+      "uncompressed_sha256": "70967be1861a2226b51cd4579ee82f449233a29cb9605d03d296a99643acf28f",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/input-manifest.json",
+      "stored_bytes": 1515,
+      "uncompressed_bytes": 1515
+    },
+    "validation/tile16/independent/linux-x86-gcc-command.json": {
+      "sha256": "796bab59846f2e465f95a93b9a8f59f1f68263f7d6eb278397be45d21c976378",
+      "uncompressed_sha256": "796bab59846f2e465f95a93b9a8f59f1f68263f7d6eb278397be45d21c976378",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/linux-x86-gcc-command.json",
+      "stored_bytes": 4655,
+      "uncompressed_bytes": 4655
+    },
+    "validation/tile16/independent/linux-x86-gcc.log.gz": {
+      "sha256": "ca5af7f95a6e323c8cb70d75e30f211ffeda9044eb9d9e09551c48284cbbe439",
+      "uncompressed_sha256": "17809457cdb555d10a628a9ba44f929c0c69ffece94c1ed82d9f12f126190eaa",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/linux-x86-gcc.log",
+      "stored_bytes": 496,
+      "uncompressed_bytes": 1317
+    },
+    "validation/tile16/independent/micro-readback.json": {
+      "sha256": "e78b442c14b1ece77fbc4ba82d2b6845d0e7c5ef38485a0ead75b4b05c5ef0d3",
+      "uncompressed_sha256": "e78b442c14b1ece77fbc4ba82d2b6845d0e7c5ef38485a0ead75b4b05c5ef0d3",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/micro-readback.json",
+      "stored_bytes": 2347,
+      "uncompressed_bytes": 2347
+    },
+    "validation/tile16/independent/mutants-san.log.gz": {
+      "sha256": "3cb366d42d860aedefd965f4eac3e458e2448948f94c4127b6d8b8a3f95cbfde",
+      "uncompressed_sha256": "9e42d1132f844600165b0f35110b9821a5ea0c733f2913cc211148eb43c2257a",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san.log",
+      "stored_bytes": 182,
+      "uncompressed_bytes": 455
+    },
+    "validation/tile16/independent/mutants-san/chunk_projection_global_row/check/commands.json": {
+      "sha256": "8109317b4fc840613379484d2dbe3985d42084373eba51b441d83507d223d250",
+      "uncompressed_sha256": "8109317b4fc840613379484d2dbe3985d42084373eba51b441d83507d223d250",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/chunk_projection_global_row/check/commands.json",
+      "stored_bytes": 2180,
+      "uncompressed_bytes": 2180
+    },
+    "validation/tile16/independent/mutants-san/chunk_projection_global_row/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/chunk_projection_global_row/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile16/independent/mutants-san/chunk_projection_global_row/run.log.gz": {
+      "sha256": "1124e5c6240dabec4c7cb10f08b7753938d4ae95488f304f547afddce44c5ab3",
+      "uncompressed_sha256": "11f854a25e1373ab507a995300bb65e5a65f964bfe71febaad4f7e87252e90e8",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/chunk_projection_global_row/run.log",
+      "stored_bytes": 61,
+      "uncompressed_bytes": 41
+    },
+    "validation/tile16/independent/mutants-san/lost_chunk_halo/check/commands.json": {
+      "sha256": "02f9b44fc9cd8f81d995d5f4edb714e3629934147aa17775169119c59b5f6648",
+      "uncompressed_sha256": "02f9b44fc9cd8f81d995d5f4edb714e3629934147aa17775169119c59b5f6648",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/lost_chunk_halo/check/commands.json",
+      "stored_bytes": 2144,
+      "uncompressed_bytes": 2144
+    },
+    "validation/tile16/independent/mutants-san/lost_chunk_halo/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/lost_chunk_halo/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile16/independent/mutants-san/lost_chunk_halo/run.log.gz": {
+      "sha256": "a77b9a644ae66a2909a4e7f0f95a626c876f1cd53daed4f7310d1ee57a283f16",
+      "uncompressed_sha256": "1fa2ed088d7356ad7ce21b794d8d4e018afc953a15f25846e856e5decb7a13eb",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/lost_chunk_halo/run.log",
+      "stored_bytes": 87,
+      "uncompressed_bytes": 69
+    },
+    "validation/tile16/independent/mutants-san/missing_output_overlap_guard/check/commands.json": {
+      "sha256": "54ea85b9d0c9e1af79a97459b09273f647f9acdeff7efb82e2f8cadef33d2751",
+      "uncompressed_sha256": "54ea85b9d0c9e1af79a97459b09273f647f9acdeff7efb82e2f8cadef33d2751",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/missing_output_overlap_guard/check/commands.json",
+      "stored_bytes": 2183,
+      "uncompressed_bytes": 2183
+    },
+    "validation/tile16/independent/mutants-san/missing_output_overlap_guard/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/missing_output_overlap_guard/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile16/independent/mutants-san/missing_output_overlap_guard/run.log.gz": {
+      "sha256": "094141cd9f222c70d53749d0b671cf272ce8a19a1e8ed15155f0672efeb19ba4",
+      "uncompressed_sha256": "a01d720373075390dda57c4e77aa2b39c43e2e2ea1d58f39f4b47e890c29f4a6",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/missing_output_overlap_guard/run.log",
+      "stored_bytes": 69,
+      "uncompressed_bytes": 49
+    },
+    "validation/tile16/independent/mutants-san/missing_postgate/check/commands.json": {
+      "sha256": "1cc408954726e7fdd29b80d071015449760bf6edb7c46a127879f0227d450993",
+      "uncompressed_sha256": "1cc408954726e7fdd29b80d071015449760bf6edb7c46a127879f0227d450993",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/missing_postgate/check/commands.json",
+      "stored_bytes": 2147,
+      "uncompressed_bytes": 2147
+    },
+    "validation/tile16/independent/mutants-san/missing_postgate/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/missing_postgate/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile16/independent/mutants-san/missing_postgate/run.log.gz": {
+      "sha256": "c01393dfac437448dc031a97112a172fa6f7ead1f5b293c5855f32c0195bb66d",
+      "uncompressed_sha256": "e92f22f7657d0986f668404c397de5fd6ea871beb65fb10d9bff70f5b0417cd8",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/missing_postgate/run.log",
+      "stored_bytes": 66,
+      "uncompressed_bytes": 46
+    },
+    "validation/tile16/independent/mutants-san/partial_tile_accepted/check/commands.json": {
+      "sha256": "6f5d8f74dd860a69cd46f28c4195143d81370c65eec5e0cf36ad8ed77d552fc8",
+      "uncompressed_sha256": "6f5d8f74dd860a69cd46f28c4195143d81370c65eec5e0cf36ad8ed77d552fc8",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/partial_tile_accepted/check/commands.json",
+      "stored_bytes": 2162,
+      "uncompressed_bytes": 2162
+    },
+    "validation/tile16/independent/mutants-san/partial_tile_accepted/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/partial_tile_accepted/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile16/independent/mutants-san/partial_tile_accepted/run.log.gz": {
+      "sha256": "19637d1d112619e81d884f0a22853dfa5769b95dd34415dcbb070fa326cf7c6c",
+      "uncompressed_sha256": "7ba57f83bb8e7dc42834698a2a3d5ed530899827812e14911c05cc5657d15a46",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/partial_tile_accepted/run.log",
+      "stored_bytes": 687,
+      "uncompressed_bytes": 1875
+    },
+    "validation/tile16/independent/mutants-san/read_dead_gated_rows/check/commands.json": {
+      "sha256": "4bb1317934433454c12169bf5d1f8a449654a7a1a1ebee26eae7285dc0872efb",
+      "uncompressed_sha256": "4bb1317934433454c12169bf5d1f8a449654a7a1a1ebee26eae7285dc0872efb",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/read_dead_gated_rows/check/commands.json",
+      "stored_bytes": 2159,
+      "uncompressed_bytes": 2159
+    },
+    "validation/tile16/independent/mutants-san/read_dead_gated_rows/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/read_dead_gated_rows/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile16/independent/mutants-san/read_dead_gated_rows/run.log.gz": {
+      "sha256": "81ef399db6fb86c6e2ba75528560b1ef361b119899f515d040eff1459bdadb9f",
+      "uncompressed_sha256": "1f82fa7a445101db46aa06e6a4e2ce7fcd3299c7819498baad23fe569f3ce729",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/read_dead_gated_rows/run.log",
+      "stored_bytes": 1395,
+      "uncompressed_bytes": 5492
+    },
+    "validation/tile16/independent/mutants-san/reordered_fma/check/commands.json": {
+      "sha256": "c99d971ad28bfaf4545ca11886f67125257602afefbe5f429a1ff5bf1caf29c4",
+      "uncompressed_sha256": "c99d971ad28bfaf4545ca11886f67125257602afefbe5f429a1ff5bf1caf29c4",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/reordered_fma/check/commands.json",
+      "stored_bytes": 2138,
+      "uncompressed_bytes": 2138
+    },
+    "validation/tile16/independent/mutants-san/reordered_fma/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/reordered_fma/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile16/independent/mutants-san/reordered_fma/run.log.gz": {
+      "sha256": "c01393dfac437448dc031a97112a172fa6f7ead1f5b293c5855f32c0195bb66d",
+      "uncompressed_sha256": "e92f22f7657d0986f668404c397de5fd6ea871beb65fb10d9bff70f5b0417cd8",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/reordered_fma/run.log",
+      "stored_bytes": 66,
+      "uncompressed_bytes": 46
+    },
+    "validation/tile16/independent/mutants-san/results.json": {
+      "sha256": "cf8151dac2312ebd283de4e9665de2e741b018066ad39d371c7b12f101abf7c4",
+      "uncompressed_sha256": "cf8151dac2312ebd283de4e9665de2e741b018066ad39d371c7b12f101abf7c4",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/results.json",
+      "stored_bytes": 7470,
+      "uncompressed_bytes": 7470
+    },
+    "validation/tile16/independent/mutants-san/write_dead_gated_rows/check/commands.json": {
+      "sha256": "5363586c7dddd90ef20248434bc06d176cf984aab427d3fd9b816e1541afdd1f",
+      "uncompressed_sha256": "5363586c7dddd90ef20248434bc06d176cf984aab427d3fd9b816e1541afdd1f",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/write_dead_gated_rows/check/commands.json",
+      "stored_bytes": 2162,
+      "uncompressed_bytes": 2162
+    },
+    "validation/tile16/independent/mutants-san/write_dead_gated_rows/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/write_dead_gated_rows/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile16/independent/mutants-san/write_dead_gated_rows/run.log.gz": {
+      "sha256": "1d69dcf8979178af2e9bca099c582dc12a526d6f84d3fc214ee3db58a3d833b0",
+      "uncompressed_sha256": "21a3154d7a14380da7f4fd9c2d4d6709c58e77dc73dbfc10ff2d1a61678f69ed",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/mutants-san/write_dead_gated_rows/run.log",
+      "stored_bytes": 1394,
+      "uncompressed_bytes": 5499
+    },
+    "validation/tile16/independent/native-arm/commands.json": {
+      "sha256": "97be753e2da9286ac77212709a1466b027c54b8363b56d92ba1c44c5bd48f4a5",
+      "uncompressed_sha256": "97be753e2da9286ac77212709a1466b027c54b8363b56d92ba1c44c5bd48f4a5",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/native-arm/commands.json",
+      "stored_bytes": 2114,
+      "uncompressed_bytes": 2114
+    },
+    "validation/tile16/independent/native-build.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/native-build.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile8/author/README.txt": {
+      "sha256": "202d441d05e490a8877575d098daf9ee571786bca6ed303f4a4418d093fbc45c",
+      "uncompressed_sha256": "202d441d05e490a8877575d098daf9ee571786bca6ed303f4a4418d093fbc45c",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/README.txt",
+      "stored_bytes": 8891,
+      "uncompressed_bytes": 8891
+    },
+    "validation/tile8/author/candidate/Applications/CausalLM/layers/conv_block_layer.cpp.gz": {
+      "sha256": "d81db94741d870d52373b38483f4cccde131224e255c5d95b76361f3effb6bf0",
+      "uncompressed_sha256": "afb5021ff5f95ed4f1287357b5dce77bc8032c9ec07045c5f5944f1e3c305e8c",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/candidate/Applications/CausalLM/layers/conv_block_layer.cpp",
+      "stored_bytes": 8443,
+      "uncompressed_bytes": 32209
+    },
+    "validation/tile8/author/candidate/tools/lfm2_conv_gate_tile_ion_check.cpp.gz": {
+      "sha256": "0685b39a3d38563417ba7ce22edcf9c805e44aca1d1a4abca0a38cc3499262b9",
+      "uncompressed_sha256": "5f567210ceebaa66d6f123cc7e16afddd6472a604cfc54e111bed9195a67078c",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/candidate/tools/lfm2_conv_gate_tile_ion_check.cpp",
+      "stored_bytes": 3005,
+      "uncompressed_bytes": 8790
+    },
+    "validation/tile8/author/candidate/tools/tile16_helper.inc.gz": {
+      "sha256": "a9ebfe6a27df0b633df4d6bb6d2532f3117318e9350238e0b97d00a7a2a92d0a",
+      "uncompressed_sha256": "6fc3d64577a6d7edcef6fa19e9be3a27d41c706ee15090bf6d6481ce3d3c58dc",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/candidate/tools/tile16_helper.inc",
+      "stored_bytes": 1083,
+      "uncompressed_bytes": 3827
+    },
+    "validation/tile8/author/checks/existing-chunk-san/commands.json": {
+      "sha256": "db9c330c2aa4dea40f30e4031789720ed55eef455639b609547b4651e75a32b8",
+      "uncompressed_sha256": "db9c330c2aa4dea40f30e4031789720ed55eef455639b609547b4651e75a32b8",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/existing-chunk-san/commands.json",
+      "stored_bytes": 1812,
+      "uncompressed_bytes": 1812
+    },
+    "validation/tile8/author/checks/final-san/commands.json": {
+      "sha256": "fde7c54d8fd9384833ce479d27fa3a83682a10382c7f70200160a36e8200e35a",
+      "uncompressed_sha256": "fde7c54d8fd9384833ce479d27fa3a83682a10382c7f70200160a36e8200e35a",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/final-san/commands.json",
+      "stored_bytes": 2103,
+      "uncompressed_bytes": 2103
+    },
+    "validation/tile8/author/checks/mutants/chunk_projection_global_row/check/commands.json": {
+      "sha256": "7a3f6ddff0c4dfd44d1e5be4b3694cbfd15eea2c9e475ce0912ff6befc5a3977",
+      "uncompressed_sha256": "7a3f6ddff0c4dfd44d1e5be4b3694cbfd15eea2c9e475ce0912ff6befc5a3977",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/chunk_projection_global_row/check/commands.json",
+      "stored_bytes": 2199,
+      "uncompressed_bytes": 2199
+    },
+    "validation/tile8/author/checks/mutants/chunk_projection_global_row/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/chunk_projection_global_row/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile8/author/checks/mutants/chunk_projection_global_row/run.log.gz": {
+      "sha256": "1124e5c6240dabec4c7cb10f08b7753938d4ae95488f304f547afddce44c5ab3",
+      "uncompressed_sha256": "11f854a25e1373ab507a995300bb65e5a65f964bfe71febaad4f7e87252e90e8",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/chunk_projection_global_row/run.log",
+      "stored_bytes": 61,
+      "uncompressed_bytes": 41
+    },
+    "validation/tile8/author/checks/mutants/lost_chunk_halo/check/commands.json": {
+      "sha256": "930b4e2274387a842cd2c79324571102e0e00d7e990e0787c7914e28feb3c329",
+      "uncompressed_sha256": "930b4e2274387a842cd2c79324571102e0e00d7e990e0787c7914e28feb3c329",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/lost_chunk_halo/check/commands.json",
+      "stored_bytes": 2163,
+      "uncompressed_bytes": 2163
+    },
+    "validation/tile8/author/checks/mutants/lost_chunk_halo/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/lost_chunk_halo/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile8/author/checks/mutants/lost_chunk_halo/run.log.gz": {
+      "sha256": "a77b9a644ae66a2909a4e7f0f95a626c876f1cd53daed4f7310d1ee57a283f16",
+      "uncompressed_sha256": "1fa2ed088d7356ad7ce21b794d8d4e018afc953a15f25846e856e5decb7a13eb",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/lost_chunk_halo/run.log",
+      "stored_bytes": 87,
+      "uncompressed_bytes": 69
+    },
+    "validation/tile8/author/checks/mutants/missing_output_overlap_guard/check/commands.json": {
+      "sha256": "5d0299e573cf248198af234eb91a1183bd943bb625e16ec81a43faf49d54f37d",
+      "uncompressed_sha256": "5d0299e573cf248198af234eb91a1183bd943bb625e16ec81a43faf49d54f37d",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/missing_output_overlap_guard/check/commands.json",
+      "stored_bytes": 2202,
+      "uncompressed_bytes": 2202
+    },
+    "validation/tile8/author/checks/mutants/missing_output_overlap_guard/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/missing_output_overlap_guard/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile8/author/checks/mutants/missing_output_overlap_guard/run.log.gz": {
+      "sha256": "094141cd9f222c70d53749d0b671cf272ce8a19a1e8ed15155f0672efeb19ba4",
+      "uncompressed_sha256": "a01d720373075390dda57c4e77aa2b39c43e2e2ea1d58f39f4b47e890c29f4a6",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/missing_output_overlap_guard/run.log",
+      "stored_bytes": 69,
+      "uncompressed_bytes": 49
+    },
+    "validation/tile8/author/checks/mutants/missing_postgate/check/commands.json": {
+      "sha256": "19d9b2bd40820a29d73f72d04a6382c1724e0e31f4980bfffb0723b6cdeef12e",
+      "uncompressed_sha256": "19d9b2bd40820a29d73f72d04a6382c1724e0e31f4980bfffb0723b6cdeef12e",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/missing_postgate/check/commands.json",
+      "stored_bytes": 2166,
+      "uncompressed_bytes": 2166
+    },
+    "validation/tile8/author/checks/mutants/missing_postgate/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/missing_postgate/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile8/author/checks/mutants/missing_postgate/run.log.gz": {
+      "sha256": "c01393dfac437448dc031a97112a172fa6f7ead1f5b293c5855f32c0195bb66d",
+      "uncompressed_sha256": "e92f22f7657d0986f668404c397de5fd6ea871beb65fb10d9bff70f5b0417cd8",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/missing_postgate/run.log",
+      "stored_bytes": 66,
+      "uncompressed_bytes": 46
+    },
+    "validation/tile8/author/checks/mutants/partial_tile_accepted/check/commands.json": {
+      "sha256": "fbb5f45b2a64380ee6c11f22d5dbf5acbeb39a853c8f02bfcfe418f2ff8f48a4",
+      "uncompressed_sha256": "fbb5f45b2a64380ee6c11f22d5dbf5acbeb39a853c8f02bfcfe418f2ff8f48a4",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/partial_tile_accepted/check/commands.json",
+      "stored_bytes": 2181,
+      "uncompressed_bytes": 2181
+    },
+    "validation/tile8/author/checks/mutants/partial_tile_accepted/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/partial_tile_accepted/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile8/author/checks/mutants/partial_tile_accepted/run.log.gz": {
+      "sha256": "00c8e522e61cbcc787a1f10166e91732ae94469386216d49fd3d1c4cecabb810",
+      "uncompressed_sha256": "f82e769f46f8e8653564b45e30329668e97838498a185a43174a5794847cd18c",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/partial_tile_accepted/run.log",
+      "stored_bytes": 690,
+      "uncompressed_bytes": 1917
+    },
+    "validation/tile8/author/checks/mutants/read_dead_gated_rows/check/commands.json": {
+      "sha256": "5816f289b2734e892acd8eb8ec848cc9cdba6573e7ec91f7718ef1b575958c3f",
+      "uncompressed_sha256": "5816f289b2734e892acd8eb8ec848cc9cdba6573e7ec91f7718ef1b575958c3f",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/read_dead_gated_rows/check/commands.json",
+      "stored_bytes": 2178,
+      "uncompressed_bytes": 2178
+    },
+    "validation/tile8/author/checks/mutants/read_dead_gated_rows/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/read_dead_gated_rows/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile8/author/checks/mutants/read_dead_gated_rows/run.log.gz": {
+      "sha256": "a8acf405ae02d121911cb99eb38e12522b336402a134a274b4dbbb934571d6c6",
+      "uncompressed_sha256": "93a66dacb49e58e3dcd324fddeed2f6b85c19e5697b085c4f5675cc6d65a78af",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/read_dead_gated_rows/run.log",
+      "stored_bytes": 1397,
+      "uncompressed_bytes": 5570
+    },
+    "validation/tile8/author/checks/mutants/reordered_fma/check/commands.json": {
+      "sha256": "916178a596380257cba77f8cf25e821e1088d87a170bbd604684a92bf4a078d0",
+      "uncompressed_sha256": "916178a596380257cba77f8cf25e821e1088d87a170bbd604684a92bf4a078d0",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/reordered_fma/check/commands.json",
+      "stored_bytes": 2157,
+      "uncompressed_bytes": 2157
+    },
+    "validation/tile8/author/checks/mutants/reordered_fma/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/reordered_fma/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile8/author/checks/mutants/reordered_fma/run.log.gz": {
+      "sha256": "c01393dfac437448dc031a97112a172fa6f7ead1f5b293c5855f32c0195bb66d",
+      "uncompressed_sha256": "e92f22f7657d0986f668404c397de5fd6ea871beb65fb10d9bff70f5b0417cd8",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/reordered_fma/run.log",
+      "stored_bytes": 66,
+      "uncompressed_bytes": 46
+    },
+    "validation/tile8/author/checks/mutants/results.json": {
+      "sha256": "10357cdc3c60f6a27f83d4a6a73dd074daf76084c3b3da35c5d24a7915e0e1df",
+      "uncompressed_sha256": "10357cdc3c60f6a27f83d4a6a73dd074daf76084c3b3da35c5d24a7915e0e1df",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/results.json",
+      "stored_bytes": 7430,
+      "uncompressed_bytes": 7430
+    },
+    "validation/tile8/author/checks/mutants/write_dead_gated_rows/check/commands.json": {
+      "sha256": "41ca9a61173dae2341e21537f9ffa4a6092289d5be7ad63566ca771a518976dd",
+      "uncompressed_sha256": "41ca9a61173dae2341e21537f9ffa4a6092289d5be7ad63566ca771a518976dd",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/write_dead_gated_rows/check/commands.json",
+      "stored_bytes": 2181,
+      "uncompressed_bytes": 2181
+    },
+    "validation/tile8/author/checks/mutants/write_dead_gated_rows/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/write_dead_gated_rows/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile8/author/checks/mutants/write_dead_gated_rows/run.log.gz": {
+      "sha256": "22c98f8393f272dbd21c4e17783526e3d42f3facd095487bf76755d2e705ac1c",
+      "uncompressed_sha256": "49f0ec32363f62fb655e8fb4cb93a43567d538b364e2378fdb68287ee73c4c55",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/mutants/write_dead_gated_rows/run.log",
+      "stored_bytes": 1397,
+      "uncompressed_bytes": 5578
+    },
+    "validation/tile8/author/checks/native-arm/commands.json": {
+      "sha256": "5ccfaff953a8a0906b156958f8c8dac4e213048cfa255782ea29cb719704d48d",
+      "uncompressed_sha256": "5ccfaff953a8a0906b156958f8c8dac4e213048cfa255782ea29cb719704d48d",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/native-arm/commands.json",
+      "stored_bytes": 2141,
+      "uncompressed_bytes": 2141
+    },
+    "validation/tile8/author/checks/non-arm/check.log.gz": {
+      "sha256": "a211cfa40c13c3773f1093a699b7d4d6ab3f71d8e1670ee99d1db4fc6e0655c7",
+      "uncompressed_sha256": "2239f240dae6554454a0781e78d83395bd3512ce52e06b04be9f3b79f6f9e90f",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/non-arm/check.log",
+      "stored_bytes": 50,
+      "uncompressed_bytes": 30
+    },
+    "validation/tile8/author/checks/non-arm/commands.json": {
+      "sha256": "6ebe2df821a34b1faf07f9117ffb453f2a6f86a3adf1cb617dffebea30933c34",
+      "uncompressed_sha256": "6ebe2df821a34b1faf07f9117ffb453f2a6f86a3adf1cb617dffebea30933c34",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/checks/non-arm/commands.json",
+      "stored_bytes": 415,
+      "uncompressed_bytes": 415
+    },
+    "validation/tile8/author/codegen/command.json": {
+      "sha256": "e016b448a07ca0d8e7f689ffd4fb2ad63a7e035dc8d079858d8c17e7991accaf",
+      "uncompressed_sha256": "e016b448a07ca0d8e7f689ffd4fb2ad63a7e035dc8d079858d8c17e7991accaf",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/codegen/command.json",
+      "stored_bytes": 4791,
+      "uncompressed_bytes": 4791
+    },
+    "validation/tile8/author/codegen/compile.log.gz": {
+      "sha256": "34f317c25cd99b5726430c9e2453ebb727c7f42bdf1572bb90eca69438c96e6c",
+      "uncompressed_sha256": "75ae446bfd862372e8e22d01ec9d1a062c1dda3f3b25b7e5b58c64f86618a4bd",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/codegen/compile.log",
+      "stored_bytes": 556,
+      "uncompressed_bytes": 2478
+    },
+    "validation/tile8/author/codegen/conv.su.gz": {
+      "sha256": "6bcff3a63a8a660b0d074f7a78da8246b09141f285e279a7c149db2c4ce310b5",
+      "uncompressed_sha256": "a0091927400704c13f7c8242cf5f64dcb546ea96949bd82a3ef88df571b3c4dd",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/codegen/conv.su",
+      "stored_bytes": 5949,
+      "uncompressed_bytes": 68981
+    },
+    "validation/tile8/author/codegen/summary.json": {
+      "sha256": "f28b52d8824589db722bb868aa3d194db5bb19f56b74f34798d559f92458a4a7",
+      "uncompressed_sha256": "f28b52d8824589db722bb868aa3d194db5bb19f56b74f34798d559f92458a4a7",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/codegen/summary.json",
+      "stored_bytes": 3646,
+      "uncompressed_bytes": 3646
+    },
+    "validation/tile8/author/codegen/tile-lambda.txt": {
+      "sha256": "f57dcbcc6bfdb2b16b50abcc9bfe2399360bc51cc2d48f102606e3db74fe45af",
+      "uncompressed_sha256": "f57dcbcc6bfdb2b16b50abcc9bfe2399360bc51cc2d48f102606e3db74fe45af",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/codegen/tile-lambda.txt",
+      "stored_bytes": 7306,
+      "uncompressed_bytes": 7306
+    },
+    "validation/tile8/author/existing-chunk-off.log.gz": {
+      "sha256": "52529d7bbbe070f8d48d5e476883b86c65fb85b15cfd7e7f1136655609c5b981",
+      "uncompressed_sha256": "2d8b9bf42c7e7fa9f66219ed26cb5e0e19d7cf88d4c1f5a725c1ae8fbf976cf6",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/existing-chunk-off.log",
+      "stored_bytes": 144,
+      "uncompressed_bytes": 139
+    },
+    "validation/tile8/author/existing-chunk-san.log.gz": {
+      "sha256": "52529d7bbbe070f8d48d5e476883b86c65fb85b15cfd7e7f1136655609c5b981",
+      "uncompressed_sha256": "2d8b9bf42c7e7fa9f66219ed26cb5e0e19d7cf88d4c1f5a725c1ae8fbf976cf6",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/existing-chunk-san.log",
+      "stored_bytes": 144,
+      "uncompressed_bytes": 139
+    },
+    "validation/tile8/author/final-off.log.gz": {
+      "sha256": "82fdd279843ad453d5861763895e69f1c6e2690c90691392f0a3bbc2f31a9cd4",
+      "uncompressed_sha256": "ed0114af108967efb83439504adc47678322cfb9f316781b0192f1caaef8fcca",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/final-off.log",
+      "stored_bytes": 148,
+      "uncompressed_bytes": 144
+    },
+    "validation/tile8/author/final-san.log.gz": {
+      "sha256": "82fdd279843ad453d5861763895e69f1c6e2690c90691392f0a3bbc2f31a9cd4",
+      "uncompressed_sha256": "ed0114af108967efb83439504adc47678322cfb9f316781b0192f1caaef8fcca",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/final-san.log",
+      "stored_bytes": 148,
+      "uncompressed_bytes": 144
+    },
+    "validation/tile8/author/frozen.json": {
+      "sha256": "b3a386975d0f1459044677f94d166859baaa6a23eebe8a42fd6807c1ac1d72d0",
+      "uncompressed_sha256": "b3a386975d0f1459044677f94d166859baaa6a23eebe8a42fd6807c1ac1d72d0",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/frozen.json",
+      "stored_bytes": 1471,
+      "uncompressed_bytes": 1471
+    },
+    "validation/tile8/author/ion-build-command.json": {
+      "sha256": "e742033725fde853e90e6c59007b150b1c2610d483e2cdcb30820e891e855460",
+      "uncompressed_sha256": "e742033725fde853e90e6c59007b150b1c2610d483e2cdcb30820e891e855460",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/ion-build-command.json",
+      "stored_bytes": 4972,
+      "uncompressed_bytes": 4972
+    },
+    "validation/tile8/author/mutations.log.gz": {
+      "sha256": "3cb366d42d860aedefd965f4eac3e458e2448948f94c4127b6d8b8a3f95cbfde",
+      "uncompressed_sha256": "9e42d1132f844600165b0f35110b9821a5ea0c733f2913cc211148eb43c2257a",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/mutations.log",
+      "stored_bytes": 182,
+      "uncompressed_bytes": 455
+    },
+    "validation/tile8/author/production.patch.gz": {
+      "sha256": "99bb5ac5c39486233833e8d4e3f87c994ba8530a458595f49160df5b5b159505",
+      "uncompressed_sha256": "ba054f78c730430438408231fbb465841b9acdebb5bf06e7f4b3f2e66f5427cc",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/production.patch",
+      "stored_bytes": 2279,
+      "uncompressed_bytes": 7802
+    },
+    "validation/tile8/author/root-app-build.log.gz": {
+      "sha256": "d5552c47ace34189ffa694b38f5fcc99bea02654bb4fc6a96f10785f39a735fb",
+      "uncompressed_sha256": "fb3c2e8fd1fc8fc6ff9a8f5f453d29aab6368518f219561b58ee23b5f07a6c03",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/root-app-build.log",
+      "stored_bytes": 653,
+      "uncompressed_bytes": 2691
+    },
+    "validation/tile8/author/root-frozen/applied.patch.gz": {
+      "sha256": "1bf6a56ff05a33a8e97ce14c76437fb49c03c11d31df1e70e975306de4912494",
+      "uncompressed_sha256": "08cf3d86e7af67084e6ef63ddee65dfb1da94dd1fbd9f8a9ac64f19aa27dc829",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/root-frozen/applied.patch",
+      "stored_bytes": 2418,
+      "uncompressed_bytes": 8167
+    },
+    "validation/tile8/author/root-frozen/source.json": {
+      "sha256": "adad59f6c3edc4ced40b9e0be430f72ea3614bef034b1e784a1a397352e1a610",
+      "uncompressed_sha256": "adad59f6c3edc4ced40b9e0be430f72ea3614bef034b1e784a1a397352e1a610",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/root-frozen/source.json",
+      "stored_bytes": 639,
+      "uncompressed_bytes": 639
+    },
+    "validation/tile8/author/root-integrated-san/commands.json": {
+      "sha256": "375d7e021eb917dd7549118267b676285505e003b240d4b2a776f36d04fc112e",
+      "uncompressed_sha256": "375d7e021eb917dd7549118267b676285505e003b240d4b2a776f36d04fc112e",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/root-integrated-san/commands.json",
+      "stored_bytes": 2112,
+      "uncompressed_bytes": 2112
+    },
+    "validation/tile8/author/root-ion-micro.json": {
+      "sha256": "83b148d6afc919afc62a2ecfc95c6031d404e702c76ef836521858f327e6341b",
+      "uncompressed_sha256": "83b148d6afc919afc62a2ecfc95c6031d404e702c76ef836521858f327e6341b",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/root-ion-micro.json",
+      "stored_bytes": 1357,
+      "uncompressed_bytes": 1357
+    },
+    "validation/tile8/author/root-ion-micro.log.gz": {
+      "sha256": "d0bcd9e0c2b64aeb981ee0775d0502421f268c8f53985a1f30e880c1cb78d75b",
+      "uncompressed_sha256": "34417766b00774aac289e8f6f5c86c11ce36dcbff15a0decbeb39e552d9e2e7b",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/root-ion-micro.log",
+      "stored_bytes": 639,
+      "uncompressed_bytes": 2576
+    },
+    "validation/tile8/author/root-native-arm.json": {
+      "sha256": "d3381b6af1c903fe3be37441a618d9ed909d86ce4fe8e9a2aeaa92144af24e31",
+      "uncompressed_sha256": "d3381b6af1c903fe3be37441a618d9ed909d86ce4fe8e9a2aeaa92144af24e31",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/root-native-arm.json",
+      "stored_bytes": 474,
+      "uncompressed_bytes": 474
+    },
+    "validation/tile8/author/root-native-arm.log.gz": {
+      "sha256": "82fdd279843ad453d5861763895e69f1c6e2690c90691392f0a3bbc2f31a9cd4",
+      "uncompressed_sha256": "ed0114af108967efb83439504adc47678322cfb9f316781b0192f1caaef8fcca",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/root-native-arm.log",
+      "stored_bytes": 148,
+      "uncompressed_bytes": 144
+    },
+    "validation/tile8/author/root-normal-jobs.json": {
+      "sha256": "cdcbe0d3048cc6d89a0c2fd357107dd8539ade31efd9723865f93523e9bb4e8a",
+      "uncompressed_sha256": "cdcbe0d3048cc6d89a0c2fd357107dd8539ade31efd9723865f93523e9bb4e8a",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/root-normal-jobs.json",
+      "stored_bytes": 5349,
+      "uncompressed_bytes": 5349
+    },
+    "validation/tile8/author/root-normal-restored.json": {
+      "sha256": "817a6b74795b91c96065fb783dc7ea26e0b665376028fd5e6e79e4bcae1201be",
+      "uncompressed_sha256": "817a6b74795b91c96065fb783dc7ea26e0b665376028fd5e6e79e4bcae1201be",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/root-normal-restored.json",
+      "stored_bytes": 1514,
+      "uncompressed_bytes": 1514
+    },
+    "validation/tile8/author/root-normal-runs.log.gz": {
+      "sha256": "dc4c01ab522dbb76ba429708e45442e0308dee19347693c9685258a7f82708ae",
+      "uncompressed_sha256": "c70cc85fff59d23a0d9e0dafa9f183a48667350eb9f1ddd192a90670f78d9015",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/root-normal-runs.log",
+      "stored_bytes": 340,
+      "uncompressed_bytes": 1906
+    },
+    "validation/tile8/author/root-normal-summary.json": {
+      "sha256": "1f41c914aad217887c398158844848f61731d8970dcc0b671b143e3656f7acf2",
+      "uncompressed_sha256": "1f41c914aad217887c398158844848f61731d8970dcc0b671b143e3656f7acf2",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/root-normal-summary.json",
+      "stored_bytes": 6693,
+      "uncompressed_bytes": 6693
+    },
+    "validation/tile8/author/root-revert-build.log.gz": {
+      "sha256": "d5552c47ace34189ffa694b38f5fcc99bea02654bb4fc6a96f10785f39a735fb",
+      "uncompressed_sha256": "fb3c2e8fd1fc8fc6ff9a8f5f453d29aab6368518f219561b58ee23b5f07a6c03",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/root-revert-build.log",
+      "stored_bytes": 653,
+      "uncompressed_bytes": 2691
+    },
+    "validation/tile8/author/test/htp/host/lfm2_conv_gate_tile_check.cpp.gz": {
+      "sha256": "f8449105497c69b7fabfd3cab68b4a6c3e11ef73082ade2e4ad83b41bc741744",
+      "uncompressed_sha256": "1efcbd03d9ad42b78027b5e618937fb205d48483f271bae79f4c734441983188",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/test/htp/host/lfm2_conv_gate_tile_check.cpp",
+      "stored_bytes": 7283,
+      "uncompressed_bytes": 27411
+    },
+    "validation/tile8/author/test/htp/host/run_lfm2_conv_gate_tile_check.py": {
+      "sha256": "81747a274cf0c647417fdf18e3b61f619619370841e8424b6507876a294e566a",
+      "uncompressed_sha256": "81747a274cf0c647417fdf18e3b61f619619370841e8424b6507876a294e566a",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/test/htp/host/run_lfm2_conv_gate_tile_check.py",
+      "stored_bytes": 3945,
+      "uncompressed_bytes": 3945
+    },
+    "validation/tile8/author/test/htp/host/run_lfm2_conv_gate_tile_mutations.py": {
+      "sha256": "2c6c6d7cd32e67efd0a5725483b29d1177387e7dba38fc033ef9675ea4aa2826",
+      "uncompressed_sha256": "2c6c6d7cd32e67efd0a5725483b29d1177387e7dba38fc033ef9675ea4aa2826",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/test/htp/host/run_lfm2_conv_gate_tile_mutations.py",
+      "stored_bytes": 3966,
+      "uncompressed_bytes": 3966
+    },
+    "validation/tile8/author/tests.patch.gz": {
+      "sha256": "12a4995004bc61a726aa1a2090ebacabeaca828232adea7a229e85cf6d72070e",
+      "uncompressed_sha256": "9ec53b34354f41b88d64d9831b8a797732e598597c809d334d41880910b50a92",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/tests.patch",
+      "stored_bytes": 10111,
+      "uncompressed_bytes": 36546
+    },
+    "validation/tile8/author/validation.json": {
+      "sha256": "6d6273a875fb711c4fd3c4dd438ebea89ae34c701fae60a728a842d980f68c7e",
+      "uncompressed_sha256": "6d6273a875fb711c4fd3c4dd438ebea89ae34c701fae60a728a842d980f68c7e",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-20261016/variant8/validation.json",
+      "stored_bytes": 2314,
+      "uncompressed_bytes": 2314
+    },
+    "validation/tile8/independent/android-build.log.gz": {
+      "sha256": "f8299338f24f19485528fb33f3dd648ed1258fb479c72bc6ab0d2fe40d9dc4f9",
+      "uncompressed_sha256": "9cebf03dfad1f3a42d191489844117f929c6045e862e475dfa7f0b09e2fa9f0f",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/android-build.log",
+      "stored_bytes": 566,
+      "uncompressed_bytes": 2506
+    },
+    "validation/tile8/independent/android-command.json": {
+      "sha256": "cb44817aec2e687bc403dd946685bf07be9c8a6914c74a475ce77d8b99be8142",
+      "uncompressed_sha256": "cb44817aec2e687bc403dd946685bf07be9c8a6914c74a475ce77d8b99be8142",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/android-command.json",
+      "stored_bytes": 4809,
+      "uncompressed_bytes": 4809
+    },
+    "validation/tile8/independent/android-x86-clang-command.json": {
+      "sha256": "1d59c663d57b2282049331b991f236036433e977df05057656474738d28bd02c",
+      "uncompressed_sha256": "1d59c663d57b2282049331b991f236036433e977df05057656474738d28bd02c",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/android-x86-clang-command.json",
+      "stored_bytes": 4690,
+      "uncompressed_bytes": 4690
+    },
+    "validation/tile8/independent/android-x86-clang.log.gz": {
+      "sha256": "f8299338f24f19485528fb33f3dd648ed1258fb479c72bc6ab0d2fe40d9dc4f9",
+      "uncompressed_sha256": "9cebf03dfad1f3a42d191489844117f929c6045e862e475dfa7f0b09e2fa9f0f",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/android-x86-clang.log",
+      "stored_bytes": 566,
+      "uncompressed_bytes": 2506
+    },
+    "validation/tile8/independent/author-frozen-final.json": {
+      "sha256": "b3a386975d0f1459044677f94d166859baaa6a23eebe8a42fd6807c1ac1d72d0",
+      "uncompressed_sha256": "b3a386975d0f1459044677f94d166859baaa6a23eebe8a42fd6807c1ac1d72d0",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/author-frozen-final.json",
+      "stored_bytes": 1471,
+      "uncompressed_bytes": 1471
+    },
+    "validation/tile8/independent/candidate.su.gz": {
+      "sha256": "0066a758070dc28d3888a7108fc250f1a3df43c6fcf05f014476a62268594ae1",
+      "uncompressed_sha256": "fd617e659aa25de8c31a8cad6887b4781a7817f946fc5b9f5495dc59be82dfd6",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/candidate.su",
+      "stored_bytes": 5965,
+      "uncompressed_bytes": 69219
+    },
+    "validation/tile8/independent/codegen.json": {
+      "sha256": "f2eda56a19ee9001b15ccb7b0d67e427f00948da03c2152aba7774795aad4805",
+      "uncompressed_sha256": "f2eda56a19ee9001b15ccb7b0d67e427f00948da03c2152aba7774795aad4805",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/codegen.json",
+      "stored_bytes": 5504,
+      "uncompressed_bytes": 5504
+    },
+    "validation/tile8/independent/format.json": {
+      "sha256": "cc9fd00b7dd3a223f1f35baa233a5db55ef405b5b5e065e6d028ee2599d041a8",
+      "uncompressed_sha256": "cc9fd00b7dd3a223f1f35baa233a5db55ef405b5b5e065e6d028ee2599d041a8",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/format.json",
+      "stored_bytes": 351,
+      "uncompressed_bytes": 351
+    },
+    "validation/tile8/independent/frozen-status-at-review.json": {
+      "sha256": "b68b52676e63e499606dde57e4bfde46b703c8db0019f35aaafe9436a898dd97",
+      "uncompressed_sha256": "b68b52676e63e499606dde57e4bfde46b703c8db0019f35aaafe9436a898dd97",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/frozen/frozen.json",
+      "stored_bytes": 1403,
+      "uncompressed_bytes": 1403
+    },
+    "validation/tile8/independent/host-san-off.log.gz": {
+      "sha256": "82fdd279843ad453d5861763895e69f1c6e2690c90691392f0a3bbc2f31a9cd4",
+      "uncompressed_sha256": "ed0114af108967efb83439504adc47678322cfb9f316781b0192f1caaef8fcca",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/host-san-off.log",
+      "stored_bytes": 148,
+      "uncompressed_bytes": 144
+    },
+    "validation/tile8/independent/host-san.log.gz": {
+      "sha256": "82fdd279843ad453d5861763895e69f1c6e2690c90691392f0a3bbc2f31a9cd4",
+      "uncompressed_sha256": "ed0114af108967efb83439504adc47678322cfb9f316781b0192f1caaef8fcca",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/host-san.log",
+      "stored_bytes": 148,
+      "uncompressed_bytes": 144
+    },
+    "validation/tile8/independent/host-san/commands.json": {
+      "sha256": "cf1f8883427095460f17c9e8d054f93e941f2f17d2ac924039b12c3954c8e38f",
+      "uncompressed_sha256": "cf1f8883427095460f17c9e8d054f93e941f2f17d2ac924039b12c3954c8e38f",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/host-san/commands.json",
+      "stored_bytes": 2100,
+      "uncompressed_bytes": 2100
+    },
+    "validation/tile8/independent/input-manifest.json": {
+      "sha256": "bd6579f3c0ea0c865a9fcd8a17f7478580aea56def7a16a34987f0ecc3467b23",
+      "uncompressed_sha256": "bd6579f3c0ea0c865a9fcd8a17f7478580aea56def7a16a34987f0ecc3467b23",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/input-manifest.json",
+      "stored_bytes": 1345,
+      "uncompressed_bytes": 1345
+    },
+    "validation/tile8/independent/linux-x86-gcc-command.json": {
+      "sha256": "79cf2cc023267b5cbb1366d9e3f4014676416281a205bf37c2c2763b91a91eca",
+      "uncompressed_sha256": "79cf2cc023267b5cbb1366d9e3f4014676416281a205bf37c2c2763b91a91eca",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/linux-x86-gcc-command.json",
+      "stored_bytes": 4673,
+      "uncompressed_bytes": 4673
+    },
+    "validation/tile8/independent/linux-x86-gcc.log.gz": {
+      "sha256": "0f2ee0f3ebfa66af50dca075aeb1cf4648c8eba9c4777b0028ed6adcf4f68f3d",
+      "uncompressed_sha256": "5aefde1583ba6189acbf77df5bc931de378f03e0ba24b830e0aa4f1749b4ae74",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/linux-x86-gcc.log",
+      "stored_bytes": 502,
+      "uncompressed_bytes": 1326
+    },
+    "validation/tile8/independent/micro-readback.json": {
+      "sha256": "45a16274d9af4de89de08719c963e1d4ef1678334ecf4f6cd08c4a68c8c4697e",
+      "uncompressed_sha256": "45a16274d9af4de89de08719c963e1d4ef1678334ecf4f6cd08c4a68c8c4697e",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/micro-readback.json",
+      "stored_bytes": 3680,
+      "uncompressed_bytes": 3680
+    },
+    "validation/tile8/independent/micro-source-proof.json": {
+      "sha256": "d971bc27b27587d69965c3507ad23b2c5906df028bff3edcf5115799468ffcd8",
+      "uncompressed_sha256": "d971bc27b27587d69965c3507ad23b2c5906df028bff3edcf5115799468ffcd8",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/micro-source-proof.json",
+      "stored_bytes": 552,
+      "uncompressed_bytes": 552
+    },
+    "validation/tile8/independent/mutants-san.log.gz": {
+      "sha256": "3cb366d42d860aedefd965f4eac3e458e2448948f94c4127b6d8b8a3f95cbfde",
+      "uncompressed_sha256": "9e42d1132f844600165b0f35110b9821a5ea0c733f2913cc211148eb43c2257a",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san.log",
+      "stored_bytes": 182,
+      "uncompressed_bytes": 455
+    },
+    "validation/tile8/independent/mutants-san/chunk_projection_global_row/check/commands.json": {
+      "sha256": "07d4ce5f36c60c78576bf6d1e4a6ef5f6a0e10b7ea015aaaf1a8169cb84628d9",
+      "uncompressed_sha256": "07d4ce5f36c60c78576bf6d1e4a6ef5f6a0e10b7ea015aaaf1a8169cb84628d9",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/chunk_projection_global_row/check/commands.json",
+      "stored_bytes": 2211,
+      "uncompressed_bytes": 2211
+    },
+    "validation/tile8/independent/mutants-san/chunk_projection_global_row/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/chunk_projection_global_row/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile8/independent/mutants-san/chunk_projection_global_row/run.log.gz": {
+      "sha256": "1124e5c6240dabec4c7cb10f08b7753938d4ae95488f304f547afddce44c5ab3",
+      "uncompressed_sha256": "11f854a25e1373ab507a995300bb65e5a65f964bfe71febaad4f7e87252e90e8",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/chunk_projection_global_row/run.log",
+      "stored_bytes": 61,
+      "uncompressed_bytes": 41
+    },
+    "validation/tile8/independent/mutants-san/lost_chunk_halo/check/commands.json": {
+      "sha256": "19cff7ce0c23293a9e5a187e7155160eba7b667342d00e4311cf8531b47160c3",
+      "uncompressed_sha256": "19cff7ce0c23293a9e5a187e7155160eba7b667342d00e4311cf8531b47160c3",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/lost_chunk_halo/check/commands.json",
+      "stored_bytes": 2175,
+      "uncompressed_bytes": 2175
+    },
+    "validation/tile8/independent/mutants-san/lost_chunk_halo/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/lost_chunk_halo/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile8/independent/mutants-san/lost_chunk_halo/run.log.gz": {
+      "sha256": "a77b9a644ae66a2909a4e7f0f95a626c876f1cd53daed4f7310d1ee57a283f16",
+      "uncompressed_sha256": "1fa2ed088d7356ad7ce21b794d8d4e018afc953a15f25846e856e5decb7a13eb",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/lost_chunk_halo/run.log",
+      "stored_bytes": 87,
+      "uncompressed_bytes": 69
+    },
+    "validation/tile8/independent/mutants-san/missing_output_overlap_guard/check/commands.json": {
+      "sha256": "59727946a4c5b8c63739b3b3a861d86d0ae7c81fe974571995e8d0d050af2131",
+      "uncompressed_sha256": "59727946a4c5b8c63739b3b3a861d86d0ae7c81fe974571995e8d0d050af2131",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/missing_output_overlap_guard/check/commands.json",
+      "stored_bytes": 2214,
+      "uncompressed_bytes": 2214
+    },
+    "validation/tile8/independent/mutants-san/missing_output_overlap_guard/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/missing_output_overlap_guard/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile8/independent/mutants-san/missing_output_overlap_guard/run.log.gz": {
+      "sha256": "094141cd9f222c70d53749d0b671cf272ce8a19a1e8ed15155f0672efeb19ba4",
+      "uncompressed_sha256": "a01d720373075390dda57c4e77aa2b39c43e2e2ea1d58f39f4b47e890c29f4a6",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/missing_output_overlap_guard/run.log",
+      "stored_bytes": 69,
+      "uncompressed_bytes": 49
+    },
+    "validation/tile8/independent/mutants-san/missing_postgate/check/commands.json": {
+      "sha256": "2e4ba6696dbcf75097d464f0f87f3b4c03665ac277eb06d1093fc03cc984f71c",
+      "uncompressed_sha256": "2e4ba6696dbcf75097d464f0f87f3b4c03665ac277eb06d1093fc03cc984f71c",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/missing_postgate/check/commands.json",
+      "stored_bytes": 2178,
+      "uncompressed_bytes": 2178
+    },
+    "validation/tile8/independent/mutants-san/missing_postgate/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/missing_postgate/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile8/independent/mutants-san/missing_postgate/run.log.gz": {
+      "sha256": "c01393dfac437448dc031a97112a172fa6f7ead1f5b293c5855f32c0195bb66d",
+      "uncompressed_sha256": "e92f22f7657d0986f668404c397de5fd6ea871beb65fb10d9bff70f5b0417cd8",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/missing_postgate/run.log",
+      "stored_bytes": 66,
+      "uncompressed_bytes": 46
+    },
+    "validation/tile8/independent/mutants-san/partial_tile_accepted/check/commands.json": {
+      "sha256": "946150610e7fa4c610e3e607a25fc48dbbac64417aa0ab9b44c428e280b7b1ad",
+      "uncompressed_sha256": "946150610e7fa4c610e3e607a25fc48dbbac64417aa0ab9b44c428e280b7b1ad",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/partial_tile_accepted/check/commands.json",
+      "stored_bytes": 2193,
+      "uncompressed_bytes": 2193
+    },
+    "validation/tile8/independent/mutants-san/partial_tile_accepted/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/partial_tile_accepted/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile8/independent/mutants-san/partial_tile_accepted/run.log.gz": {
+      "sha256": "5f253882cf7381c3c8adc39a308848acb3aa832c0284c04ac8dc6e59b6672faa",
+      "uncompressed_sha256": "f3553cc3d779f133d1024f95046b2d8747c55088c11f5cb4074b4ba05a39963a",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/partial_tile_accepted/run.log",
+      "stored_bytes": 694,
+      "uncompressed_bytes": 1941
+    },
+    "validation/tile8/independent/mutants-san/read_dead_gated_rows/check/commands.json": {
+      "sha256": "4fcbaa476fc219d4d400253a1979003029a1768045529e7bbe2ad98e5036918e",
+      "uncompressed_sha256": "4fcbaa476fc219d4d400253a1979003029a1768045529e7bbe2ad98e5036918e",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/read_dead_gated_rows/check/commands.json",
+      "stored_bytes": 2190,
+      "uncompressed_bytes": 2190
+    },
+    "validation/tile8/independent/mutants-san/read_dead_gated_rows/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/read_dead_gated_rows/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile8/independent/mutants-san/read_dead_gated_rows/run.log.gz": {
+      "sha256": "c4c502084fc680c7f064468635fbdf8a36662bf25c849d1e42f8a0ab83f9d771",
+      "uncompressed_sha256": "fc20013c9947499f90d23c102b64d9fac1245e92d50f0047167c84a199d13cb9",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/read_dead_gated_rows/run.log",
+      "stored_bytes": 1401,
+      "uncompressed_bytes": 5614
+    },
+    "validation/tile8/independent/mutants-san/reordered_fma/check/commands.json": {
+      "sha256": "cbae0489b64ef86ad2203e4cd08f7b34474335246ae9077476c2644907ede452",
+      "uncompressed_sha256": "cbae0489b64ef86ad2203e4cd08f7b34474335246ae9077476c2644907ede452",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/reordered_fma/check/commands.json",
+      "stored_bytes": 2169,
+      "uncompressed_bytes": 2169
+    },
+    "validation/tile8/independent/mutants-san/reordered_fma/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/reordered_fma/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile8/independent/mutants-san/reordered_fma/run.log.gz": {
+      "sha256": "c01393dfac437448dc031a97112a172fa6f7ead1f5b293c5855f32c0195bb66d",
+      "uncompressed_sha256": "e92f22f7657d0986f668404c397de5fd6ea871beb65fb10d9bff70f5b0417cd8",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/reordered_fma/run.log",
+      "stored_bytes": 66,
+      "uncompressed_bytes": 46
+    },
+    "validation/tile8/independent/mutants-san/results.json": {
+      "sha256": "0bcc94253f87f056e0742d057afdb4cad71a16fb76b502999333b4e454849451",
+      "uncompressed_sha256": "0bcc94253f87f056e0742d057afdb4cad71a16fb76b502999333b4e454849451",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/results.json",
+      "stored_bytes": 7790,
+      "uncompressed_bytes": 7790
+    },
+    "validation/tile8/independent/mutants-san/write_dead_gated_rows/check/commands.json": {
+      "sha256": "adbab094ac22378cdc83e31d646cf19ab75452b84440740c5e18b5db3eed4325",
+      "uncompressed_sha256": "adbab094ac22378cdc83e31d646cf19ab75452b84440740c5e18b5db3eed4325",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/write_dead_gated_rows/check/commands.json",
+      "stored_bytes": 2193,
+      "uncompressed_bytes": 2193
+    },
+    "validation/tile8/independent/mutants-san/write_dead_gated_rows/compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/write_dead_gated_rows/compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile8/independent/mutants-san/write_dead_gated_rows/run.log.gz": {
+      "sha256": "88e2fe153de383832ecf11925eea4b11a6668eb9e673f8a8f178e87501e0f06e",
+      "uncompressed_sha256": "10e275537014c083065601413937b4c80548c402f0194ce0f389bb0c057cd954",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/mutants-san/write_dead_gated_rows/run.log",
+      "stored_bytes": 1402,
+      "uncompressed_bytes": 5622
+    },
+    "validation/tile8/independent/native-arm/commands.json": {
+      "sha256": "9b5b80975c230fe743bf50159af1322e205a535440856d79c4ebe4dd951a20b2",
+      "uncompressed_sha256": "9b5b80975c230fe743bf50159af1322e205a535440856d79c4ebe4dd951a20b2",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/native-arm/commands.json",
+      "stored_bytes": 2145,
+      "uncompressed_bytes": 2145
+    },
+    "validation/tile8/independent/native-build.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/native-build.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/tile8/independent/review.txt": {
+      "sha256": "a62839788e1bfcc7ea89052c4ace26a0d5bd94de8fae1029020afac3c983e319",
+      "uncompressed_sha256": "a62839788e1bfcc7ea89052c4ace26a0d5bd94de8fae1029020afac3c983e319",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/review.txt",
+      "stored_bytes": 10955,
+      "uncompressed_bytes": 10955
+    },
+    "validation/tile8/independent/root-ion-micro.json": {
+      "sha256": "83b148d6afc919afc62a2ecfc95c6031d404e702c76ef836521858f327e6341b",
+      "uncompressed_sha256": "83b148d6afc919afc62a2ecfc95c6031d404e702c76ef836521858f327e6341b",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/root-ion-micro.json",
+      "stored_bytes": 1357,
+      "uncompressed_bytes": 1357
+    },
+    "validation/tile8/independent/root-ion-micro.log.gz": {
+      "sha256": "d0bcd9e0c2b64aeb981ee0775d0502421f268c8f53985a1f30e880c1cb78d75b",
+      "uncompressed_sha256": "34417766b00774aac289e8f6f5c86c11ce36dcbff15a0decbeb39e552d9e2e7b",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/root-ion-micro.log",
+      "stored_bytes": 639,
+      "uncompressed_bytes": 2576
+    },
+    "validation/tile8/independent/root-native-arm.json": {
+      "sha256": "d3381b6af1c903fe3be37441a618d9ed909d86ce4fe8e9a2aeaa92144af24e31",
+      "uncompressed_sha256": "d3381b6af1c903fe3be37441a618d9ed909d86ce4fe8e9a2aeaa92144af24e31",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/root-native-arm.json",
+      "stored_bytes": 474,
+      "uncompressed_bytes": 474
+    },
+    "validation/tile8/independent/root-native-arm.log.gz": {
+      "sha256": "82fdd279843ad453d5861763895e69f1c6e2690c90691392f0a3bbc2f31a9cd4",
+      "uncompressed_sha256": "ed0114af108967efb83439504adc47678322cfb9f316781b0192f1caaef8fcca",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/root-native-arm.log",
+      "stored_bytes": 148,
+      "uncompressed_bytes": 144
+    },
+    "validation/tile8/independent/validation.json": {
+      "sha256": "d4aa487c70b51fe516ca87ef78b6d94c53782ac398b83bbd47bd77ad5b24f4c9",
+      "uncompressed_sha256": "d4aa487c70b51fe516ca87ef78b6d94c53782ac398b83bbd47bd77ad5b24f4c9",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/validation.json",
+      "stored_bytes": 8541,
+      "uncompressed_bytes": 8541
+    },
+    "validation/tile16/independent/before-math-callbacks.disasm.txt.gz": {
+      "sha256": "9b49eae5f528758643d603aa38d38caf855bdfaaca538b16d619cfcc8d338945",
+      "uncompressed_sha256": "3caf45d0a0bdb29c45d5aa353d64ddce86bd33cf89846debbbbc9e01ef3c05a7",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/before-math-callbacks.disasm.txt",
+      "stored_bytes": 3131,
+      "uncompressed_bytes": 20689
+    },
+    "validation/tile16/independent/candidate-math-callbacks.disasm.txt.gz": {
+      "sha256": "8e2599627c6caf6be69e955c0714292f2368f38b870188637d70b8c7a8154020",
+      "uncompressed_sha256": "659392e92fc51b5e8d5dc5a3dfac3efbc113cbfacc01c5f1a6787add952a5c19",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/candidate-math-callbacks.disasm.txt",
+      "stored_bytes": 5706,
+      "uncompressed_bytes": 35832
+    },
+    "validation/tile8/independent/micro-reference-pregate.disasm.txt.gz": {
+      "sha256": "6cd0840d43207fc11aebbc181f3cec1e2eb2949e14e19ab5966d9d2cd1ffd4ff",
+      "uncompressed_sha256": "683826473153ddc110bc760a5e6f8b9e722008c00f5a8763758585d98ae45f49",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/micro-reference-pregate.disasm.txt",
+      "stored_bytes": 934,
+      "uncompressed_bytes": 3472
+    },
+    "validation/tile8/independent/old-callbacks.disasm.txt.gz": {
+      "sha256": "ec3c19c08bd9029b881058ba821d4f1e654649b7b6ff6049080c719ce23c5e59",
+      "uncompressed_sha256": "b31fb5c7cf83d630edd494dd307ecefa112d0c3fe9d16d8c1eeb7bc1bb230839",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/old-callbacks.disasm.txt",
+      "stored_bytes": 3824,
+      "uncompressed_bytes": 28479
+    },
+    "validation/tile8/independent/tile8-callback.disasm.txt.gz": {
+      "sha256": "64dd97f695237d6681518fc8bd22c47f2389460fb28948ae698299fd8108c8be",
+      "uncompressed_sha256": "85231479e7b626d32c517c405eb830d94147326628d964fcd948af99e133360f",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/tile8-callback.disasm.txt",
+      "stored_bytes": 1725,
+      "uncompressed_bytes": 7307
+    }
+  }
+}

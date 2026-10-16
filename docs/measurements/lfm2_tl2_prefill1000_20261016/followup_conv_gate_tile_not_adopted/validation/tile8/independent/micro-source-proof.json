@@ -1,0 +1,8 @@
+{
+  "tile16_embedded_helper_exact_original": true,
+  "tile16_helper_sha256": "6fc3d64577a6d7edcef6fa19e9be3a27d41c706ee15090bf6d6481ce3d3c58dc",
+  "tile8_candidate_source_sha256": "afb5021ff5f95ed4f1287357b5dce77bc8032c9ec07045c5f5944f1e3c305e8c",
+  "threeway_micro_source_sha256": "5f567210ceebaa66d6f123cc7e16afddd6472a604cfc54e111bed9195a67078c",
+  "extra_precise_float_scope": true,
+  "limits": "Direct include uses actualcandidateTile8; reference pregate copied scalaroperation and actualfull/rangeepilogue. Sourceidentity isnotDSPtimingproof."
+}

@@ -1,0 +1,224 @@
+{
+  "control": "lfm-conv-gate-tile8-off",
+  "candidate": "lfm-conv-gate-tile8-on",
+  "runs": [
+    {
+      "tag": "continue-conv-gate-tile8-0-r1",
+      "variant": "lfm-conv-gate-tile8-off",
+      "prefill_tokens": 1024,
+      "prefill_tps": 829.15,
+      "decode_tps": 17.8075,
+      "full_run_sampled_peak_kib": 2733560.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 1
+    },
+    {
+      "tag": "continue-conv-gate-tile8-1-r1",
+      "variant": "lfm-conv-gate-tile8-on",
+      "prefill_tokens": 1024,
+      "prefill_tps": 842.798,
+      "decode_tps": 17.7433,
+      "full_run_sampled_peak_kib": 2733244.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 1
+    },
+    {
+      "tag": "continue-conv-gate-tile8-1-r2",
+      "variant": "lfm-conv-gate-tile8-on",
+      "prefill_tokens": 1024,
+      "prefill_tps": 779.893,
+      "decode_tps": 17.5342,
+      "full_run_sampled_peak_kib": 2733140.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 2
+    },
+    {
+      "tag": "continue-conv-gate-tile8-0-r2",
+      "variant": "lfm-conv-gate-tile8-off",
+      "prefill_tokens": 1024,
+      "prefill_tps": 850.498,
+      "decode_tps": 17.7089,
+      "full_run_sampled_peak_kib": 2733388.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 2
+    },
+    {
+      "tag": "continue-conv-gate-tile8-0-r3",
+      "variant": "lfm-conv-gate-tile8-off",
+      "prefill_tokens": 1024,
+      "prefill_tps": 850.498,
+      "decode_tps": 17.5679,
+      "full_run_sampled_peak_kib": 2731300.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 3
+    },
+    {
+      "tag": "continue-conv-gate-tile8-1-r3",
+      "variant": "lfm-conv-gate-tile8-on",
+      "prefill_tokens": 1024,
+      "prefill_tps": 799.375,
+      "decode_tps": 17.6649,
+      "full_run_sampled_peak_kib": 2731484.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 3
+    },
+    {
+      "tag": "continue-conv-gate-tile82048-0-r1",
+      "variant": "lfm-conv-gate-tile8-off",
+      "prefill_tokens": 2048,
+      "prefill_tps": 904.993,
+      "decode_tps": 16.6018,
+      "full_run_sampled_peak_kib": 3036944.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 1
+    },
+    {
+      "tag": "continue-conv-gate-tile82048-1-r1",
+      "variant": "lfm-conv-gate-tile8-on",
+      "prefill_tokens": 2048,
+      "prefill_tps": 904.194,
+      "decode_tps": 16.7277,
+      "full_run_sampled_peak_kib": 3018792.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 1
+    },
+    {
+      "tag": "continue-conv-gate-tile82048-1-r2",
+      "variant": "lfm-conv-gate-tile8-on",
+      "prefill_tokens": 2048,
+      "prefill_tps": 827.475,
+      "decode_tps": 16.6797,
+      "full_run_sampled_peak_kib": 3020636.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 2
+    },
+    {
+      "tag": "continue-conv-gate-tile82048-0-r2",
+      "variant": "lfm-conv-gate-tile8-off",
+      "prefill_tokens": 2048,
+      "prefill_tps": 933.455,
+      "decode_tps": 16.5846,
+      "full_run_sampled_peak_kib": 3035792.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 2
+    },
+    {
+      "tag": "continue-conv-gate-tile82048-0-r3",
+      "variant": "lfm-conv-gate-tile8-off",
+      "prefill_tokens": 2048,
+      "prefill_tps": 832.52,
+      "decode_tps": 16.5503,
+      "full_run_sampled_peak_kib": 3035464.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 3
+    },
+    {
+      "tag": "continue-conv-gate-tile82048-1-r3",
+      "variant": "lfm-conv-gate-tile8-on",
+      "prefill_tokens": 2048,
+      "prefill_tps": 804.083,
+      "decode_tps": 16.1412,
+      "full_run_sampled_peak_kib": 3018964.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 3
+    }
+  ],
+  "summary": [
+    {
+      "tokens": 1024,
+      "prefill_tps": {
+        "control": [
+          829.15,
+          850.498,
+          850.498
+        ],
+        "candidate": [
+          842.798,
+          779.893,
+          799.375
+        ],
+        "median_control": 850.498,
+        "median_candidate": 799.375,
+        "median_pct": -6.010948879362454,
+        "pairs_faster": 1,
+        "paired_deltas_pct": [
+          1.6460230356388994,
+          -8.30160682329647,
+          -6.010948879362454
+        ]
+      },
+      "decode_tps": {
+        "control": [
+          17.8075,
+          17.7089,
+          17.5679
+        ],
+        "candidate": [
+          17.7433,
+          17.5342,
+          17.6649
+        ],
+        "median_control": 17.7089,
+        "median_candidate": 17.6649,
+        "median_pct": -0.2484626374309018,
+        "pairs_faster": 1,
+        "paired_deltas_pct": [
+          -0.3605222518601736,
+          -0.986509608163133,
+          0.5521433979018386
+        ]
+      },
+      "control_max_peak_kib": 2733560.0,
+      "candidate_max_peak_kib": 2733244.0
+    },
+    {
+      "tokens": 2048,
+      "prefill_tps": {
+        "control": [
+          904.993,
+          933.455,
+          832.52
+        ],
+        "candidate": [
+          904.194,
+          827.475,
+          804.083
+        ],
+        "median_control": 904.993,
+        "median_candidate": 827.475,
+        "median_pct": -8.565591115069404,
+        "pairs_faster": 0,
+        "paired_deltas_pct": [
+          -0.08828797570811231,
+          -11.353519987573046,
+          -3.415773795224142
+        ]
+      },
+      "decode_tps": {
+        "control": [
+          16.6018,
+          16.5846,
+          16.5503
+        ],
+        "candidate": [
+          16.7277,
+          16.6797,
+          16.1412
+        ],
+        "median_control": 16.5846,
+        "median_candidate": 16.6797,
+        "median_pct": 0.5734235374986518,
+        "pairs_faster": 2,
+        "paired_deltas_pct": [
+          0.758351504053767,
+          0.5734235374986518,
+          -2.4718585161598194
+        ]
+      },
+      "control_max_peak_kib": 3036944.0,
+      "candidate_max_peak_kib": 3020636.0
+    }
+  ],
+  "all_checks_pass": true,
+  "memory_scope": "Sampled whole child lifetime RssAnon + deduplicated fdinfo allocation sizes. Not total device physical memory; unreported DSP/driver/VTCM and between-sample spikes excluded."
+}

@@ -1,0 +1,18 @@
+{
+  "variant": "Tile8",
+  "baseline_commit": "ccea0d476",
+  "base_source_sha256": "846921eaa9b7da92bb20b7ee891e918b317017e471b0048a1e2b3a05b4708de3",
+  "status": "Frozen production/tests: host ON/OFF112, old checker unset/OFF82, eight mutants, non-ARM8, whole Android and root native112/ION12 PASS; normal model performance pending",
+  "files": {
+    "production.patch": "ba054f78c730430438408231fbb465841b9acdebb5bf06e7f4b3f2e66f5427cc",
+    "candidate/Applications/CausalLM/layers/conv_block_layer.cpp": "afb5021ff5f95ed4f1287357b5dce77bc8032c9ec07045c5f5944f1e3c305e8c",
+    "test/htp/host/lfm2_conv_gate_tile_check.cpp": "1efcbd03d9ad42b78027b5e618937fb205d48483f271bae79f4c734441983188",
+    "test/htp/host/run_lfm2_conv_gate_tile_check.py": "81747a274cf0c647417fdf18e3b61f619619370841e8424b6507876a294e566a",
+    "test/htp/host/run_lfm2_conv_gate_tile_mutations.py": "2c6c6d7cd32e67efd0a5725483b29d1177387e7dba38fc033ef9675ea4aa2826",
+    "candidate/tools/lfm2_conv_gate_tile_ion_check.cpp": "5f567210ceebaa66d6f123cc7e16afddd6472a604cfc54e111bed9195a67078c",
+    "candidate/tools/tile16_helper.inc": "6fc3d64577a6d7edcef6fa19e9be3a27d41c706ee15090bf6d6481ce3d3c58dc",
+    "lfm2_conv_gate_tile_ion_check": "60026c3523491333ac4e17e4a4d29e53c527ddd58dc8f8cb0811c825aa7b97d5",
+    "checks/native-arm/check": "f5fa22c89d67c1d93f40f987ee9c850f02e0867ae827e18a0ac644ba3c7ea9e3",
+    "tests.patch": "9ec53b34354f41b88d64d9831b8a797732e598597c809d334d41880910b50a92"
+  }
+}

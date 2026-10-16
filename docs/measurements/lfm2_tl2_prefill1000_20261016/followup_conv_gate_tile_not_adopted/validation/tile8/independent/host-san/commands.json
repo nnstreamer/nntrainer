@@ -1,0 +1,42 @@
+{
+  "source_sha256": "afb5021ff5f95ed4f1287357b5dce77bc8032c9ec07045c5f5944f1e3c305e8c",
+  "baseline_sha256": "bc019abdbf0cadb48e0aaa4ecc3898bc9b0a37e11f28c306d9762f766292869a",
+  "core_sha256": "5e75571e5433132d8c9d17691882cbddea73ebbf651e2e8e0b3b6957ac3566df",
+  "extracts": {
+    "candidate_helpers.inc": "e116ee8a367fb6b042e80b4113ee89d3e0325c1110163333722554ad0d8ed800",
+    "baseline_helpers.inc": "db278b294e0afbc00b4c4a47957ab05bf6858b6aa2d49b47cc8acf36fcb2e882",
+    "gate_pre.inc": "505a7ed0cd35366e47ef9a72936a3a4d0041cbf20c2a127055dbf9f81ce0766b",
+    "gates.inc": "16f7ad134e573dbaf5aae1c8afff01b6e61b7bb310e766f2363a03e08fe32644",
+    "full_route.inc": "abc0a272d98172c1eaf28a51dad33a0aa0cfbe79f09dc43ed0532da43a98d478",
+    "staging.inc": "ae89a657bf3972e8e0f55e4479b492d3a939d50dc253b7360320662a12056df9",
+    "views.inc": "a3de08248229143dce1ecf322b0891d65a1eeffd98aea05474d5b44786af2e0e",
+    "app_route.inc": "48780f7651d1f0ccccf683c0f49d8d01d2ba2842fb2cd5a1a2503abea46872e2"
+  },
+  "compile": [
+    "g++",
+    "-fsanitize=address,undefined",
+    "-fno-omit-frame-pointer",
+    "-mfma",
+    "-I/tmp/nntr-lfm2-conv-chunk-view-20261016/deps/simde-0.8.2",
+    "-std=c++17",
+    "-O2",
+    "-g",
+    "-ffast-math",
+    "-pthread",
+    "-Wall",
+    "-Wextra",
+    "-I/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/nntrainer/tensor/htp_backend",
+    "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/host-san/lfm2_conv_gate_tile_check.cpp",
+    "-o",
+    "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/host-san/check"
+  ],
+  "run": [
+    "/tmp/nntr-lfm2-conv-gate-tile-review-20261016/variant8/host-san/check"
+  ],
+  "arithmetic": "SIMDe0.8.2 on x86 FMA",
+  "standins": [
+    "Actual app arithmetic; simulated NEON results require separate native ARM validation.",
+    "HTP allocation uses aligned host heap with actual fit/stage/input/alias helpers; fake RPC writes deterministic projection bytes.",
+    "ThreadManager stand-in completes each dispatch with 1 or 8 pthread workers and ascending/reverse/shuffled work order; no DSP/FastRPC timing claim."
+  ]
+}

@@ -1,0 +1,115 @@
+0000000000000000 <causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0::operator()(unsigned long) const>:
+       0: f9400408     	ldr	x8, [x0, #0x8]
+       4: b940010f     	ldr	w15, [x8]
+       8: 34000daf     	cbz	w15, 0x1bc <causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0::operator()(unsigned long) const+0x1bc>
+       c: f9400008     	ldr	x8, [x0]
+      10: 2a1f03ed     	mov	w13, wzr
+      14: 5280018c     	mov	w12, #0xc               // =12
+      18: b9400108     	ldr	w8, [x8]
+      1c: 0b010d08     	add	w8, w8, w1, lsl #3
+      20: 11002109     	add	w9, w8, #0x8
+      24: 5100050a     	sub	w10, w8, #0x1
+      28: 5100090b     	sub	w11, w8, #0x2
+      2c: 14000006     	b	0x44 <causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0::operator()(unsigned long) const+0x44>
+      30: f940040e     	ldr	x14, [x0, #0x8]
+      34: b94001cf     	ldr	w15, [x14]
+      38: 110011ad     	add	w13, w13, #0x4
+      3c: 6b0f01bf     	cmp	w13, w15
+      40: 54000be2     	b.hs	0x1bc <causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0::operator()(unsigned long) const+0x1bc>
+      44: f940080e     	ldr	x14, [x0, #0x10]
+      48: 531f79f0     	lsl	w16, w15, #1
+      4c: d37e7df1     	ubfiz	x17, x15, #2, #32
+      50: f94001ce     	ldr	x14, [x14]
+      54: d37e7e01     	ubfiz	x1, x16, #2, #32
+      58: 8b2d49ce     	add	x14, x14, w13, uxtw #2
+      5c: 2a0d03ed     	mov	w13, w13
+      60: 3dc001c0     	ldr	q0, [x14]
+      64: 3cf169c1     	ldr	q1, [x14, x17]
+      68: 3ce169c2     	ldr	q2, [x14, x1]
+      6c: d37ef5ae     	lsl	x14, x13, #2
+      70: 34000228     	cbz	w8, 0xb4 <causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0::operator()(unsigned long) const+0xb4>
+      74: f9400011     	ldr	x17, [x0]
+      78: b9400221     	ldr	w1, [x17]
+      7c: 2a0f03f1     	mov	w17, w15
+      80: 6b01011f     	cmp	w8, w1
+      84: 540001e1     	b.ne	0xc0 <causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0::operator()(unsigned long) const+0xc0>
+      88: f9400c10     	ldr	x16, [x0, #0x18]
+      8c: 9baa7e21     	umull	x1, w17, w10
+      90: 9bab7e31     	umull	x17, w17, w11
+      94: f9400210     	ldr	x16, [x16]
+      98: 8b010a01     	add	x1, x16, x1, lsl #2
+      9c: 8b110a10     	add	x16, x16, x17, lsl #2
+      a0: 3cee6823     	ldr	q3, [x1, x14]
+      a4: 3cee6a04     	ldr	q4, [x16, x14]
+      a8: 3100251f     	cmn	w8, #0x9
+      ac: 54fffc68     	b.hi	0x38 <causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0::operator()(unsigned long) const+0x38>
+      b0: 14000017     	b	0x10c <causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0::operator()(unsigned long) const+0x10c>
+      b4: 6f00e403     	movi	v3.2d, #0000000000000000
+      b8: 6f00e404     	movi	v4.2d, #0000000000000000
+      bc: 14000014     	b	0x10c <causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0::operator()(unsigned long) const+0x10c>
+      c0: 2a2103e1     	mvn	w1, w1
+      c4: d37ef610     	lsl	x16, x16, #2
+      c8: 0b010101     	add	w1, w8, w1
+      cc: 9ba17e31     	umull	x17, w17, w1
+      d0: f9401001     	ldr	x1, [x0, #0x20]
+      d4: f9400021     	ldr	x1, [x1]
+      d8: d503201f     	nop
+      dc: 9b0c0631     	madd	x17, x17, x12, x1
+      e0: 0b0f05e1     	add	w1, w15, w15, lsl #1
+      e4: 8b0d0a31     	add	x17, x17, x13, lsl #2
+      e8: cb214a21     	sub	x1, x17, w1, uxtw #2
+      ec: 3cf06a23     	ldr	q3, [x17, x16]
+      f0: 3dc00224     	ldr	q4, [x17]
+      f4: 3cf06825     	ldr	q5, [x1, x16]
+      f8: 3dc00026     	ldr	q6, [x1]
+      fc: 6e24dc63     	fmul	v3.4s, v3.4s, v4.4s
+     100: 6e26dca4     	fmul	v4.4s, v5.4s, v6.4s
+     104: 3100251f     	cmn	w8, #0x9
+     108: 54fff988     	b.hi	0x38 <causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0::operator()(unsigned long) const+0x38>
+     10c: aa0803ef     	mov	x15, x8
+     110: 14000004     	b	0x120 <causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0::operator()(unsigned long) const+0x120>
+     114: 910005ef     	add	x15, x15, #0x1
+     118: eb0901ff     	cmp	x15, x9
+     11c: 54fff8a2     	b.hs	0x30 <causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0::operator()(unsigned long) const+0x30>
+     120: a9404410     	ldp	x16, x17, [x0]
+     124: 4ea41c87     	mov	v7.16b, v4.16b
+     128: a9420801     	ldp	x1, x2, [x0, #0x20]
+     12c: 4ea31c64     	mov	v4.16b, v3.16b
+     130: b9400210     	ldr	w16, [x16]
+     134: b9400231     	ldr	w17, [x17]
+     138: f9400021     	ldr	x1, [x1]
+     13c: 4b1001f0     	sub	w16, w15, w16
+     140: 9bb07e30     	umull	x16, w17, w16
+     144: 9b0c0610     	madd	x16, x16, x12, x1
+     148: 531f7a21     	lsl	w1, w17, #1
+     14c: d37e7c21     	ubfiz	x1, x1, #2, #32
+     150: 8b0e0210     	add	x16, x16, x14
+     154: 3ce16a05     	ldr	q5, [x16, x1]
+     158: 3dc00206     	ldr	q6, [x16]
+     15c: d37ef621     	lsl	x1, x17, #2
+     160: 9b117df1     	mul	x17, x15, x17
+     164: 6e26dca3     	fmul	v3.4s, v5.4s, v6.4s
+     168: 3ce16a06     	ldr	q6, [x16, x1]
+     16c: f9400050     	ldr	x16, [x2]
+     170: 6e20dc65     	fmul	v5.4s, v3.4s, v0.4s
+     174: 8b110a10     	add	x16, x16, x17, lsl #2
+     178: 4e24cc25     	fmla	v5.4s, v1.4s, v4.4s
+     17c: 4e27cc45     	fmla	v5.4s, v2.4s, v7.4s
+     180: 6e26dca5     	fmul	v5.4s, v5.4s, v6.4s
+     184: 3cae6a05     	str	q5, [x16, x14]
+     188: f9401810     	ldr	x16, [x0, #0x30]
+     18c: b9400210     	ldr	w16, [x16]
+     190: 51000a10     	sub	w16, w16, #0x2
+     194: eb1001ff     	cmp	x15, x16
+     198: 54fffbe3     	b.lo	0x114 <causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0::operator()(unsigned long) const+0x114>
+     19c: f9400410     	ldr	x16, [x0, #0x8]
+     1a0: f9400c11     	ldr	x17, [x0, #0x18]
+     1a4: b9400210     	ldr	w16, [x16]
+     1a8: f9400231     	ldr	x17, [x17]
+     1ac: 9b107df0     	mul	x16, x15, x16
+     1b0: 8b100a30     	add	x16, x17, x16, lsl #2
+     1b4: 3cae6a03     	str	q3, [x16, x14]
+     1b8: 17ffffd7     	b	0x114 <causallm::lfmConvGateTilePrefill(float const*, float const*, float*, float*, unsigned int, unsigned int, unsigned int, unsigned int)::$_0::operator()(unsigned long) const+0x114>
+     1bc: d65f03c0     	ret
+
+Disassembly of section .text._ZNSt6__ndk110__function6__funcIZN8causallmL22lfmConvGateTilePrefillEPKfS4_PfS5_jjjjE3$_0NS_9allocatorIS6_EEFvmEED0Ev:
