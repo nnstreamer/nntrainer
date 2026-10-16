@@ -322,6 +322,8 @@ class MainActivity : AppCompatActivity() {
      *  refresh the chart/status in place so scrolling is not interrupted. */
     private var demoUiKey: String? = null
     private var demoStatusView: TextView? = null
+    /** Current user's BEFORE / AFTER result boxes, refreshed in place. */
+    private var demoResultViews: List<Pair<TextView, TextView>> = emptyList()
 
     /* ───── UI refs (re-wired on every rebuildUi() call) ───── */
 
@@ -459,14 +461,19 @@ class MainActivity : AppCompatActivity() {
             }
         trainSavedPath = current.optString("adapter_path")
         if (epochs.length() > 0) trainBestLoss = "%.4f".format(epochs.getJSONObject(epochs.length() - 1).optDouble("best_loss"))
-        // Per-iteration / per-scenario progress only moves the chart and the
-        // status lines; rebuild the view tree only when the layout changes.
+        // Per-iteration / per-scenario progress only moves the chart, the
+        // result boxes and the status lines; rebuild the view tree only when
+        // the layout changes.
         val key = listOf(demoRunning, trainRunning, demoUser, demoLoraEnabled.toList(), demoAdapterSavedAt.toList(),
-            demoBefore, demoAfter, epochs.length()).toString()
+            epochs.length()).toString()
         if (key == demoUiKey && lossChartView != null) {
             lossChartView?.setData(trainLossPoints, trainEpochBoundaries)
             trainStatusView?.text = trainStatusText
             demoStatusView?.text = demoStatus
+            demoResultViews.forEachIndexed { s, (before, after) ->
+                setResultText(before, "BEFORE", demoBefore[demoUser].getOrNull(s))
+                setResultText(after, "AFTER", demoAfter[demoUser].getOrNull(s))
+            }
             return
         }
         demoUiKey = key
@@ -1188,6 +1195,7 @@ class MainActivity : AppCompatActivity() {
         })
         // One result row per scenario: situation line over a BEFORE|AFTER pair.
         val du = DEMO_USERS[demoUser]
+        val resultViews = mutableListOf<Pair<TextView, TextView>>()
         du.scenarios.forEachIndexed { s, sc ->
             val opts = parseDecisionOptions(sc.prompt)
             val actual = opts.getOrElse(sc.answer) { "?" }
@@ -1203,13 +1211,12 @@ class MainActivity : AppCompatActivity() {
             })
             spacer(row, 4)
             val cols = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-            cols.addView(resultBox(t, "BEFORE",
-                    demoBefore.getOrNull(demoUser)?.getOrNull(s)),
-                LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+            val before = resultBox(t, "BEFORE", demoBefore.getOrNull(demoUser)?.getOrNull(s))
+            val after = resultBox(t, "AFTER", demoAfter.getOrNull(demoUser)?.getOrNull(s))
+            resultViews.add(before to after)
+            cols.addView(before, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
             spacerH(cols, 6)
-            cols.addView(resultBox(t, "AFTER",
-                    demoAfter.getOrNull(demoUser)?.getOrNull(s)),
-                LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+            cols.addView(after, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
             row.addView(cols)
             card.addView(row)
             spacer(card, 6)
@@ -1222,19 +1229,25 @@ class MainActivity : AppCompatActivity() {
             setPadding(dp(4), dp(2), dp(4), 0)
         }
         card.addView(demoStatusView)
+        demoResultViews = resultViews
         return card
     }
 
     /** One result box: a small monospace BEFORE/AFTER decision readout. */
-    private fun resultBox(t: M3Tokens, tag: String, body: String?): View =
+    private fun resultBox(t: M3Tokens, tag: String, body: String?): TextView =
         TextView(this).apply {
-            text = if (body == null) "$tag\n(대기)" else "$tag\n$body"
-            setTextColor(if (text == null) 0x66EDE7F6 else 0xFFEDE7F6.toInt())
+            setResultText(this, tag, body)
+            setTextColor(0xFFEDE7F6.toInt())
             textSize = 10f
             typeface = Typeface.MONOSPACE
             background = solid(t.codeBg, 12)
             setPadding(dp(8), dp(6), dp(8), dp(6))
         }
+
+    private fun setResultText(view: TextView, tag: String, body: String?) {
+        val text = if (body == null) "$tag\n(대기)" else "$tag\n$body"
+        if (view.text.toString() != text) view.text = text
+    }
 
     private fun demoActionButton(t: M3Tokens, label: String, action: String,
                                  enabled: Boolean = true, tonal: Boolean = false): View = TextView(this).apply {
