@@ -1,0 +1,16 @@
+{
+  "parent": "conv-ion",
+  "binaries": {
+    "libnntrainer.so": "41f8ecdaa560e342f1e8da0f9bc1c472dd31b03979803337a096435f7a2a38d4",
+    "libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+    "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+    "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+    "libcausallm.so": "1104f6f6c1a3ca2fd81765a534b33539411fb273f64878f8f85072681bbca70b",
+    "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76",
+    "libnntr_hvx_skel.so": "83170a05aef56fec63c2887a3863fe01873e9129c0c672a11f70e812fab19b65"
+  },
+  "source_patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "base_commit": "9d8706182fcf56fb41de3c9ec5af17c7ee80e8a4",
+  "post_deploy_worktree_snapshot_sha256": "129d7dee95685617614bee0f61ef788c416cccf70c8bba7fe5e9093c4bdec79a",
+  "source_snapshot_note": "The post-deploy worktree snapshot raced the later overlap candidate edits. The DSP had already been built from clean commit 9d8706182 (conv-ion-restore-dsp-build.log); SHA83170a05 was recorded before these edits and matched the deployed binary before inference. Corrected compiled-source diff is empty. Preserve the later worktree snapshot separately."
+}

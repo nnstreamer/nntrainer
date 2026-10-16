@@ -1,0 +1,68 @@
+Independent read-only review: dynamic Q8 prefill deferred score conversion
+Candidate patch SHA256: 4973b30badf5f3265aaefe3e2706b1eef6ea245bcda725aa3b95f29b57ecc839
+Candidate: /tmp/lfm2-gemma-prefill-port-20261016/attn-dequant-overlap/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c
+Reference: /tmp/lfm2-gemma-prefill-port-20261016/attn-dequant-overlap/before/nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c
+Decision: no correctness blocker found in the bounded source/host/build review.
+Root worktree and device were not modified or used.
+
+Scope and buffer bounds
+The guard selects dynamic Q8, full-cache LFM geometry, n_q >=1024 aligned to128,
+32 Q heads /8 KV heads /head_dim64, no window/softcap/sinks, BR128/BC256/G_BR512,
+and at least one actual background worker. Gemma/fixed-cache/Q4/small-prefill
+paths retain serial conversion. No new host/Linux APIs or build dependencies.
+The planner gives8 row tiles *8 column tiles *8192B =524288B raw readouts.
+Qx capacity is chunk *512*64*4:1048576B for1024 tokens (chunk8),1179648B for
+2048 tokens (chunk9). raw<=qx plus qx<=total<=cfg and raw<=total-qx are checked.
+Each8192B tile offset is2048B aligned and remains before the HMX config area.
+The usable acc layout validates every64x32 source index inside one8192B tile.
+The two score tiles written by each (row tile,column tile) are disjoint from
+all other workers' outputs and from raw Qx, P, O, q_ah, KV and L.acc.
+No new heap/VTCM allocation or extra weight/cache storage is introduced.
+Actual v81 -O3 -fstack-usage: entry frame1536B vs1408B (+128B), phase_qk512B
+unchanged; new dequant_worker384B, below existing softmax_worker1920B and the
+existing32KiB pool stack. These are compiler frames, not full call-chain peaks.
+
+Lifetime and synchronization
+phase_qprep gathers and completely packs the whole Q chunk, using synchronous
+hvx_worker_pool_run, before any Q block runs. Subsequent QK reads q_ah, not Qx.
+q_scale/q_zp stay in distinct metadata storage. Even a partial final chunk
+can reuse Qx: its valid rows were already packed and no later phase reads them.
+The first QK block is still serial. Each next-QK readout writes Qx while the
+current softmax writes the current S bank. softmax_finish_pquant joins softmax
+and finishes synchronous P quantization before the new dequant submit.
+Dequant workers read Qx and q metadata and write only the other S bank. The
+caller executes PV using L.acc, P, O and a/p_scale metadata. No new DMA/HMX
+operation runs on workers. The pool has a single foreground job; no nested
+submit occurs from dequant_worker. q_i, shape, layout, head metadata and the
+stack dequant_job stay fixed until wait completes.
+After PV, wait executes before checking rc: success and PV error both drain.
+An error in first QK has no active job; an error in next QK joins the current
+softmax before returning. No worker survives run_q_block into a new q_i,
+Q prep, metadata free or caller stack reuse. End-of-loop store is after joins.
+
+Arithmetic
+The serial dequant_s body is preserved in dequant_s_at; only the accumulator
+base becomes an argument. Each tile retains int32->FP conversion, zero-point
+correction, scale products and fp16 narrowing order. Tile order is parallel,
+but tiles have no reduction between them. Softmax block order, P quantization,
+PV accumulation and final output order remain unchanged. Numerical validation
+uses the extracted original serial HVX converter as reference.
+
+Independent validation
+1. Rebuilt and ran the supplied actual-HVX/real-pthread-shim fixture under
+   ASan+UBSan:72 pipeline/tail/error cases and18-guard sets PASS.
+   wrong accumulator, missing extent guard and missing PV join mutations all
+   rejected as expected. Artifacts: host-san/.
+2. Copied only the test driver/fixture into extended/, expanded success workers
+   to0..8 and error workers1..8; added partial final Q chunks for1280/2304/2432
+   tokens and read failures at tile calls63,65,127,255 (plus existing0/64 and
+   first/second PV failures).460 total pipeline/tail/error cases PASS under
+   ASan+UBSan. Artifacts: extended/host-san/ and extended/overlap_check.c.
+3. Independently compiled before/candidate production source with actual v81
+   -O3 -Wall -Werror; both PASS. Stack records and compiler command are here.
+The fixture keeps actual readout addressing, original/new HVX conversion,
+production block loop and worker pool. It deliberately poisons L.acc before
+releasing dequant workers, proving they use Qx; redzones/unchanged metadata
+and unrelated VTCM regions are checked. HMX, DMA, softmax and PV operations
+are stand-ins, so this does not replace root's real-DSP output/performance
+validation. No silicon speedup is inferred from these correctness checks.

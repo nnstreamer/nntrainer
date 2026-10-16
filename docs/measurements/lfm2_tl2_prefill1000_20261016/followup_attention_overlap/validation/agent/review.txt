@@ -1,0 +1,114 @@
+LFM dynamic Q8 attention: reuse dead Qx for next-block dequant
+
+Scope and status
+  Candidate is isolated under candidate/. Root source and device were not
+  modified by this agent. Production patch changes hexkl_attn_q.c plus a stats
+  comment in hexkl_attn_q.h. No ABI/IDL, ARM/app, cache capacity, worker-count,
+  quantization or persistent-allocation change. Device parity/performance are
+  still required; parent owns them.
+
+Ownership and bounds
+  phase_qprep gathers every query block of the current chunk into Qx, then the
+  synchronous quantizer/packer completes q_ah and cached q_scale/q_zp for ALL
+  blocks. The following qi loop reads q_ah + metadata only. Qx is next written
+  by phase_qprep for the next chunk/head, after all run_q_block calls return.
+  A deferred dequant reads Qx and writes the opposite score bank. Current PV
+  reads p_ah/V and uses the original L.acc + o_f32. No regions overlap.
+
+  Layout calculations at Br=128, G=4, GBr=512, Bc=256, head_dim=64:
+    raw score bank = 8 row tiles * 8 column tiles * 8192 = 524288 bytes.
+    1024: chunk=8, Qx=1048576, Qx offset=1122304, L.total=2170880 bytes.
+    2048: chunk=9, Qx=1179648, Qx offset=1155072, L.total=2334720 bytes.
+  All are existing plan sizes. The 2048 final chunk contains seven q blocks,
+  but the allocation remains the planned nine-block extent; reuse is safe.
+  HMX writes each complete 8192-byte tile directly into Qx: no extra copy.
+  The existing accumulator layout probe still supplies base/row_stride.
+  New per-job state is only a small caller stack struct (pointer + 3 indices).
+  Worker stack capacity and all heap/VTCM/ION allocation sizes stay unchanged.
+
+Guard
+  Workers present; dynamic Q8; n_q>=1024 and divisible by128; full prefill
+  cache_from=0/cache_to=n_q; heads32/8; HD64; no window/softcap/sinks;
+  Br128/Bc256/GBr512; raw size fits both planned Qx row extent and L.total;
+  L.total stays below config. Small/tail query shapes, fixed-cache Gemma,
+  decode, alternate geometries and reduced arenas keep original processing.
+  Tail KV columns keep the existing DMA zeroing, per-column scale guard and
+  softmax masking. First QK and the last (no-next) PV remain serial paths.
+
+Order and synchronization
+  Prologue: old QK -> old immediate dequant -> S0.
+  For each block k:
+    1. Submit existing softmax(k); DMA and HMX readout QK(k+1) -> Qx.
+    2. Join softmax(k); complete unchanged pquant(k), including its join.
+    3. Submit next dequant(k+1) on the existing foreground pool workers.
+    4. Calling thread runs unchanged PV(k) / O update using L.acc.
+    5. Always join dequant, even if PV failed; then next softmax or return.
+  Only one foreground job exists at a time. The new job does not read mutable
+  w_n/w_qb/w_kb/w_sbuf fields. c->qi remains constant until run_q_block returns.
+  HMX remains exclusive to the caller; workers only load/stores and use HVX.
+  If next QK fails while softmax is pending, the existing error join remains.
+  If first QK fails, no worker has been started. If PV fails, the newly added
+  unconditional drain precedes return/free of stack context or meta_heap.
+
+Exact arithmetic
+  dequant_s_at contains the original serial float correction, multiply order,
+  qf32 conversion and fp16 packing verbatim; only the accumulator base is an
+  explicit argument. Original dequant_s delegates with L.acc. No integer
+  correction, changed quantizer, altered softmax reductions, fused softmax/
+  pquant, special accumulator-plane reads or HMX math changes were included.
+
+Expected bound; not a performance result
+  postpush-attn-store-profile.logcat.txt has 10*160 blocks and totals:
+    dequant44.007 ms; QK23.951 ms; PV6.979 ms; O update6.641 ms;
+    DSP total163.426 ms. These are diagnostic-profile figures.
+  1024 has64 first blocks and96 next blocks per layer. Thus roughly60% of
+  serial dequant work (26.404 ms/10 layers) can move; first-block work stays.
+  Three ideal workers would take8.801 ms on those next blocks. Corresponding
+  current PV+O is about8.172 ms. Ignoring launch/competition/softmax effects,
+  the ideal saving is about25.775 ms, not44 ms. If only pure HMX time overlaps,
+  parallelism + overlap bounds this estimate near21.8 ms instead.
+  These weighted times assume similar per-block costs. Stats do not expose
+  the previous fully hidden softmax work, so no guaranteed gain follows.
+  For one iteration, using S=softmax, Q=HMX-QK, D=dequant, P=pquant,
+  V=PV+O, the old time is max(S,Q+D)+P+V. Candidate is approximately
+  max(S,Q)+P+max(D/workers,V), plus dispatch overhead. Shorter QK can expose
+  more softmax; concurrent HVX/O update and VTCM traffic can erode savings.
+  us_dequant now counts serial conversion plus async submit/exposed join.
+  It excludes worker time already overlapped with PV and must not be treated
+  as all dequant arithmetic time when comparing profiles.
+
+Difference from rejected exact-v2/v3
+  Those variants added two raw score banks after L.total, then combined each
+  row owner's dequant+softmax (+pquant in v3) while HMX filled the other bank.
+  This candidate borrows ONE existing Qx bank, leaves softmax/pquant untouched,
+  and schedules only next dequant beside current PV. It does not restore the
+  old accumulator-plane shortcut or extra VTCM regions. It still shares the
+  HMX/HVX contention risk and needs isolated silicon measurement.
+
+Validation
+  v81 production translation unit compiled -O3 -Wall -Werror PASS.
+  clang-format14 used; root git apply --check PASS.
+  checks/host-san/overlap_check.log: ASan+UBSan72 cases exact PASS; repeated
+  18-guard sets. Covers first/no-next, last qi, 1152 partial KV, 2048 final
+  chunk, NULL/1/3 workers, fixed Q8, small shape, 4 scale/zp patterns,
+  HMX-read failure in prologue/lookahead and PV failure at two positions.
+  Actual production address selection, block loop, worker, dequant functions
+  are extracted into the test. Actual hvx_worker_pool uses the QuRT pthread
+  shim; SDK libnative supplies HVX float conversion/packing operations.
+  The exact reference is the snapshot's original serial dequant function.
+  Workers are held until fake PV poisons L.acc, forcing the critical overlap.
+  The fixture verifies untouched Q/K/V/P/O, metadata and trailing redzones.
+  Mutations caught by assertion: wrong accumulator address; missing extent
+  guard; missing PV drain. Logs and commands.json are in checks/host-san/.
+  Fixture HMX, DMA, softmax and PV are stand-ins: it proves scheduling/score
+  conversion/guards, not whole-attention silicon numerics or speed.
+  Existing worker-pool source emits a GCC snprintf truncation warning; this
+  unchanged helper is compiled without -Werror in the host runner. Candidate
+  and fixture retain -Werror, and the DSP compilation passed with -Werror.
+
+Next parent checks
+  Run existing full Q8 attention independent checker before/after, including
+  1024/2048 and fallback cases. Check all output bytes and repeated-call state.
+  Then normal LFM1024/2048 A/B at C16/preload128/PAGE0 with all dumped IDs,
+  memory metric and isolated DSP phase profile. Gemma device repetition is
+  unnecessary for this explicitly excluded shape; retain host guard coverage.

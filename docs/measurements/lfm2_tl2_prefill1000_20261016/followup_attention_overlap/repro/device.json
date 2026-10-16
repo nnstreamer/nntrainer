@@ -1,0 +1,6 @@
+{
+  "serial": "R3CY70LV96T",
+  "device_root": "/data/local/tmp/nntr_lfm2_prefill1000_20261016",
+  "source_model": "/data/local/tmp/nntr_lfm2_tl2_check_20261016/model",
+  "base_commit": "00dba720b808cf7b8b13460ed61669fa7c5fde13"
+}

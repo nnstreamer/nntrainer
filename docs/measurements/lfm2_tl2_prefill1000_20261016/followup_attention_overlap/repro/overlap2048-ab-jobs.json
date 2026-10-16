@@ -1,0 +1,158 @@
+[
+  {
+    "variant": "conv-ion-rebuilt",
+    "tag": "postpush-o2048-model-0-r1",
+    "model": "model",
+    "env": {
+      "NNTR_HTP_PREDICT": "2",
+      "NNTR_MOE_PREFETCH_RESIDUAL": "0.5",
+      "NNTR_HTP_TL2_STABLE_SLOTS": "1",
+      "NNTR_LFM2_PREFILL_EARLY": "1",
+      "NNTR_LFM2_DECODE_PAIR_READ": "1",
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": "1"
+    }
+  },
+  {
+    "variant": "attn-overlap2048",
+    "tag": "postpush-o2048-model-1-r1",
+    "model": "model",
+    "env": {
+      "NNTR_HTP_PREDICT": "2",
+      "NNTR_MOE_PREFETCH_RESIDUAL": "0.5",
+      "NNTR_HTP_TL2_STABLE_SLOTS": "1",
+      "NNTR_LFM2_PREFILL_EARLY": "1",
+      "NNTR_LFM2_DECODE_PAIR_READ": "1",
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": "1"
+    }
+  },
+  {
+    "variant": "attn-overlap2048",
+    "tag": "postpush-o2048-model-1-r2",
+    "model": "model",
+    "env": {
+      "NNTR_HTP_PREDICT": "2",
+      "NNTR_MOE_PREFETCH_RESIDUAL": "0.5",
+      "NNTR_HTP_TL2_STABLE_SLOTS": "1",
+      "NNTR_LFM2_PREFILL_EARLY": "1",
+      "NNTR_LFM2_DECODE_PAIR_READ": "1",
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": "1"
+    }
+  },
+  {
+    "variant": "conv-ion-rebuilt",
+    "tag": "postpush-o2048-model-0-r2",
+    "model": "model",
+    "env": {
+      "NNTR_HTP_PREDICT": "2",
+      "NNTR_MOE_PREFETCH_RESIDUAL": "0.5",
+      "NNTR_HTP_TL2_STABLE_SLOTS": "1",
+      "NNTR_LFM2_PREFILL_EARLY": "1",
+      "NNTR_LFM2_DECODE_PAIR_READ": "1",
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": "1"
+    }
+  },
+  {
+    "variant": "conv-ion-rebuilt",
+    "tag": "postpush-o2048-model-0-r3",
+    "model": "model",
+    "env": {
+      "NNTR_HTP_PREDICT": "2",
+      "NNTR_MOE_PREFETCH_RESIDUAL": "0.5",
+      "NNTR_HTP_TL2_STABLE_SLOTS": "1",
+      "NNTR_LFM2_PREFILL_EARLY": "1",
+      "NNTR_LFM2_DECODE_PAIR_READ": "1",
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": "1"
+    }
+  },
+  {
+    "variant": "attn-overlap2048",
+    "tag": "postpush-o2048-model-1-r3",
+    "model": "model",
+    "env": {
+      "NNTR_HTP_PREDICT": "2",
+      "NNTR_MOE_PREFETCH_RESIDUAL": "0.5",
+      "NNTR_HTP_TL2_STABLE_SLOTS": "1",
+      "NNTR_LFM2_PREFILL_EARLY": "1",
+      "NNTR_LFM2_DECODE_PAIR_READ": "1",
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": "1"
+    }
+  },
+  {
+    "variant": "conv-ion-rebuilt",
+    "tag": "postpush-o2048-model2048-0-r1",
+    "model": "model2048",
+    "env": {
+      "NNTR_HTP_PREDICT": "2",
+      "NNTR_MOE_PREFETCH_RESIDUAL": "0.5",
+      "NNTR_HTP_TL2_STABLE_SLOTS": "1",
+      "NNTR_LFM2_PREFILL_EARLY": "1",
+      "NNTR_LFM2_DECODE_PAIR_READ": "1",
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": "1"
+    }
+  },
+  {
+    "variant": "attn-overlap2048",
+    "tag": "postpush-o2048-model2048-1-r1",
+    "model": "model2048",
+    "env": {
+      "NNTR_HTP_PREDICT": "2",
+      "NNTR_MOE_PREFETCH_RESIDUAL": "0.5",
+      "NNTR_HTP_TL2_STABLE_SLOTS": "1",
+      "NNTR_LFM2_PREFILL_EARLY": "1",
+      "NNTR_LFM2_DECODE_PAIR_READ": "1",
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": "1"
+    }
+  },
+  {
+    "variant": "attn-overlap2048",
+    "tag": "postpush-o2048-model2048-1-r2",
+    "model": "model2048",
+    "env": {
+      "NNTR_HTP_PREDICT": "2",
+      "NNTR_MOE_PREFETCH_RESIDUAL": "0.5",
+      "NNTR_HTP_TL2_STABLE_SLOTS": "1",
+      "NNTR_LFM2_PREFILL_EARLY": "1",
+      "NNTR_LFM2_DECODE_PAIR_READ": "1",
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": "1"
+    }
+  },
+  {
+    "variant": "conv-ion-rebuilt",
+    "tag": "postpush-o2048-model2048-0-r2",
+    "model": "model2048",
+    "env": {
+      "NNTR_HTP_PREDICT": "2",
+      "NNTR_MOE_PREFETCH_RESIDUAL": "0.5",
+      "NNTR_HTP_TL2_STABLE_SLOTS": "1",
+      "NNTR_LFM2_PREFILL_EARLY": "1",
+      "NNTR_LFM2_DECODE_PAIR_READ": "1",
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": "1"
+    }
+  },
+  {
+    "variant": "conv-ion-rebuilt",
+    "tag": "postpush-o2048-model2048-0-r3",
+    "model": "model2048",
+    "env": {
+      "NNTR_HTP_PREDICT": "2",
+      "NNTR_MOE_PREFETCH_RESIDUAL": "0.5",
+      "NNTR_HTP_TL2_STABLE_SLOTS": "1",
+      "NNTR_LFM2_PREFILL_EARLY": "1",
+      "NNTR_LFM2_DECODE_PAIR_READ": "1",
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": "1"
+    }
+  },
+  {
+    "variant": "attn-overlap2048",
+    "tag": "postpush-o2048-model2048-1-r3",
+    "model": "model2048",
+    "env": {
+      "NNTR_HTP_PREDICT": "2",
+      "NNTR_MOE_PREFETCH_RESIDUAL": "0.5",
+      "NNTR_HTP_TL2_STABLE_SLOTS": "1",
+      "NNTR_LFM2_PREFILL_EARLY": "1",
+      "NNTR_LFM2_DECODE_PAIR_READ": "1",
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": "1"
+    }
+  }
+]

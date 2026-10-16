@@ -1,0 +1,14 @@
+{
+  "parent": "conv-ion-rebuilt",
+  "binaries": {
+    "libnntrainer.so": "41f8ecdaa560e342f1e8da0f9bc1c472dd31b03979803337a096435f7a2a38d4",
+    "libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+    "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+    "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+    "libcausallm.so": "1104f6f6c1a3ca2fd81765a534b33539411fb273f64878f8f85072681bbca70b",
+    "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76",
+    "libnntr_hvx_skel.so": "ee66d16be38cebbf482fb64ca3936a008f86492f0d1408ae0280d9c466e61f0b"
+  },
+  "source_patch_sha256": "7722c00a2fa7843f45f6374fc4e163e468ef49a01bc9c48f29d15342d4432793",
+  "base_commit": "5ef8489912df6050a8869802df7aae507bd457a3"
+}

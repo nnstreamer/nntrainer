@@ -1,0 +1,492 @@
+{
+  "normal_run_medians": {
+    "postpush-overlap-model-0-r": {
+      "prefill_tps": 844.188,
+      "decode_tps": 17.6309,
+      "max_complete_peak_kib": 2733480.0,
+      "prefill_range": [
+        823.813,
+        845.582
+      ]
+    },
+    "postpush-overlap-model-1-r": {
+      "prefill_tps": 827.141,
+      "decode_tps": 17.5391,
+      "max_complete_peak_kib": 2733304.0,
+      "prefill_range": [
+        814.638,
+        827.809
+      ]
+    },
+    "postpush-overlap-model2048-0-r": {
+      "prefill_tps": 729.605,
+      "decode_tps": 16.7803,
+      "max_complete_peak_kib": 3052356.0,
+      "prefill_range": [
+        714.834,
+        747.718
+      ]
+    },
+    "postpush-overlap-model2048-1-r": {
+      "prefill_tps": 759.644,
+      "decode_tps": 16.7145,
+      "max_complete_peak_kib": 3053688.0,
+      "prefill_range": [
+        749.36,
+        895.496
+      ]
+    },
+    "postpush-o2048-model-0-r": {
+      "prefill_tps": 810.768,
+      "decode_tps": 17.6796,
+      "max_complete_peak_kib": 2733776.0,
+      "prefill_range": [
+        793.184,
+        845.582
+      ]
+    },
+    "postpush-o2048-model-1-r": {
+      "prefill_tps": 844.884,
+      "decode_tps": 17.6454,
+      "max_complete_peak_kib": 2734240.0,
+      "prefill_range": [
+        844.884,
+        849.793
+      ]
+    },
+    "postpush-o2048-model2048-0-r": {
+      "prefill_tps": 730.906,
+      "decode_tps": 16.6363,
+      "max_complete_peak_kib": 3053396.0,
+      "prefill_range": [
+        726.757,
+        849.44
+      ]
+    },
+    "postpush-o2048-model2048-1-r": {
+      "prefill_tps": 784.374,
+      "decode_tps": 16.6884,
+      "max_complete_peak_kib": 3052524.0,
+      "prefill_range": [
+        774.584,
+        810.447
+      ]
+    }
+  },
+  "runs": [
+    {
+      "tag": "postpush-overlap-model-0-r1",
+      "variant": "conv-ion-rebuilt",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 823.813,
+      "decode_tps": 17.6163,
+      "full_run_sampled_peak_kib": 2733152.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 2733152.0
+    },
+    {
+      "tag": "postpush-overlap-model-1-r1",
+      "variant": "attn-dequant-overlap",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 814.638,
+      "decode_tps": 17.5969,
+      "full_run_sampled_peak_kib": 2731804.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 2731804.0
+    },
+    {
+      "tag": "postpush-overlap-model-0-r2",
+      "variant": "conv-ion-rebuilt",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 845.582,
+      "decode_tps": 17.6309,
+      "full_run_sampled_peak_kib": 2733480.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 2733480.0
+    },
+    {
+      "tag": "postpush-overlap-model-1-r2",
+      "variant": "attn-dequant-overlap",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 827.141,
+      "decode_tps": 17.5391,
+      "full_run_sampled_peak_kib": 2733304.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 2733304.0
+    },
+    {
+      "tag": "postpush-overlap-model-0-r3",
+      "variant": "conv-ion-rebuilt",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 844.188,
+      "decode_tps": 17.6454,
+      "full_run_sampled_peak_kib": 2732976.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 2732976.0
+    },
+    {
+      "tag": "postpush-overlap-model-1-r3",
+      "variant": "attn-dequant-overlap",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 827.809,
+      "decode_tps": 17.302,
+      "full_run_sampled_peak_kib": 2733296.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 2733296.0
+    },
+    {
+      "tag": "postpush-overlap-model2048-0-r1",
+      "variant": "conv-ion-rebuilt",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 714.834,
+      "decode_tps": 16.7715,
+      "full_run_sampled_peak_kib": 3050520.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 3050520.0
+    },
+    {
+      "tag": "postpush-overlap-model2048-1-r1",
+      "variant": "attn-dequant-overlap",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 749.36,
+      "decode_tps": 16.8377,
+      "full_run_sampled_peak_kib": 3050380.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 3050380.0
+    },
+    {
+      "tag": "postpush-overlap-model2048-0-r2",
+      "variant": "conv-ion-rebuilt",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 729.605,
+      "decode_tps": 16.8244,
+      "full_run_sampled_peak_kib": 3052356.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 3052356.0
+    },
+    {
+      "tag": "postpush-overlap-model2048-1-r2",
+      "variant": "attn-dequant-overlap",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 895.496,
+      "decode_tps": 16.546,
+      "full_run_sampled_peak_kib": 3053688.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 3053688.0
+    },
+    {
+      "tag": "postpush-overlap-model2048-0-r3",
+      "variant": "conv-ion-rebuilt",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 747.718,
+      "decode_tps": 16.7803,
+      "full_run_sampled_peak_kib": 3050516.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 3050516.0
+    },
+    {
+      "tag": "postpush-overlap-model2048-1-r3",
+      "variant": "attn-dequant-overlap",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 759.644,
+      "decode_tps": 16.7145,
+      "full_run_sampled_peak_kib": 3050748.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 3050748.0
+    },
+    {
+      "tag": "postpush-o2048-model-0-r1",
+      "variant": "conv-ion-rebuilt",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 810.768,
+      "decode_tps": 17.5246,
+      "full_run_sampled_peak_kib": 2730892.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 2730892.0
+    },
+    {
+      "tag": "postpush-o2048-model-1-r1",
+      "variant": "attn-overlap2048",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 849.793,
+      "decode_tps": 17.6454,
+      "full_run_sampled_peak_kib": 2730212.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 2730212.0
+    },
+    {
+      "tag": "postpush-o2048-model-0-r2",
+      "variant": "conv-ion-rebuilt",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 793.184,
+      "decode_tps": 17.6942,
+      "full_run_sampled_peak_kib": 2733776.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 2733776.0
+    },
+    {
+      "tag": "postpush-o2048-model-1-r2",
+      "variant": "attn-overlap2048",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 844.884,
+      "decode_tps": 17.6698,
+      "full_run_sampled_peak_kib": 2733400.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 2733400.0
+    },
+    {
+      "tag": "postpush-o2048-model-0-r3",
+      "variant": "conv-ion-rebuilt",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 845.582,
+      "decode_tps": 17.6796,
+      "full_run_sampled_peak_kib": 2732816.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 2732816.0
+    },
+    {
+      "tag": "postpush-o2048-model-1-r3",
+      "variant": "attn-overlap2048",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 844.884,
+      "decode_tps": 17.626,
+      "full_run_sampled_peak_kib": 2734240.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 2734240.0
+    },
+    {
+      "tag": "postpush-o2048-model2048-0-r1",
+      "variant": "conv-ion-rebuilt",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 726.757,
+      "decode_tps": 16.5503,
+      "full_run_sampled_peak_kib": 3053396.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 3053396.0
+    },
+    {
+      "tag": "postpush-o2048-model2048-1-r1",
+      "variant": "attn-overlap2048",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 774.584,
+      "decode_tps": 16.5975,
+      "full_run_sampled_peak_kib": 3050668.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 3050668.0
+    },
+    {
+      "tag": "postpush-o2048-model2048-0-r2",
+      "variant": "conv-ion-rebuilt",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 730.906,
+      "decode_tps": 16.7452,
+      "full_run_sampled_peak_kib": 3052284.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 3052284.0
+    },
+    {
+      "tag": "postpush-o2048-model2048-1-r2",
+      "variant": "attn-overlap2048",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 784.374,
+      "decode_tps": 16.8156,
+      "full_run_sampled_peak_kib": 3050308.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 3050308.0
+    },
+    {
+      "tag": "postpush-o2048-model2048-0-r3",
+      "variant": "conv-ion-rebuilt",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 849.44,
+      "decode_tps": 16.6363,
+      "full_run_sampled_peak_kib": 3052016.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 3052016.0
+    },
+    {
+      "tag": "postpush-o2048-model2048-1-r3",
+      "variant": "attn-overlap2048",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 810.447,
+      "decode_tps": 16.6884,
+      "full_run_sampled_peak_kib": 3052524.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 3052524.0
+    },
+    {
+      "tag": "postpush-overlap-control-profile",
+      "variant": "conv-ion-rebuilt",
+      "model": "model",
+      "profile": true,
+      "prefill_tps": 799.375,
+      "decode_tps": 17.5824,
+      "full_run_sampled_peak_kib": 2732328.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 2732328.0,
+      "attention_stage_us": {
+        "qprep": 25389,
+        "dma": 1912,
+        "qk": 23984,
+        "dequant": 43377,
+        "softmax": 15486,
+        "pquant": 21211,
+        "pv": 7025,
+        "oupd": 6569,
+        "store": 2954,
+        "total": 150939
+      }
+    },
+    {
+      "tag": "postpush-overlap-profile",
+      "variant": "attn-dequant-overlap",
+      "model": "model",
+      "profile": true,
+      "prefill_tps": 808.208,
+      "decode_tps": 17.3677,
+      "full_run_sampled_peak_kib": 2731016.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 2731016.0,
+      "attention_stage_us": {
+        "qprep": 25117,
+        "dma": 1993,
+        "qk": 23561,
+        "dequant": 18042,
+        "softmax": 18178,
+        "pquant": 20473,
+        "pv": 6897,
+        "oupd": 6704,
+        "store": 2952,
+        "total": 127291
+      }
+    },
+    {
+      "tag": "postpush-o2048-control-profile",
+      "variant": "conv-ion-rebuilt",
+      "model": "model2048",
+      "profile": true,
+      "prefill_tps": 846.981,
+      "decode_tps": 16.3557,
+      "full_run_sampled_peak_kib": 3052592.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 3052592.0,
+      "attention_stage_us": {
+        "qprep": 49554,
+        "dma": 7783,
+        "qk": 85030,
+        "dequant": 157015,
+        "softmax": 31833,
+        "pquant": 75329,
+        "pv": 24890,
+        "oupd": 25677,
+        "store": 5922,
+        "total": 472913
+      }
+    },
+    {
+      "tag": "postpush-o2048-candidate-profile",
+      "variant": "attn-overlap2048",
+      "model": "model2048",
+      "profile": true,
+      "prefill_tps": 882.378,
+      "decode_tps": 16.3474,
+      "full_run_sampled_peak_kib": 3051816.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true,
+      "peak_scan_fd_errors": 0,
+      "largest_complete_sample_kib": 3051816.0,
+      "attention_stage_us": {
+        "qprep": 49639,
+        "dma": 7709,
+        "qk": 84363,
+        "dequant": 36386,
+        "softmax": 44891,
+        "pquant": 72637,
+        "pv": 24786,
+        "oupd": 25870,
+        "store": 5983,
+        "total": 362996
+      }
+    }
+  ],
+  "final_scope": "Full dynamic-Q8 LFM prefill, >=2048 rows divisible by128; other guards apply",
+  "no_claimed_1024_or_decode_speedup": true
+}

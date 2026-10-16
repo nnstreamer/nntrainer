@@ -1,0 +1,20 @@
+{
+  "overlap-control-replay.bin": {
+    "sha256": "50306f9804fc358e45a9ad110cd7cd2ff985ccc740b73ee7db6c5050035ba54d",
+    "bytes": 85836224
+  },
+  "overlap-replay.bin": {
+    "sha256": "50306f9804fc358e45a9ad110cd7cd2ff985ccc740b73ee7db6c5050035ba54d",
+    "bytes": 85836224
+  },
+  "overlap2048-replay.bin": {
+    "sha256": "50306f9804fc358e45a9ad110cd7cd2ff985ccc740b73ee7db6c5050035ba54d",
+    "bytes": 85836224
+  },
+  "fixture": {
+    "source": "test/htp/lfm2_prefill_replay.cpp",
+    "source_sha256": "4fe4ca2c0c09b373ae14a0da82cbda23c1be03ee27987f5d8f2af425ffe8d1d3",
+    "device_binary_sha256": "e7c8e310fab4a4db518619ef982be8691b4268e6b605555e568ebe7af2d528f1"
+  },
+  "note": "Identical output bytes from21 actual-DSP attention/KV/router cases; binaries retained on test device, reproducible from tracked fixture."
+}

@@ -1,0 +1,13 @@
+{
+  "before": {
+    "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c": "460f68679d55b0c1e5b0ca3361eb8ae65c76a3bf03482d777eefabc971c37a79",
+    "test/htp/host/attn_overlap_native_check.c": "7ffc55b7c41feb035b08d9f5315357a7df4f0c193d8e26e15b1a42e667ad0a02",
+    "test/htp/host/attn_overlap_check.txt": "985f8228ef199ebc3400b09787fba25a1a47b0bee11547e746af9c6db47f2359"
+  },
+  "candidate": {
+    "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c": "4b71749ac993c1ae165550f0d182ea748fa6106543e1904ce498a19ac59e478a",
+    "test/htp/host/attn_overlap_native_check.c": "a35bded3b3b9dc05efc9870dd85169c78490e18e9ed3c74fd824bd3245a2af64",
+    "test/htp/host/attn_overlap_check.txt": "22839dab768c59184a198be1ceef68c4e43dd4f3b377d1f6f89439e042f03552"
+  },
+  "patch_sha256": "ebaa4742521ec4c24b776f0f121e02cabb6de7e397fab5e75b7560b91762d5b0"
+}
