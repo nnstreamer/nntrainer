@@ -94,6 +94,13 @@ class DeviceDemoBridge(
     private fun adapterDirectory(u: Int) = File(File(users[u].data).parentFile!!.parentFile, "adapters/${users[u].id}")
     private fun historyDirectory(u: Int) = File(adapterDirectory(u), "history")
     private fun currentFile(u: Int) = File(adapterDirectory(u), "current.txt")
+    /** Present while the user chose "Weights 초기화"; survives restarts. */
+    private fun disabledFile(u: Int) = File(adapterDirectory(u), "lora_disabled")
+    /** Base weights: no adapter applied and no training chart shown. The saved
+     *  adapter stays on disk so "LoRA 로드" can bring it and its chart back. */
+    private fun showBaseWeights(u: Int) = synchronized(lock) {
+        user(u).put("lora_enabled", false).put("epochs", JSONArray()).put("iterations", JSONArray())
+    }
     private fun readMeta(dir: File) = try { JSONObject(File(dir, "adapter.json").readText()) } catch (_: Exception) { null }
     /** The single-slot layout of earlier builds becomes the first history entry. */
     private fun migrateLegacyAdapter(u: Int) {
@@ -139,6 +146,8 @@ class DeviceDemoBridge(
                 .put("status", "trained").put("lora_enabled", true)
         }
         currentFile(u).writeText(dir!!.name)
+        // At startup, keep the user's earlier "Weights 초기화" choice.
+        if (id == null && disabledFile(u).isFile) showBaseWeights(u) else disabledFile(u).delete()
         return true
     }
     private fun persistAdapter(u: Int) {
@@ -237,17 +246,23 @@ class DeviceDemoBridge(
         if (action == "lora_on" || action == "lora_off") {
             val enable = action == "lora_on"
             val label = users[index].label
-            synchronized(lock) {
-                if (enable && !user(index).has("adapter_path")) {
-                    state.put("rejected_request_id", requestId)
-                    null
-                } else {
-                    user(index).put("lora_enabled", enable)
-                    state.put("ack_request_id", requestId).put("selected_user", users[index].id)
+            val ok = if (enable) {
+                // Reload the last selected adapter together with its chart.
+                val id = currentFile(index).takeIf { it.isFile }?.readText()?.trim()
+                id != null && restoreAdapter(index, id)
+            } else {
+                if (synchronized(lock) { user(index).has("adapter_path") }) {
+                    adapterDirectory(index).mkdirs(); disabledFile(index).writeText("1")
                 }
-            } ?: run { publish("사용자 $label: 저장된 LoRA가 없습니다 · 먼저 학습하세요"); return }
-            publish(if (enable) "사용자 $label LoRA 로드 · 추론 실행 시 저장된 LoRA 적용"
-                else "사용자 $label weights 초기화 · 추론 실행 시 기본 모델(LoRA 미적용)")
+                showBaseWeights(index); true
+            }
+            synchronized(lock) {
+                if (ok) state.put("ack_request_id", requestId).put("selected_user", users[index].id)
+                else state.put("rejected_request_id", requestId)
+            }
+            if (!ok) { publish("사용자 $label: 저장된 LoRA가 없습니다 · 먼저 학습하세요"); return }
+            publish(if (enable) "사용자 $label LoRA 로드 · 학습 차트 복원 · 추론 실행 시 저장된 LoRA 적용"
+                else "사용자 $label weights 초기화 · 차트 비움 · 추론 실행 시 기본 모델(LoRA 미적용)")
             return
         }
         if (state.optString("request_id") == requestId) { publish(); return }

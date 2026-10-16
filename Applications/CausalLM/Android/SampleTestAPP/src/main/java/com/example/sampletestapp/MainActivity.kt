@@ -1195,7 +1195,11 @@ class MainActivity : AppCompatActivity() {
         card.addView(demoActionButton(t, if (loraOn) "Weights 초기화" else "LoRA 로드",
                 if (loraOn) "lora_off" else "lora_on", enabled = loraOn || savedAt > 0L, tonal = true),
             LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
-        val saved = if (savedAt > 0L) "불러온 LoRA ${savedTime(savedAt)}" else "저장된 LoRA 없음"
+        val saved = when {
+            savedAt == 0L -> "저장된 LoRA 없음"
+            loraOn -> "불러온 LoRA ${savedTime(savedAt)}"
+            else -> "LoRA 미적용 (로드 시 ${savedTime(savedAt)})"
+        }
         card.addView(TextView(this).apply {
             text = "현재: ${if (loraOn) "LoRA 적용 → 추론 결과 AFTER" else "기본 모델 (LoRA 미적용) → 추론 결과 BEFORE"}\n" +
                 "$saved · 학습: Settings 적용 · seed $DEMO_SEED 고정 · 학습할 때마다 새로 저장"
@@ -1260,7 +1264,8 @@ class MainActivity : AppCompatActivity() {
             textSize = 11f; setTextColor(t.onSurfaceVar)
         })
         history.forEach { entry ->
-            val current = entry.id == demoAdapterId[demoUser]
+            // "불러옴" only while the adapter is actually applied.
+            val current = entry.id == demoAdapterId[demoUser] && demoLoraEnabled[demoUser]
             val loss = if (entry.finalLoss.isFinite()) "loss %.4f".format(entry.finalLoss) else "loss —"
             spacer(box, 4)
             box.addView(TextView(this).apply {
