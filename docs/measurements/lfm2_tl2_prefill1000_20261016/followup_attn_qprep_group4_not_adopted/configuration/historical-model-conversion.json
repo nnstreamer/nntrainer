@@ -1,0 +1,34 @@
+{
+  "source": "model.safetensors",
+  "source_header_sha256": "5d1c181f211c8cc3d6e6c7efbd76ea179648440ceee0f216d0e33eadaa053b66",
+  "source_bytes": 47956741504,
+  "model_file": "nntr_lfm2_tl2_affine.bin",
+  "bytes": 5912746496,
+  "sha256": "ceebe2a4e9b4e931c28955b2e223801f352829cca567cb9697744a6f7a12f27d",
+  "storage_format": "TL2CX_WH/1 + QS4CX_WH_AFFINE/1 + FP32",
+  "source_tensors_consumed": 7611,
+  "tensor_counts": {
+    "FP32": 208,
+    "QS4CX_WH_AFFINE": 107,
+    "TL2CX_WH": 4864
+  },
+  "expert_tensors_verified": 4864,
+  "affine_fc_tensors_verified": 107,
+  "max_expert_weight_error": 0,
+  "max_fc_bf16_roundtrip_error": 0,
+  "requantization": false,
+  "short_conv_dtype": "FP32",
+  "conv_layout": "[3, hidden], newest tap first; source taps reversed",
+  "embedding": "source values preserved as FP32 without sqrt(hidden) scaling",
+  "router": "source BF16 promoted to FP32, transposed to [hidden, experts]; sigmoid+bias",
+  "activation": "SwiGLU",
+  "device_validation": "Model-file SHA256 independently checked; output IDs compared with bd556 runtime. Source checkpoint was not independently revalidated.",
+  "verification": "every serialized TL2 trit/tail, WH nibble/tail and FP32 byte verified",
+  "runtime_requirements": [
+    "Rebuilt ARM HTP runtime and v81 DSP skel from this tree",
+    "64-expert sigmoid router",
+    "WH dense FFN intermediate size 11776 split into 8 slices of 1472"
+  ],
+  "report_sha256": "483c7aeb543e37bc61c4ed4411a4e4877c721ab9efec81831ee06f40807cc201",
+  "verification_provenance": "Conversion report supplied with device model; model SHA256 independently checked on the S26 Ultra in this session."
+}

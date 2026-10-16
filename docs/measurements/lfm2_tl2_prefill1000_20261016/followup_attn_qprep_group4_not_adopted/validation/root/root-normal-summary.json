@@ -1,0 +1,224 @@
+{
+  "control": "lfm-attn-qprep-group4-control",
+  "candidate": "lfm-attn-qprep-group4",
+  "runs": [
+    {
+      "tag": "continue-attn-qprep-group4-0-r1",
+      "variant": "lfm-attn-qprep-group4-control",
+      "prefill_tokens": 1024,
+      "prefill_tps": 824.477,
+      "decode_tps": 17.5487,
+      "full_run_sampled_peak_kib": 2713780.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 1
+    },
+    {
+      "tag": "continue-attn-qprep-group4-1-r1",
+      "variant": "lfm-attn-qprep-group4",
+      "prefill_tokens": 1024,
+      "prefill_tps": 829.822,
+      "decode_tps": 17.5872,
+      "full_run_sampled_peak_kib": 2714428.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 1
+    },
+    {
+      "tag": "continue-attn-qprep-group4-1-r2",
+      "variant": "lfm-attn-qprep-group4",
+      "prefill_tokens": 1024,
+      "prefill_tps": 839.344,
+      "decode_tps": 17.6991,
+      "full_run_sampled_peak_kib": 2713732.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 2
+    },
+    {
+      "tag": "continue-attn-qprep-group4-0-r2",
+      "variant": "lfm-attn-qprep-group4-control",
+      "prefill_tokens": 1024,
+      "prefill_tps": 827.809,
+      "decode_tps": 17.5151,
+      "full_run_sampled_peak_kib": 2713408.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 2
+    },
+    {
+      "tag": "continue-attn-qprep-group4-0-r3",
+      "variant": "lfm-attn-qprep-group4-control",
+      "prefill_tokens": 1024,
+      "prefill_tps": 837.971,
+      "decode_tps": 17.6114,
+      "full_run_sampled_peak_kib": 2714368.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 3
+    },
+    {
+      "tag": "continue-attn-qprep-group4-1-r3",
+      "variant": "lfm-attn-qprep-group4",
+      "prefill_tokens": 1024,
+      "prefill_tps": 833.198,
+      "decode_tps": 17.6796,
+      "full_run_sampled_peak_kib": 2713488.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 3
+    },
+    {
+      "tag": "continue-attn-qprep-group42048-0-r1",
+      "variant": "lfm-attn-qprep-group4-control",
+      "prefill_tokens": 2048,
+      "prefill_tps": 819.2,
+      "decode_tps": 16.339,
+      "full_run_sampled_peak_kib": 3018172.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 1
+    },
+    {
+      "tag": "continue-attn-qprep-group42048-1-r1",
+      "variant": "lfm-attn-qprep-group4",
+      "prefill_tokens": 2048,
+      "prefill_tps": 829.15,
+      "decode_tps": 16.8421,
+      "full_run_sampled_peak_kib": 3018292.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 1
+    },
+    {
+      "tag": "continue-attn-qprep-group42048-1-r2",
+      "variant": "lfm-attn-qprep-group4",
+      "prefill_tokens": 2048,
+      "prefill_tps": 836.601,
+      "decode_tps": 16.8332,
+      "full_run_sampled_peak_kib": 3019064.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 2
+    },
+    {
+      "tag": "continue-attn-qprep-group42048-0-r2",
+      "variant": "lfm-attn-qprep-group4-control",
+      "prefill_tokens": 2048,
+      "prefill_tps": 983.197,
+      "decode_tps": 16.2231,
+      "full_run_sampled_peak_kib": 3017724.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 2
+    },
+    {
+      "tag": "continue-attn-qprep-group42048-0-r3",
+      "variant": "lfm-attn-qprep-group4-control",
+      "prefill_tokens": 2048,
+      "prefill_tps": 843.84,
+      "decode_tps": 16.6104,
+      "full_run_sampled_peak_kib": 3017892.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 3
+    },
+    {
+      "tag": "continue-attn-qprep-group42048-1-r3",
+      "variant": "lfm-attn-qprep-group4",
+      "prefill_tokens": 2048,
+      "prefill_tps": 807.89,
+      "decode_tps": 16.4906,
+      "full_run_sampled_peak_kib": 3016204.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 3
+    }
+  ],
+  "summary": [
+    {
+      "tokens": 1024,
+      "prefill_tps": {
+        "control": [
+          824.477,
+          827.809,
+          837.971
+        ],
+        "candidate": [
+          829.822,
+          839.344,
+          833.198
+        ],
+        "median_control": 827.809,
+        "median_candidate": 833.198,
+        "median_pct": 0.6509955798982725,
+        "pairs_faster": 2,
+        "paired_deltas_pct": [
+          0.6482897642990704,
+          1.3934373750466689,
+          -0.5695901170804318
+        ]
+      },
+      "decode_tps": {
+        "control": [
+          17.5487,
+          17.5151,
+          17.6114
+        ],
+        "candidate": [
+          17.5872,
+          17.6991,
+          17.6796
+        ],
+        "median_control": 17.5487,
+        "median_candidate": 17.6796,
+        "median_pct": 0.7459241995133592,
+        "pairs_faster": 3,
+        "paired_deltas_pct": [
+          0.21938947044510826,
+          1.0505221209128113,
+          0.38724916815244814
+        ]
+      },
+      "control_max_peak_kib": 2714368.0,
+      "candidate_max_peak_kib": 2714428.0
+    },
+    {
+      "tokens": 2048,
+      "prefill_tps": {
+        "control": [
+          819.2,
+          983.197,
+          843.84
+        ],
+        "candidate": [
+          829.15,
+          836.601,
+          807.89
+        ],
+        "median_control": 843.84,
+        "median_candidate": 829.15,
+        "median_pct": -1.7408513462267794,
+        "pairs_faster": 1,
+        "paired_deltas_pct": [
+          1.214599609375,
+          -14.910134998377744,
+          -4.260286310200989
+        ]
+      },
+      "decode_tps": {
+        "control": [
+          16.339,
+          16.2231,
+          16.6104
+        ],
+        "candidate": [
+          16.8421,
+          16.8332,
+          16.4906
+        ],
+        "median_control": 16.339,
+        "median_candidate": 16.8332,
+        "median_pct": 3.024664912173347,
+        "pairs_faster": 2,
+        "paired_deltas_pct": [
+          3.079135810025102,
+          3.760686921735079,
+          -0.7212348889852005
+        ]
+      },
+      "control_max_peak_kib": 3018172.0,
+      "candidate_max_peak_kib": 3019064.0
+    }
+  ],
+  "all_checks_pass": true,
+  "memory_scope": "Sampled whole child lifetime RssAnon + deduplicated fdinfo allocation sizes. Not total device physical memory; unreported DSP/driver/VTCM and between-sample spikes excluded."
+}

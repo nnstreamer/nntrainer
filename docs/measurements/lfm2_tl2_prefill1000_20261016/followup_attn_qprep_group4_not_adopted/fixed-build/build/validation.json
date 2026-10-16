@@ -1,0 +1,763 @@
+{
+  "status": "PASS",
+  "source_revision": "742735f3c61803fac51189012ba4caf588a3bd50",
+  "source_patch_sha256": "a07332c9043b6760a42392cae06a237319e6a1e383829edc0bee5d838b435df8",
+  "control": {
+    "sha256": "f3fd2fd2f9c457d21ff13f0d1a9e6263a2a93a60fc9e0a6c75eb172d15387b06",
+    "bytes": 742928,
+    "repeat_identical": true,
+    "imports": [
+      {
+        "symbol": "ldexpf",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "qurt_thread_get_priority",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "HAP_query_avail_VTCM",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "qurt_futex_wait",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "malloc",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "HAP_mmap",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "rintf",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "lroundf",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "dspqueue_read",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "HAP_munmap",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "__register_frame_info_bases",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "HAP_mmap_get",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "__hexagon_udivdi3",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "__extendhfsf2",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "nearbyintf",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "qurt_system_config_get",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "qurt_thread_join",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "strlcpy",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "qurt_thread_create",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "snprintf",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "compute_resource_hmx_unlock",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "qurt_futex_wake",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "calloc",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "dspqueue_import",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "HAP_perf_qtimer_count_to_us",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "sqrtf",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "vsnprintf",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "dspqueue_read_noblock",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "compute_resource_query_VTCM",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "dspqueue_close",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "compute_resource_attr_get_vtcm_ptr",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "lround",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "HAP_power_set",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "qurt_sysenv_get_arch_version",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "__hexagon_udivsi3",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "qurt_thread_exit",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "__truncsfhf2",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "HAP_debug",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "__hexagon_umodsi3",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "__hexagon_divdf3",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "HAP_mem_get_stats",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "HAP_debug_v2",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "compute_resource_attr_set_hmx_param",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "free",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "compute_resource_acquire",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "qurt_mem_cache_clean",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "ceil",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "compute_resource_attr_get_vtcm_ptr_v2",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "HAP_mmap_put",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "memalign",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "compute_resource_attr_set_vtcm_param",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "compute_resource_attr_init_v2",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "qurt_hvx_get_units",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "dspqueue_write",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "compute_resource_attr_init",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "compute_resource_release",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "compute_resource_hmx_lock",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "qurt_timer_sleep",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "memset",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "memcpy",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "ldexp",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "compute_resource_attr_set_vtcm_param_v2",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "memcmp",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "__cxa_finalize",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "_Log",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "qurt_thread_get_id",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "HAP_debug_runtime",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "__hexagon_memcpy_likely_aligned_min32bytes_mult8bytes",
+        "binding": "GLOBAL"
+      }
+    ],
+    "arch": "v81",
+    "link_command": [
+      "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/hexagon-link",
+      "-no-threads",
+      "--hash-style=sysv",
+      "-march=hexagon",
+      "-mcpu=hexagonv81",
+      "-shared",
+      "-call_shared",
+      "-G0",
+      "-o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/test/htp/build/libnntr_hvx_skel.so",
+      "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/../target/hexagon/lib/v81/G0/pic/initS.o",
+      "-L/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/../target/hexagon/lib/v81/G0/pic",
+      "-L/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/../target/hexagon/lib/v81/G0",
+      "-L/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/../target/hexagon/lib/v81",
+      "-L/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/../target/hexagon/lib",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/00-hvx_add_f32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/01-nntr_hvx_mm_u8i4.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/02-nntr_hvx_mm_u8i8.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/03-nntr_hvx_softmax.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/04-nntr_hvx_attn.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/05-nntr_hvx_dma_probe.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/06-nntr_hvx_graph.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/07-nntr_hvx_small_ops.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/08-nntr_hvx_attn_m1.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/09-nntr_hvx_dspq_bench.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/10-nntr_hvx_dspq.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/11-nntr_hvx_token.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/12-nntr_hvx_skel.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/13-nntr_hvx_attn_m1_probe.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/14-nntr_hvx_vlut_probe.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/15-nntr_hvx_tl2_probe.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/16-hexkl_mm_u8i4.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/17-hexkl_mm_u8i4_dma.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/18-hexkl_mm_u8i4_moe.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/19-hexkl_graph.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/20-hexkl_token.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/21-hexkl_conv_block.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/22-hexkl_mm_u8i8_dma.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/23-hexkl_dma_ring.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/24-hexkl_dma_trace.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/25-hexkl_kv_quant.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/26-hexkl_probe.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/27-hexkl_acc_tile.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/28-hexkl_attn_dtype.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/29-hexkl_attn_u8.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/30-hvx_quant_u8.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/31-hvx_dequant_i32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/32-hvx_swiglu_f32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/33-hvx_conv_gate_f32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/34-hvx_m1_ops_f32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/35-hvx_attn_m1_f32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/36-hvx_scale_add_f32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/37-hvx_rmsnorm_rows_f32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/38-hvx_router_rows_f32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/39-hvx_rope_rows_f32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/40-hvx_softcap_f32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/41-hvx_gather_ah_u8.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/42-hvx_softmax_f32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/43-hvx_softmax_blocked_f32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/44-hvx_worker_pool.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/45-hvx_gemm_u8i4_wh.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/46-hvx_expand_i2i4.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/47-hvx_gemv_u8tl2.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/48-nntr_hvx_fc_q4.o",
+      "build/hvx_q4_gemv_f32.o",
+      "build/nntr_hvx_sf_probe.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/49-nntr_hvx_mailbox.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/50-nntr_hvx_attn_f16.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/51-nntr_hvx_attn_q.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/52-hexkl_attn_f16.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/53-hexkl_kv_tiles_f16.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/54-hexkl_attn_q.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/55-hexkl_kv_q.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/56-hvx_attn_decode_f16.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/57-hvx_attn_decode_q.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/58-hvx_kv_quant.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/59-hvx_softmax_q.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/60-hexkl_attn_q2.o",
+      "/home/jungone-lee/workspace/nntrainer/Qualcomm/hexkl-1.0-beta.2/hexkl_addon/lib/6.4.0.2/hexagon_toolv19_v81/libhexkl_micro.a",
+      "--start-group",
+      "-lgcc",
+      "--end-group",
+      "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/../target/hexagon/lib/v81/G0/pic/finiS.o"
+    ]
+  },
+  "candidate": {
+    "sha256": "7fa6e9beec4b5972f9e1681cca9c676e965e123c4171bb4bd595f3e73849da54",
+    "bytes": 743056,
+    "repeat_identical": true,
+    "imports": [
+      {
+        "symbol": "ldexpf",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "qurt_thread_get_priority",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "HAP_query_avail_VTCM",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "qurt_futex_wait",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "malloc",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "HAP_mmap",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "rintf",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "lroundf",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "dspqueue_read",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "HAP_munmap",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "__register_frame_info_bases",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "HAP_mmap_get",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "__hexagon_udivdi3",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "__extendhfsf2",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "nearbyintf",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "qurt_system_config_get",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "qurt_thread_join",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "strlcpy",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "qurt_thread_create",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "snprintf",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "compute_resource_hmx_unlock",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "qurt_futex_wake",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "calloc",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "dspqueue_import",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "HAP_perf_qtimer_count_to_us",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "sqrtf",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "vsnprintf",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "dspqueue_read_noblock",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "compute_resource_query_VTCM",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "dspqueue_close",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "compute_resource_attr_get_vtcm_ptr",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "lround",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "HAP_power_set",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "qurt_sysenv_get_arch_version",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "__hexagon_udivsi3",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "qurt_thread_exit",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "__truncsfhf2",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "HAP_debug",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "__hexagon_umodsi3",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "__hexagon_divdf3",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "HAP_mem_get_stats",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "HAP_debug_v2",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "compute_resource_attr_set_hmx_param",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "free",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "compute_resource_acquire",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "qurt_mem_cache_clean",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "ceil",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "compute_resource_attr_get_vtcm_ptr_v2",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "HAP_mmap_put",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "memalign",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "compute_resource_attr_set_vtcm_param",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "compute_resource_attr_init_v2",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "qurt_hvx_get_units",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "dspqueue_write",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "compute_resource_attr_init",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "compute_resource_release",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "compute_resource_hmx_lock",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "qurt_timer_sleep",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "memset",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "memcpy",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "ldexp",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "compute_resource_attr_set_vtcm_param_v2",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "memcmp",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "__cxa_finalize",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "_Log",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "qurt_thread_get_id",
+        "binding": "GLOBAL"
+      },
+      {
+        "symbol": "HAP_debug_runtime",
+        "binding": "WEAK"
+      },
+      {
+        "symbol": "__hexagon_memcpy_likely_aligned_min32bytes_mult8bytes",
+        "binding": "GLOBAL"
+      }
+    ],
+    "arch": "v81",
+    "link_command": [
+      "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/hexagon-link",
+      "-no-threads",
+      "--hash-style=sysv",
+      "-march=hexagon",
+      "-mcpu=hexagonv81",
+      "-shared",
+      "-call_shared",
+      "-G0",
+      "-o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/test/htp/build/libnntr_hvx_skel.so",
+      "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/../target/hexagon/lib/v81/G0/pic/initS.o",
+      "-L/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/../target/hexagon/lib/v81/G0/pic",
+      "-L/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/../target/hexagon/lib/v81/G0",
+      "-L/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/../target/hexagon/lib/v81",
+      "-L/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/../target/hexagon/lib",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/00-hvx_add_f32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/01-nntr_hvx_mm_u8i4.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/02-nntr_hvx_mm_u8i8.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/03-nntr_hvx_softmax.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/04-nntr_hvx_attn.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/05-nntr_hvx_dma_probe.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/06-nntr_hvx_graph.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/07-nntr_hvx_small_ops.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/08-nntr_hvx_attn_m1.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/09-nntr_hvx_dspq_bench.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/10-nntr_hvx_dspq.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/11-nntr_hvx_token.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/12-nntr_hvx_skel.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/13-nntr_hvx_attn_m1_probe.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/14-nntr_hvx_vlut_probe.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/15-nntr_hvx_tl2_probe.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/16-hexkl_mm_u8i4.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/17-hexkl_mm_u8i4_dma.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/18-hexkl_mm_u8i4_moe.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/19-hexkl_graph.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/20-hexkl_token.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/21-hexkl_conv_block.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/22-hexkl_mm_u8i8_dma.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/23-hexkl_dma_ring.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/24-hexkl_dma_trace.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/25-hexkl_kv_quant.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/26-hexkl_probe.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/27-hexkl_acc_tile.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/28-hexkl_attn_dtype.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/29-hexkl_attn_u8.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/candidate/30-hvx_quant_u8.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/31-hvx_dequant_i32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/32-hvx_swiglu_f32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/33-hvx_conv_gate_f32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/34-hvx_m1_ops_f32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/35-hvx_attn_m1_f32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/36-hvx_scale_add_f32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/37-hvx_rmsnorm_rows_f32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/38-hvx_router_rows_f32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/39-hvx_rope_rows_f32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/40-hvx_softcap_f32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/41-hvx_gather_ah_u8.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/42-hvx_softmax_f32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/43-hvx_softmax_blocked_f32.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/44-hvx_worker_pool.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/45-hvx_gemm_u8i4_wh.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/46-hvx_expand_i2i4.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/47-hvx_gemv_u8tl2.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/48-nntr_hvx_fc_q4.o",
+      "build/hvx_q4_gemv_f32.o",
+      "build/nntr_hvx_sf_probe.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/49-nntr_hvx_mailbox.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/50-nntr_hvx_attn_f16.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/candidate/51-nntr_hvx_attn_q.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/52-hexkl_attn_f16.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/53-hexkl_kv_tiles_f16.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/candidate/54-hexkl_attn_q.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/55-hexkl_kv_q.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/56-hvx_attn_decode_f16.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/candidate/57-hvx_attn_decode_q.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/58-hvx_kv_quant.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/59-hvx_softmax_q.o",
+      "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/60-hexkl_attn_q2.o",
+      "/home/jungone-lee/workspace/nntrainer/Qualcomm/hexkl-1.0-beta.2/hexkl_addon/lib/6.4.0.2/hexagon_toolv19_v81/libhexkl_micro.a",
+      "--start-group",
+      "-lgcc",
+      "--end-group",
+      "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/../target/hexagon/lib/v81/G0/pic/finiS.o"
+    ]
+  },
+  "frozen_objects": 63,
+  "unchanged_objects": 59,
+  "candidate_recompiled_tus": [
+    "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c",
+    "test/htp/nntr_hvx_attn_q.c",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c",
+    "nntrainer/tensor/htp_backend/hvx/hvx_attn_decode_q.c"
+  ],
+  "baseline_objects_unchanged": true,
+  "all_other_link_inputs_identical": true,
+  "original_build_sh_cc1_flags_used": true,
+  "altered_cc1_metadata_options": [
+    "output path",
+    "dependency-file",
+    "MT"
+  ],
+  "shared_linker_setting": "-no-threads",
+  "original_threaded_link_was_not_repeatable": true,
+  "production_source_sha256": {
+    "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c": "d909d7be99d56ca883ff9f15c7edbfeeca3818abc7d09a83d005942a7757355e",
+    "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8_group4.h": "669b71e2b1c5d4289e6745825e706928b523fc3c4cb3c2175bf1622ec2cd90af",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c": "11534746016a5a991868b432b7ab78960148ad0d26b65868863fd25e5376a596",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.h": "43147aa90d4960e54e740c0d246124e00ddd6cf681cd47cbcfd3100fb191dc7a",
+    "test/htp/nntr_hvx_attn_q.c": "917a7aa5642eb1c8def3d2553fd1d34c697c93a8d9a80db483f1d2c8672152f1"
+  },
+  "no_checkout_sdk_or_phone_changes": true,
+  "not_a_claim_of_original_3b_binary_identity": true,
+  "scope": "A newly compiled fixed object-set pair; device numerical/performance validation remains required."
+}

@@ -1,0 +1,6 @@
+{
+  "tools/lfm2_attn_qprep_check.py": "98668c099106329b657f6bfa5b046a489a57e6d9d57c975ab51f50aecc571458",
+  "test/htp/host/attn_qprep_native_check.c": "52a0558d85d435202872cee211af33db72608e0281eba985c622a81dab20037d",
+  "tools/lfm2_attn_qprep_rpc_check.py": "65ae47a451eed7d46b5c6eefc73bb5409deb533b84e34728ef0db06dff821616",
+  "test/htp/host/attn_qprep_rpc_check.c": "5883c8fb62b7bf45da216f9f9393d85a548ab9773ff197d4e58603a87bf1f871"
+}

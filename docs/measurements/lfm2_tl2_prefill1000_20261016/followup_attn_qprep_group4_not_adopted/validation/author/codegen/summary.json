@@ -1,0 +1,111 @@
+{
+  "hvx_quant_u8": {
+    "same_function_bytes": [
+      "hvx_gather_u8_ah_rows",
+      "hvx_quant_pack_u8_ah",
+      "hvx_quant_pack_u8_ah_m1_repeat",
+      "hvx_quant_pack_u8_ah_mapped",
+      "hvx_quant_pack_u8_ah_rows",
+      "hvx_quant_params_pack_u8_ah",
+      "hvx_quant_rows_u8_params",
+      "hvx_quant_rows_u8_params_rm",
+      "quant_pack_worker",
+      "quant_params_pack_worker",
+      "quant_rows_worker"
+    ],
+    "changed_function_bytes": [],
+    "new_functions": [
+      "hvx_quant_params_pack_u8_ah_group4",
+      "quant_group4_worker"
+    ],
+    "byte_exact_object": false,
+    "new_import_lines": []
+  },
+  "hexkl_attn_q": {
+    "same_function_bytes": [
+      "dequant_worker",
+      "hexkl_attn_q_plan",
+      "hexkl_attn_q_tiling_init",
+      "phase_qk",
+      "pquant_worker",
+      "softmax_worker",
+      "store_worker"
+    ],
+    "changed_function_bytes": [
+      "hexkl_attn_q_prefill",
+      "hexkl_attn_q_widen_prefill",
+      "phase_qprep"
+    ],
+    "new_functions": [],
+    "byte_exact_object": false,
+    "new_import_lines": [
+      "         U hvx_quant_params_pack_u8_ah_group4"
+    ]
+  },
+  "hvx_attn_decode_q": {
+    "same_function_bytes": [
+      "decode_unit",
+      "decode_worker",
+      "hvx_attn_decode_q"
+    ],
+    "changed_function_bytes": [],
+    "new_functions": [],
+    "byte_exact_object": true,
+    "new_import_lines": []
+  },
+  "nntr_hvx_attn_q": {
+    "same_function_bytes": [
+      "_HAP_debug_v2",
+      "attn_q2_step_impl",
+      "hexkl_attn_q_tiling_init",
+      "hexkl_cvt_zip_i16",
+      "nntr_hvx_attn_q2_prefill",
+      "nntr_hvx_attn_q2_step",
+      "nntr_hvx_attn_q2_step_fq",
+      "nntr_hvx_attn_q2_step_fqc",
+      "nntr_hvx_kv_append_q",
+      "nntr_hvx_kv_dump_q",
+      "nntr_hvx_kv_register_q",
+      "nntr_hvx_kv_release_q",
+      "nntr_hvx_kv_set_fixed_scales_q",
+      "nntr_hvx_probe_acc_i32_layout",
+      "nntr_hvx_probe_cvt",
+      "nntr_hvx_probe_hvx_rate",
+      "nntr_hvx_probe_kv_q_mm",
+      "nntr_hvx_probe_softmax_q",
+      "nntr_hvx_probe_softmax_q16",
+      "nntr_hvx_probe_wh_i8_pos",
+      "q2c_worker",
+      "read_acc_tile"
+    ],
+    "changed_function_bytes": [
+      "nntr_hvx_attn_q_decode",
+      "nntr_hvx_attn_q_prefill",
+      "nntr_hvx_attn_q_step"
+    ],
+    "new_functions": [],
+    "byte_exact_object": false,
+    "new_import_lines": []
+  },
+  "v81_io_size_and_original_offsets": {
+    "baseline": [
+      24,
+      0,
+      4,
+      8,
+      12,
+      16,
+      20
+    ],
+    "candidate": [
+      28,
+      0,
+      4,
+      8,
+      12,
+      16,
+      20
+    ]
+  },
+  "limits": "Function bytes are relocatable object bytes, not a model timing result or final linked-placement proof. Same source math and allocations are audited separately. Full root A/B uses 59 frozen common objects."
+}

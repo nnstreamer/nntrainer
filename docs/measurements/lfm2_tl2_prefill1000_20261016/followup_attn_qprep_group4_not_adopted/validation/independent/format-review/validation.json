@@ -1,0 +1,60 @@
+[
+  {
+    "path": "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c",
+    "same": true,
+    "diff_lines": 0,
+    "command": [
+      "/tmp/lfm2-prefill1000-20261013/format/clang_format/data/bin/clang-format",
+      "-style=file",
+      "-assume-filename=/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c",
+      "-lines=21:27",
+      "-lines=589:628"
+    ]
+  },
+  {
+    "path": "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8_group4.h",
+    "same": true,
+    "diff_lines": 0,
+    "command": [
+      "/tmp/lfm2-prefill1000-20261013/format/clang_format/data/bin/clang-format",
+      "-style=file",
+      "-assume-filename=/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/nntrainer/tensor/htp_backend/hvx/hvx_quant_u8_group4.h",
+      "-lines=1:28"
+    ]
+  },
+  {
+    "path": "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c",
+    "same": true,
+    "diff_lines": 0,
+    "command": [
+      "/tmp/lfm2-prefill1000-20261013/format/clang_format/data/bin/clang-format",
+      "-style=file",
+      "-assume-filename=/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c",
+      "-lines=68:74",
+      "-lines=185:218",
+      "-lines=227:250"
+    ]
+  },
+  {
+    "path": "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.h",
+    "same": true,
+    "diff_lines": 0,
+    "command": [
+      "/tmp/lfm2-prefill1000-20261013/format/clang_format/data/bin/clang-format",
+      "-style=file",
+      "-assume-filename=/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.h",
+      "-lines=32:41"
+    ]
+  },
+  {
+    "path": "test/htp/nntr_hvx_attn_q.c",
+    "same": true,
+    "diff_lines": 0,
+    "command": [
+      "/tmp/lfm2-prefill1000-20261013/format/clang_format/data/bin/clang-format",
+      "-style=file",
+      "-assume-filename=/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/test/htp/nntr_hvx_attn_q.c",
+      "-lines=1055:1061"
+    ]
+  }
+]

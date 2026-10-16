@@ -1,0 +1,14 @@
+{
+  "actual": [
+    "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c",
+    "nntrainer/tensor/htp_backend/hvx/hvx_attn_decode_q.c",
+    "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c",
+    "test/htp/nntr_hvx_attn_q.c"
+  ],
+  "expected": [
+    "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c",
+    "nntrainer/tensor/htp_backend/hvx/hvx_attn_decode_q.c",
+    "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c",
+    "test/htp/nntr_hvx_attn_q.c"
+  ]
+}

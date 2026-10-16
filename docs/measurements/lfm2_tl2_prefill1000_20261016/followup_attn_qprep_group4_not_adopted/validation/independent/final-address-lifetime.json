@@ -1,0 +1,70 @@
+{
+  "scope": "Source/body equality and enumerated address proof; no HW arithmetic/timing test.",
+  "unchanged_functions": [
+    {
+      "name": "dequant_s_at",
+      "source": "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c",
+      "function_sha256": "0e94bb53e1087845e73016d7f4edb668065b0fcc626897c327235937d420c2b7"
+    },
+    {
+      "name": "dequant_s",
+      "source": "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c",
+      "function_sha256": "02ea4598d12e46e9d32448dc48c824e83a94e998a6d7d0a6a6db87f1fab3c1aa"
+    },
+    {
+      "name": "qx_dequant_available",
+      "source": "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c",
+      "function_sha256": "73a298ec9897ed6ba76345237886ddee005cd2d5948aa367048f223e1f86608a"
+    },
+    {
+      "name": "dequant_worker",
+      "source": "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c",
+      "function_sha256": "47a80b13d3cbf43d215edf1a70452e1522d0151e997aaa4e98ddb5ddb1da0a0e"
+    },
+    {
+      "name": "phase_qk",
+      "source": "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c",
+      "function_sha256": "68555fcf6e81b504c6adb982c0f0dd9054c8857dde937b989e900afaf74281a8"
+    },
+    {
+      "name": "run_q_block",
+      "source": "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c",
+      "function_sha256": "73a0c68179113d5f01e1744400f61ecfc3b57c34b8be853da14fa51e37dab89f"
+    },
+    {
+      "name": "phase_store",
+      "source": "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c",
+      "function_sha256": "a296e38e2734f9efd6ac42b43bad13fbf07f4e4cfb63fd8982cb0afb1cb8c1de"
+    },
+    {
+      "name": "quant_row_params_one",
+      "source": "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c",
+      "function_sha256": "ece7ffc938511c420697585ccbfe80c06b496999792dcacda026a1c2a3ebfacb"
+    },
+    {
+      "name": "quant_params_pack_worker",
+      "source": "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c",
+      "function_sha256": "93aff004e49cc3c9ac732dc8b19ae12734824fc3bd1bb1a93b71d95d2cda328a"
+    },
+    {
+      "name": "pack_group_rows",
+      "source": "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c",
+      "function_sha256": "552408e22da61ec47be5c2787e8fa1d17ab431085b0b29cbd02ac0d7a43faea2"
+    },
+    {
+      "name": "quant_pack_group4",
+      "source": "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c",
+      "function_sha256": "3a3570c22d4282dea92b664e2e3e013516c9963a3aca5b34943c2e46c25bec5b"
+    }
+  ],
+  "query_head_rows": 65536,
+  "ah_vector_stores": 32768,
+  "pool_partitions": 144,
+  "query_last_byte_exclusive": 16777216,
+  "qx_existing_bytes": 1179648,
+  "deferred_raw_bank_bytes": 524288,
+  "source_sha256": {
+    "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c": "11534746016a5a991868b432b7ab78960148ad0d26b65868863fd25e5376a596",
+    "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c": "d909d7be99d56ca883ff9f15c7edbfeeca3818abc7d09a83d005942a7757355e"
+  }
+}

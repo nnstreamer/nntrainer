@@ -1,0 +1,14 @@
+{
+  "model": 2048,
+  "pid": null,
+  "raw_tagged_records": 192,
+  "unique_calls": 192,
+  "transport_duplicates": 0,
+  "groups_per_call_counts": {
+    "1152": 96,
+    "896": 96
+  },
+  "total_groups": 196608,
+  "logical_gather_bytes_skipped": 201326592,
+  "scope": "helper success after pool drain; completed single-child run and correct trace binary required separately; no time/bandwidth claim"
+}

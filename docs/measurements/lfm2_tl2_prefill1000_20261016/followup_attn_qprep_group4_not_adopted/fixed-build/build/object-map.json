@@ -1,0 +1,380 @@
+[
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hvx/hvx_q4_gemv_f32.c",
+    "original_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/test/htp/build/hvx_q4_gemv_f32.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/test/htp/build/hvx_q4_gemv_f32.o",
+    "ieee": true
+  },
+  {
+    "source": "nntr_hvx_sf_probe.c",
+    "original_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/test/htp/build/nntr_hvx_sf_probe.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/test/htp/build/nntr_hvx_sf_probe.o",
+    "ieee": true
+  },
+  {
+    "source": "hvx_add_f32.c",
+    "original_object": "/tmp/hvx_add_f32-bc4fec.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/00-hvx_add_f32.o",
+    "ieee": false
+  },
+  {
+    "source": "nntr_hvx_mm_u8i4.c",
+    "original_object": "/tmp/nntr_hvx_mm_u8i4-79d042.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/01-nntr_hvx_mm_u8i4.o",
+    "ieee": false
+  },
+  {
+    "source": "nntr_hvx_mm_u8i8.c",
+    "original_object": "/tmp/nntr_hvx_mm_u8i8-3734d8.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/02-nntr_hvx_mm_u8i8.o",
+    "ieee": false
+  },
+  {
+    "source": "nntr_hvx_softmax.c",
+    "original_object": "/tmp/nntr_hvx_softmax-87e6e9.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/03-nntr_hvx_softmax.o",
+    "ieee": false
+  },
+  {
+    "source": "nntr_hvx_attn.c",
+    "original_object": "/tmp/nntr_hvx_attn-425870.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/04-nntr_hvx_attn.o",
+    "ieee": false
+  },
+  {
+    "source": "nntr_hvx_dma_probe.c",
+    "original_object": "/tmp/nntr_hvx_dma_probe-e3c22a.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/05-nntr_hvx_dma_probe.o",
+    "ieee": false
+  },
+  {
+    "source": "nntr_hvx_graph.c",
+    "original_object": "/tmp/nntr_hvx_graph-fa4ca8.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/06-nntr_hvx_graph.o",
+    "ieee": false
+  },
+  {
+    "source": "nntr_hvx_small_ops.c",
+    "original_object": "/tmp/nntr_hvx_small_ops-fdf22d.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/07-nntr_hvx_small_ops.o",
+    "ieee": false
+  },
+  {
+    "source": "nntr_hvx_attn_m1.c",
+    "original_object": "/tmp/nntr_hvx_attn_m1-aa4802.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/08-nntr_hvx_attn_m1.o",
+    "ieee": false
+  },
+  {
+    "source": "nntr_hvx_dspq_bench.c",
+    "original_object": "/tmp/nntr_hvx_dspq_bench-1446cc.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/09-nntr_hvx_dspq_bench.o",
+    "ieee": false
+  },
+  {
+    "source": "nntr_hvx_dspq.c",
+    "original_object": "/tmp/nntr_hvx_dspq-6af2d1.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/10-nntr_hvx_dspq.o",
+    "ieee": false
+  },
+  {
+    "source": "nntr_hvx_token.c",
+    "original_object": "/tmp/nntr_hvx_token-ccb085.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/11-nntr_hvx_token.o",
+    "ieee": false
+  },
+  {
+    "source": "generated/nntr_hvx_skel.c",
+    "original_object": "/tmp/nntr_hvx_skel-973895.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/12-nntr_hvx_skel.o",
+    "ieee": false
+  },
+  {
+    "source": "nntr_hvx_attn_m1_probe.c",
+    "original_object": "/tmp/nntr_hvx_attn_m1_probe-53f9bf.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/13-nntr_hvx_attn_m1_probe.o",
+    "ieee": false
+  },
+  {
+    "source": "nntr_hvx_vlut_probe.c",
+    "original_object": "/tmp/nntr_hvx_vlut_probe-bc302f.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/14-nntr_hvx_vlut_probe.o",
+    "ieee": false
+  },
+  {
+    "source": "nntr_hvx_tl2_probe.c",
+    "original_object": "/tmp/nntr_hvx_tl2_probe-c89ba6.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/15-nntr_hvx_tl2_probe.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4.c",
+    "original_object": "/tmp/hexkl_mm_u8i4-c7287b.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/16-hexkl_mm_u8i4.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.c",
+    "original_object": "/tmp/hexkl_mm_u8i4_dma-d0209c.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/17-hexkl_mm_u8i4_dma.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c",
+    "original_object": "/tmp/hexkl_mm_u8i4_moe-5ef48b.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/18-hexkl_mm_u8i4_moe.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_graph.c",
+    "original_object": "/tmp/hexkl_graph-33763a.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/19-hexkl_graph.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_token.c",
+    "original_object": "/tmp/hexkl_token-5f2fad.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/20-hexkl_token.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_conv_block.c",
+    "original_object": "/tmp/hexkl_conv_block-5748fb.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/21-hexkl_conv_block.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i8_dma.c",
+    "original_object": "/tmp/hexkl_mm_u8i8_dma-3cc5d5.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/22-hexkl_mm_u8i8_dma.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.c",
+    "original_object": "/tmp/hexkl_dma_ring-12317b.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/23-hexkl_dma_ring.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_dma_trace.c",
+    "original_object": "/tmp/hexkl_dma_trace-caf312.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/24-hexkl_dma_trace.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_kv_quant.c",
+    "original_object": "/tmp/hexkl_kv_quant-d6205c.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/25-hexkl_kv_quant.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_probe.c",
+    "original_object": "/tmp/hexkl_probe-db3132.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/26-hexkl_probe.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_acc_tile.c",
+    "original_object": "/tmp/hexkl_acc_tile-c6f8bc.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/27-hexkl_acc_tile.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_attn_dtype.c",
+    "original_object": "/tmp/hexkl_attn_dtype-dde1e5.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/28-hexkl_attn_dtype.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_attn_u8.c",
+    "original_object": "/tmp/hexkl_attn_u8-ca0bd1.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/29-hexkl_attn_u8.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c",
+    "original_object": "/tmp/hvx_quant_u8-eb70bd.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/30-hvx_quant_u8.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.c",
+    "original_object": "/tmp/hvx_dequant_i32-c8809b.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/31-hvx_dequant_i32.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hvx/hvx_swiglu_f32.c",
+    "original_object": "/tmp/hvx_swiglu_f32-2511ec.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/32-hvx_swiglu_f32.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hvx/hvx_conv_gate_f32.c",
+    "original_object": "/tmp/hvx_conv_gate_f32-db9cc7.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/33-hvx_conv_gate_f32.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hvx/hvx_m1_ops_f32.c",
+    "original_object": "/tmp/hvx_m1_ops_f32-19114f.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/34-hvx_m1_ops_f32.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hvx/hvx_attn_m1_f32.c",
+    "original_object": "/tmp/hvx_attn_m1_f32-22aa25.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/35-hvx_attn_m1_f32.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hvx/hvx_scale_add_f32.c",
+    "original_object": "/tmp/hvx_scale_add_f32-7fdff6.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/36-hvx_scale_add_f32.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hvx/hvx_rmsnorm_rows_f32.c",
+    "original_object": "/tmp/hvx_rmsnorm_rows_f32-a1bb39.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/37-hvx_rmsnorm_rows_f32.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hvx/hvx_router_rows_f32.c",
+    "original_object": "/tmp/hvx_router_rows_f32-7051c1.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/38-hvx_router_rows_f32.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hvx/hvx_rope_rows_f32.c",
+    "original_object": "/tmp/hvx_rope_rows_f32-8eaaff.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/39-hvx_rope_rows_f32.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hvx/hvx_softcap_f32.c",
+    "original_object": "/tmp/hvx_softcap_f32-9213c4.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/40-hvx_softcap_f32.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hvx/hvx_gather_ah_u8.c",
+    "original_object": "/tmp/hvx_gather_ah_u8-833522.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/41-hvx_gather_ah_u8.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hvx/hvx_softmax_f32.c",
+    "original_object": "/tmp/hvx_softmax_f32-bc3676.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/42-hvx_softmax_f32.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hvx/hvx_softmax_blocked_f32.c",
+    "original_object": "/tmp/hvx_softmax_blocked_f32-0e75f3.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/43-hvx_softmax_blocked_f32.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c",
+    "original_object": "/tmp/hvx_worker_pool-681121.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/44-hvx_worker_pool.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hvx/hvx_gemm_u8i4_wh.c",
+    "original_object": "/tmp/hvx_gemm_u8i4_wh-0b31ef.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/45-hvx_gemm_u8i4_wh.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hvx/hvx_expand_i2i4.c",
+    "original_object": "/tmp/hvx_expand_i2i4-5628b4.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/46-hvx_expand_i2i4.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.c",
+    "original_object": "/tmp/hvx_gemv_u8tl2-a60ec7.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/47-hvx_gemv_u8tl2.o",
+    "ieee": false
+  },
+  {
+    "source": "nntr_hvx_fc_q4.c",
+    "original_object": "/tmp/nntr_hvx_fc_q4-4c5b15.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/48-nntr_hvx_fc_q4.o",
+    "ieee": false
+  },
+  {
+    "source": "nntr_hvx_mailbox.c",
+    "original_object": "/tmp/nntr_hvx_mailbox-f8d09f.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/49-nntr_hvx_mailbox.o",
+    "ieee": false
+  },
+  {
+    "source": "nntr_hvx_attn_f16.c",
+    "original_object": "/tmp/nntr_hvx_attn_f16-19a4a8.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/50-nntr_hvx_attn_f16.o",
+    "ieee": false
+  },
+  {
+    "source": "nntr_hvx_attn_q.c",
+    "original_object": "/tmp/nntr_hvx_attn_q-30e589.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/51-nntr_hvx_attn_q.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_attn_f16.c",
+    "original_object": "/tmp/hexkl_attn_f16-93f91b.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/52-hexkl_attn_f16.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_kv_tiles_f16.c",
+    "original_object": "/tmp/hexkl_kv_tiles_f16-058619.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/53-hexkl_kv_tiles_f16.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c",
+    "original_object": "/tmp/hexkl_attn_q-b0180a.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/54-hexkl_attn_q.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_kv_q.c",
+    "original_object": "/tmp/hexkl_kv_q-72316e.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/55-hexkl_kv_q.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hvx/hvx_attn_decode_f16.c",
+    "original_object": "/tmp/hvx_attn_decode_f16-9ae7f6.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/56-hvx_attn_decode_f16.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hvx/hvx_attn_decode_q.c",
+    "original_object": "/tmp/hvx_attn_decode_q-099f2a.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/57-hvx_attn_decode_q.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hvx/hvx_kv_quant.c",
+    "original_object": "/tmp/hvx_kv_quant-a30291.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/58-hvx_kv_quant.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hvx/hvx_softmax_q.c",
+    "original_object": "/tmp/hvx_softmax_q-c41dc1.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/59-hvx_softmax_q.o",
+    "ieee": false
+  },
+  {
+    "source": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_attn_q2.c",
+    "original_object": "/tmp/hexkl_attn_q2-833b4a.o",
+    "frozen_object": "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/objects/baseline/60-hexkl_attn_q2.o",
+    "ieee": false
+  }
+]

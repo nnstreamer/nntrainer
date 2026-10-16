@@ -1,0 +1,97 @@
+{
+  "production_sha256": "a07332c9043b6760a42392cae06a237319e6a1e383829edc0bee5d838b435df8",
+  "tests_sha256": "f962d48fabdb73ce2702333f67907b8c5f5ddd86e17c01c38d37048ea66db23f",
+  "host_validation": {
+    "actual_qprep_libnative_cases": 576,
+    "capability_shape_alias_guards": 31,
+    "qprep_mutants_rejected": 5,
+    "actual_rpc_body_cases": 15,
+    "rpc_mutants_rejected": 3,
+    "actual_overlap_pipeline_cases": 460,
+    "overlap_mutants_rejected": 3,
+    "strict_runtime_errors": 0,
+    "frozen_strict_source_hashes_match": true
+  },
+  "codegen": {
+    "affected_v81_tus": 4,
+    "unchanged_common_quant_functions": 11,
+    "decode_object_byte_exact": true,
+    "io_size_bytes": [
+      24,
+      28
+    ],
+    "io_original_offsets_unchanged": true,
+    "stack_bytes": {
+      "qprep": [
+        512,
+        512
+      ],
+      "prefill": [
+        1536,
+        1536
+      ],
+      "step": [
+        336,
+        336
+      ],
+      "new_group4_worker": 640,
+      "new_group4_helper": 32
+    }
+  },
+  "diagnostic": {
+    "production_unchanged": true,
+    "macro_off_object_byte_exact": true,
+    "extra_global_bytes": 4,
+    "helper_frame_normal_trace": [
+      32,
+      64
+    ],
+    "logger_frame_bytes": 280,
+    "new_atomic_runtime_imports": false,
+    "max_payload_bytes": 79,
+    "host_unique_calls": 192,
+    "device_2048_expected_calls": 160,
+    "device_1024_expected_calls": 0,
+    "parser_valid_negative_cases": [
+      4,
+      18
+    ]
+  },
+  "superseded_test_evidence": {
+    "patch": "tests-v1-ffb26.patch",
+    "old_quant_log": "checks/final/attn_qprep_native_check.log",
+    "reason": "Host alias used8B alignment for a4B SDK unaligned type;8 recoverable warnings made prior sanitizer-PASS claim invalid. Raw evidence retained. New type models actual aligned(4), no suppression; strict halt rerun succeeded."
+  },
+  "limits": [
+    "No root/device edits or device measurement by this author.",
+    "libnative arithmetic is real SDK emulation but its prebuilt library is uninstrumented.",
+    "RPC reserve/DMA/append/attention kernel are explicit stand-ins; hardware coherence untested here.",
+    "Overlap HMX/DMA/softmax/PV are stand-ins; actual readout selection, dequant and drain code is exercised.",
+    "160MiB is logical Q gather payload, not measured DDR traffic or expected time saved.",
+    "Root must use frozen common DSP objects and verify runtime dispatch/IDs/peak/normal A/B separately."
+  ],
+  "artifacts": {
+    "production.patch": "a07332c9043b6760a42392cae06a237319e6a1e383829edc0bee5d838b435df8",
+    "tests.patch": "f962d48fabdb73ce2702333f67907b8c5f5ddd86e17c01c38d37048ea66db23f",
+    "source-hashes.json": "5575c784642c828a592916699805756a5629eae0df71c070dd1e9eecb251ce98",
+    "tests-hashes.json": "1a2c933ed5ef7688bf40038dd9329bd1aaf2c0ea03fdbe16bcfb06af571caa2c",
+    "format-check.json": "7e7d19c1e82b25d89de290c96fa2e9c3d05bf180f875130d3ea13d50b535af52",
+    "compile-frozen.log": "a2cd445b5247c7422234b7201bbee61ebe531c5121b5c97b5e10f9bf805adc0f",
+    "codegen/summary.json": "49321b37b3921e21850c389cab17d33fae4f84a1eb6d4b1a3913112efd463d6c",
+    "codegen/dependency-screen.json": "fd3a0cde3f3c88f2423f0f34bb0101f33f24a903b52ef22559a276f9a93da950",
+    "codegen/commands.json": "504773266cc7271f48c16503b52dd8fe8b7962c07816ae7ae1a86cffff5fa802",
+    "checks/frozen-strict/validation.json": "b0cc6249f3d2f654e516d56783bf82115dcd5c813d3523df11ec517c94c504d9",
+    "checks/frozen-strict/attn_qprep_native_check.log": "67d1cfb74f8f1327de9acc816a09359b54dd7e532780bca16c3739d03d97b731",
+    "checks/rpc-final/validation.json": "509b80ec56b5c5348b92416a666a51637d8d31bfce6b3c7449728c15a5ac4bf0",
+    "checks/overlap/source_manifest.json": "f5eb0b8e51d88bef6d5662259a244d93488186f3e3ab0d5115f31b070b2b4670",
+    "checks/overlap/strict-halt-rerun.log": "2a44e69e7780febcd1e4c98e0c3055eab4420acb2e8c4fe07870da87b8b8740a",
+    "diagnostic/diagnostic.patch": "af263c745b23b9215a5707f9bc60c008ef2c168ea0880d9b201adddef4871a39",
+    "diagnostic/parse_trace.py": "6642f30f3649b0592847e3d35b1b94af24451f7375df8b2a349b00f126274def",
+    "diagnostic/check_parser.py": "e3b93b2a7b2890765a0730bfd9579d445b432e010f3672175691c5bb4d03458f",
+    "diagnostic/parser-check.json": "03711bb97db4e11527a982ae41a04c3fe566be9b359f92d3fb20b5557b53cf00",
+    "diagnostic/build-validation.json": "c199e9854b3ce3887b505ebca7d343c7cd2988fe233f6ec1bd29928e4f60306a",
+    "diagnostic/host-strict-counts.json": "6bd9a72542fe7c8e0eee077e151f725159c546a247253cbc881ea8e05d5a4298",
+    "diagnostic/host-strict/validation.json": "d3b2624f5779145b2234300478d36d69852f61469660a64b00a9c003943270f6",
+    "diagnostic/README.txt": "dfd1f18d6f93de7d33502fcace411ae674e0155020c767db3ff1d6d0f32c2a27"
+  }
+}

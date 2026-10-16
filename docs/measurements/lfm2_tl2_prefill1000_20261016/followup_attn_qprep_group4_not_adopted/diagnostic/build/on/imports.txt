@@ -1,0 +1,14 @@
+         w HAP_debug
+         w HAP_debug_v2
+         U _GLOBAL_OFFSET_TABLE_
+         U __hexagon_udivdi3
+         U __hexagon_udivsi3
+         U __hexagon_umodsi3
+         U free
+         U hvx_rmsnorm_row_f32
+         U hvx_worker_pool_run
+         U malloc
+         U memcpy
+         U memset
+         U nearbyintf
+         U vsnprintf

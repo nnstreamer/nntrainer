@@ -1,0 +1,35 @@
+{
+  "status": "PASS",
+  "decision": "not_adopted",
+  "new_tests_builds_or_device_runs": false,
+  "raw_readback_independent_of_author_parser": true,
+  "normal_runs_recomputed": 12,
+  "diagnostic_runs_recomputed": 2,
+  "all_14_id_and_memory_hashes_recomputed": true,
+  "source_and_frozen_manifests_verified": {
+    "author_manifest_sha256": "0f85a99c1397aae7b44d6c45e987ebd4021c0897147a755d985196ffff086c37",
+    "independent_manifest_sha256": "f56feb93a1453afe2012c17871094d6c2144607d944ee5cdddd60043d2cb6887",
+    "current_frozen_object_sha256_verified": 63
+  },
+  "original_documents_unmodified": true,
+  "summary_supersedes_original_pending_decision_text": true,
+  "frozen_review_report_sha256": "88198c77ac0e995272872003c3d446dfb662937ed97dca7becf00afe651ee8f6",
+  "frozen_review_validation_sha256": "73d61315dcaef9c9b51122bc6965ba164c71ab7348032a8e0eb739d4a8ee603b",
+  "all_root_metadata_at_curation": [
+    "root-baseline.json",
+    "root-diagnostic-attention-stages.json",
+    "root-diagnostic-build.json",
+    "root-diagnostic-summary.json",
+    "root-diagnostic-validation.json",
+    "root-format-check.json",
+    "root-normal-first.json",
+    "root-normal-jobs.json",
+    "root-normal-rest.json",
+    "root-normal-restored.json",
+    "root-normal-runtime-identity.json",
+    "root-normal-summary.json",
+    "root-normal-thermal.json",
+    "root-run-diagnostic.py"
+  ],
+  "scope": "Existing records and hashes only; no correctness/performance test rerun."
+}

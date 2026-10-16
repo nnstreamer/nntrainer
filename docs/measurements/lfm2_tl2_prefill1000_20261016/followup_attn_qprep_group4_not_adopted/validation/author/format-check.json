@@ -1,0 +1,7 @@
+{
+  "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c": true,
+  "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8_group4.h": true,
+  "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c": true,
+  "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.h": true,
+  "test/htp/nntr_hvx_attn_q.c": true
+}

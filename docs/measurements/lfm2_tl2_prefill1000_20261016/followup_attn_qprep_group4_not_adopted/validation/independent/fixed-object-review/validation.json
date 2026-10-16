@@ -1,0 +1,78 @@
+{
+  "status": "PASS",
+  "source_revision": "742735f3c61803fac51189012ba4caf588a3bd50",
+  "patch_sha256": "a07332c9043b6760a42392cae06a237319e6a1e383829edc0bee5d838b435df8",
+  "five_source_hashes_verified": {
+    "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c": "d909d7be99d56ca883ff9f15c7edbfeeca3818abc7d09a83d005942a7757355e",
+    "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8_group4.h": "669b71e2b1c5d4289e6745825e706928b523fc3c4cb3c2175bf1622ec2cd90af",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c": "11534746016a5a991868b432b7ab78960148ad0d26b65868863fd25e5376a596",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.h": "43147aa90d4960e54e740c0d246124e00ddd6cf681cd47cbcfd3100fb191dc7a",
+    "test/htp/nntr_hvx_attn_q.c": "917a7aa5642eb1c8def3d2553fd1d34c697c93a8d9a80db483f1d2c8672152f1"
+  },
+  "dependency_closure": [
+    "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c",
+    "nntrainer/tensor/htp_backend/hvx/hvx_attn_decode_q.c",
+    "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c",
+    "test/htp/nntr_hvx_attn_q.c"
+  ],
+  "baseline_objects": 63,
+  "common_objects": 59,
+  "candidate_recompiled": 4,
+  "baseline_git_source_files_checked": 655,
+  "external_hashes_checked": 38,
+  "compile_records_checked": 67,
+  "cc1_options_identical_except_output_and_dependency_metadata": true,
+  "independent_relink_sha256": {
+    "control": {
+      "same_output_repeat_sha256": [
+        "9d86cab04c70bd57b0574d238956262cff3d2da5041cd8ecc243aad0856648c3",
+        "9d86cab04c70bd57b0574d238956262cff3d2da5041cd8ecc243aad0856648c3"
+      ],
+      "deployed_image_sha256": "f3fd2fd2f9c457d21ff13f0d1a9e6263a2a93a60fc9e0a6c75eb172d15387b06",
+      "different_output_name_comparison": [
+        {
+          "only_changed_section": ".comment",
+          "alloc_sections_identical": true,
+          "noncomment_sections_identical": true
+        },
+        {
+          "only_changed_section": ".comment",
+          "alloc_sections_identical": true,
+          "noncomment_sections_identical": true
+        }
+      ]
+    },
+    "candidate": {
+      "same_output_repeat_sha256": [
+        "28e0373f5a812b458bf76c20c6966808ce88742c10c076b21c82ea19a5c40e6e",
+        "28e0373f5a812b458bf76c20c6966808ce88742c10c076b21c82ea19a5c40e6e"
+      ],
+      "deployed_image_sha256": "7fa6e9beec4b5972f9e1681cca9c676e965e123c4171bb4bd595f3e73849da54",
+      "different_output_name_comparison": [
+        {
+          "only_changed_section": ".comment",
+          "alloc_sections_identical": true,
+          "noncomment_sections_identical": true
+        },
+        {
+          "only_changed_section": ".comment",
+          "alloc_sections_identical": true,
+          "noncomment_sections_identical": true
+        }
+      ]
+    }
+  },
+  "additional_shared_link_dependency": {
+    "path": "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/target/hexagon/lib/v81/G0/pic/libgcc.so",
+    "sha256": "1e761686ff01495e4f6eec17cf9533d05a4fa482272da4ee2261173dc2dc0063",
+    "not_in_original_archive_only_manifest": true
+  },
+  "runtime_imports_identical": true,
+  "runtime_import_count": 68,
+  "notes": [
+    "Reviewer writes only under own output directory.",
+    "Checks object/input/ABI closure; not original 3b image identity or device performance.",
+    "Changing output path changes only nonallocated .comment and section header offsets; same-path repeats are fully identical.",
+    "Compiler build.sh flags also manually compared with the frozen script."
+  ]
+}

@@ -1,0 +1,192 @@
+Independent review: cached strided LFM2048 Q preparation
+Reviewer: /root/gemma_prefill_port; 2026-10-17
+
+Verdict: no unresolved production correctness or integration blocker found
+for production patch a07332c9043b6760a42392cae06a237319e6a1e383829edc0bee5d838b435df8.
+This is a code, lifetime, host arithmetic and build-input review, not approval
+of a speedup. Normal device performance and adoption belong to the parent.
+No root tree, author's source, SDK, phone or commit was modified by this review.
+This report supersedes the preliminary source-review.txt for the frozen inputs.
+
+Frozen test patch used for the final strict quantizer run:
+f962d48fabdb73ce2702333f67907b8c5f5ddd86e17c01c38d37048ea66db23f.
+Production source hashes, test hashes, commands and result artifacts are linked
+from validation.json; manifest.json records the reviewer text artifacts.
+
+Capability, ownership and memory
+
+The three real IO producers are direct prefill, direct decode and combined
+Q-step in test/htp/nntr_hvx_attn_q.c. Each zero-initializes the whole internal
+struct. Only Q-step publishes q_cached=1, after the existing successful scratch
+reservation and completed K/V/Q DMA copies. hexkl_moe_dma_copy drains before
+return. Allocation failure and direct RPCs leave the capability zero.
+
+At 2048 the existing cached scratch contains K 2 MiB, V 2 MiB, Q 16 MiB and
+output 16 MiB. The KV append completes its worker work before attention and
+does not reserve or replace this scratch. Q and output are adjacent disjoint
+ranges. Q remains immutable for the synchronous RPC. No lifetime is extended
+across an RPC, and no DMA drain or worker completion boundary is shortened.
+
+The new private guard requires the completed-cache capability, dynamic Q8,
+full 2048-token attention, 32/8 query/KV heads, head dimension 64, G4,
+Br128/Bc256/GBr512, row stride 2048, no sinks/window/softcap, bounded head and
+chunk indices and the validated layout extent. It rejects overlap of all Q
+with VTCM, the actual scale/zp write regions and output. Address-difference
+checks avoid integer addition overflow. Real-entry allocation/shape validation
+establishes the underlying metadata and VTCM objects before this guard runs.
+
+The selected path uses the old allocations and capacities. It retains the
+whole Qx region and the existing metadata arrays; it does not allocate scratch,
+cache weights, change readers, or alter C16/PAGE0/preload. q_cached is one new
+32-bit field in a DSP-local IO descriptor (24 to 28 bytes on the DSP). The
+new synchronous group context contains seven 32-bit fields/pointers, 28 bytes.
+Compiled helper frame is 32 bytes and worker frame 640 bytes. Caller frames
+remain prefill 1536 bytes and Q-step 336 bytes. No persistent state is added.
+
+Arithmetic, address and concurrent-worker proof
+
+The old flattened row m corresponds to query qb0*128+floor(m/4) and head
+n*4+m%4. The new group g starts at Q+qb0*128*2048+n*4*64+g*2048 and uses rows
+at offsets 0, 64, 128 and 192. Independent enumeration checks all 65,536
+query/head rows in chunks 9+7 across eight KV heads. The final read endpoint
+is exactly 16 MiB. It also checks 32,768 distinct aligned AH vector stores
+and 144 worker partitions for worker counts 0 through 8.
+
+The direct helper invokes the existing quant_row_params_one and pack_group_rows
+bodies. Input bits, per-row operation order, AH layout, scale=1/zp=0 defaults
+and final scale fold are preserved. The worker's ranges are disjoint in both
+AH vectors and row metadata; its stack context stays alive until the pool's
+synchronous acquire barrier completes. The API is deliberately narrow:
+k=64, group stride 2048, and 128..2048 groups in multiples of 128. Its exact
+packed output extent is groups*4*k bytes, without padded/partial AH rows.
+
+The v81 compilation independently found all 11 existing quantizer function
+bodies byte-identical, with only the two new functions added. This comparison
+uses relocatable function bytes, not final relocated addresses or performance.
+Shared mathematical helper source bodies are also text-identical. The new
+worker uses the actual unaligned HVX load contract, not a vector-aligned input
+assumption. No arithmetic simplification or quantization policy changes.
+
+Qx and dequant overlap lifetime
+
+The planner is unchanged. The existing nine-block Qx region is 1,179,648 bytes;
+the raw deferred QK bank occupies 524,288 bytes. Initial QK always writes L.acc
+and converts immediately. Later deferred QK writes every raw tile in Qx before
+submitting its dequant worker. That worker uses the other S bank while PV uses
+L.acc. Existing success/error joins finish before next reuse or return.
+
+Thus skipping the initial gathered FP32 Qx contents does not leave data that
+the overlap pipeline needs uninitialized. Independent source equality covers
+dequant_s_at, dequant_s, qx_dequant_available, dequant_worker, phase_qk,
+run_q_block and phase_store. The poisoned-Qx host runner also exercises the
+existing partial-chunk, worker, QK failure and PV-error drain cases.
+
+Fallback and deployment contract
+
+1024, decode, fixed/Gemma attention, unsupported geometry/stride and unstaged
+calls retain the old gather/quantizer path. This is a semantic fallback proof,
+not a claim that the extra branch or final linked layout has zero timing cost.
+No Gemma device benchmark was run by this reviewer.
+
+The IO field is internal to the DSP, with no IDL/RPC method or ARM ABI change.
+The dependency closure is four C translation units: hvx_quant_u8.c,
+hexkl_attn_q.c, nntr_hvx_attn_q.c and hvx_attn_decode_q.c. All consumers of
+the changed internal IO definition must be rebuilt together; mixing old
+descriptor producers with new consumers is outside the deployment contract.
+The old hvx_quant_u8.h is unchanged. A new narrow header avoids rebuilding
+unrelated FC/MoE users. Repository searches found the three zero-initialized
+IO producers above. All four before/candidate TUs compiled and assembled
+independently with recorded v81 -O3 -Wall -Werror flags. The decode object and
+assembly are byte-identical. Changed-line clang-format 14 checks pass for all
+five production files.
+
+Independent executed checks
+
+1. Actual phase_qprep extraction plus real production HVX quantizer and SDK
+   libnative: 576 exact packed-byte/scale/zp/gather/canary cases, 31 shape and
+   ownership guards, and five deliberate mutants rejected by their intended
+   assertions. Final run uses ASan/UBSan with fatal diagnostics, no sanitizer
+   suppression and a model of the SDK's 4-byte unaligned vector type.
+2. Actual complete RPC bodies with explicit reserve/DMA/KV/attention stand-ins:
+   15 capability/lifecycle/error cases and three assertion-detected mutants.
+3. Existing actual overlap control/arithmetic extraction: 460 worker/tail/error
+   cases, repeated extent guards and three assertion-detected mutants. Qx
+   starts poisoned, raw readout precedes use, and PV clobbers L.acc in the
+   modeled overlap. These are HMX/DMA/softmax/PV stand-ins, not a device run.
+4. Eight independent full-TU v81 compilations plus eight assembly outputs,
+   source/address enumeration, quantizer function-byte comparison and format.
+5. Fixed-object build input and independent relink audit, described below.
+
+The SDK libnative binary itself is prebuilt and not sanitizer-instrumented.
+The host fixtures exercise the actual source slices/math but do not establish
+real HMX timing, FastRPC mapping or device cache coherence. The separate Qprep
+and overlap runners form a composition check, not an entire numerical attention
+implementation. Parent-owned device parity/model tests remain necessary.
+
+Resolved validation finding: initial host alignment model
+
+The earlier tests.patch ffb26aa0 mapped HVX_UVector to the host SDK struct with
+8-byte alignment, while the test intentionally supplied Q at q_alloc+1 float.
+Author logs reported numerical PASS but contained eight recoverable UBSan
+alignment errors. This reviewer reran with halt_on_error=1 and reproduced a
+fatal failure at hvx_quant_u8.c:50. Those logs and the initial patch are retained
+under rejected-host-shim/; they are not described as a sanitizer pass.
+
+The actual Hexagon SDK declares HEXAGON_UVect1024 with aligned(4). The author
+fixed only the host fixture shim to model that type, added size/alignment static
+assertions, and enabled -fno-sanitize-recover=all plus explicit fatal runtime
+options. Production a07332 remained unchanged. The final frozen f962d48 run
+passes all 576+31 cases and five mutants with zero sanitizer runtime errors.
+
+Fixed-object comparison audit
+
+Parent's QF build uses one frozen 63-object baseline at revision
+742735f3c61803fac51189012ba4caf588a3bd50, replaces four compiler-identified TUs,
+and shares the other 59 objects. This reviewer independently checked 655 Git
+source files against the frozen baseline, every object/input hash, the five
+source changes, generated ABI files, actual compiler dependency closure,
+cc1 argument equivalence and four-only object substitution in the linker list.
+The original build.sh flags were also read and compared with the driver plan.
+
+Each control/candidate link was repeated twice in the reviewer's own output.
+Same-path repeats are byte-identical. Compared with the parent's different
+output path, only the nonallocated .comment section differs because the linker
+embeds its command; all other sections' contents/addresses are identical.
+The reviewer separately parsed 68 matching runtime imports, weak optional
+DSPQ imports and v81 ELF flags. This is not a claim that the rebuilt control
+equals the earlier production 3b binary.
+
+Deployed matched pair recorded by the parent:
+control   f3fd2fd2f9c457d21ff13f0d1a9e6263a2a93a60fc9e0a6c75eb172d15387b06
+candidate 7fa6e9beec4b5972f9e1681cca9c676e965e123c4171bb4bd595f3e73849da54
+
+The initial harness inventoried static archives but omitted libgcc.so, which
+is also a link input. This reviewer recorded its hash, and the parent supplied
+a separate shared-link-audit covering all seven discovered shared-library
+inputs and same-original-output relinks matching both original full hashes.
+This closes a build-record completeness issue without recompilation or a
+source/object change. The independent fixed-object result is under
+fixed-object-review/validation.json; the parent's supplement remains separate.
+
+Reproduction
+
+Use D=/tmp/nntr-lfm2-attn-strided-qprep-20261017, R for the repository, SDKTOOLS
+for Hexagon tools 19.0.04 and a new reviewer-owned output directory for each:
+
+python3 -B "$D/candidate/tools/lfm2_attn_qprep_check.py" --repo "$R" \
+  --source "$D/candidate" --hexagon-tools "$SDKTOOLS" \
+  --output-dir "$OUT_QUANT" --sanitize --mutations
+python3 -B "$D/candidate/tools/lfm2_attn_qprep_rpc_check.py" --repo "$R" \
+  --source "$D/candidate" --output "$OUT_RPC" --sanitize --mutations
+python3 -B "$D/candidate/tools/lfm2_attn_overlap_check.py" \
+  --repo "$D/candidate" --hexagon-tools "$SDKTOOLS" \
+  --output "$OUT_OVERLAP" --sanitize --mutations
+
+Use ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 and UBSAN_OPTIONS=halt_on_error=1.
+Exact compile/link commands are in the respective commands.json files and
+codegen/*/*-command.json. address_lifetime_check.py, compare_elf_functions.py,
+recompile.py and verify_fixed_objects.py are reviewer-owned reproductions;
+their paths are local audit inputs, not installation recommendations.
+
+No gain, bandwidth ceiling or whole-model numerical conclusion is inferred
+from fewer gathers, byte-identical helper math or a host emulator run.

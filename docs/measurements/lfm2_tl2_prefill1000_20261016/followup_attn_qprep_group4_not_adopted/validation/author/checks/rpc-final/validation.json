@@ -1,0 +1,27 @@
+{
+  "scope": "Extract actual quantized-attention RPC bodies and test staging capability.\n\nReserve/DMA/KV append/attention computation are explicit synchronous stand-ins;\nthis tests ownership propagation and failure routing, not DSP coherence/math.\n",
+  "results": [
+    {
+      "name": "rpc_check",
+      "returncode": 0,
+      "expected_success": true
+    },
+    {
+      "name": "always_cached",
+      "returncode": -6,
+      "expected_success": false
+    },
+    {
+      "name": "never_cached",
+      "returncode": -6,
+      "expected_success": false
+    },
+    {
+      "name": "missing_q_dma",
+      "returncode": -6,
+      "expected_success": false
+    }
+  ],
+  "source_sha256": "917a7aa5642eb1c8def3d2553fd1d34c697c93a8d9a80db483f1d2c8672152f1",
+  "fixture_sha256": "5883c8fb62b7bf45da216f9f9393d85a548ab9773ff197d4e58603a87bf1f871"
+}

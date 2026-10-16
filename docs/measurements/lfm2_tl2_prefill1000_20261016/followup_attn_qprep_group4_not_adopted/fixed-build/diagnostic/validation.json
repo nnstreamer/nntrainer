@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "production_patch_sha256": "a07332c9043b6760a42392cae06a237319e6a1e383829edc0bee5d838b435df8",
+  "diagnostic_patch_sha256": "af263c745b23b9215a5707f9bc60c008ef2c168ea0880d9b201adddef4871a39",
+  "diagnostic_source_sha256": "ebcc5f7334af43f5b0ab660231c70dd3cf84c960dff989e6bf3c94c0fe4da650",
+  "macro_off_object_exact": true,
+  "diagnostic_so_sha256": "ca3c46323c7ccf7d5c263fd530e4aefbab00ba089be7cc22941fbeec3337c1ed",
+  "repeat_link_identical": true,
+  "runtime_imports_identical": true,
+  "source_and_all_objects_unchanged": true,
+  "arch": "v81",
+  "additional_diagnostic_metadata_bytes": 4,
+  "scope": "One successful synchronous group4 helper per marker. Not normal performance."
+}

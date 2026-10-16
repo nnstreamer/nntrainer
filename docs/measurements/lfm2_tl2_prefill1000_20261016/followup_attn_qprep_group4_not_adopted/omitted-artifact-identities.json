@@ -1,0 +1,317 @@
+{
+  "scope": "Identity only; object, binary, SDK, model, and unrelated source bodies are excluded.",
+  "fixed_build_objects_and_binaries": {
+    "fixed-build/build/source/test/htp/build/hvx_q4_gemv_f32.o": {
+      "sha256": "5fb350ec840bf471c3cdaa3a247cff79567708e4a4b8596096b5259394b63d97",
+      "bytes": 12252
+    },
+    "fixed-build/build/source/test/htp/build/nntr_hvx_sf_probe.o": {
+      "sha256": "76cde4d16827a030ed01f2b5e5b073969fe636372899d2f7c291ee75e031392b",
+      "bytes": 1432
+    },
+    "fixed-build/build/objects/baseline/00-hvx_add_f32.o": {
+      "sha256": "697e2f5cbd70d87a35204c2bf734e9133b9818e128840c81b530b027c37ec406",
+      "bytes": 8828
+    },
+    "fixed-build/build/objects/baseline/01-nntr_hvx_mm_u8i4.o": {
+      "sha256": "87ebf7fc583202d3f0ef672c8f66c9109f667a2f2766952d900b25e1750d5644",
+      "bytes": 53112
+    },
+    "fixed-build/build/objects/baseline/02-nntr_hvx_mm_u8i8.o": {
+      "sha256": "b90d117a4528ebb161ecb7ba30c7cdcbef2ecfbc0851079e284c14fb92b586f9",
+      "bytes": 4232
+    },
+    "fixed-build/build/objects/baseline/03-nntr_hvx_softmax.o": {
+      "sha256": "11e8b7dd529a108aec8dec471897b95510451caf9db1d4651c0e58f579fa599a",
+      "bytes": 7508
+    },
+    "fixed-build/build/objects/baseline/04-nntr_hvx_attn.o": {
+      "sha256": "216fa46f3fd57e4e316dadd688d4cc9e0d2cb3febd041041f7a8a536684ca3a1",
+      "bytes": 5532
+    },
+    "fixed-build/build/objects/baseline/05-nntr_hvx_dma_probe.o": {
+      "sha256": "cd611218dc15bf2b3e7a76796782c5bd5a3f6b2e75cd4f0fa8d3af8d33133625",
+      "bytes": 10608
+    },
+    "fixed-build/build/objects/baseline/06-nntr_hvx_graph.o": {
+      "sha256": "3057d57769f4268327b78c5e42f3a7ce999b1518e4e35fb85665cf8de658c512",
+      "bytes": 21872
+    },
+    "fixed-build/build/objects/baseline/07-nntr_hvx_small_ops.o": {
+      "sha256": "505fd0291b69814267ba63145da9a26c11a3b573281f49f41b4e675a02cb75ab",
+      "bytes": 4364
+    },
+    "fixed-build/build/objects/baseline/08-nntr_hvx_attn_m1.o": {
+      "sha256": "53b528186dd4b92a0e13a1ec1a7efeb6151f68a23e046ef746b3f4db731f34d9",
+      "bytes": 5012
+    },
+    "fixed-build/build/objects/baseline/09-nntr_hvx_dspq_bench.o": {
+      "sha256": "138dcb2a906e2d482efd9a9f736a1e447729697a3328deb942d168c856fdf09f",
+      "bytes": 4596
+    },
+    "fixed-build/build/objects/baseline/10-nntr_hvx_dspq.o": {
+      "sha256": "6010491f56b790d788fa8f0969c0b6c88c611fe6633b62dec5beb4e9448782fb",
+      "bytes": 6756
+    },
+    "fixed-build/build/objects/baseline/11-nntr_hvx_token.o": {
+      "sha256": "f58df6c87752fe74c61debaf176b13bde7f4c049844bf41d96ce111d5c670261",
+      "bytes": 5152
+    },
+    "fixed-build/build/objects/baseline/12-nntr_hvx_skel.o": {
+      "sha256": "c70007c89461d719b1bac542a1d24775f815bea4330b71086f629596439aa37a",
+      "bytes": 85632
+    },
+    "fixed-build/build/objects/baseline/13-nntr_hvx_attn_m1_probe.o": {
+      "sha256": "ff29758944f7c85639960a8d9acc1a41712908ada5361fee9bd584e31784bfb1",
+      "bytes": 13600
+    },
+    "fixed-build/build/objects/baseline/14-nntr_hvx_vlut_probe.o": {
+      "sha256": "baa8c38482b52412359c5152f1301658ba44b91adf8a74f38f26766fbde0fd0d",
+      "bytes": 1256
+    },
+    "fixed-build/build/objects/baseline/15-nntr_hvx_tl2_probe.o": {
+      "sha256": "c8e702755f0c83e58a33ecae2641b730d79ae801abf98c57629d18be15295ede",
+      "bytes": 3556
+    },
+    "fixed-build/build/objects/baseline/16-hexkl_mm_u8i4.o": {
+      "sha256": "016ed9289cbc140a0e8ab654a1ea3c3bf997abec5f7fc335f24f89e1eadf314e",
+      "bytes": 1896
+    },
+    "fixed-build/build/objects/baseline/17-hexkl_mm_u8i4_dma.o": {
+      "sha256": "9de79e725c297f1fb6752f41094fd832ade9146eaca4ae15ea7d38473ff90358",
+      "bytes": 25768
+    },
+    "fixed-build/build/objects/baseline/18-hexkl_mm_u8i4_moe.o": {
+      "sha256": "487a17f390396ea0a9c234ce402fe7424d051221fc0ca517943cff0cba502f8e",
+      "bytes": 63444
+    },
+    "fixed-build/build/objects/baseline/19-hexkl_graph.o": {
+      "sha256": "64a3a138a2fbf69abb46f69fd1a543dcd81ebfa54b43d2f687cf61df428c4045",
+      "bytes": 20920
+    },
+    "fixed-build/build/objects/baseline/20-hexkl_token.o": {
+      "sha256": "b5a12dcda45fc5465a2b9c791402e8224715db658c5e5700f1fcae4d318d8b74",
+      "bytes": 4648
+    },
+    "fixed-build/build/objects/baseline/21-hexkl_conv_block.o": {
+      "sha256": "955f45f69de426d3f6e92741aaa3f8d0feb0ab8d6bb4627e38d15bf639d51742",
+      "bytes": 14512
+    },
+    "fixed-build/build/objects/baseline/22-hexkl_mm_u8i8_dma.o": {
+      "sha256": "d7250b17a2388754d075a00f6f4fcb1b9660a84e008be27066fa2519f158466f",
+      "bytes": 6692
+    },
+    "fixed-build/build/objects/baseline/23-hexkl_dma_ring.o": {
+      "sha256": "96ece1d9e517f28a72737aeab7ff7e6e3e1bdca8ebc2d1e7d41bfeddb3a3258c",
+      "bytes": 2676
+    },
+    "fixed-build/build/objects/baseline/24-hexkl_dma_trace.o": {
+      "sha256": "ba482bd472b7ffc5e9b589ed3d507d7c7089c158288904f88d696368309ea6e1",
+      "bytes": 3572
+    },
+    "fixed-build/build/objects/baseline/25-hexkl_kv_quant.o": {
+      "sha256": "82bfb5be15e8fffefac571163ec7b294411b08ffc5d06e00ba710799e68eefbb",
+      "bytes": 2772
+    },
+    "fixed-build/build/objects/baseline/26-hexkl_probe.o": {
+      "sha256": "6f4fcada12f2a60c90ab0f19bcf211a381eba1fcabdbb2f8b641d848b21feaa5",
+      "bytes": 916
+    },
+    "fixed-build/build/objects/baseline/27-hexkl_acc_tile.o": {
+      "sha256": "b79fcb21137498e505bccf8fef9ecdffd2cf9f557c62c58aa57d1759c4e6fc17",
+      "bytes": 2456
+    },
+    "fixed-build/build/objects/baseline/28-hexkl_attn_dtype.o": {
+      "sha256": "50a5fc5005c918529db2d01216155d96a435f763210dc038abc35ed7828b79c9",
+      "bytes": 2188
+    },
+    "fixed-build/build/objects/baseline/29-hexkl_attn_u8.o": {
+      "sha256": "a44452d076f91b0a2d50814605c8a507055751d7690f589a1b3290491bb57a57",
+      "bytes": 7420
+    },
+    "fixed-build/build/objects/baseline/30-hvx_quant_u8.o": {
+      "sha256": "818f2c526136d31f5f21ed2a618f7d4f0134358e77326903063f9ad7c14ae49e",
+      "bytes": 12816
+    },
+    "fixed-build/build/objects/baseline/31-hvx_dequant_i32.o": {
+      "sha256": "136309c7399351ee2e5b096868bcd8aae9237c8998578a73b79dd166638ad15b",
+      "bytes": 28032
+    },
+    "fixed-build/build/objects/baseline/32-hvx_swiglu_f32.o": {
+      "sha256": "e24baf9b937b8b8afbe8430eb33f80bd260a397de75c9614eb94b1a97596c293",
+      "bytes": 2636
+    },
+    "fixed-build/build/objects/baseline/33-hvx_conv_gate_f32.o": {
+      "sha256": "7124e0d273a36bb4622f4d0b6aa29a74708a4be4996806e72bdeec4e101d2372",
+      "bytes": 1628
+    },
+    "fixed-build/build/objects/baseline/34-hvx_m1_ops_f32.o": {
+      "sha256": "c9660e2eb05ea71f7ec6cf29d29fbbbcb8ceec771c70114ece6854b8f83ac76e",
+      "bytes": 26812
+    },
+    "fixed-build/build/objects/baseline/35-hvx_attn_m1_f32.o": {
+      "sha256": "ef95e3f03e6b293105472f7c0a7bfbea57ca5b4b500b3a8885199d2bf1cfb650",
+      "bytes": 75380
+    },
+    "fixed-build/build/objects/baseline/36-hvx_scale_add_f32.o": {
+      "sha256": "1f4035a2eaf412fe6c5a573e8a854727606c718480a250ba71728bf9213bb970",
+      "bytes": 832
+    },
+    "fixed-build/build/objects/baseline/37-hvx_rmsnorm_rows_f32.o": {
+      "sha256": "b3d98bb2c1bc4495800f62261a436011c1d8b12ecf890afe2dcd29c1eb05c637",
+      "bytes": 8696
+    },
+    "fixed-build/build/objects/baseline/38-hvx_router_rows_f32.o": {
+      "sha256": "436b311df813270e632f42f02d463685ccb6a503f5d43b810afa0b2a890d9590",
+      "bytes": 15948
+    },
+    "fixed-build/build/objects/baseline/39-hvx_rope_rows_f32.o": {
+      "sha256": "e2442e04ad6550864efed3bc3567f770849b8d6224bc142a27d1defafa557a4b",
+      "bytes": 2336
+    },
+    "fixed-build/build/objects/baseline/40-hvx_softcap_f32.o": {
+      "sha256": "a37473fdcab86bc7b159c5d8359f6b2802db60b89cedbed27765533a9d8c9c24",
+      "bytes": 3216
+    },
+    "fixed-build/build/objects/baseline/41-hvx_gather_ah_u8.o": {
+      "sha256": "64537292cdc81dbf0ae0a37786d6995fb6d0725b40b0869f5ef9254e47ab38c7",
+      "bytes": 1168
+    },
+    "fixed-build/build/objects/baseline/42-hvx_softmax_f32.o": {
+      "sha256": "34778a3da83e0cc54c6868486c0452013f574b1bb73c53f6f8718a573245ad1c",
+      "bytes": 3096
+    },
+    "fixed-build/build/objects/baseline/43-hvx_softmax_blocked_f32.o": {
+      "sha256": "294ff0020eedee509dc373c2295d53c17dc36d79ed5985fc3b48b52f6f18d704",
+      "bytes": 4848
+    },
+    "fixed-build/build/objects/baseline/44-hvx_worker_pool.o": {
+      "sha256": "9905489a8f45df6e24271aa81040d845a3d4b8307c58283061649dfc92f65a60",
+      "bytes": 5512
+    },
+    "fixed-build/build/objects/baseline/45-hvx_gemm_u8i4_wh.o": {
+      "sha256": "f03aab8ecae8266d18cc79f4e886a0d91f6738ed8c303193aa9de1a91975d9b5",
+      "bytes": 6788
+    },
+    "fixed-build/build/objects/baseline/46-hvx_expand_i2i4.o": {
+      "sha256": "e52ad7a8292c5d994df3e38aacfc9bd74152f4ba2f00d8ba32c7396703bc1632",
+      "bytes": 4528
+    },
+    "fixed-build/build/objects/baseline/47-hvx_gemv_u8tl2.o": {
+      "sha256": "7d0ccc6faaeed80f56fb65e0fab28bdc7675775bb09820852bb488339c3c8abf",
+      "bytes": 13760
+    },
+    "fixed-build/build/objects/baseline/48-nntr_hvx_fc_q4.o": {
+      "sha256": "1a77ad3097f926031221585a8ac211def7b643a167569134f5ccbc35f517fe9a",
+      "bytes": 12532
+    },
+    "fixed-build/build/objects/baseline/49-nntr_hvx_mailbox.o": {
+      "sha256": "aaee57c8c4ccd407822faf41de05c38e1fecdf5a976a38a7187e4259fdb492a0",
+      "bytes": 2536
+    },
+    "fixed-build/build/objects/baseline/50-nntr_hvx_attn_f16.o": {
+      "sha256": "f1d1c87b0f12fbdfc97d2590b2c9e425c4bd4766d8b85915adb22d7460a90f59",
+      "bytes": 22260
+    },
+    "fixed-build/build/objects/baseline/51-nntr_hvx_attn_q.o": {
+      "sha256": "8f2fcd713f755c74c9b2ec82e6b1470c9e3de01a95b430d1ef27df7a009f5845",
+      "bytes": 32344
+    },
+    "fixed-build/build/objects/baseline/52-hexkl_attn_f16.o": {
+      "sha256": "9e5f9f2ea4fd87c6226609fdc9ce6adf1118373d0b62e71dafa2e86af8557491",
+      "bytes": 15484
+    },
+    "fixed-build/build/objects/baseline/53-hexkl_kv_tiles_f16.o": {
+      "sha256": "316466fa82c0fa8b98fe2a0d6e4d61f4647f5ff673e8e37ec8147d7974242d21",
+      "bytes": 2856
+    },
+    "fixed-build/build/objects/baseline/54-hexkl_attn_q.o": {
+      "sha256": "450fbfa1b97237446df494c6ec627bfc5efd243c88edc9a907ee9f9a17b7fd50",
+      "bytes": 21500
+    },
+    "fixed-build/build/objects/baseline/55-hexkl_kv_q.o": {
+      "sha256": "e80f1697409d4fcc249f86762eadffa835cf59c6462f776c670e2d50ce3f6938",
+      "bytes": 18400
+    },
+    "fixed-build/build/objects/baseline/56-hvx_attn_decode_f16.o": {
+      "sha256": "7c32dba4e43bf8b1a7c28c104565a1980bfec0b1fb4fe77390d995db292d4ab0",
+      "bytes": 5644
+    },
+    "fixed-build/build/objects/baseline/57-hvx_attn_decode_q.o": {
+      "sha256": "db6a66f9308b5c7051bace263652486c4c3d52538ca2a14cc7638009abae4043",
+      "bytes": 5912
+    },
+    "fixed-build/build/objects/baseline/58-hvx_kv_quant.o": {
+      "sha256": "77be30c84aa43900957b005dcac0146ec25b5b9c27b817d99febaf6c2ebece08",
+      "bytes": 5736
+    },
+    "fixed-build/build/objects/baseline/59-hvx_softmax_q.o": {
+      "sha256": "b23b20a0c2420a180622bc0a657bdd63bdbe048418d581273c93a63ba3681c6a",
+      "bytes": 27672
+    },
+    "fixed-build/build/objects/baseline/60-hexkl_attn_q2.o": {
+      "sha256": "769481a474f72fff6301826578b08574fdb4373018462be8b06bde16be477a2a",
+      "bytes": 23780
+    },
+    "fixed-build/build/objects/candidate/30-hvx_quant_u8.o": {
+      "sha256": "10f76dd3365599637fd554953234c1f1c2f31a635f0b1ccf5e4637def811c894",
+      "bytes": 14588
+    },
+    "fixed-build/build/objects/candidate/51-nntr_hvx_attn_q.o": {
+      "sha256": "57f2f79727efc2dfb77a2e8c886af7807395cbb1aad79bb0f8c4b797b9153e64",
+      "bytes": 32352
+    },
+    "fixed-build/build/objects/candidate/54-hexkl_attn_q.o": {
+      "sha256": "ab30be5a58d5682c8a3d2a805257d648945b7303f996ea79021878938c84c5e9",
+      "bytes": 22200
+    },
+    "fixed-build/build/objects/candidate/57-hvx_attn_decode_q.o": {
+      "sha256": "db6a66f9308b5c7051bace263652486c4c3d52538ca2a14cc7638009abae4043",
+      "bytes": 5912
+    },
+    "fixed-build/diagnostic/libnntr_hvx_skel.so": {
+      "sha256": "ca3c46323c7ccf7d5c263fd530e4aefbab00ba089be7cc22941fbeec3337c1ed",
+      "bytes": 743184
+    },
+    "fixed-build/diagnostic/quant-0.o": {
+      "sha256": "10f76dd3365599637fd554953234c1f1c2f31a635f0b1ccf5e4637def811c894",
+      "bytes": 14588
+    },
+    "fixed-build/diagnostic/quant-1.o": {
+      "sha256": "890f69e32dc458ed6290715025f64203f403b87fc94a86c78c9347380724082e",
+      "bytes": 15568
+    }
+  },
+  "runtime_binary_maps": {
+    "lfm-attn-qprep-group4-control": {
+      "libnntrainer.so": "072b5ca2700aaf10fb5b38ebd244d54691efd7ba96bf0dd699fd907bc6e42c09",
+      "libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+      "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+      "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+      "libcausallm.so": "c34aa784141ce3c3d8cda2d8ccfd12ed759757284ee916ee4fac7f75f6197c05",
+      "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76",
+      "libnntr_hvx_skel.so": "f3fd2fd2f9c457d21ff13f0d1a9e6263a2a93a60fc9e0a6c75eb172d15387b06"
+    },
+    "lfm-attn-qprep-group4": {
+      "libnntrainer.so": "072b5ca2700aaf10fb5b38ebd244d54691efd7ba96bf0dd699fd907bc6e42c09",
+      "libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+      "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+      "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+      "libcausallm.so": "c34aa784141ce3c3d8cda2d8ccfd12ed759757284ee916ee4fac7f75f6197c05",
+      "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76",
+      "libnntr_hvx_skel.so": "7fa6e9beec4b5972f9e1681cca9c676e965e123c4171bb4bd595f3e73849da54"
+    },
+    "lfm-attn-qprep-group4-diagnostic": {
+      "libnntrainer.so": "072b5ca2700aaf10fb5b38ebd244d54691efd7ba96bf0dd699fd907bc6e42c09",
+      "libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+      "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+      "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+      "libcausallm.so": "c34aa784141ce3c3d8cda2d8ccfd12ed759757284ee916ee4fac7f75f6197c05",
+      "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76",
+      "libnntr_hvx_skel.so": "ca3c46323c7ccf7d5c263fd530e4aefbab00ba089be7cc22941fbeec3337c1ed"
+    }
+  },
+  "sdk_tool_and_link_input_hashes": "fixed-build/build/link-tool-input-hashes.json",
+  "shared_library_supplement": "fixed-build/shared-link-audit/validation.json",
+  "model_weight_hashes": "configuration/historical-model-conversion.json is prior provenance, not a fresh per-run weight hash; no model bytes copied"
+}

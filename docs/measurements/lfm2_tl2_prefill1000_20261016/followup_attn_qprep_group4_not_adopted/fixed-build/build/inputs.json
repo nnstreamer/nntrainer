@@ -1,0 +1,23 @@
+{
+  "revision": "742735f3c61803fac51189012ba4caf588a3bd50",
+  "git_archive_sha256": "2537da687f3ba1477674dd29f3e599ad7c624a74d4e98d97c964ac9050fd9567",
+  "build_script_sha256": "5d7b80853a2dbc8f8a31b0610ed316bbcaaa016f3ddcac2252b4c70fda4b4d76",
+  "candidate_patch_sha256": "a07332c9043b6760a42392cae06a237319e6a1e383829edc0bee5d838b435df8",
+  "baseline_changed_sources": {
+    "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c": "4b71749ac993c1ae165550f0d182ea748fa6106543e1904ce498a19ac59e478a",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.h": "9dbfb283bb7a200e9a77655ff6f60456d99505637af20bd712fd1a5345ccb640",
+    "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c": "f0544c1cb13422e63d72526f54cd9dab7ce5f1db4e611f714c31bfde8b857813",
+    "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8_group4.h": null,
+    "test/htp/nntr_hvx_attn_q.c": "f0824e113b5b5ac72846e56faadaede273afa90375aa01b82bb27e8e7453c410"
+  },
+  "environment": {
+    "PATH": "/home/jungone-lee/.codex/packages/app-server-daemon/releases/0.163.0-x86_64-unknown-linux-musl/codex-path:/home/jungone-lee/.codex/tmp/arg0-linux/codex-arg0ljppXO:/home/jungone-lee/.codex/tmp/arg0/codex-arg0TpBXVV:/home/jungone-lee/.codex/packages/app-server-daemon/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:/home/jungone-lee/.codex/tmp/arg0/codex-arg0cqST9K:/home/jungone-lee/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:/home/jungone-lee/.local/bin:/home/jungone-lee/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin",
+    "LD_LIBRARY_PATH": null,
+    "CPATH": null,
+    "C_INCLUDE_PATH": null
+  },
+  "compiler_sha256": "e9117b76564e0c1d2cff53858201da5f88c47eabc8432f084f88f86c447221be",
+  "qaic_sha256": "9ae98b3600d6a5d6eac4a3b2b2d4780df543dda2ad5c74a636d81dcf03b7b717",
+  "hexkl_archive_sha256": "a75d15ce39cc7f7bfb7e68a433e9fb9a6cf4d23cedb074c4e345cc7f8ee35875",
+  "arch": "v81"
+}

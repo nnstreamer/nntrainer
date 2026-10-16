@@ -1,0 +1,7 @@
+{
+  "source": "/tmp/nntr-lfm2-attn-strided-qprep-20261017/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c",
+  "source_sha256": "11534746016a5a991868b432b7ab78960148ad0d26b65868863fd25e5376a596",
+  "fixture_sha256": "a35bded3b3b9dc05efc9870dd85169c78490e18e9ed3c74fd824bd3245a2af64",
+  "reference_source_commit": "0fcdfc1f9",
+  "reference_source_sha256": "67a1cc02396fd4115d5d243b3563fa1260402e06bf96739e3dbe3260c2de6d52"
+}

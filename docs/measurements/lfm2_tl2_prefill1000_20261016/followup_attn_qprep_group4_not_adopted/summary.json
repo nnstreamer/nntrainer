@@ -1,0 +1,471 @@
+{
+  "decision": "not_adopted",
+  "reason": "No consistent 2048 prefill gain; median lower and only 1/3 paired wins. Control 983.197 outlier is retained without causal diagnosis. The 1024 and decode changes are not attributed to this 2048-prefill helper.",
+  "normal": [
+    {
+      "tokens": 1024,
+      "prefill_tps": {
+        "control": [
+          824.477,
+          827.809,
+          837.971
+        ],
+        "candidate": [
+          829.822,
+          839.344,
+          833.198
+        ],
+        "median_control": 827.809,
+        "median_candidate": 833.198,
+        "median_pct": 0.6509955798982725,
+        "pairs_faster": 2,
+        "paired_deltas_pct": [
+          0.6482897642990704,
+          1.3934373750466689,
+          -0.5695901170804318
+        ]
+      },
+      "decode_tps": {
+        "control": [
+          17.5487,
+          17.5151,
+          17.6114
+        ],
+        "candidate": [
+          17.5872,
+          17.6991,
+          17.6796
+        ],
+        "median_control": 17.5487,
+        "median_candidate": 17.6796,
+        "median_pct": 0.7459241995133592,
+        "pairs_faster": 3,
+        "paired_deltas_pct": [
+          0.21938947044510826,
+          1.0505221209128113,
+          0.38724916815244814
+        ]
+      },
+      "control_max_peak_kib": 2714368.0,
+      "candidate_max_peak_kib": 2714428.0
+    },
+    {
+      "tokens": 2048,
+      "prefill_tps": {
+        "control": [
+          819.2,
+          983.197,
+          843.84
+        ],
+        "candidate": [
+          829.15,
+          836.601,
+          807.89
+        ],
+        "median_control": 843.84,
+        "median_candidate": 829.15,
+        "median_pct": -1.7408513462267794,
+        "pairs_faster": 1,
+        "paired_deltas_pct": [
+          1.214599609375,
+          -14.910134998377744,
+          -4.260286310200989
+        ]
+      },
+      "decode_tps": {
+        "control": [
+          16.339,
+          16.2231,
+          16.6104
+        ],
+        "candidate": [
+          16.8421,
+          16.8332,
+          16.4906
+        ],
+        "median_control": 16.339,
+        "median_candidate": 16.8332,
+        "median_pct": 3.024664912173347,
+        "pairs_faster": 2,
+        "paired_deltas_pct": [
+          3.079135810025102,
+          3.760686921735079,
+          -0.7212348889852005
+        ]
+      },
+      "control_max_peak_kib": 3018172.0,
+      "candidate_max_peak_kib": 3019064.0
+    }
+  ],
+  "normal_runs": 12,
+  "diagnostics": [
+    {
+      "model": 2048,
+      "pid": 16744,
+      "raw_tagged_records": 160,
+      "unique_calls": 160,
+      "transport_duplicates": 0,
+      "groups_per_call_counts": {
+        "1152": 80,
+        "896": 80
+      },
+      "total_groups": 163840,
+      "logical_gather_bytes_skipped": 167772160
+    },
+    {
+      "model": 1024,
+      "pid": 16926,
+      "raw_tagged_records": 0,
+      "unique_calls": 0,
+      "transport_duplicates": 0,
+      "groups_per_call_counts": {
+        "1152": 0,
+        "896": 0
+      },
+      "total_groups": 0,
+      "logical_gather_bytes_skipped": 0
+    }
+  ],
+  "all14_runs_65_ids_exact": true,
+  "strict_whole_memory_checks_pass": true,
+  "memory_sampling": [
+    {
+      "tag": "continue-attn-qprep-group4-0-r1",
+      "peak_kib": 2713780.0,
+      "sample_count": 298,
+      "composite_available_sample_count": 296,
+      "sample_interval_ms": {
+        "count": 297,
+        "min": 20.127813,
+        "mean": 20.7575778519,
+        "p50": 20.792865,
+        "p95": 21.013386,
+        "max": 23.614531
+      },
+      "sample_scan_ms": {
+        "mean": 0.66163804698,
+        "max": 3.529427
+      },
+      "peak_complete": true,
+      "dma_buffer_identity_verified": false
+    },
+    {
+      "tag": "continue-attn-qprep-group4-1-r1",
+      "peak_kib": 2714428.0,
+      "sample_count": 296,
+      "composite_available_sample_count": 295,
+      "sample_interval_ms": {
+        "count": 295,
+        "min": 20.128229,
+        "mean": 20.7429789831,
+        "p50": 20.782864,
+        "p95": 20.990782,
+        "max": 23.236355
+      },
+      "sample_scan_ms": {
+        "mean": 0.657273050676,
+        "max": 3.095469
+      },
+      "peak_complete": true,
+      "dma_buffer_identity_verified": false
+    },
+    {
+      "tag": "continue-attn-qprep-group4-1-r2",
+      "peak_kib": 2713732.0,
+      "sample_count": 297,
+      "composite_available_sample_count": 295,
+      "sample_interval_ms": {
+        "count": 296,
+        "min": 20.115052,
+        "mean": 20.7348667905,
+        "p50": 20.776979,
+        "p95": 20.973906,
+        "max": 24.002083
+      },
+      "sample_scan_ms": {
+        "mean": 0.644621693603,
+        "max": 3.094011
+      },
+      "peak_complete": true,
+      "dma_buffer_identity_verified": false
+    },
+    {
+      "tag": "continue-attn-qprep-group4-0-r2",
+      "peak_kib": 2713408.0,
+      "sample_count": 297,
+      "composite_available_sample_count": 296,
+      "sample_interval_ms": {
+        "count": 296,
+        "min": 20.128854,
+        "mean": 20.7325999358,
+        "p50": 20.784844,
+        "p95": 20.991771,
+        "max": 22.996354
+      },
+      "sample_scan_ms": {
+        "mean": 0.651686710438,
+        "max": 2.863073
+      },
+      "peak_complete": true,
+      "dma_buffer_identity_verified": false
+    },
+    {
+      "tag": "continue-attn-qprep-group4-0-r3",
+      "peak_kib": 2714368.0,
+      "sample_count": 295,
+      "composite_available_sample_count": 294,
+      "sample_interval_ms": {
+        "count": 294,
+        "min": 20.129323,
+        "mean": 20.737464915,
+        "p50": 20.773437,
+        "p95": 20.996614,
+        "max": 23.501197
+      },
+      "sample_scan_ms": {
+        "mean": 0.643104494915,
+        "max": 3.356718
+      },
+      "peak_complete": true,
+      "dma_buffer_identity_verified": false
+    },
+    {
+      "tag": "continue-attn-qprep-group4-1-r3",
+      "peak_kib": 2713488.0,
+      "sample_count": 296,
+      "composite_available_sample_count": 295,
+      "sample_interval_ms": {
+        "count": 295,
+        "min": 20.111198,
+        "mean": 20.7593322678,
+        "p50": 20.793958,
+        "p95": 21.061302,
+        "max": 23.419063
+      },
+      "sample_scan_ms": {
+        "mean": 0.662229385135,
+        "max": 3.205365
+      },
+      "peak_complete": true,
+      "dma_buffer_identity_verified": false
+    },
+    {
+      "tag": "continue-attn-qprep-group42048-0-r1",
+      "peak_kib": 3018172.0,
+      "sample_count": 369,
+      "composite_available_sample_count": 368,
+      "sample_interval_ms": {
+        "count": 368,
+        "min": 20.130573,
+        "mean": 20.887628644,
+        "p50": 20.899063,
+        "p95": 21.154687,
+        "max": 23.589062
+      },
+      "sample_scan_ms": {
+        "mean": 0.770473571816,
+        "max": 3.246302
+      },
+      "peak_complete": true,
+      "dma_buffer_identity_verified": false
+    },
+    {
+      "tag": "continue-attn-qprep-group42048-1-r1",
+      "peak_kib": 3018292.0,
+      "sample_count": 365,
+      "composite_available_sample_count": 364,
+      "sample_interval_ms": {
+        "count": 364,
+        "min": 20.128229,
+        "mean": 20.8864623324,
+        "p50": 20.894375,
+        "p95": 21.125625,
+        "max": 25.263906
+      },
+      "sample_scan_ms": {
+        "mean": 0.755065238356,
+        "max": 3.257552
+      },
+      "peak_complete": true,
+      "dma_buffer_identity_verified": false
+    },
+    {
+      "tag": "continue-attn-qprep-group42048-1-r2",
+      "peak_kib": 3019064.0,
+      "sample_count": 364,
+      "composite_available_sample_count": 363,
+      "sample_interval_ms": {
+        "count": 363,
+        "min": 20.133229,
+        "mean": 20.8966709614,
+        "p50": 20.895468,
+        "p95": 21.135938,
+        "max": 25.139115
+      },
+      "sample_scan_ms": {
+        "mean": 0.76962928022,
+        "max": 3.134375
+      },
+      "peak_complete": true,
+      "dma_buffer_identity_verified": false
+    },
+    {
+      "tag": "continue-attn-qprep-group42048-0-r2",
+      "peak_kib": 3017724.0,
+      "sample_count": 353,
+      "composite_available_sample_count": 351,
+      "sample_interval_ms": {
+        "count": 352,
+        "min": 20.130208,
+        "mean": 20.8714559574,
+        "p50": 20.88724,
+        "p95": 21.156093,
+        "max": 24.111146
+      },
+      "sample_scan_ms": {
+        "mean": 0.746354184136,
+        "max": 3.333333
+      },
+      "peak_complete": true,
+      "dma_buffer_identity_verified": false
+    },
+    {
+      "tag": "continue-attn-qprep-group42048-0-r3",
+      "peak_kib": 3017892.0,
+      "sample_count": 365,
+      "composite_available_sample_count": 364,
+      "sample_interval_ms": {
+        "count": 364,
+        "min": 20.139219,
+        "mean": 20.8580756291,
+        "p50": 20.883802,
+        "p95": 21.090886,
+        "max": 23.506615
+      },
+      "sample_scan_ms": {
+        "mean": 0.753694783562,
+        "max": 3.123698
+      },
+      "peak_complete": true,
+      "dma_buffer_identity_verified": false
+    },
+    {
+      "tag": "continue-attn-qprep-group42048-1-r3",
+      "peak_kib": 3016204.0,
+      "sample_count": 376,
+      "composite_available_sample_count": 375,
+      "sample_interval_ms": {
+        "count": 375,
+        "min": 20.143333,
+        "mean": 20.9114481867,
+        "p50": 20.900781,
+        "p95": 21.221458,
+        "max": 24.393698
+      },
+      "sample_scan_ms": {
+        "mean": 0.778026039894,
+        "max": 3.202136
+      },
+      "peak_complete": true,
+      "dma_buffer_identity_verified": false
+    },
+    {
+      "tag": "continue-attn-qprep-group4-diagnostic2048",
+      "peak_kib": 3023024.0,
+      "sample_count": 361,
+      "composite_available_sample_count": 360,
+      "sample_interval_ms": {
+        "count": 360,
+        "min": 20.127291,
+        "mean": 20.8745011472,
+        "p50": 20.883021,
+        "p95": 21.102656,
+        "max": 25.703282
+      },
+      "sample_scan_ms": {
+        "mean": 0.752865063712,
+        "max": 3.084479
+      },
+      "peak_complete": true,
+      "dma_buffer_identity_verified": false
+    },
+    {
+      "tag": "continue-attn-qprep-group4-diagnostic1024",
+      "peak_kib": 2714412.0,
+      "sample_count": 298,
+      "composite_available_sample_count": 297,
+      "sample_interval_ms": {
+        "count": 297,
+        "min": 20.131666,
+        "mean": 20.7380299461,
+        "p50": 20.784219,
+        "p95": 20.99427,
+        "max": 23.634011
+      },
+      "sample_scan_ms": {
+        "mean": 0.656782701342,
+        "max": 3.543646
+      },
+      "peak_complete": true,
+      "dma_buffer_identity_verified": false
+    }
+  ],
+  "runtime_binaries": {
+    "lfm-attn-qprep-group4-control": {
+      "libnntrainer.so": "072b5ca2700aaf10fb5b38ebd244d54691efd7ba96bf0dd699fd907bc6e42c09",
+      "libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+      "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+      "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+      "libcausallm.so": "c34aa784141ce3c3d8cda2d8ccfd12ed759757284ee916ee4fac7f75f6197c05",
+      "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76",
+      "libnntr_hvx_skel.so": "f3fd2fd2f9c457d21ff13f0d1a9e6263a2a93a60fc9e0a6c75eb172d15387b06"
+    },
+    "lfm-attn-qprep-group4": {
+      "libnntrainer.so": "072b5ca2700aaf10fb5b38ebd244d54691efd7ba96bf0dd699fd907bc6e42c09",
+      "libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+      "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+      "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+      "libcausallm.so": "c34aa784141ce3c3d8cda2d8ccfd12ed759757284ee916ee4fac7f75f6197c05",
+      "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76",
+      "libnntr_hvx_skel.so": "7fa6e9beec4b5972f9e1681cca9c676e965e123c4171bb4bd595f3e73849da54"
+    },
+    "lfm-attn-qprep-group4-diagnostic": {
+      "libnntrainer.so": "072b5ca2700aaf10fb5b38ebd244d54691efd7ba96bf0dd699fd907bc6e42c09",
+      "libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+      "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+      "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+      "libcausallm.so": "c34aa784141ce3c3d8cda2d8ccfd12ed759757284ee916ee4fac7f75f6197c05",
+      "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76",
+      "libnntr_hvx_skel.so": "ca3c46323c7ccf7d5c263fd530e4aefbab00ba089be7cc22941fbeec3337c1ed"
+    }
+  },
+  "original_accepted_seven_restored": true,
+  "fixed_objects": 63,
+  "unchanged_common_objects": 59,
+  "candidate_recompiled_tus": 4,
+  "shared_linker_inputs_supplemented": 7,
+  "source_tests_diagnostic_hashes": [
+    "a07332c9043b6760a42392cae06a237319e6a1e383829edc0bee5d838b435df8",
+    "f962d48fabdb73ce2702333f67907b8c5f5ddd86e17c01c38d37048ea66db23f",
+    "af263c745b23b9215a5707f9bc60c008ef2c168ea0880d9b201adddef4871a39"
+  ],
+  "raw_readback_independent_of_author_parser": true,
+  "diagnostic_attention_stage_reference_only": {
+    "tag": "continue-attn-qprep-group4-diagnostic2048",
+    "sums_us": {
+      "qprep": 44662,
+      "dma": 7801,
+      "qk": 84217,
+      "dequant": 36688,
+      "softmax": 45341,
+      "pquant": 72703,
+      "pv": 24622,
+      "oupd": 26031,
+      "store": 6076,
+      "total": 358977
+    },
+    "scope": "Single trace-enabled candidate run; ten main full2048 attention layers. Not a matched phase-timing comparison. Qprep includes diagnostic logging; overlapping phase durations are not an additive speedup budget. Only existing stage fields are summarized, and no historical group is pooled."
+  },
+  "new_tests_or_phone_runs": false,
+  "memory_scope": "max sampled child RssAnon + inode-deduplicated fdinfo allocated sizes; not total physical/device memory; unreported DSP/driver/VTCM and between-sample spikes excluded."
+}

@@ -1,0 +1,22 @@
+{
+  "macro": "NNTR_LFM2_QPREP_GROUP4_TRACE",
+  "production_patch_sha256": "a07332c9043b6760a42392cae06a237319e6a1e383829edc0bee5d838b435df8",
+  "diagnostic_patch_sha256": "af263c745b23b9215a5707f9bc60c008ef2c168ea0880d9b201adddef4871a39",
+  "macro_off_object_byte_exact": true,
+  "extra_global_bytes_on": 4,
+  "records": [
+    {
+      "mode": "off",
+      "source_sha256": "ebcc5f7334af43f5b0ab660231c70dd3cf84c960dff989e6bf3c94c0fe4da650",
+      "object_sha256": "10f76dd3365599637fd554953234c1f1c2f31a635f0b1ccf5e4637def811c894",
+      "imports": "         U __hexagon_udivdi3\n         U __hexagon_udivsi3\n         U __hexagon_umodsi3\n         U free\n         U hvx_rmsnorm_row_f32\n         U hvx_worker_pool_run\n         U malloc\n         U memcpy\n         U memset\n         U nearbyintf\n"
+    },
+    {
+      "mode": "on",
+      "source_sha256": "ebcc5f7334af43f5b0ab660231c70dd3cf84c960dff989e6bf3c94c0fe4da650",
+      "object_sha256": "73ff87ed0bb0077b1ea17d2b46082237517962ea83360bfa04f0c3ca72101a65",
+      "imports": "         w HAP_debug\n         w HAP_debug_v2\n         U _GLOBAL_OFFSET_TABLE_\n         U __hexagon_udivdi3\n         U __hexagon_udivsi3\n         U __hexagon_umodsi3\n         U free\n         U hvx_rmsnorm_row_f32\n         U hvx_worker_pool_run\n         U malloc\n         U memcpy\n         U memset\n         U nearbyintf\n         U vsnprintf\n"
+    }
+  ],
+  "scope": "Successful group4 helper calls after synchronous worker drain; not proof of later HMX/RPC success; require normal IDs and completed run separately."
+}

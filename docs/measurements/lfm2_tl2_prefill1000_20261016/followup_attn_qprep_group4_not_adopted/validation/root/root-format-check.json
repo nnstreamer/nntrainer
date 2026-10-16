@@ -1,0 +1,59 @@
+[
+  {
+    "file": "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c",
+    "argv": [
+      "/tmp/lfm2-prefill1000-20261013/format/clang_format/data/bin/clang-format",
+      "-i",
+      "--lines=24:24",
+      "--lines=592:628",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c"
+    ],
+    "sha256": "d909d7be99d56ca883ff9f15c7edbfeeca3818abc7d09a83d005942a7757355e",
+    "no_change": true
+  },
+  {
+    "file": "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8_group4.h",
+    "argv": [
+      "/tmp/lfm2-prefill1000-20261013/format/clang_format/data/bin/clang-format",
+      "-i",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/nntrainer/tensor/htp_backend/hvx/hvx_quant_u8_group4.h"
+    ],
+    "sha256": "669b71e2b1c5d4289e6745825e706928b523fc3c4cb3c2175bf1622ec2cd90af",
+    "no_change": true
+  },
+  {
+    "file": "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c",
+    "argv": [
+      "/tmp/lfm2-prefill1000-20261013/format/clang_format/data/bin/clang-format",
+      "-i",
+      "--lines=71:71",
+      "--lines=188:215",
+      "--lines=230:247",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c"
+    ],
+    "sha256": "11534746016a5a991868b432b7ab78960148ad0d26b65868863fd25e5376a596",
+    "no_change": true
+  },
+  {
+    "file": "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.h",
+    "argv": [
+      "/tmp/lfm2-prefill1000-20261013/format/clang_format/data/bin/clang-format",
+      "-i",
+      "--lines=35:38",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.h"
+    ],
+    "sha256": "43147aa90d4960e54e740c0d246124e00ddd6cf681cd47cbcfd3100fb191dc7a",
+    "no_change": true
+  },
+  {
+    "file": "test/htp/nntr_hvx_attn_q.c",
+    "argv": [
+      "/tmp/lfm2-prefill1000-20261013/format/clang_format/data/bin/clang-format",
+      "-i",
+      "--lines=1058:1058",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/test/htp/nntr_hvx_attn_q.c"
+    ],
+    "sha256": "917a7aa5642eb1c8def3d2553fd1d34c697c93a8d9a80db483f1d2c8672152f1",
+    "no_change": true
+  }
+]

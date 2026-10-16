@@ -1,0 +1,5 @@
+[
+  "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/hexagon-readelf",
+  "--dyn-syms",
+  "/tmp/nntr-lfm2-attn-qprep-fixed-objects-20261017/build/candidate/libnntr_hvx_skel.so"
+]

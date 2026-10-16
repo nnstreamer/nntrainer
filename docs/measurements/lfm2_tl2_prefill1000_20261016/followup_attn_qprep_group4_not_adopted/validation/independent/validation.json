@@ -1,0 +1,111 @@
+{
+  "status": "PASS",
+  "verdict": "No unresolved production correctness/integration blocker; no performance approval.",
+  "production_patch_sha256": "a07332c9043b6760a42392cae06a237319e6a1e383829edc0bee5d838b435df8",
+  "tests_patch_sha256": "f962d48fabdb73ce2702333f67907b8c5f5ddd86e17c01c38d37048ea66db23f",
+  "production_source_sha256": {
+    "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c": {
+      "baseline_sha256": "f0544c1cb13422e63d72526f54cd9dab7ce5f1db4e611f714c31bfde8b857813",
+      "candidate_sha256": "d909d7be99d56ca883ff9f15c7edbfeeca3818abc7d09a83d005942a7757355e"
+    },
+    "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8_group4.h": {
+      "baseline_sha256": null,
+      "candidate_sha256": "669b71e2b1c5d4289e6745825e706928b523fc3c4cb3c2175bf1622ec2cd90af"
+    },
+    "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c": {
+      "baseline_sha256": "4b71749ac993c1ae165550f0d182ea748fa6106543e1904ce498a19ac59e478a",
+      "candidate_sha256": "11534746016a5a991868b432b7ab78960148ad0d26b65868863fd25e5376a596"
+    },
+    "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.h": {
+      "baseline_sha256": "9dbfb283bb7a200e9a77655ff6f60456d99505637af20bd712fd1a5345ccb640",
+      "candidate_sha256": "43147aa90d4960e54e740c0d246124e00ddd6cf681cd47cbcfd3100fb191dc7a"
+    },
+    "test/htp/nntr_hvx_attn_q.c": {
+      "baseline_sha256": "f0824e113b5b5ac72846e56faadaede273afa90375aa01b82bb27e8e7453c410",
+      "candidate_sha256": "917a7aa5642eb1c8def3d2553fd1d34c697c93a8d9a80db483f1d2c8672152f1"
+    }
+  },
+  "test_source_sha256": {
+    "tools/lfm2_attn_qprep_check.py": "6931c4820b4b64ba0c329e87edd18e00ff453a1011b6e34b2844f583ff6113c7",
+    "test/htp/host/attn_qprep_native_check.c": "52a0558d85d435202872cee211af33db72608e0281eba985c622a81dab20037d",
+    "tools/lfm2_attn_qprep_rpc_check.py": "65ae47a451eed7d46b5c6eefc73bb5409deb533b84e34728ef0db06dff821616",
+    "test/htp/host/attn_qprep_rpc_check.c": "5883c8fb62b7bf45da216f9f9393d85a548ab9773ff197d4e58603a87bf1f871",
+    "test/htp/host/attn_qprep_native_unaligned.h": "d1242554698c4c678bfd15fb6145d9df059a256baba23a4638995486322c07d0"
+  },
+  "independent_executions": {
+    "actual_qprep_hvx": {
+      "cases": 576,
+      "guards": 31,
+      "intended_assertion_mutants": 5,
+      "sanitizers": "ASan+UBSan; fatal; no suppression; SDK aligned(4) host shim",
+      "validation": "quant-san-fixed/validation.json"
+    },
+    "actual_rpc": {
+      "cases": 15,
+      "intended_assertion_mutants": 3,
+      "sanitizers": "ASan+UBSan; explicit fatal runtime options",
+      "validation": "rpc-san/validation.json"
+    },
+    "qx_overlap": {
+      "cases": 460,
+      "intended_assertion_mutants": 3,
+      "sanitizers": "ASan+UBSan; explicit fatal runtime options",
+      "source_manifest": "overlap-san/source_manifest.json"
+    },
+    "full_tu_v81": {
+      "object_builds": 8,
+      "assembly_builds": 8,
+      "errors": 0,
+      "results": "codegen/results.json"
+    },
+    "address_lifetime": "final-address-lifetime.json",
+    "quantizer_function_bytes": "final-quant-codegen.json",
+    "changed_line_clang_format_14": "format-review/validation.json",
+    "fixed_object_pair": "fixed-object-review/validation.json"
+  },
+  "resolved_findings": [
+    {
+      "issue": "Test HVX_UVector host alignment was 8 instead of SDK unaligned 4.",
+      "initial_tests_patch": "ffb26aa00636eead79efd076b019ed4cb23609a88391411dcb5ce56ebb8cafa2",
+      "initial_strict_run": "FAIL; preserved, not a sanitizer PASS",
+      "resolution": "Test-only aligned(4) typedef/static assertions and fatal sanitizer mode; production unchanged.",
+      "evidence": "rejected-host-shim"
+    },
+    {
+      "issue": "Fixed-object input inventory originally recorded archives but omitted shared libgcc.",
+      "resolution": "Independent hash check and parent seven-shared-library/same-path-relink supplement.",
+      "evidence": "fixed-object-review/root-shared-link-supplement.json"
+    }
+  ],
+  "frame_bytes": {
+    "attn_prefill_before_after": [
+      1536,
+      1536
+    ],
+    "rpc_step_before_after": [
+      336,
+      336
+    ],
+    "new_group4_entry": 32,
+    "new_group4_worker": 640
+  },
+  "memory": {
+    "new_heap_bytes": 0,
+    "new_vtcm_bytes": 0,
+    "persistent_metadata_bytes": 0,
+    "dsp_local_io_bytes_before_after": [
+      24,
+      28
+    ],
+    "existing_qx_bytes": 1179648,
+    "deferred_raw_bank_bytes": 524288
+  },
+  "limitations": [
+    "SDK libnative is prebuilt and unsanitized.",
+    "HMX/DMA/cache behavior needs parent device validation.",
+    "Separate Qprep/overlap checks are not full-attention numerical replay.",
+    "Semantic fallback does not prove unchanged Gemma or 1024 performance.",
+    "No hardware TPS or causal cache-contention claim is made."
+  ],
+  "root_sdk_phone_or_author_source_mutated": false
+}

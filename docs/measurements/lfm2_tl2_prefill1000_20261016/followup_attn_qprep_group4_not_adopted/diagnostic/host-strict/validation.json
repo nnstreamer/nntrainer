@@ -1,0 +1,18 @@
+{
+  "results": [
+    {
+      "name": "attn_qprep_native_check",
+      "returncode": 0,
+      "expected_success": true
+    }
+  ],
+  "scope": "Run production Q-prep and HVX quantizers on the SDK's host emulation.\n\nHMX is outside this test. The unmodified candidate Q-prep body is extracted so\nthe real guard, initializers, gather and helper calls are exercised. Hexagon\nlibnative supplies HVX arithmetic; the repository's QuRT host shim supplies\nworker threads. No model file, device, benchmark or absolute path is required.\n",
+  "source_sha256": {
+    "/tmp/nntr-lfm2-attn-strided-qprep-20261017/candidate/test/htp/host/attn_qprep_native_unaligned.h": "d1242554698c4c678bfd15fb6145d9df059a256baba23a4638995486322c07d0",
+    "/tmp/nntr-lfm2-attn-strided-qprep-20261017/diagnostic/source/nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c": "11534746016a5a991868b432b7ab78960148ad0d26b65868863fd25e5376a596",
+    "/tmp/nntr-lfm2-attn-strided-qprep-20261017/diagnostic/source/nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.h": "43147aa90d4960e54e740c0d246124e00ddd6cf681cd47cbcfd3100fb191dc7a",
+    "/tmp/nntr-lfm2-attn-strided-qprep-20261017/diagnostic/source/nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c": "ebcc5f7334af43f5b0ab660231c70dd3cf84c960dff989e6bf3c94c0fe4da650",
+    "/tmp/nntr-lfm2-attn-strided-qprep-20261017/diagnostic/source/nntrainer/tensor/htp_backend/hvx/hvx_quant_u8_group4.h": "669b71e2b1c5d4289e6745825e706928b523fc3c4cb3c2175bf1622ec2cd90af",
+    "/tmp/nntr-lfm2-attn-strided-qprep-20261017/diagnostic/source/test/htp/host/attn_qprep_native_check.c": "52a0558d85d435202872cee211af33db72608e0281eba985c622a81dab20037d"
+  }
+}
