@@ -1,0 +1,80 @@
+Independent corrected-KV device readback — PASS, finite correctness scope
+
+All three root-owned runs used the unchanged fixture351ca73b and original
+12groups x A/B/A plan:36attention outputs plus4signed-plane comparisons per arm.
+No parser/fixture condition was relaxed. The independent original comparator
+0813a478 and frozen trace parser3aed26a4 both pass. Each arm writes231908352B;
+we compared all three files directly, not just their hashes. All equalSHA:
+e64b0a2342d8132bd09e23763ca8958270c62a8e2a99dd720e1cb27f4478c394.
+All normal output words are finite; A0==A2 and B differs in every case.
+CASE/PROBE input fingerprints and complete metadata match across all three.
+This is real DSP primitive/caller evidence, not whole-model or TPS evidence.
+
+Identity and controlled build
+Root children18251(control)/18288(candidate)/18335(diagnostic) exited0 and were
+waited by the same20ms monitor. Recorded seven-runtime hashes bind to the fixed
+build; six non-DSP runtime files are identical. DSP identities:
+control    2d693821c60863c530508cd9249c285be0df18311923eeda0081e21401fe0bd5
+candidate  f39929135978faf78194973df76aee9bafbaa7f41b75ec6da75b646813b67fc8
+diagnostic 9750194852b6f3af2e885355fb373da4b7ad3e8430c0ae0521583008fdb376f6
+Independent read-only audit hashed all65unique active object files and all
+three normal/repeat ELF pairs. Each arm has63objects; normal arms share62,
+including the corrected KV objectfd2df74c. Link argument differences are only
+output path and attention object, with common-no-threads.61original common
+objects remain untouched. We did not run objcopy, compile, relink or a phone.
+Raw4plane productiond8d18272 remains separate from common KV fixc86726cb.
+This comparison is the new controlled object pair, not original accepted3b.
+
+Actual dispatch, not shape inference
+Live logPID18335 has33unique contiguousseq1..33,0transport duplicates. The six
+target1024/2048 calls actually select raw mode; other27prefill calls use SDK.
+Three decode1 calls bypass HMX prefill and correctly produce no marker.
+Target1024 percall:10240raw serial,0deferred,160completed blocks.
+Target2048 percall:8192raw serial,28672deferred,576completed blocks.
+Whole fixture:55296serial+86016deferred raw,170472SDK QK readouts,17004blocks.
+Readout unit is one full8KiB QK tile, not four plane passes or PV output.
+Counts are the originally derived expectations, not fitted to returned records.
+The2048 path therefore demonstrates repeated Qx readouts overlapping PV;1024
+covers immediate processing. All third-arm output bytes also equal normal.
+Four probe comparisons each pass two repeated SDK accumulators,host int64dot,
+and four-plane signed reconstruction. Per probe0/1:840negative/568positive/640zero;
+probe2/3:564negative/844positive/640zero. These are actual values, not host emulation.
+
+Original failure retained and corrected result distinguished
+The uncorrected control385576/fixture351ca run remains a rejected exit1 artifact.
+Its first9outputs(100663296B:dynamic1024,dynamic2048,Q4) exactly match corrected
+control. Fixed case3 A0/B input metadata is identical but output words differ:
+2096551 and2096740 of2097152words respectively. Original A2 was rejected before
+fwrite and was not saved, so no oldA2 numerical comparison is claimed.
+After the separate common fixed-copy-tail correction, the same fixed case
+A/B/A passes all three arms without input/acceptance changes. Source and host
+sanitizer evidence for that correction are in its separate correctness bundle;
+this readback adds the unchanged real-device fixture outcome. It does not
+replace or relabel the failed original run as passing raw4plane evidence.
+
+Whole-process sampled memory
+arm        samples/available  sampled anon+dedup-fd peakB   interval mean/maxms
+control    100/99             112881664(107.6523MiB)       20.5357/23.1988
+candidate   95/94             112898048(107.6680MiB)       20.4759/22.6822
+diagnostic  91/90             112910336(107.6797MiB)       20.4531/23.3455
+Every run includes a pre-exec sample and only its terminal RSS-less zombie
+sample lacks the composite. Peak arithmetic/max_t/sample membership were
+recomputed; all peak samples have0FD/identity/field errors and the same
+87306240B fd size. Other scan fdinfo read errors total5/1/5 and are preserved
+with exact sample indices; do not call the entire scan error-free. The scan
+is non-atomic and can miss transient allocations or closing/reused fds.
+Allocated fd sizes are not proven resident/DMA bytes; DSP private heap,VTCM,
+page cache and other processes may be absent. Host RSS/highwater is not added
+to this composite because mapped buffers can overlap. No model peak or memory
+capacity improvement is inferred from this short fixture.
+
+Portable compact payload
+validation.json joins the independently parsed outputs,identity/memory audit,
+actual dispatch and original-failure comparison. device-readback.json retains
+all36per-output hashes, dispatch-readback.json the strict33-tag aggregate.
+preflight.json records controlled object proof. raw/*.gz preserves the three
+JSONL/execution/memory logs and livePID log; dump hashes/extents are recorded,
+but232MB dumps/SDK/model/ELFs are deliberately not copied. repro/ holds exact
+parser/plan/scripts. Parent root retains the original dump files under its
+/tmp device-fixture-fixed directory. No additional model benchmark or phone
+run was requested by this reviewer. Model-level validation remains separate.

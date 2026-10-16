@@ -351,8 +351,14 @@ static void write_row_i8_tiles(hexkl_kv_q *kv, uint32_t n, uint32_t row,
  */
 static inline void xor80_copy(uint8_t *dst, const uint8_t *src, uint32_t n) {
   const HVX_Vector x = Q6_V_vsplat_R(0x80808080);
-  for (uint32_t i = 0; i < n; i += 128u) {
+  const uint32_t full = n & ~127u;
+  uint32_t i = 0;
+  for (; i < full; i += 128u) {
     hvx_tile_store_u(dst + i, Q6_V_vxor_VV(hvx_tile_load_u(src + i), x));
+  }
+  // Legal head dimensions include 32, 64 and 96: do not touch the next row.
+  for (; i < n; ++i) {
+    dst[i] = src[i] ^ 0x80u;
   }
 }
 

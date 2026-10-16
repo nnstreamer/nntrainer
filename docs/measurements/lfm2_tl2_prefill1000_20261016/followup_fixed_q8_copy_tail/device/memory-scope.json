@@ -1,0 +1,109 @@
+{
+  "scope": "Whole short fixture; original failed early. Not comparable model peak/performance data.",
+  "runs": {
+    "original/control": {
+      "pid": 17900,
+      "child_waited": true,
+      "child_exit_code": 1,
+      "sample_count": 57,
+      "composite_available_sample_count": 56,
+      "requested_period_ms": 20,
+      "dma_buffer_identity_verified": false,
+      "peak_anon_plus_fdinfo_dedup_or_raw_fallback_bytes": 112885760,
+      "limitations": [
+        "Sampled process accounting from before exec through child exit; transients between samples can be missed.",
+        "Only the supervised PID is read, not descendants or device-wide memory; the monitor's own memory is excluded.",
+        "Status and fdinfo are read sequentially, not as an atomic snapshot; opening, closing and reusing fds can race the scan.",
+        "A size: field is not verified as DMA memory. exp_name is evidence only; dma_buffer_identity_verified remains false.",
+        "Missing inode identities are counted per fd without deduplication; missing mount IDs use an unknown-mount inode namespace.",
+        "Conflicting sizes for one identity use the largest observed size and are flagged. Unreadable or malformed fdinfo is flagged.",
+        "Allocated fd sizes are not necessarily resident bytes. Private DSP heap, driver allocations, VTCM and page cache may be absent.",
+        "Host VmRSS/VmHWM and mapped HTP arena sizes must not be added to the composite; they can overlap fd-backed memory.",
+        "VmHWM is the maximum observed kernel host high-water; a process exiting between polls may hide its final high-water.",
+        "child_final_ru_maxrss_kib comes from wait4 on Linux/Android and captures the terminated child host RSS high-water; it must not be added to sampled fd sizes or the composite.",
+        "Sampling adds CPU and procfs activity; compare baseline and candidate with the same monitor and period.",
+        "SIGINT, SIGTERM and SIGHUP are forwarded to the child process group. SIGKILL of the monitor cannot be forwarded."
+      ],
+      "fdinfo_error_sample_count": 1,
+      "unavailable_composite_sample_count": 1
+    },
+    "corrected/control": {
+      "pid": 18251,
+      "child_waited": true,
+      "child_exit_code": 0,
+      "sample_count": 100,
+      "composite_available_sample_count": 99,
+      "requested_period_ms": 20,
+      "dma_buffer_identity_verified": false,
+      "peak_anon_plus_fdinfo_dedup_or_raw_fallback_bytes": 112881664,
+      "limitations": [
+        "Sampled process accounting from before exec through child exit; transients between samples can be missed.",
+        "Only the supervised PID is read, not descendants or device-wide memory; the monitor's own memory is excluded.",
+        "Status and fdinfo are read sequentially, not as an atomic snapshot; opening, closing and reusing fds can race the scan.",
+        "A size: field is not verified as DMA memory. exp_name is evidence only; dma_buffer_identity_verified remains false.",
+        "Missing inode identities are counted per fd without deduplication; missing mount IDs use an unknown-mount inode namespace.",
+        "Conflicting sizes for one identity use the largest observed size and are flagged. Unreadable or malformed fdinfo is flagged.",
+        "Allocated fd sizes are not necessarily resident bytes. Private DSP heap, driver allocations, VTCM and page cache may be absent.",
+        "Host VmRSS/VmHWM and mapped HTP arena sizes must not be added to the composite; they can overlap fd-backed memory.",
+        "VmHWM is the maximum observed kernel host high-water; a process exiting between polls may hide its final high-water.",
+        "child_final_ru_maxrss_kib comes from wait4 on Linux/Android and captures the terminated child host RSS high-water; it must not be added to sampled fd sizes or the composite.",
+        "Sampling adds CPU and procfs activity; compare baseline and candidate with the same monitor and period.",
+        "SIGINT, SIGTERM and SIGHUP are forwarded to the child process group. SIGKILL of the monitor cannot be forwarded."
+      ],
+      "fdinfo_error_sample_count": 5,
+      "unavailable_composite_sample_count": 1
+    },
+    "corrected/candidate": {
+      "pid": 18288,
+      "child_waited": true,
+      "child_exit_code": 0,
+      "sample_count": 95,
+      "composite_available_sample_count": 94,
+      "requested_period_ms": 20,
+      "dma_buffer_identity_verified": false,
+      "peak_anon_plus_fdinfo_dedup_or_raw_fallback_bytes": 112898048,
+      "limitations": [
+        "Sampled process accounting from before exec through child exit; transients between samples can be missed.",
+        "Only the supervised PID is read, not descendants or device-wide memory; the monitor's own memory is excluded.",
+        "Status and fdinfo are read sequentially, not as an atomic snapshot; opening, closing and reusing fds can race the scan.",
+        "A size: field is not verified as DMA memory. exp_name is evidence only; dma_buffer_identity_verified remains false.",
+        "Missing inode identities are counted per fd without deduplication; missing mount IDs use an unknown-mount inode namespace.",
+        "Conflicting sizes for one identity use the largest observed size and are flagged. Unreadable or malformed fdinfo is flagged.",
+        "Allocated fd sizes are not necessarily resident bytes. Private DSP heap, driver allocations, VTCM and page cache may be absent.",
+        "Host VmRSS/VmHWM and mapped HTP arena sizes must not be added to the composite; they can overlap fd-backed memory.",
+        "VmHWM is the maximum observed kernel host high-water; a process exiting between polls may hide its final high-water.",
+        "child_final_ru_maxrss_kib comes from wait4 on Linux/Android and captures the terminated child host RSS high-water; it must not be added to sampled fd sizes or the composite.",
+        "Sampling adds CPU and procfs activity; compare baseline and candidate with the same monitor and period.",
+        "SIGINT, SIGTERM and SIGHUP are forwarded to the child process group. SIGKILL of the monitor cannot be forwarded."
+      ],
+      "fdinfo_error_sample_count": 1,
+      "unavailable_composite_sample_count": 1
+    },
+    "corrected/diagnostic": {
+      "pid": 18335,
+      "child_waited": true,
+      "child_exit_code": 0,
+      "sample_count": 91,
+      "composite_available_sample_count": 90,
+      "requested_period_ms": 20,
+      "dma_buffer_identity_verified": false,
+      "peak_anon_plus_fdinfo_dedup_or_raw_fallback_bytes": 112910336,
+      "limitations": [
+        "Sampled process accounting from before exec through child exit; transients between samples can be missed.",
+        "Only the supervised PID is read, not descendants or device-wide memory; the monitor's own memory is excluded.",
+        "Status and fdinfo are read sequentially, not as an atomic snapshot; opening, closing and reusing fds can race the scan.",
+        "A size: field is not verified as DMA memory. exp_name is evidence only; dma_buffer_identity_verified remains false.",
+        "Missing inode identities are counted per fd without deduplication; missing mount IDs use an unknown-mount inode namespace.",
+        "Conflicting sizes for one identity use the largest observed size and are flagged. Unreadable or malformed fdinfo is flagged.",
+        "Allocated fd sizes are not necessarily resident bytes. Private DSP heap, driver allocations, VTCM and page cache may be absent.",
+        "Host VmRSS/VmHWM and mapped HTP arena sizes must not be added to the composite; they can overlap fd-backed memory.",
+        "VmHWM is the maximum observed kernel host high-water; a process exiting between polls may hide its final high-water.",
+        "child_final_ru_maxrss_kib comes from wait4 on Linux/Android and captures the terminated child host RSS high-water; it must not be added to sampled fd sizes or the composite.",
+        "Sampling adds CPU and procfs activity; compare baseline and candidate with the same monitor and period.",
+        "SIGINT, SIGTERM and SIGHUP are forwarded to the child process group. SIGKILL of the monitor cannot be forwarded."
+      ],
+      "fdinfo_error_sample_count": 5,
+      "unavailable_composite_sample_count": 1
+    }
+  }
+}

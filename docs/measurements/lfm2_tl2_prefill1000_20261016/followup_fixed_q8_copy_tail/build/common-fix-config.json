@@ -1,0 +1,6 @@
+{
+  "relative_source": "nntrainer/tensor/htp_backend/hmx/hexkl_kv_q.c",
+  "patch_sha256": "c86726cb86782f33b820dafa9af5120c6831506ff991b8195d1f17b0a9cbf6ac",
+  "baseline_source_sha256": "6f20a5a4cbd0c4614c24b91cbd0c0c16f15f640e1d53014b66014b5039c4a46d",
+  "corrected_source_sha256": "fa750e41854303b716990c5d722e8b14a0c85e1776e26096ff880acaf007c291"
+}

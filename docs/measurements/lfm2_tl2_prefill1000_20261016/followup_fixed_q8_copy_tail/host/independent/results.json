@@ -1,0 +1,58 @@
+{
+  "metadata-build": {
+    "returncode": 0,
+    "expected_failure": false
+  },
+  "quant-build": {
+    "returncode": 0,
+    "expected_failure": false
+  },
+  "pool-build": {
+    "returncode": 0,
+    "expected_failure": false
+  },
+  "baseline-build": {
+    "returncode": 0,
+    "expected_failure": false
+  },
+  "baseline-link": {
+    "returncode": 0,
+    "expected_failure": false
+  },
+  "baseline-copy-overflow": {
+    "returncode": 1,
+    "expected_failure": true
+  },
+  "baseline-worker-order": {
+    "returncode": -6,
+    "expected_failure": true
+  },
+  "candidate-build": {
+    "returncode": 0,
+    "expected_failure": false
+  },
+  "candidate-link": {
+    "returncode": 0,
+    "expected_failure": false
+  },
+  "candidate-check": {
+    "returncode": 0,
+    "expected_failure": false
+  },
+  "candidate-copy64": {
+    "returncode": 0,
+    "expected_failure": false
+  },
+  "candidate-worker-order": {
+    "returncode": 0,
+    "expected_failure": false
+  },
+  "hashes": {
+    "/tmp/nntr-fixed-q8-copy-tail-review-20261017/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_kv_q.c": "fa750e41854303b716990c5d722e8b14a0c85e1776e26096ff880acaf007c291",
+    "/tmp/nntr-fixed-q8-copy-tail-review-20261017/baseline/nntrainer/tensor/htp_backend/hmx/hexkl_kv_q.c": "6f20a5a4cbd0c4614c24b91cbd0c0c16f15f640e1d53014b66014b5039c4a46d",
+    "/tmp/nntr-fixed-q8-copy-tail-review-20261017/fixture/kv_fixed_tail_check.c": "b0e57b2691a77a0f81a79981a8a7dd2bda8f00e86dd2c37db088fdee1f62bf91",
+    "/tmp/nntr-fixed-q8-copy-tail-review-20261017/fixture/run_check.py": "c6ff21234aa0fc3d5179ced88e0b7c70c7428bf7b9307b626718cb9a97e9df17"
+  },
+  "scope": "actual DSP helper and row worker, actual HVX/libnative quant, host registration, pthread pool; not HMX/device",
+  "sanitizers": "ASan + UBSan halt-on-error, no suppression"
+}

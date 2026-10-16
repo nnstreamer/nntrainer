@@ -1,0 +1,238 @@
+{
+  "sources": {
+    "nntrainer/tensor/htp_backend/hmx/hexkl_kv_q.c": "6f20a5a4cbd0c4614c24b91cbd0c0c16f15f640e1d53014b66014b5039c4a46d",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_kv_q.h": "944967fef98e2cb242ff60d339736ea2b23685b8817a3a214d5bfa3847fdeeb7",
+    "nntrainer/tensor/htp_backend/hvx/hvx_kv_quant.c": "dbfa2873996a2aa176d96b78c8c9579f0688c2c045a740131874502f7b908bfa",
+    "nntrainer/tensor/htp_backend/hvx/hvx_tile_f16.h": "bdbdd0db4f38915e486874393c308b531916cc0dcc65cbd801b5d38f8517a69f"
+  },
+  "head_contract": "nonzero, multiple32, <=512; fixed Q8 enables plain row-major masters before first append; rows may be rewritten",
+  "allocation": "heads*rounded_max_rows*hd bytes, no tail padding",
+  "copy_calls": [
+    {
+      "count": "hd",
+      "source": "worker-local q[512]",
+      "destination": "kt4 plain row"
+    },
+    {
+      "count": "hd",
+      "source": "worker-local q[512]",
+      "destination": "v4 plain row"
+    },
+    {
+      "count": "32*hd",
+      "source": "v4 contiguous full tile",
+      "destination": "stage_v[32*hd]"
+    }
+  ],
+  "all_copy_source_destination_ranges_disjoint": true,
+  "dims": [
+    {
+      "head_dim": 32,
+      "legal": true,
+      "copied_bytes_per_row_before": 128,
+      "row_bytes": 32,
+      "excess_bytes": 96,
+      "last_master_start": 262112,
+      "last_store_end": 262240,
+      "master_allocation_bytes": 262144,
+      "stage_bytes": 1024,
+      "stage_remainder": 0
+    },
+    {
+      "head_dim": 64,
+      "legal": true,
+      "copied_bytes_per_row_before": 128,
+      "row_bytes": 64,
+      "excess_bytes": 64,
+      "last_master_start": 524224,
+      "last_store_end": 524352,
+      "master_allocation_bytes": 524288,
+      "stage_bytes": 2048,
+      "stage_remainder": 0
+    },
+    {
+      "head_dim": 96,
+      "legal": true,
+      "copied_bytes_per_row_before": 128,
+      "row_bytes": 96,
+      "excess_bytes": 32,
+      "last_master_start": 786336,
+      "last_store_end": 786464,
+      "master_allocation_bytes": 786432,
+      "stage_bytes": 3072,
+      "stage_remainder": 0
+    },
+    {
+      "head_dim": 128,
+      "legal": true,
+      "copied_bytes_per_row_before": 128,
+      "row_bytes": 128,
+      "excess_bytes": 0,
+      "last_master_start": 1048448,
+      "last_store_end": 1048576,
+      "master_allocation_bytes": 1048576,
+      "stage_bytes": 4096,
+      "stage_remainder": 0
+    },
+    {
+      "head_dim": 160,
+      "legal": true,
+      "copied_bytes_per_row_before": 256,
+      "row_bytes": 160,
+      "excess_bytes": 96,
+      "last_master_start": 1310560,
+      "last_store_end": 1310816,
+      "master_allocation_bytes": 1310720,
+      "stage_bytes": 5120,
+      "stage_remainder": 0
+    },
+    {
+      "head_dim": 192,
+      "legal": true,
+      "copied_bytes_per_row_before": 256,
+      "row_bytes": 192,
+      "excess_bytes": 64,
+      "last_master_start": 1572672,
+      "last_store_end": 1572928,
+      "master_allocation_bytes": 1572864,
+      "stage_bytes": 6144,
+      "stage_remainder": 0
+    },
+    {
+      "head_dim": 224,
+      "legal": true,
+      "copied_bytes_per_row_before": 256,
+      "row_bytes": 224,
+      "excess_bytes": 32,
+      "last_master_start": 1834784,
+      "last_store_end": 1835040,
+      "master_allocation_bytes": 1835008,
+      "stage_bytes": 7168,
+      "stage_remainder": 0
+    },
+    {
+      "head_dim": 256,
+      "legal": true,
+      "copied_bytes_per_row_before": 256,
+      "row_bytes": 256,
+      "excess_bytes": 0,
+      "last_master_start": 2096896,
+      "last_store_end": 2097152,
+      "master_allocation_bytes": 2097152,
+      "stage_bytes": 8192,
+      "stage_remainder": 0
+    },
+    {
+      "head_dim": 288,
+      "legal": true,
+      "copied_bytes_per_row_before": 384,
+      "row_bytes": 288,
+      "excess_bytes": 96,
+      "last_master_start": 2359008,
+      "last_store_end": 2359392,
+      "master_allocation_bytes": 2359296,
+      "stage_bytes": 9216,
+      "stage_remainder": 0
+    },
+    {
+      "head_dim": 320,
+      "legal": true,
+      "copied_bytes_per_row_before": 384,
+      "row_bytes": 320,
+      "excess_bytes": 64,
+      "last_master_start": 2621120,
+      "last_store_end": 2621504,
+      "master_allocation_bytes": 2621440,
+      "stage_bytes": 10240,
+      "stage_remainder": 0
+    },
+    {
+      "head_dim": 352,
+      "legal": true,
+      "copied_bytes_per_row_before": 384,
+      "row_bytes": 352,
+      "excess_bytes": 32,
+      "last_master_start": 2883232,
+      "last_store_end": 2883616,
+      "master_allocation_bytes": 2883584,
+      "stage_bytes": 11264,
+      "stage_remainder": 0
+    },
+    {
+      "head_dim": 384,
+      "legal": true,
+      "copied_bytes_per_row_before": 384,
+      "row_bytes": 384,
+      "excess_bytes": 0,
+      "last_master_start": 3145344,
+      "last_store_end": 3145728,
+      "master_allocation_bytes": 3145728,
+      "stage_bytes": 12288,
+      "stage_remainder": 0
+    },
+    {
+      "head_dim": 416,
+      "legal": true,
+      "copied_bytes_per_row_before": 512,
+      "row_bytes": 416,
+      "excess_bytes": 96,
+      "last_master_start": 3407456,
+      "last_store_end": 3407968,
+      "master_allocation_bytes": 3407872,
+      "stage_bytes": 13312,
+      "stage_remainder": 0
+    },
+    {
+      "head_dim": 448,
+      "legal": true,
+      "copied_bytes_per_row_before": 512,
+      "row_bytes": 448,
+      "excess_bytes": 64,
+      "last_master_start": 3669568,
+      "last_store_end": 3670080,
+      "master_allocation_bytes": 3670016,
+      "stage_bytes": 14336,
+      "stage_remainder": 0
+    },
+    {
+      "head_dim": 480,
+      "legal": true,
+      "copied_bytes_per_row_before": 512,
+      "row_bytes": 480,
+      "excess_bytes": 32,
+      "last_master_start": 3931680,
+      "last_store_end": 3932192,
+      "master_allocation_bytes": 3932160,
+      "stage_bytes": 15360,
+      "stage_remainder": 0
+    },
+    {
+      "head_dim": 512,
+      "legal": true,
+      "copied_bytes_per_row_before": 512,
+      "row_bytes": 512,
+      "excess_bytes": 0,
+      "last_master_start": 4193792,
+      "last_store_end": 4194304,
+      "master_allocation_bytes": 4194304,
+      "stage_bytes": 16384,
+      "stage_remainder": 0
+    }
+  ],
+  "hd64_worker_boundaries": {
+    "workers": 8,
+    "n_rows": 1024,
+    "start_rows": [
+      128,
+      256,
+      384,
+      512,
+      640,
+      768,
+      896
+    ],
+    "overlapping_bytes_per_boundary_per_head": 64
+  },
+  "status": "STATIC_CONTRACT_VIOLATION_CONFIRMED",
+  "device_cause_scope": "Consistent with the baseline fixed-Q8 A/B/A failure. Device repair confirmation is still required; raw-plane candidate was not run."
+}

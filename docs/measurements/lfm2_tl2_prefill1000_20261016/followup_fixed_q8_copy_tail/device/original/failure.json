@@ -1,0 +1,17 @@
+{
+  "status": "CONTROL_FAILED_BEFORE_CANDIDATE",
+  "reason": "fixed_q8 case3 repetition2 A/B/A output reuse mismatch; no candidate or diagnostic fixture run yet.",
+  "pid": 17900,
+  "child_waited": true,
+  "child_exit_code": 1,
+  "artifacts": {
+    "control.partial.bin": {
+      "sha256": "776062a1a0b33b33f70821c21091c4bf0f2a867c80dda81399dad294b6857fb3",
+      "bytes": 117440512
+    },
+    "control.memory.json": {
+      "sha256": "b8f014dce91b44f6bdaad445779c88c23e404a10bd98bdf7a00f66165bb9d1ff",
+      "bytes": 50874
+    }
+  }
+}

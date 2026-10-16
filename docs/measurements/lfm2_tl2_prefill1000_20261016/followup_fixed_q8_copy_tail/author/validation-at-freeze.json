@@ -1,0 +1,32 @@
+{
+  "status": "host correctness and compilation passed; corrected common device rerun pending",
+  "scope": "separate fixed-Q8 copy ownership repair, raw QK production unchanged",
+  "source_sha256": {
+    "production.patch": "c86726cb86782f33b820dafa9af5120c6831506ff991b8195d1f17b0a9cbf6ac",
+    "candidate/nntrainer/tensor/htp_backend/hmx/hexkl_kv_q.c": "fa750e41854303b716990c5d722e8b14a0c85e1776e26096ff880acaf007c291",
+    "baseline/nntrainer/tensor/htp_backend/hmx/hexkl_kv_q.c": "6f20a5a4cbd0c4614c24b91cbd0c0c16f15f640e1d53014b66014b5039c4a46d",
+    "tests.patch": "a161ab2d979d79e91f7ac920b509dc4f404cf60314d6611730337fa7f68b8d5b",
+    "candidate/test/htp/host/kv_fixed_tail_check.c": "b0e57b2691a77a0f81a79981a8a7dd2bda8f00e86dd2c37db088fdee1f62bf91",
+    "candidate/test/htp/host/run_kv_fixed_tail_check.py": "e02c79d5ec51bea65f8ecd33bf82f6bcdfba0976bd2103ac7e34b188bbfcdc32"
+  },
+  "only_xor80_copy_changed": true,
+  "copy_cases": 3094,
+  "actual_worker_aba_cases": 384,
+  "actual_worker_jobs": 1152,
+  "baseline_expected_failures": [
+    "ASan heap-buffer-overflow WRITE128 into64B",
+    "actual quant_rows_worker reverse-lane master bytes mismatch"
+  ],
+  "final_host": "checks/portable-final/results.json",
+  "sanitizers": "ASan/UBSan halt_on_error; no suppression",
+  "codegen": {
+    "whole_v81_before_after": "pass",
+    "all_frames_equal": true,
+    "constant_full_vector_assembly_equal": true,
+    "host_TU_object_equal": true
+  },
+  "unchanged_raw_production_patch_sha256": "d8d1827242aab3e698e7c69eefb73711305d37b843ba3798ba2b2e251e75fbb3",
+  "device_scope": "root only; same original 36 CASE + 4 PROBE fixture and strict parser, common corrected KV object in all compared arms",
+  "production_memory_growth": 0,
+  "performance_claim": null
+}

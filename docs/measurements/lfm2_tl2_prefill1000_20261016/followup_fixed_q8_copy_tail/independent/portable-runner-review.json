@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "only_delta": "import sys plus early Linux-host guard before output creation, source reads or commands",
+  "linux_body_byte_identical_after_removing_guard": true,
+  "nonlinux_mock_platform": "darwin",
+  "nonlinux_exit_code": 2,
+  "no_output_created": true,
+  "final_hashes": {
+    "run_kv_fixed_tail_check.py": "e02c79d5ec51bea65f8ecd33bf82f6bcdfba0976bd2103ac7e34b188bbfcdc32",
+    "kv_fixed_tail_check.c": "b0e57b2691a77a0f81a79981a8a7dd2bda8f00e86dd2c37db088fdee1f62bf91"
+  },
+  "tests_patch_sha256": "a161ab2d979d79e91f7ac920b509dc4f404cf60314d6611730337fa7f68b8d5b",
+  "scope": "The original runner was independently executed fully. Final portable runner only received the displayed guard delta; no redundant full fixture rerun."
+}

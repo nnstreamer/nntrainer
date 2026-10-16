@@ -1,0 +1,1 @@
+check: /tmp/nntr-fixed-q8-copy-tail-20261017/candidate/test/htp/host/kv_fixed_tail_check.c:131: worker_case: Assertion `memcmp(kv->kt4, want_k, values) == 0' failed.

@@ -1,0 +1,26 @@
+{
+  "original/control.partial": {
+    "sha256": "776062a1a0b33b33f70821c21091c4bf0f2a867c80dda81399dad294b6857fb3",
+    "bytes": 117440512,
+    "source_path": "/tmp/nntr-lfm2-attn-raw-planes-root-20261017/device-fixture/control.partial.bin",
+    "archived": false
+  },
+  "corrected/control": {
+    "sha256": "e64b0a2342d8132bd09e23763ca8958270c62a8e2a99dd720e1cb27f4478c394",
+    "bytes": 231908352,
+    "source_path": "/tmp/nntr-lfm2-attn-raw-planes-root-20261017/device-fixture-fixed/control.bin",
+    "archived": false
+  },
+  "corrected/candidate": {
+    "sha256": "e64b0a2342d8132bd09e23763ca8958270c62a8e2a99dd720e1cb27f4478c394",
+    "bytes": 231908352,
+    "source_path": "/tmp/nntr-lfm2-attn-raw-planes-root-20261017/device-fixture-fixed/candidate.bin",
+    "archived": false
+  },
+  "corrected/diagnostic": {
+    "sha256": "e64b0a2342d8132bd09e23763ca8958270c62a8e2a99dd720e1cb27f4478c394",
+    "bytes": 231908352,
+    "source_path": "/tmp/nntr-lfm2-attn-raw-planes-root-20261017/device-fixture-fixed/diagnostic.bin",
+    "archived": false
+  }
+}

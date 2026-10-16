@@ -1,0 +1,1 @@
+PASS actual copy 3094 cases; actual fixed quant worker 384 A/B/A cases (real HVX/libnative + pthread pool, no HMX).

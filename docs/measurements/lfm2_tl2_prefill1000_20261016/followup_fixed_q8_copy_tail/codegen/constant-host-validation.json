@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "full_vector_constants": [
+    128,
+    256,
+    512,
+    1024,
+    2048,
+    4096,
+    8192,
+    16384
+  ],
+  "whole_constant_assembly_identical": true,
+  "host_full_object_sha256": {
+    "baseline": "026e02c82371c6dda4520f2c7ff38e5ef7d4b0be6791cfbbd9bdb8f07ae36c89",
+    "candidate": "026e02c82371c6dda4520f2c7ff38e5ef7d4b0be6791cfbbd9bdb8f07ae36c89"
+  },
+  "scope": "Constant-size wrapper equivalence and non-Hex object identity; actual runtime-sized caller is changed and this is not a performance claim."
+}

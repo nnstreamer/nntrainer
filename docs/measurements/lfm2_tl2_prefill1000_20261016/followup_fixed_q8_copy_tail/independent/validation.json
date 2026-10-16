@@ -1,0 +1,77 @@
+{
+  "status": "PASS_NO_UNRESOLVED_SOURCE_BLOCKER",
+  "production_patch_sha256": "c86726cb86782f33b820dafa9af5120c6831506ff991b8195d1f17b0a9cbf6ac",
+  "candidate_source_sha256": "fa750e41854303b716990c5d722e8b14a0c85e1776e26096ff880acaf007c291",
+  "baseline_source_sha256": "6f20a5a4cbd0c4614c24b91cbd0c0c16f15f640e1d53014b66014b5039c4a46d",
+  "tests_final_patch_sha256": "a161ab2d979d79e91f7ac920b509dc4f404cf60314d6611730337fa7f68b8d5b",
+  "independently_executed": {
+    "strict_actual_copy_cases": 3094,
+    "strict_actual_fixed_quant_worker_aba_cases": 384,
+    "sanitizers": "ASan + UBSan fatal, no sanitizer suppression",
+    "baseline_heap_overflow_reproduced": true,
+    "baseline_reverse_worker_corruption_reproduced": true,
+    "corrected_dedicated_regressions_pass": true,
+    "whole_tu_v81_compiles": 4,
+    "all_stack_frames_identical": true,
+    "stack_frames_bytes": {
+      "hexkl_kv_q_quant_k_row": 48,
+      "hexkl_kv_q_quant_v_row": 40,
+      "hexkl_kv_q_quant_k_row_fixed": 32,
+      "hexkl_kv_q_quant_v_row_fixed": 24,
+      "hexkl_kv_q_set_fixed_scales": 16,
+      "hexkl_kv_q_get": 0,
+      "hexkl_kv_q_register": 72,
+      "hexkl_kv_q_release": 8,
+      "hexkl_kv_q_stage": 24,
+      "hexkl_kv_q_wh_i8_pos": 0,
+      "wh_i8_probe": 4128,
+      "hexkl_kv_q_append": 16,
+      "hexkl_kv_q_append_pool": 128,
+      "append_fixed_i8": 1408,
+      "dynamic_heads_worker": 32,
+      "append_dynamic_heads": 1184,
+      "hexkl_kv_q_dump": 24,
+      "quant_rows_worker": 896,
+      "bake_tiles_worker": 32,
+      "bake_tile_hvx": 4352
+    },
+    "constant_wrapper_assembly_identical": {
+      "status": "PASS",
+      "full_vector_constants": [
+        128,
+        256,
+        512,
+        1024,
+        2048,
+        4096,
+        8192,
+        16384
+      ],
+      "whole_constant_assembly_identical": true,
+      "host_full_object_sha256": {
+        "baseline": "026e02c82371c6dda4520f2c7ff38e5ef7d4b0be6791cfbbd9bdb8f07ae36c89",
+        "candidate": "026e02c82371c6dda4520f2c7ff38e5ef7d4b0be6791cfbbd9bdb8f07ae36c89"
+      },
+      "scope": "Constant-size wrapper equivalence and non-Hex object identity; actual runtime-sized caller is changed and this is not a performance claim."
+    },
+    "portable_runner_delta": {
+      "status": "PASS",
+      "only_delta": "import sys plus early Linux-host guard before output creation, source reads or commands",
+      "linux_body_byte_identical_after_removing_guard": true,
+      "nonlinux_mock_platform": "darwin",
+      "nonlinux_exit_code": 2,
+      "no_output_created": true,
+      "final_hashes": {
+        "run_kv_fixed_tail_check.py": "e02c79d5ec51bea65f8ecd33bf82f6bcdfba0976bd2103ac7e34b188bbfcdc32",
+        "kv_fixed_tail_check.c": "b0e57b2691a77a0f81a79981a8a7dd2bda8f00e86dd2c37db088fdee1f62bf91"
+      },
+      "tests_patch_sha256": "a161ab2d979d79e91f7ac920b509dc4f404cf60314d6611730337fa7f68b8d5b",
+      "scope": "The original runner was independently executed fully. Final portable runner only received the displayed guard delta; no redundant full fixture rerun."
+    }
+  },
+  "semantics": "Only bounded byte XOR copy changes. No FP/quantizer/layout/pool/allocation/cache/reader change.",
+  "device_scope": "Parent fixed-Q8 control failure is preserved. Reviewer ran no phone tests; corrected control/candidate hardware validation remains a separate parent task.",
+  "integration": "Use one corrected KV object in control/raw-candidate/diagnostic arms so only attention TU differs; preserve old control failure.",
+  "performance_scope": "No throughput claim. Constant-size assembly identity is not proof of runtime-sized full-caller or Gemma performance identity.",
+  "write_scope": "Only reviewer-owned /tmp directory. No original PF/root/phone or SDK writes, and no objcopy invocation for this correctness review."
+}

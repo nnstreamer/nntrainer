@@ -1,0 +1,125 @@
+Independent review: fixed-Q8 row-copy tail correctness
+
+Verdict: no unresolved source or host-validation blocker for production patch
+c86726cb86782f33b820dafa9af5120c6831506ff991b8195d1f17b0a9cbf6ac.
+Candidate hexkl_kv_q.c is
+fa750e41854303b716990c5d722e8b14a0c85e1776e26096ff880acaf007c291.
+This is a separate correctness fix, not a raw-plane optimization or TPS claim.
+
+Defect and contract
+
+The fixed-Q8 API enables plain_masters before the first append. Registration
+accepts head dimensions that are nonzero multiples of 32, up to 512, and allocates
+exactly heads * rounded_max_rows * hd bytes for each master. The public header
+permits rewriting rows. Consequently the device fixture's A/B/A appends are legal.
+
+The old xor80_copy loop copies 128 bytes for each i < n. For hd=64 it reads the
+unwritten half of worker-local q[512] and writes the next plain row. For 8 heads,
+1024 rows and hd=64, the final row starts at 524224, while the allocation ends at
+524288; the last 128-byte store ends at 524352, 64 bytes beyond the allocation.
+Eight row workers additionally overwrite the first 64 bytes of adjacent worker
+ranges at row boundaries 128, 256, 384, 512, 640, 768 and 896. This is a real
+ordering race, not a requirement that A/B/A rows must be fresh allocations.
+Other legal dimensions with a nonzero remainder modulo 128 have the same defect.
+
+The actual fixed quantizer already writes precisely hd bytes. The bug is in the
+following copy. The three helper call sites copy q to kt4 and v4 with n=hd, or
+copy 32 contiguous master rows to stage_v with n=32*hd. Sources and destinations
+are disjoint. The stage size is divisible by 128 for every legal head dimension.
+static-contract.json records the complete dimension and extent proof.
+
+Minimal correction
+
+The patch bounds the original vector loop to n & ~127u, preserving its load,
+xor and store body, then copies each remaining byte with src[i] ^ 0x80u. Every
+access now falls within [0,n). For existing full-vector dimensions, the byte
+operations are unchanged and the tail is empty. No quantizer, FP operation,
+scale, state, allocation, row stride, worker partition, wait or cache changes.
+No new buffer or persistent metadata is introduced. The affected helper is
+inside the Hexagon implementation; the ordinary non-Hex path stays unchanged.
+
+Independent validation
+
+The reviewer copied frozen production and test sources to this directory and
+executed the actual-source extraction runner. It uses the production
+quant_rows_worker and xor80_copy, actual HVX fixed quantization via SDK libnative,
+actual registration/fixed-scale metadata from the baseline host TU, and the
+production pthread pool. ASan and UBSan are fatal with no sanitizer suppression.
+
+3,094 copy cases passed: every size 0..512 at offsets 0,1,4,31,63,127, plus the
+16 legal complete-stage sizes. Following source/destination tails are poisoned
+and surrounding bytes are checked. 384 actual worker A/B/A cases passed across
+all 16 legal head dimensions, reverse completion and pthread execution,
+1/2/4/8 workers, full 64-row and partial append ranges including the last row.
+Complete masters, scales and sums are compared; untouched rows remain intact.
+The middle B has independently asserted different quantized bytes. A draft
+periodic-seed issue was corrected before these frozen tests; this review uses
+fixture b0e57b26 and runner c6ff2123, recorded in checks/strict/results.json.
+
+The unmodified baseline independently fails the dedicated hd64 copy with an
+ASan heap-buffer-overflow and fails the actual reverse-order row worker with a
+master-byte assertion. The corrected implementation passes both regressions.
+Expected baseline failures are separate logs, not suppressed candidate errors.
+
+This fixture validates ownership and actual HVX byte/quantization behavior.
+It does not execute HMX, tile baking, FastRPC or device cache behavior. The
+original device fixed-Q8 control failure is consistent with the proven defect,
+but a successful repaired device A/B/A remains a separate root-run validation.
+The raw-plane candidate had not run when that original control failed.
+
+Code generation and platform scope
+
+Independently compiled baseline and candidate whole TUs with the frozen v81
+-O3 -Wall -Werror flags, emitting both objects and assembly. All four commands
+passed; every function's stack frame is unchanged. Relevant frames are
+quant_rows_worker 896 B, append_fixed_i8 1408 B, public append_pool 128 B,
+and bake_tiles_worker 32 B.
+
+Actual-helper constant wrappers at 128/256/512/1024/2048/4096/8192/16384 bytes
+produce identical complete v81 assembly before/after. The complete non-Hex host
+object is also identical, SHA
+026e02c82371c6dda4520f2c7ff38e5ef7d4b0be6791cfbbd9bdb8f07ae36c89.
+The runtime-sized worker gains a bounded-prefix/tail decision; whole-caller
+instruction or Gemma performance identity is not claimed. Gemma hd256 byte
+semantics and the full-vector operation body are preserved. No Gemma device
+benchmark was requested or performed by this reviewer.
+
+Final portable-test delta
+
+The final portable runner e02c79d5 adds only import sys and an early Linux-host
+guard. Removing those lines gives the independently executed runner byte for
+byte. A mocked darwin run exits 2 before source reads/output creation. The full
+fixture was not redundantly rerun for this guard-only change. Final test patch:
+a161ab2d979d79e91f7ac920b509dc4f404cf60314d6611730337fa7f68b8d5b.
+Original tested sources and final portable copies are both preserved.
+
+Integration and remaining verification
+
+Use one corrected KV object in control, raw-plane candidate and diagnostic
+links. This retains 63 active objects with 62 common objects: 61 prior common
+objects plus the corrected KV object. Only the attention TU should differ.
+A no-op baseline KV overlay/object check should precede corrected compilation.
+Keep the original failing control variant/logs and run repaired control A/B/A
+before interpreting raw-plane comparisons. This does not alter raw patch d8d182.
+Root owns all integration and phone tests; this report is an independent source,
+host and compile verdict, not confirmation of repaired hardware execution.
+
+This correctness review wrote only its own /tmp directory, with all compiler
+outputs/dependencies/stack files redirected there. No objcopy was invoked. The
+separate earlier raw-plane ELF inspection rewrite/recovery is already recorded
+in that review and parent recovery.json; it is distinct from the later actual
+fixed-Q8 device control failure and is not repeated here.
+
+Reproduction
+
+python3 /tmp/nntr-fixed-q8-copy-tail-review-20261017/fixture/run_check.py \
+  --repo /home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000 \
+  --source /tmp/nntr-fixed-q8-copy-tail-review-20261017/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_kv_q.c \
+  --reference /tmp/nntr-fixed-q8-copy-tail-review-20261017/baseline/nntrainer/tensor/htp_backend/hmx/hexkl_kv_q.c \
+  --hexagon-tools /local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04 \
+  --output /tmp/nntr-fixed-q8-copy-tail-review-20261017/checks/reproduce
+
+Exact compile commands/cwds are in codegen/commands.json and
+codegen/constant-host-commands.json. Preserve all output arguments in reviewer
+scratch paths when rerunning. checks/strict/commands.json records host builds.
+The manifest includes text/source/log evidence and excludes binary artifacts.
