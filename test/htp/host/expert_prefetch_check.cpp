@@ -388,5 +388,19 @@ int main() {
   const float nan[] = {std::numeric_limits<float>::quiet_NaN(), 0, 0};
   assert(nntrainer::htpPredictExperts(nan, gate, 3, 4, 2).empty());
   assert(nntrainer::htpPredictExperts(input, gate, 3, 4, 0).empty());
+  // LFM2 ranks sigmoid(logit) plus bias, not the logit plus bias. Here
+  // a smaller logit wins after the sigmoid saturates the two positive ones.
+  const float sigmoid_bias[] = {0.25f, 0.0f, 0.0f, 0.5f};
+  assert((nntrainer::htpPredictExperts(input, gate, 3, 4, 2, sigmoid_bias) ==
+          std::vector<unsigned>{0, 2}));
+  assert((nntrainer::htpPredictExperts(zero, gate, 3, 4, 4, sigmoid_bias) ==
+          std::vector<unsigned>{3, 0, 1, 2}));
+  const float extreme_gate[] = {1000, -1000, 0, 0};
+  const float unit[] = {1};
+  const float tie_bias[] = {0, 0, 0.5f, -0.5f};
+  assert((nntrainer::htpPredictExperts(unit, extreme_gate, 1, 4, 4, tie_bias) ==
+          std::vector<unsigned>{0, 2, 1, 3}));
+  const float bad_bias[] = {0, std::numeric_limits<float>::infinity(), 0, 0};
+  assert(nntrainer::htpPredictExperts(input, gate, 3, 4, 2, bad_bias).empty());
   std::puts("EXPERT PREFETCH OWNERSHIP / CANCELLATION / REBIND / PREDICTOR OK");
 }

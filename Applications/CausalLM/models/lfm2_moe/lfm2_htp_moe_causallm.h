@@ -24,6 +24,7 @@ public:
            const WSTR tail = "", bool log = false) override;
 
 protected:
+  void beforePrefillBlock(unsigned int from, unsigned int to) override;
   void allocateAndBindKVCache() override;
   // Conv history is seeded once for this profile; prefill is a single block.
   bool chunkLongPrompts() const override { return false; }
@@ -31,6 +32,7 @@ protected:
 private:
   unsigned dense_layers_ = 0;
   bool loading_ = false, prepared_ = false, ran_ = false;
+  bool prefill_early_attempted_ = false;
   std::vector<std::vector<float>> params_;
   Tensor attentionBlock(unsigned layer, Tensor input);
   void prepareDecodeGraph();

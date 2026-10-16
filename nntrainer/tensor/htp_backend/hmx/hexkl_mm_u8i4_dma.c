@@ -178,6 +178,36 @@ static void hexkl_weight_u8i4_tail_from_arena(hexkl_weight_u8i4 *h,
   memset(h->bias, 0, n4);
 }
 
+void hexkl_weight_tl2_set_generation(hexkl_weight_u8i4 *weight,
+                                     const uint32_t *generation) {
+  weight->tl2_generation = generation;
+  if (generation) {
+    hexkl_dcache_inva(generation, 128u);
+    weight->tl2_generation_seen = *(const volatile uint32_t *)generation;
+  } else {
+    weight->tl2_generation_seen = 0u;
+  }
+}
+
+int hexkl_weight_tl2_refresh_pair(hexkl_weight_u8i4 *g, hexkl_weight_u8i4 *d) {
+  if (!g->tl2_generation)
+    return AEE_SUCCESS;
+  if (!g->in_use || !d->in_use || !g->borrowed || !d->borrowed ||
+      !g->tl2_compact || !d->tl2_compact || g->K != 2048u || g->N != 3072u ||
+      d->K != 1536u || d->N != 2048u)
+    return AEE_EBADPARM;
+  hexkl_dcache_inva(g->tl2_generation, 128u);
+  const uint32_t generation = *(const volatile uint32_t *)g->tl2_generation;
+  if (generation != g->tl2_generation_seen) {
+    hexkl_weight_u8i4_tail_from_arena(
+      g, (uint32_t)htp_tl2_native_bytes(g->K, g->N));
+    hexkl_weight_u8i4_tail_from_arena(
+      d, (uint32_t)htp_tl2_native_bytes(d->K, d->N));
+    g->tl2_generation_seen = generation;
+  }
+  return AEE_SUCCESS;
+}
+
 /** @brief [#267 L1] Writes [p, p + n) back to DDR (L1 and L2), keeping
  *  the lines: a heap image's one write, made visible to a DMA that reads
  *  around the L2 (hexkl_mm_u8i4_moe.h, HEXKL_MOE_FLAG_DMA_BYPASS).
@@ -220,6 +250,8 @@ static int hexkl_weight_u8i4_fill_slot(hexkl_weight_u8i4_table *tbl,
   h->wh_bytes = borrow ? (uint8_t *)wh_src : (uint8_t *)malloc(wh_bytes);
   h->tl2_bytes = NULL;
   h->tl2_compact = 0;
+  h->tl2_generation = NULL;
+  h->tl2_generation_seen = 0u;
   h->w_offset = NULL;
   h->arrays = malloc(4u * n4 + 128u);
   if (!h->wh_bytes || !h->arrays) {
@@ -381,6 +413,8 @@ int hexkl_weight_u8i4_rebind_arena(hexkl_weight_u8i4_table *tbl, uint32_t h,
      host read into it last. */
   w->tl2_bytes = NULL;
   w->tl2_compact = 0;
+  w->tl2_generation = NULL;
+  w->tl2_generation_seen = 0u;
   w->w_offset = NULL;
   w->bits = pal ? 2u : 4u;
   if (pal) {
@@ -486,6 +520,8 @@ int hexkl_weight_tl2_compact_rebind_arena(hexkl_weight_u8i4_table *tbl,
   hexkl_weight_u8i4 *w = &tbl->slots[h];
   if (!w->in_use || !w->borrowed || w->K != K || w->N != N)
     return AEE_EBADPARM;
+  if (w->wh_bytes != codes)
+    hexkl_weight_tl2_set_generation(w, NULL);
   const int8_t palette[4] = {-1, 0, 1, 1};
   w->wh_bytes = (uint8_t *)codes;
   w->tl2_bytes = codes;
@@ -494,6 +530,7 @@ int hexkl_weight_tl2_compact_rebind_arena(hexkl_weight_u8i4_table *tbl,
   w->bits = 2u;
   memcpy(w->pal, palette, sizeof(palette));
   hexkl_weight_u8i4_tail_from_arena(w, (uint32_t)htp_tl2_native_bytes(K, N));
+  hexkl_weight_tl2_set_generation(w, w->tl2_generation);
   return AEE_SUCCESS;
 }
 

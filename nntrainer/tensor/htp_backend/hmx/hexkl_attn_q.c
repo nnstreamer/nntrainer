@@ -70,7 +70,7 @@
 #define TB HEXKL_ATTN_TILE_BYTES
 #define LOG2E 1.4426950408889634f
 /** @brief Row cap; bounds the lane-mask arithmetic, not any buffer. */
-#define MAX_G_BR 256u
+#define MAX_G_BR 512u
 /** @brief Vectors per 2 KiB tile. */
 #define TILE_VECS (TB / sizeof(HVX_Vector))
 /** @brief VTCM the Q staging (f32 rows + uint8 tiles) may take per head
@@ -681,6 +681,12 @@ int hexkl_attn_q_prefill(uint8_t *vtcm_base, uint32_t config_off,
   if (s->cache_to > 0xFFFFu || t->g_br > MAX_G_BR || s->softcap < 0.0f) {
     return AEE_EBADPARM;
   }
+
+  // Widen only the full LFM2 Q8 prefill geometry after checking its VTCM
+  // plan. Smaller arenas retain the original tiling.
+  hexkl_attn_f16_tiling wide = *t;
+  if (hexkl_attn_q_widen_prefill(s, t, config_off, kv->tile_bytes, &wide))
+    t = &wide;
 
   attn_ctx c;
   memset(&c, 0, sizeof(c));

@@ -782,6 +782,51 @@ int nntr_hvx_weight_swap_batch_tl2_compact_arena(
   return AEE_SUCCESS;
 }
 
+int nntr_hvx_weight_swap_batch_tl2_stable_arena(
+  remote_handle64 handle, uint32 K, uint32 inter, uint32 N_out,
+  const uint32 *old_gu, int old_guLen, const uint32 *old_dn, int old_dnLen,
+  const uint32 *arena, int arenaLen, const uint32 *off_gu, int off_guLen,
+  const uint32 *off_dn, int off_dnLen, uint32 *h_gu, int h_guLen, uint32 *h_dn,
+  int h_dnLen, uint32 *n_done, int32 *err) {
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  const int n = old_guLen;
+  if (!s || !n_done || !err)
+    return AEE_EBADPARM;
+  *n_done = 0u;
+  *err = AEE_SUCCESS;
+  if (K != 2048u || inter != 1536u || N_out != 2048u || n < 0 ||
+      old_dnLen != n || arenaLen != n || off_guLen != n || off_dnLen != n ||
+      h_guLen != n || h_dnLen != n ||
+      (n &&
+       (!old_gu || !old_dn || !arena || !off_gu || !off_dn || !h_gu || !h_dn)))
+    return AEE_EBADPARM;
+  const uint32_t tail_end =
+    (uint32_t)htp_tl2_native_bytes(K, 2u * inter) + 16u * inter;
+  const uint32_t gu_stride = (tail_end + 4095u) & ~4095u;
+  for (int i = 0; i < n; ++i) {
+    const uint8_t *gu = arena_weight_at(s, arena[i], off_gu[i], K, 2u * inter,
+                                        1, HTP_TL2_COMPACT_WEIGHT_BITS);
+    if (!gu || tail_end % 128u || tail_end + 128u > gu_stride ||
+        (uint64_t)off_gu[i] + gu_stride != off_dn[i] ||
+        (uint64_t)off_gu[i] + tail_end + 128u > s->arenas[arena[i]].bytes) {
+      *err = AEE_EBADPARM;
+      break;
+    }
+    const int rc =
+      swap_pair(handle, old_gu[i], old_dn[i], K, inter, N_out, arena[i],
+                off_gu[i], off_dn[i], NULL, NULL, NULL, 0, NULL, 0, NULL, 0,
+                NULL, 0, &h_gu[i], &h_dn[i], 1);
+    if (rc != AEE_SUCCESS) {
+      *err = rc;
+      break;
+    }
+    hexkl_weight_tl2_set_generation(&s->weights_u8i4.slots[h_gu[i]],
+                                    (const uint32_t *)(gu + tail_end));
+    *n_done = (uint32)(i + 1);
+  }
+  return AEE_SUCCESS;
+}
+
 int nntr_hvx_weight_register_u2i4_arena(remote_handle64 handle, uint32 K,
                                         uint32 N, uint32 arena, uint32 wh_off,
                                         const int8 *pal, int palLen,
@@ -1873,6 +1918,22 @@ int nntr_hvx_router_logits_f32(remote_handle64 handle, uint32 M, uint32 K,
          (unsigned)top_k, (unsigned)n_sel, scaleLen, selLen, weightLen);
     return AEE_EINVALIDFORMAT;
   }
+  /* The LFM2 sigmoid router reads already-normalized FP32 rows. Keep
+   * its scalar broadcasts and intermediate logits in cached memory. The
+   * ordered FP32 dot remains unchanged, as do Gemma's softmax routes. */
+  float *rpc_logits = NULL;
+  const size_t x_bytes = (size_t)M * K * sizeof(float);
+  const size_t logits_bytes = (size_t)M * E * sizeof(float);
+  if (M >= 128u && M <= 4096u && K == 2048u && E == 64u && top_k == 0u &&
+      gammaLen == 0 && x && logits &&
+      hexkl_moe_scratch_reserve(&s->moe_scratch, x_bytes + logits_bytes) ==
+        AEE_SUCCESS) {
+    hexkl_dma_ring_reset();
+    hexkl_moe_dma_copy(s->moe_scratch.base, x, x_bytes, 0, 0);
+    x = (const float *)s->moe_scratch.base;
+    rpc_logits = logits;
+    logits = (float *)(s->moe_scratch.base + x_bytes);
+  }
   /** the norm rides in the logits kernel, block by block (no M x K copy),
      and w is read from VTCM */
   const size_t w_bytes = (size_t)K * E * sizeof(float);
@@ -1886,6 +1947,10 @@ int nntr_hvx_router_logits_f32(remote_handle64 handle, uint32 M, uint32 K,
       hvx_router_topk_rows_f32(logits, scale, sel, weight, M, E, top_k, n_sel,
                                s->quant_pool) != 0) {
     return AEE_EINVALIDFORMAT;
+  }
+  if (rpc_logits) {
+    hexkl_dma_ring_reset();
+    hexkl_moe_dma_copy(rpc_logits, logits, logits_bytes, 0, 0);
   }
   return AEE_SUCCESS;
 }

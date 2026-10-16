@@ -25,6 +25,7 @@
 #include "hexkl_attn_q.h"
 #include "hexkl_attn_q2.h"
 #include "hexkl_cvt.h"
+#include "hexkl_dma_ring.h"
 #include "hexkl_kv_q.h"
 #include "hexkl_micro.h"
 #include "hvx_attn_decode_q.h"
@@ -1000,10 +1001,37 @@ int nntr_hvx_attn_q_step(remote_handle64 handle, uint32 kv_handle, uint32 row0,
     FARF(ERROR, "attn_q_step: bad row lengths");
     return AEE_EBADPARM;
   }
+  /* LFM2 full prefill: avoid repeated scalar/HVX loads from uncached RPC
+   * memory. The session scratch is idle between synchronous layer calls.
+   * Allocation failure retains the original path; Gemma's fixed cache and
+   * decode never use this staging or the dynamic-head worker path. */
+  float *cached_out = NULL;
+  const size_t q_bytes = (size_t)n_q * n_head_q * kv->head_dim * sizeof(float);
+  const size_t kv_bytes = (size_t)k_rowsLen * sizeof(uint16_t);
+  if (n_q >= 128u && n_q <= 4096u && n_q % 128u == 0u && row0 == 0u &&
+      cache_from == 0u && cache_to == n_q && n_head_q == 32u &&
+      kv->n_head_kv == 8u && kv->head_dim == 64u && kv->kind == HEXKL_KV_Q8 &&
+      !kv->fixed && window == 0u && k_rowsLen == (int)(n_q * stride) &&
+      q_f32Len == (int)(q_bytes / 4u) && out_f32Len == q_f32Len && q_f32 &&
+      out_f32 && k_rows && v_rows &&
+      hexkl_moe_scratch_reserve(&s->moe_scratch, 2u * (q_bytes + kv_bytes)) ==
+        AEE_SUCCESS) {
+    uint8_t *base = s->moe_scratch.base;
+    hexkl_dma_ring_reset();
+    hexkl_moe_dma_copy(base, k_rows, kv_bytes, 0, 0);
+    k_rows = (const uint16_t *)base;
+    base += kv_bytes;
+    hexkl_moe_dma_copy(base, v_rows, kv_bytes, 0, 0);
+    v_rows = (const uint16_t *)base;
+    base += kv_bytes;
+    hexkl_moe_dma_copy(base, q_f32, q_bytes, 0, 0);
+    q_f32 = (const float *)base;
+    cached_out = (float *)(base + q_bytes);
+  }
   if (k_rowsLen > 0) {
-    const int rc =
-      hexkl_kv_q_append(&s->kv_q, kv_handle, row0, (uint32_t)k_rowsLen / stride,
-                        k_rows, v_rows, s->vtcm_base, &ast);
+    const int rc = hexkl_kv_q_append_pool(
+      &s->kv_q, kv_handle, row0, (uint32_t)k_rowsLen / stride, k_rows, v_rows,
+      s->vtcm_base, s->quant_pool, &ast);
     if (rc != AEE_SUCCESS) {
       FARF(ERROR, "attn_q_step: append failed: 0x%08x", rc);
       return rc;
@@ -1024,7 +1052,7 @@ int nntr_hvx_attn_q_step(remote_handle64 handle, uint32 kv_handle, uint32 row0,
   io.q = q_f32;
   io.q_stride = n_head_q * kv->head_dim;
   io.sinks = sinksLen ? sinks : NULL;
-  io.out = out_f32;
+  io.out = cached_out ? cached_out : out_f32;
   io.out_stride = n_head_q * kv->head_dim;
   io.kv = kv;
 
@@ -1044,6 +1072,10 @@ int nntr_hvx_attn_q_step(remote_handle64 handle, uint32 kv_handle, uint32 row0,
   if (res != AEE_SUCCESS) {
     FARF(ERROR, "attn_q_step: kernel failed: 0x%08x", res);
     return res;
+  }
+  if (cached_out) {
+    hexkl_dma_ring_reset();
+    hexkl_moe_dma_copy(out_f32, cached_out, q_bytes, 0, 0);
   }
   const uint64_t t2 = HAP_perf_get_time_us();
   stats_us[0] = (uint32)(t1 - t0);

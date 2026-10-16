@@ -1423,4 +1423,14 @@ interface nntr_hvx : remote_handle64 {
       in sequence<uint32> arena, in sequence<uint32> off_gu,
       in sequence<uint32> off_dn, rout sequence<uint32> h_gu,
       rout sequence<uint32> h_dn, rout uint32 n_done, rout int32 err);
+   // LFM native TL2 slots with stable handles. GU padding contains a
+   // 128-byte-aligned generation word after codes + 2*N float arrays.
+   // The host publishes a new generation only after both weights' reads
+   // complete. The compute call refreshes metadata before using the pair.
+   AEEResult weight_swap_batch_tl2_stable_arena(
+      in uint32 K, in uint32 inter, in uint32 N_out,
+      in sequence<uint32> old_gu, in sequence<uint32> old_dn,
+      in sequence<uint32> arena, in sequence<uint32> off_gu,
+      in sequence<uint32> off_dn, rout sequence<uint32> h_gu,
+      rout sequence<uint32> h_dn, rout uint32 n_done, rout int32 err);
 };

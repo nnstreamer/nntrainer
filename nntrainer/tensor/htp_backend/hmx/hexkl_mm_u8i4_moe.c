@@ -1961,6 +1961,19 @@ int hexkl_mm_u8i4_moe_layer_run(
     }
   }
 
+  /* Stable native arena handles keep their addresses across file reads.
+   * Refresh only changed metadata, before this call starts any DMA. */
+  if (K == 2048u && inter == 1536u && N_out == 2048u && n_tl2 != 0u) {
+    for (uint32_t e = 0; e < n_experts; ++e) {
+      if (row_count[e] == 0u)
+        continue;
+      rc = hexkl_weight_tl2_refresh_pair(&tbl->slots[h_gate_up[e]],
+                                         &tbl->slots[h_down[e]]);
+      if (rc != AEE_SUCCESS)
+        return rc;
+    }
+  }
+
   /** Decided once for the call, after the handles are validated; gates both
      HVX paths (moe_all_4bit). */
   const int all_4bit =
@@ -2002,19 +2015,18 @@ int hexkl_mm_u8i4_moe_layer_run(
     if (gu_packed + dn_packed <= arena - L.total) {
       native_gu = vtcm_base + L.total;
       native_dn = native_gu + gu_packed;
+    } else if (act == HVX_GLU_SILU && K == 2048u && inter == 1536u &&
+               N_out == 2048u && gu_packed <= arena - L.total) {
+      /** At the LFM2 shape, both packed sources need more than 8 MiB with
+       * the accumulator rings, but gate/up alone fits. Keep its native
+       * panels contiguous and let down retain its in-place expansion. */
+      native_gu = vtcm_base + L.total;
     }
   }
   uint8_t *gu_i24_scratch = NULL, *dn_i24_scratch = NULL;
+  uint32_t acc_tile_bytes = ACC_TILE_BYTES;
 #if defined(__hexagon__)
   if (!use_m1 && !n_affine && n_tl2 && n_tl2 == n_with_rows) {
-    /** Scratch follows both packed sources as well as every ring. Reserving
-     * from arena's end also leaves HexKL's config completely untouched. */
-    const uint32_t occupied_end =
-      native_dn
-        ? (uint32_t)(native_dn - vtcm_base + hvx_tl2_weight_bytes(inter, N_out))
-        : L.total;
-    const uint32_t scratch_off =
-      hexkl_acc_i24_scratch_offset(arena, occupied_end);
     int32_t gu_magnitude = 0, dn_magnitude = 0;
     for (uint32_t e = 0; e < n_experts; ++e) {
       if (!row_count[e])
@@ -2031,11 +2043,43 @@ int hexkl_mm_u8i4_moe_layer_run(
       if (dm > dn_magnitude)
         dn_magnitude = dm;
     }
+    const int gu_i24 =
+      hexkl_acc_i24_usable(K, -gu_magnitude, gu_magnitude, acc);
+    const int dn_i24 =
+      hexkl_acc_i24_usable(inter, -dn_magnitude, dn_magnitude, acc);
+    if (!native_dn && M > 1u && act == HVX_GLU_SILU && K == 2048u &&
+        inter == 1536u && N_out == 2048u && L.acc_tiles == 32u && gu_i24 &&
+        dn_i24) {
+      const uint32_t gu_bytes = (uint32_t)hvx_tl2_weight_bytes(K, 2u * inter);
+      const uint32_t dn_bytes = (uint32_t)hvx_tl2_weight_bytes(inter, N_out);
+      uint32_t down, end;
+      if (hexkl_acc_i24_banks(arena, L.result_off, L.acc_tiles,
+                              gu_bytes + dn_bytes, &down, &end)) {
+        /** This native shape uses foreground down epilogues: submitting
+         * the next job retires the previous one, so two banks suffice.
+         * Three-plane tiles free room for both contiguous native sources. */
+        acc_tile_bytes = 3u * HEXKL_CVT_PLANE_BYTES;
+        L.dn_stage_off = down;
+        L.dn_ring = 2u;
+        L.total = end;
+        native_gu = vtcm_base + end;
+        native_dn = native_gu + gu_bytes;
+      }
+    }
+    /** Scratch follows both packed sources as well as every ring. Reserving
+     * from arena's end also leaves HexKL's config completely untouched. */
+    uint32_t native_end = L.total;
+    if (native_gu)
+      native_end += (uint32_t)hvx_tl2_weight_bytes(K, 2u * inter);
+    if (native_dn)
+      native_end += (uint32_t)hvx_tl2_weight_bytes(inter, N_out);
+    const uint32_t scratch_off =
+      hexkl_acc_i24_scratch_offset(arena, native_end);
     if (scratch_off != UINT32_MAX) {
       uint8_t *scratch = vtcm_base + scratch_off;
-      if (hexkl_acc_i24_usable(K, -gu_magnitude, gu_magnitude, acc))
+      if (gu_i24)
         gu_i24_scratch = scratch;
-      if (hexkl_acc_i24_usable(inter, -dn_magnitude, dn_magnitude, acc))
+      if (dn_i24)
         dn_i24_scratch = scratch;
       if (gu_i24_scratch || dn_i24_scratch)
         hexkl_acc_i24_prepare(scratch);
@@ -2922,7 +2966,7 @@ int hexkl_mm_u8i4_moe_layer_run(
         const uint32_t np =
           (inter_ntiles - g0 < half) ? (inter_ntiles - g0) : half;
         const uint32_t stage_off =
-          L.result_off + (sb & 1u) * L.acc_tiles * ACC_TILE_BYTES;
+          L.result_off + (sb & 1u) * L.acc_tiles * acc_tile_bytes;
         /** Only the first block of an expert waits: by the second the whole
            weight is resident. n == 0 && gb == 0 is the one wait that cannot
            hide behind anything, which is what DMA_FIRST records. */
@@ -2998,7 +3042,7 @@ int hexkl_mm_u8i4_moe_layer_run(
           }
           HEXKL_PROBE_T0(p0);
           rc = moe_acc_read(vtcm_base, config_off,
-                            stage_off + j * ACC_TILE_BYTES, gu_i24_scratch);
+                            stage_off + j * acc_tile_bytes, gu_i24_scratch);
           HEXKL_PROBE_ADD(HEXKL_PROBE_ACC_READ, p0);
           if (rc != AEE_SUCCESS) {
             goto out;
@@ -3084,7 +3128,7 @@ int hexkl_mm_u8i4_moe_layer_run(
           jb->tiles_base =
             (const uint8_t *)((const int32_t *)(vtcm_base + stage_off) +
                               acc->base);
-          jb->tile_stride = ACC_TILE_BYTES;
+          jb->tile_stride = acc_tile_bytes;
           jb->n_pairs = np;
           jb->g0 = g0;
           jb->row_stride = acc->row_stride;
@@ -3188,7 +3232,7 @@ int hexkl_mm_u8i4_moe_layer_run(
           HEXKL_PROBE_ADD(HEXKL_PROBE_REQUANT, p0);
         }
         const uint32_t stage_off =
-          L.dn_stage_off + k * L.acc_tiles * ACC_TILE_BYTES;
+          L.dn_stage_off + k * L.acc_tiles * acc_tile_bytes;
         /** exp_bg first, as for gate_up: a 4-bit call's down chunks can
            run past exp_live (db = 8 on the lfm25 dense FFN at M = 512),
            and the stack word read there sent the wait to a job that was
@@ -3240,7 +3284,7 @@ int hexkl_mm_u8i4_moe_layer_run(
           }
           HEXKL_PROBE_T0(p0);
           rc = moe_acc_read(vtcm_base, config_off,
-                            stage_off + j * ACC_TILE_BYTES, dn_i24_scratch);
+                            stage_off + j * acc_tile_bytes, dn_i24_scratch);
           HEXKL_PROBE_ADD(HEXKL_PROBE_ACC_READ, p0);
           if (rc != AEE_SUCCESS) {
             goto out;
@@ -3302,7 +3346,7 @@ int hexkl_mm_u8i4_moe_layer_run(
           c->tiles_base =
             (const uint8_t *)((const int32_t *)(vtcm_base + stage_off) +
                               acc->base);
-          c->tile_stride = ACC_TILE_BYTES;
+          c->tile_stride = acc_tile_bytes;
           c->nt0 = nt0;
           c->nb = nb;
           c->row_stride = acc->row_stride;
