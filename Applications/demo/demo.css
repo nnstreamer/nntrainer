@@ -175,15 +175,14 @@ body[data-layout="1"] .prediction-panel { --phone-h: min(1120px, calc(100cqh - 2
    grid as the mockup, so each icon sits right under the one above it. */
 .frequency-row { display: flex; gap: 32px; justify-content: center; width: 100%; margin-top: 8px; }
 .frequency-shell, .frequency-spacer { width: calc(var(--phone-h) * 27 / 56); flex: none; container-type: inline-size; }
-.frequency-heading { margin: 0 0 5px; font-size: clamp(11px, 5cqw, 16px); color: var(--dim); text-align: center; white-space: nowrap; }
-.frequency-heading span { display: block; font-size: clamp(9px, 4cqw, 13px); opacity: .75; }
+.frequency-heading { margin: 5px 0 0; font-size: clamp(11px, 5cqw, 16px); color: var(--dim); text-align: center; white-space: nowrap; }
 .frequency-screen { margin: 0 4.1% 0 3.2%; border-radius: 4cqw; overflow: hidden; background: #3e3e39; }
 .recommendation-dock.frequency-dock { position: static; height: auto; min-height: 0; padding: 3cqw 4% 2cqw; }
 .result-modes { display: none; }
 .result-modes .subtle { font-size: 10px; }
 .prediction-results { display: flex; justify-content: center; gap: 32px; flex: none; min-height: 0; margin-top: 6px; width: 100%; align-self: center; }
 .result-column { display: flex; flex-direction: column; align-items: center; width: calc(var(--phone-h) * 27 / 56); flex: none; min-height: 0; }
-.result-heading { white-space: nowrap; }
+.result-heading { white-space: nowrap; margin-top: 5px; }
 .result-heading { font-size: 12px; color: var(--dim); }
 .result-heading.after { color: var(--green); }
 .screen-source { color: var(--dim); font-size: 10px; margin: 2px 0 6px; }

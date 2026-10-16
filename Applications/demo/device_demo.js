@@ -260,13 +260,6 @@
   }
   function phone(result, label, sc) {
     const col = element("div", "result-column " + label);
-    col.append(
-      element(
-        "p",
-        "result-heading " + label,
-        label === "before" ? "BEFORE · 학습 전" : "AFTER · 개인화 학습 후"
-      )
-    );
     const shell = element("div", "phone-shell");
     const screen = element("div", "recommendation-screen");
     // Reference One UI chrome, independent of native model measurements.
@@ -316,7 +309,8 @@
     frame.src = "assets/galaxy_s26_ultra_white.png";
     frame.alt = "";
     shell.append(frame);
-    col.append(shell);
+    col.append(shell, element("p", "result-heading " + label,
+      label === "before" ? "BEFORE · 학습 전" : "AFTER · 개인화 학습 후"));
     return col;
   }
   function renderPreferences(u, sc) {
@@ -498,8 +492,6 @@
       return index ? [element("span", "recent-arrow", "›"), item] : [item];
     }));
     const frequency = u.frequency_baseline;
-    $("frequencySource").textContent = `학습 데이터 ${frequency.total}건 · 상황 미반영`;
-    $("frequencySource").title = "사용 횟수 내림차순, 동률이면 고정된 앱 후보 순서로 표시합니다.";
     $("frequencyApps").replaceChildren(...Array.from({length: 4}, (_, rank) => {
       const row = frequency.top4[rank];
       if (!row) return element("div", "dock-empty");
