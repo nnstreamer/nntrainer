@@ -72,8 +72,10 @@ typedef struct unused_acc_layout hexkl_acc_layout;
     cc = os.environ.get("CC", "gcc")
     cxx = os.environ.get("CXX", "g++")
     flags = ["-std=gnu11", "-O1", "-g", "-fno-strict-aliasing", "-ffp-contract=off",
-             "-DHVX_UVector=HEXAGON_Vect1024", "-include", "malloc.h", "-pthread"]
-    san = ["-fsanitize=address,undefined", "-fno-omit-frame-pointer"] if args.sanitize else []
+             "-include", str(host / "attn_qprep_native_unaligned.h"),
+             "-include", "malloc.h", "-pthread"]
+    san = ["-fsanitize=address,undefined", "-fno-sanitize-recover=all",
+           "-fno-omit-frame-pointer"] if args.sanitize else []
     includes = ["-isystem", str(native / "include")]
     includes += ["-I" + str(p) for p in (host / "stub", backend / "hvx",
                                         backend / "hmx", out)]
@@ -91,7 +93,11 @@ typedef struct unused_acc_layout hexkl_acc_layout;
                         "-c", str(host / "attn_qprep_native_check.c"), "-o", str(obj)], check=True)
         subprocess.run([cxx, "-pthread", *san, str(obj), *objects,
                         str(native / "lib/libnative.a"), "-lm", "-o", str(exe)], check=True)
-        proc = subprocess.run([str(exe)], text=True, capture_output=True, timeout=180)
+        env = dict(os.environ)
+        env["ASAN_OPTIONS"] = "detect_leaks=1:halt_on_error=1"
+        env["UBSAN_OPTIONS"] = "halt_on_error=1"
+        proc = subprocess.run([str(exe)], text=True, capture_output=True,
+                              timeout=180, env=env)
         (out / (name + ".log")).write_text(proc.stdout + proc.stderr)
         if (proc.returncode == 0) != expected_success:
             raise RuntimeError(f"Unexpected status {proc.returncode}: {out / (name + '.log')}")
