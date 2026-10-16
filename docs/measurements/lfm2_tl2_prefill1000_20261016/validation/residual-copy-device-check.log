@@ -1,0 +1,12 @@
+RESIDUAL_COPY M=2 W=2048 special=0 copies=0 adds=1 exact=1
+RESIDUAL_COPY M=2 W=2048 special=1 copies=0 adds=1 exact=1
+RESIDUAL_COPY M=17 W=2048 special=0 copies=0 adds=1 exact=1
+RESIDUAL_COPY M=17 W=2048 special=1 copies=0 adds=1 exact=1
+RESIDUAL_COPY M=1024 W=2048 special=0 copies=0 adds=1 exact=1
+RESIDUAL_COPY M=1024 W=2048 special=1 copies=0 adds=1 exact=1
+RESIDUAL_COPY M=2048 W=2048 special=0 copies=0 adds=1 exact=1
+RESIDUAL_COPY M=2048 W=2048 special=1 copies=0 adds=1 exact=1
+RESIDUAL_COPY M=1 W=2048 special=0 copies=1 adds=1 exact=1
+RESIDUAL_COPY M=2 W=2816 special=0 copies=1 adds=1 exact=1
+RESIDUAL_COPY_GUARDS alias/partial/stride/broadcast/FP16 PASS
+RESIDUAL_COPY_PASS

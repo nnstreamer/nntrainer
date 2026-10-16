@@ -1,0 +1,3 @@
+BENCH rows=1024 median_us=798.750
+BENCH rows=2048 median_us=1620.469
+CONV 288 fixtures completed; compare binary outputs

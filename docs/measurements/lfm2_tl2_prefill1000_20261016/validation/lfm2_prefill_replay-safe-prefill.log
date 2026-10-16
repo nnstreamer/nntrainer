@@ -1,0 +1,22 @@
+ATTENTION rows=1 hd=64 window=0 kind=0 cap=0 sinks=0 OK
+ATTENTION rows=16 hd=64 window=0 kind=0 cap=0 sinks=0 OK
+ATTENTION rows=64 hd=64 window=0 kind=0 cap=0 sinks=0 OK
+ATTENTION rows=65 hd=64 window=0 kind=0 cap=0 sinks=0 OK
+ATTENTION rows=128 hd=64 window=0 kind=0 cap=0 sinks=0 OK
+ATTENTION rows=256 hd=64 window=0 kind=0 cap=0 sinks=0 OK
+ATTENTION rows=257 hd=64 window=0 kind=0 cap=0 sinks=0 OK
+ATTENTION rows=1024 hd=64 window=0 kind=0 cap=0 sinks=0 OK
+ATTENTION rows=2048 hd=64 window=0 kind=0 cap=0 sinks=0 OK
+ATTENTION rows=4096 hd=64 window=0 kind=0 cap=0 sinks=0 OK
+ATTENTION rows=256 hd=64 window=128 kind=0 cap=0 sinks=0 OK
+ATTENTION rows=128 hd=256 window=128 kind=0 cap=0 sinks=0 OK
+ATTENTION rows=128 hd=64 window=0 kind=1 cap=0 sinks=0 OK
+ATTENTION rows=128 hd=64 window=0 kind=0 cap=5 sinks=0 OK
+ATTENTION rows=128 hd=64 window=0 kind=0 cap=0 sinks=1 OK
+ROUTER rows=1 width=2048 experts=64 OK
+ROUTER rows=64 width=2048 experts=64 OK
+ROUTER rows=128 width=2048 experts=64 OK
+ROUTER rows=1024 width=2048 experts=64 OK
+ROUTER rows=2048 width=2048 experts=64 OK
+ROUTER rows=128 width=2880 experts=128 OK
+21 fixtures completed; compare replay files across builds
