@@ -1,0 +1,44 @@
+{
+  "configured_decode_tokens": 64,
+  "expected_dumped_ids": 65,
+  "expected_token_trace_output_ids": 64,
+  "input_ids_equal": true,
+  "output_ids_equal": true,
+  "runs": [
+    {
+      "decode_tokens": 64,
+      "dumped_generated_ids": 65,
+      "ids": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/gemma-repeat-run1.ids",
+      "input_tokens": 1024,
+      "prefill_generated_tokens": 1,
+      "run": 1,
+      "token_trace": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/gemma-repeat-run1.trace.json",
+      "token_trace_output_ids": 64
+    },
+    {
+      "decode_tokens": 64,
+      "dumped_generated_ids": 65,
+      "ids": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/gemma-repeat-run2.ids",
+      "input_tokens": 1024,
+      "prefill_generated_tokens": 1,
+      "run": 2,
+      "token_trace": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/gemma-repeat-run2.trace.json",
+      "token_trace_output_ids": 64
+    }
+  ],
+  "skip_prefill": false,
+  "token_trace_skips_prefill_generated_id": true,
+  "binary_sha256": "38bed950f1b9ac95e59822637a0f152b67755efe4f9e8bc638f16bace420b8c8",
+  "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+  "ids_match_normal_run": true,
+  "environment": {
+    "LD_LIBRARY_PATH": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/optimized",
+    "ADSP_LIBRARY_PATH": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/optimized",
+    "NNTR_NUM_THREADS": "8",
+    "NNTR_HTP_PAGE_CACHE": "0",
+    "NNTR_LOAD_PREFETCH": "0",
+    "NNTR_MOE_CACHE_GROW": "0",
+    "NNTR_MOE_PRELOAD_EXPERTS": "128",
+    "NNTR_REPEAT_PREFIX": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/gemma-repeat"
+  }
+}

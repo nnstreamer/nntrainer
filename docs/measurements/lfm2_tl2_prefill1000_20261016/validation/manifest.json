@@ -1,0 +1,28 @@
+{
+  "schema_version": 2,
+  "built_for": "aarch64-linux-android28",
+  "ndk": "r30",
+  "cpp_std": "c++17",
+  "libcxx": "static",
+  "host_tests": {
+    "normal": "10/10 PASS",
+    "address_undefined_sanitizers": "10/10 PASS",
+    "nonlinux_guard": "GNU syntax check PASS"
+  },
+  "files": {
+    "memory_monitor.cpp": {
+      "size_bytes": 21151,
+      "sha256": "fb92e1591fe70904b392adbfeb14a44853b03416c9ce0fe0a433232ee84660bc"
+    },
+    "test_monitor.py": {
+      "size_bytes": 7280,
+      "sha256": "ea78639f3ccabfaa9a894914f82e29d04293ce729e47f1c5675b3c446f6cbd09"
+    },
+    "memory_monitor": {
+      "size_bytes": 5284456,
+      "sha256": "fa466a7e8fcbdf80c6fb53cf1e26a5cbf0ec48f525bc5760fa13c4cc52c4aa9f"
+    }
+  },
+  "scope": "Full child process lifetime, loading through exit. Sampled RssAnon plus FD allocation sizes deduplicated by mount and inode. Not exact total physical device memory; private DSP/driver allocations can be absent.",
+  "historical_monitor_sha256": "fa466a7e8fcbdf80c6fb53cf1e26a5cbf0ec48f525bc5760fa13c4cc52c4aa9f"
+}

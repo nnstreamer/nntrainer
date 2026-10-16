@@ -1,0 +1,48 @@
+{
+  "base_commit": "bd556b96030d903f2cc235f43f1795a5d9e2c345",
+  "toolchains": {
+    "android_ndk": "r30",
+    "android_app_api": 29,
+    "hexagon_sdk": "6.4.0.1",
+    "hexagon_tools": "19.0.04",
+    "hexkl": "1.0-beta.2",
+    "hexkl_sdk_subdirectory": "6.4.0.2",
+    "hex_arch": "v81",
+    "android_core_api": 29
+  },
+  "core_meson_options": [
+    "-Darm-arch=armv8.2-a",
+    "-Darm-march=-march=armv8.2-a+fp16+dotprod+i8mm",
+    "-Dplatform=android",
+    "-Dopenblas-num-threads=1",
+    "-Denable-tflite-interpreter=false",
+    "-Denable-tflite-backbone=false",
+    "-Denable-fp16=true",
+    "-Dnntr-num-threads=8",
+    "-Dhgemm-experimental-kernel=false",
+    "-Denable-htp=true",
+    "-Dhexagon-sdk-root=$HEXAGON_SDK_ROOT",
+    "-Dhexkl-sdk-root=$HEXKL_ROOT",
+    "-Dhexkl-lib-subdir=6.4.0.2/armv8_android26",
+    "-Denable-test=false",
+    "-Denable-opencl=false",
+    "-Denable-api=false"
+  ],
+  "app_meson_options": [
+    "-Dplatform=android",
+    "-Dtokenizer-cache=disabled"
+  ],
+  "app_cross_files": [
+    "generated android-aarch64.cross from Applications/CausalLM/app_build/android-aarch64.cross.in using the same NDK",
+    "builddir/android_build_result/nntrainer-abi.ini"
+  ],
+  "runtime_files": [
+    "libnntrainer.so",
+    "libccapi-nntrainer.so",
+    "libc++_shared.so",
+    "libsdkl.so",
+    "libcausallm.so",
+    "nntr_causallm",
+    "libnntr_hvx_skel.so"
+  ]
+}

@@ -1,0 +1,17 @@
+STABLE_TL2_DSP_START shape=LFM K=2048 I=1536 N=2048 activation=0
+STABLE_TL2_DSP shape=LFM activation=0 generation=1 M=2 same_handles=1 exact=1
+STABLE_TL2_DSP shape=LFM activation=0 generation=1 M=65 same_handles=1 exact=1
+STABLE_TL2_DSP shape=LFM activation=0 generation=1 M=129 same_handles=1 exact=1
+STABLE_TL2_DSP shape=LFM activation=0 generation=1 M=1 same_handles=1 exact=1
+STABLE_TL2_DSP shape=LFM activation=0 generation=1 M=2 same_handles=1 exact=1
+STABLE_TL2_DSP shape=LFM activation=0 generation=2 M=1 same_handles=1 exact=1
+STABLE_TL2_DSP shape=LFM activation=0 generation=2 M=2 same_handles=1 exact=1
+STABLE_TL2_DSP shape=LFM activation=0 generation=2 M=65 same_handles=1 exact=1
+STABLE_TL2_DSP shape=LFM activation=0 generation=2 M=129 same_handles=1 exact=1
+STABLE_TL2_DSP shape=LFM activation=0 generation=2 M=2 same_handles=1 exact=1
+STABLE_TL2_DSP shape=LFM activation=0 generation=3 M=129 same_handles=1 exact=1
+STABLE_TL2_DSP shape=LFM activation=0 generation=3 M=1 same_handles=1 exact=1
+STABLE_TL2_DSP shape=LFM activation=0 generation=3 M=2 same_handles=1 exact=1
+STABLE_TL2_DSP shape=LFM activation=0 generation=3 M=65 same_handles=1 exact=1
+STABLE_TL2_DSP shape=LFM activation=0 generation=3 M=2 same_handles=1 exact=1
+STABLE_TL2_DSP_PASS cases=15

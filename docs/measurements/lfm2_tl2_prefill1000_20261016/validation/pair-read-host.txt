@@ -1,0 +1,2 @@
+TL2 PAIR K2048/I1536/N2048: native/scatter/EOF, batch join, retired/claimed ownership, epoch reuse/adopt, no page cache PASS
+TL2 PAIR K2816/I704/N2816: native/scatter/EOF, batch join, retired/claimed ownership, epoch reuse/adopt, no page cache PASS

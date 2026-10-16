@@ -1,0 +1,14 @@
+{
+  "parent": "baseline",
+  "binaries": {
+    "libnntrainer.so": "2a8d5b7fcdfce9b2935cae2c3de7f8caae79cbdbc333e4a701e17893748d6b5b",
+    "libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+    "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+    "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+    "libcausallm.so": "d1079ed570a2dc31a4c2c0e36ae037ff6b1449d376f213f524cfb8b300aac3bf",
+    "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76",
+    "libnntr_hvx_skel.so": "1e12c77ad4604a5fe0a1851976e0bcac6531c68a079dc17dffe1c2b2e4b69d38"
+  },
+  "source_patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "base_commit": "bd556b96030d903f2cc235f43f1795a5d9e2c345"
+}

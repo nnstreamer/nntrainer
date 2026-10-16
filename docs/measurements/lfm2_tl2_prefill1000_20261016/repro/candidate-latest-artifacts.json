@@ -1,0 +1,14 @@
+{
+  "parent": "gemma-stable-probe",
+  "binaries": {
+    "libnntrainer.so": "dbbf8582301b02279cc570c26a1839c29fb81e7e78d7a7a98b17c460a90fbbe5",
+    "libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+    "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+    "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+    "libcausallm.so": "d2b01b93d727c3e8f25b86388e91b6e9855f4cef385d87342681f082a1860a4b",
+    "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76",
+    "libnntr_hvx_skel.so": "68128dd0aff47da935fc50a34d22172c9baec2cafcc4dd3a5e3cb8b2e309bc57"
+  },
+  "source_patch_sha256": "adaff0693f4d103f5a85205cf4e13a1295a3ecdb4fc840b245f9fdc52b085594",
+  "base_commit": "bd556b96030d903f2cc235f43f1795a5d9e2c345"
+}

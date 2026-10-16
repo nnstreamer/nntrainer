@@ -1,0 +1,4 @@
+COMPACT TL2 SWAP OK: metadata, rebind, bounds, legacy transition
+STABLE TL2 GEMMA REJECT OK: no handle mutation
+STABLE TL2 SWAP OK: K=2048 I=1536 N=2048, 3 metadata generations, same handles, negative shape/extent/offset/pair guards
+WEIGHT SWAP OK

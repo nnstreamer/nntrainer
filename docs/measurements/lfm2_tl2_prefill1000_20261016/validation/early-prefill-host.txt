@@ -1,0 +1,3 @@
+[LFM2-PREFILL] early queued_experts=448
+[LFM2-PREFILL] early queued_experts=448
+PASS: actual 38-layer route, 2304 identical reads, 65 identical registration groups, 1824 identical prefill evictions, identical final LRFU state, zero demand misses; 2432 future probes with 4047 identical misses/evictions; C608/PRELOAD128, owner, old-pass, fallback, queue failure and teardown guards

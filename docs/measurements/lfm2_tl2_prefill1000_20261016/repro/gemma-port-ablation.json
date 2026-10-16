@@ -1,0 +1,326 @@
+{
+  "runtime": "candidate-latest",
+  "base_commit": "bd556b96030d903f2cc235f43f1795a5d9e2c345",
+  "constraints": {
+    "moe_cache_experts": 16,
+    "preload_experts": 128,
+    "page_cache": false,
+    "cache_growth": false
+  },
+  "decision": "Do not include Gemma-specific early, pair-read, or stable-slot extensions. Early regressed; other changes did not demonstrate a gain beyond observed run-to-run variation.",
+  "superseded_series": "The older gemma-prefill-p*-e1-* series did not enter the early hook due to an overrestrictive chunk guard; no early speedup is inferred from it.",
+  "rows": [
+    {
+      "pair": 0,
+      "stable": 0,
+      "early": 0,
+      "runs": [
+        {
+          "tag": "gemma-final-p0-s0-e0-r1",
+          "prefill_tps": 627.836,
+          "decode_tps": 12.7974,
+          "full_run_sampled_peak_kib": 3366500.0,
+          "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+          "performance_comparison_eligible": true
+        },
+        {
+          "tag": "gemma-final-p0-s0-e0-r2",
+          "prefill_tps": 628.993,
+          "decode_tps": 12.8876,
+          "full_run_sampled_peak_kib": 3383444.0,
+          "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+          "performance_comparison_eligible": true
+        },
+        {
+          "tag": "gemma-final-p0-s0-e0-r3",
+          "prefill_tps": 648.512,
+          "decode_tps": 12.6183,
+          "full_run_sampled_peak_kib": 3381164.0,
+          "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+          "performance_comparison_eligible": true
+        }
+      ],
+      "median": {
+        "prefill_tps": 628.993,
+        "decode_tps": 12.7974
+      },
+      "prefill_range": [
+        627.836,
+        648.512
+      ]
+    },
+    {
+      "pair": 0,
+      "stable": 0,
+      "early": 1,
+      "runs": [
+        {
+          "tag": "gemma-final-p0-s0-e1-r1",
+          "prefill_tps": 593.968,
+          "decode_tps": 12.777,
+          "full_run_sampled_peak_kib": 3370788.0,
+          "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+          "performance_comparison_eligible": true
+        },
+        {
+          "tag": "gemma-final-p0-s0-e1-r2",
+          "prefill_tps": 594.657,
+          "decode_tps": 12.7668,
+          "full_run_sampled_peak_kib": 3369756.0,
+          "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+          "performance_comparison_eligible": true
+        },
+        {
+          "tag": "gemma-final-p0-s0-e1-r3",
+          "prefill_tps": 608.076,
+          "decode_tps": 12.6432,
+          "full_run_sampled_peak_kib": 3368844.0,
+          "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+          "performance_comparison_eligible": true
+        }
+      ],
+      "median": {
+        "prefill_tps": 594.657,
+        "decode_tps": 12.7668
+      },
+      "prefill_range": [
+        593.968,
+        608.076
+      ]
+    },
+    {
+      "pair": 0,
+      "stable": 1,
+      "early": 0,
+      "runs": [
+        {
+          "tag": "gemma-final-p0-s1-e0-r1",
+          "prefill_tps": 634.056,
+          "decode_tps": 12.8257,
+          "full_run_sampled_peak_kib": 3373312.0,
+          "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+          "performance_comparison_eligible": true
+        },
+        {
+          "tag": "gemma-final-p0-s1-e0-r2",
+          "prefill_tps": 646.465,
+          "decode_tps": 12.6909,
+          "full_run_sampled_peak_kib": 3374508.0,
+          "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+          "performance_comparison_eligible": true
+        },
+        {
+          "tag": "gemma-final-p0-s1-e0-r3",
+          "prefill_tps": 622.871,
+          "decode_tps": 12.6733,
+          "full_run_sampled_peak_kib": 3381536.0,
+          "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+          "performance_comparison_eligible": true
+        }
+      ],
+      "median": {
+        "prefill_tps": 634.056,
+        "decode_tps": 12.6909
+      },
+      "prefill_range": [
+        622.871,
+        646.465
+      ]
+    },
+    {
+      "pair": 0,
+      "stable": 1,
+      "early": 1,
+      "runs": [
+        {
+          "tag": "gemma-final-p0-s1-e1-r1",
+          "prefill_tps": 597.433,
+          "decode_tps": 12.7414,
+          "full_run_sampled_peak_kib": 3365008.0,
+          "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+          "performance_comparison_eligible": true
+        },
+        {
+          "tag": "gemma-final-p0-s1-e1-r2",
+          "prefill_tps": 615.015,
+          "decode_tps": 12.6783,
+          "full_run_sampled_peak_kib": 3365160.0,
+          "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+          "performance_comparison_eligible": true
+        },
+        {
+          "tag": "gemma-final-p0-s1-e1-r3",
+          "prefill_tps": 600.234,
+          "decode_tps": 12.7161,
+          "full_run_sampled_peak_kib": 3373480.0,
+          "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+          "performance_comparison_eligible": true
+        }
+      ],
+      "median": {
+        "prefill_tps": 600.234,
+        "decode_tps": 12.7161
+      },
+      "prefill_range": [
+        597.433,
+        615.015
+      ]
+    },
+    {
+      "pair": 1,
+      "stable": 0,
+      "early": 0,
+      "runs": [
+        {
+          "tag": "gemma-final-p1-s0-e0-r1",
+          "prefill_tps": 624.771,
+          "decode_tps": 12.7898,
+          "full_run_sampled_peak_kib": 3369872.0,
+          "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+          "performance_comparison_eligible": true
+        },
+        {
+          "tag": "gemma-final-p1-s0-e0-r2",
+          "prefill_tps": 623.63,
+          "decode_tps": 12.7643,
+          "full_run_sampled_peak_kib": 3386256.0,
+          "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+          "performance_comparison_eligible": true
+        },
+        {
+          "tag": "gemma-final-p1-s0-e0-r3",
+          "prefill_tps": 603.418,
+          "decode_tps": 12.7085,
+          "full_run_sampled_peak_kib": 3386524.0,
+          "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+          "performance_comparison_eligible": true
+        }
+      ],
+      "median": {
+        "prefill_tps": 623.63,
+        "decode_tps": 12.7643
+      },
+      "prefill_range": [
+        603.418,
+        624.771
+      ]
+    },
+    {
+      "pair": 1,
+      "stable": 0,
+      "early": 1,
+      "runs": [
+        {
+          "tag": "gemma-final-p1-s0-e1-r1",
+          "prefill_tps": 592.25,
+          "decode_tps": 12.8566,
+          "full_run_sampled_peak_kib": 3377628.0,
+          "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+          "performance_comparison_eligible": true
+        },
+        {
+          "tag": "gemma-final-p1-s0-e1-r2",
+          "prefill_tps": 596.042,
+          "decode_tps": 12.6258,
+          "full_run_sampled_peak_kib": 3372456.0,
+          "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+          "performance_comparison_eligible": true
+        },
+        {
+          "tag": "gemma-final-p1-s0-e1-r3",
+          "prefill_tps": 595.003,
+          "decode_tps": 12.7363,
+          "full_run_sampled_peak_kib": 3353024.0,
+          "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+          "performance_comparison_eligible": true
+        }
+      ],
+      "median": {
+        "prefill_tps": 595.003,
+        "decode_tps": 12.7363
+      },
+      "prefill_range": [
+        592.25,
+        596.042
+      ]
+    },
+    {
+      "pair": 1,
+      "stable": 1,
+      "early": 0,
+      "runs": [
+        {
+          "tag": "gemma-final-p1-s1-e0-r1",
+          "prefill_tps": 628.993,
+          "decode_tps": 12.8205,
+          "full_run_sampled_peak_kib": 3384444.0,
+          "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+          "performance_comparison_eligible": true
+        },
+        {
+          "tag": "gemma-final-p1-s1-e0-r2",
+          "prefill_tps": 649.746,
+          "decode_tps": 12.6582,
+          "full_run_sampled_peak_kib": 3373616.0,
+          "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+          "performance_comparison_eligible": true
+        },
+        {
+          "tag": "gemma-final-p1-s1-e0-r3",
+          "prefill_tps": 606.635,
+          "decode_tps": 12.7085,
+          "full_run_sampled_peak_kib": 3377792.0,
+          "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+          "performance_comparison_eligible": true
+        }
+      ],
+      "median": {
+        "prefill_tps": 628.993,
+        "decode_tps": 12.7085
+      },
+      "prefill_range": [
+        606.635,
+        649.746
+      ]
+    },
+    {
+      "pair": 1,
+      "stable": 1,
+      "early": 1,
+      "runs": [
+        {
+          "tag": "gemma-final-p1-s1-e1-r1",
+          "prefill_tps": 615.015,
+          "decode_tps": 12.711,
+          "full_run_sampled_peak_kib": 3377540.0,
+          "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+          "performance_comparison_eligible": true
+        },
+        {
+          "tag": "gemma-final-p1-s1-e1-r2",
+          "prefill_tps": 596.042,
+          "decode_tps": 12.7694,
+          "full_run_sampled_peak_kib": 3378184.0,
+          "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+          "performance_comparison_eligible": true
+        },
+        {
+          "tag": "gemma-final-p1-s1-e1-r3",
+          "prefill_tps": 612.074,
+          "decode_tps": 12.7515,
+          "full_run_sampled_peak_kib": 3381512.0,
+          "ids_sha256": "d0ca48a0dab9c2a745edb099df3766971d30b69ce4ea72744fa6e9e61d5ed3f3",
+          "performance_comparison_eligible": true
+        }
+      ],
+      "median": {
+        "prefill_tps": 612.074,
+        "decode_tps": 12.7515
+      },
+      "prefill_range": [
+        596.042,
+        615.015
+      ]
+    }
+  ]
+}

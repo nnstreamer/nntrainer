@@ -1,0 +1,16 @@
+[
+  {
+    "fixture": "lfm2_prefill_replay",
+    "baseline_sha256": "50306f9804fc358e45a9ad110cd7cd2ff985ccc740b73ee7db6c5050035ba54d",
+    "candidate_sha256": "50306f9804fc358e45a9ad110cd7cd2ff985ccc740b73ee7db6c5050035ba54d",
+    "matches": true,
+    "cases": 21
+  },
+  {
+    "fixture": "conv_prefill_neon_replay",
+    "baseline_sha256": "deb383b0caba420d8e10d5399e6d77b7fdd172e8f2fd7b020ba6262787397aa5",
+    "candidate_sha256": "deb383b0caba420d8e10d5399e6d77b7fdd172e8f2fd7b020ba6262787397aa5",
+    "matches": true,
+    "cases": 288
+  }
+]
