@@ -1,0 +1,12 @@
+{
+  "command": "env LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated:/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/tile-ion NNTR_NUM_THREADS=8 NNTR_HTP_PAGE_CACHE=0 timeout 60 /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/moe-row-norm-check",
+  "environment": {
+    "LD_LIBRARY_PATH": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated:/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/tile-ion",
+    "NNTR_NUM_THREADS": "8",
+    "NNTR_HTP_PAGE_CACHE": "0"
+  },
+  "returncode": 0,
+  "binary_sha256": "72e69775a0a67fbb936fb6b8fe1997eb252e3cca2993e43e96a72f58df14ee6f",
+  "log_sha256": "0ea394d973c63f5b1de9b9e36ff6defd0392177cd8c558a269f05fe2bf59d011",
+  "scope": "CPU-only pre-screen with production libnntrainer norm and Tensor.multiply_i; no model/expert I/O."
+}

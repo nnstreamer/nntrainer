@@ -1,0 +1,8 @@
+{
+  "off_disassembly_exact": true,
+  "off_and_on_ndk_compile_pass": true,
+  "source_sha256": "74e003aac3065d8b0bc2a1897684d4238d86833f781ec2a32a54bdbbac7ffbd2",
+  "patch_sha256": "c04b3a888fd6a2921fcfb1b29d93395c2bfc9ccdc879a848cf3bb3975c0a5a4d",
+  "parser_valid": 4,
+  "parser_negative": 32
+}

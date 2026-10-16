@@ -1,0 +1,41 @@
+{
+  "binary_sha256": "e936c5201916b2f43f0bc86ece3b45b71563117d1ad2ef941f8bd3ac79f59943",
+  "runs": [
+    {
+      "flag": 1,
+      "threads": 8,
+      "command": "env LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated:/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/tile-ion ADSP_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated NNTR_NUM_THREADS=8 NNTR_HTP_PAGE_CACHE=0 NNTR_LFM2_MOE_ROW_NORM=1 timeout 60 /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/moe-row-norm-native 8",
+      "returncode": 0,
+      "seconds": 0.28694086900213733,
+      "log": "root-native-fixed-1-8.log",
+      "log_sha256": "3b831f8bf6076d423b1347cc374f5e68c7aa49fa76b36a9f7db4a875b9b75136"
+    },
+    {
+      "flag": 0,
+      "threads": 8,
+      "command": "env LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated:/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/tile-ion ADSP_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated NNTR_NUM_THREADS=8 NNTR_HTP_PAGE_CACHE=0 NNTR_LFM2_MOE_ROW_NORM=0 timeout 60 /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/moe-row-norm-native 8",
+      "returncode": 0,
+      "seconds": 0.19997365202289075,
+      "log": "root-native-fixed-0-8.log",
+      "log_sha256": "a7b6e970e0333050b1aa61d6f990d1f7ba48cab9012ff5418985692e48ce7fe8"
+    },
+    {
+      "flag": 1,
+      "threads": 1,
+      "command": "env LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated:/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/tile-ion ADSP_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated NNTR_NUM_THREADS=1 NNTR_HTP_PAGE_CACHE=0 NNTR_LFM2_MOE_ROW_NORM=1 timeout 60 /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/moe-row-norm-native 1",
+      "returncode": 0,
+      "seconds": 0.183513828960713,
+      "log": "root-native-fixed-1-1.log",
+      "log_sha256": "021833196a18216cff1acae010a6c73ead14060a6f5a35d3efedd085fe28ca3b"
+    },
+    {
+      "flag": 0,
+      "threads": 1,
+      "command": "env LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated:/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/tile-ion ADSP_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated NNTR_NUM_THREADS=1 NNTR_HTP_PAGE_CACHE=0 NNTR_LFM2_MOE_ROW_NORM=0 timeout 60 /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/moe-row-norm-native 1",
+      "returncode": 0,
+      "seconds": 0.180622253974434,
+      "log": "root-native-fixed-0-1.log",
+      "log_sha256": "cb4047d2bf8d8714133a78a13290ef8f371cf72e636dcb82559e4c12f38646b9"
+    }
+  ]
+}

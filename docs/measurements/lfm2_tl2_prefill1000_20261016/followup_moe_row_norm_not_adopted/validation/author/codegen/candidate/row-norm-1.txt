@@ -1,0 +1,161 @@
+0000000000000000 <void nntrainer::ThreadManager::parallel_for<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>(unsigned long, unsigned long, causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0&&)>:
+       0: d101c3ff     	sub	sp, sp, #0x70
+       4: a9037bfd     	stp	x29, x30, [sp, #0x30]
+       8: a9045ff8     	stp	x24, x23, [sp, #0x40]
+       c: a90557f6     	stp	x22, x21, [sp, #0x50]
+      10: a9064ff4     	stp	x20, x19, [sp, #0x60]
+      14: 9100c3fd     	add	x29, sp, #0x30
+      18: b4000801     	cbz	x1, 0x118 <void nntrainer::ThreadManager::parallel_for<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>(unsigned long, unsigned long, causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0&&)+0x118>
+      1c: aa0203f5     	mov	x21, x2
+      20: aa0103f4     	mov	x20, x1
+      24: f100043f     	cmp	x1, #0x1
+      28: 540003a0     	b.eq	0x9c <void nntrainer::ThreadManager::parallel_for<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>(unsigned long, unsigned long, causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0&&)+0x9c>
+      2c: a9412408     	ldp	x8, x9, [x0, #0x10]
+      30: aa0003f3     	mov	x19, x0
+      34: eb09011f     	cmp	x8, x9
+      38: 54000320     	b.eq	0x9c <void nntrainer::ThreadManager::parallel_for<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>(unsigned long, unsigned long, causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0&&)+0x9c>
+      3c: 9100c260     	add	x0, x19, #0x30
+      40: 94000000     	bl	0x40 <void nntrainer::ThreadManager::parallel_for<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>(unsigned long, unsigned long, causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0&&)+0x40>
+		0000000000000040:  R_AARCH64_CALL26	std::__ndk1::mutex::lock()
+      44: 52800600     	mov	w0, #0x30               // =48
+      48: 94000000     	bl	0x48 <void nntrainer::ThreadManager::parallel_for<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>(unsigned long, unsigned long, causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0&&)+0x48>
+		0000000000000048:  R_AARCH64_CALL26	operator new(unsigned long)
+      4c: ad4006a0     	ldp	q0, q1, [x21]
+      50: 90000008     	adrp	x8, 0x0 <void nntrainer::ThreadManager::parallel_for<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>(unsigned long, unsigned long, causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0&&)>
+		0000000000000050:  R_AARCH64_ADR_PREL_PG_HI21	.data.rel.ro._ZTVNSt6__ndk110__function6__funcIZN8causallmL17lfmPrefillRowNormERKN9nntrainer6TensorERS4_S6_fRNS3_15RunLayerContextERKNS_6vectorIjNS_9allocatorIjEEEESF_E3$_0NSB_ISG_EEFvmEEE+0x10
+      54: 91000108     	add	x8, x8, #0x0
+		0000000000000054:  R_AARCH64_ADD_ABS_LO12_NC	.data.rel.ro._ZTVNSt6__ndk110__function6__funcIZN8causallmL17lfmPrefillRowNormERKN9nntrainer6TensorERS4_S6_fRNS3_15RunLayerContextERKNS_6vectorIjNS_9allocatorIjEEEESF_E3$_0NSB_ISG_EEFvmEEE+0x10
+      58: f94012a9     	ldr	x9, [x21, #0x20]
+      5c: f90013e0     	str	x0, [sp, #0x20]
+      60: f9000008     	str	x8, [x0]
+      64: 91018261     	add	x1, x19, #0x60
+      68: 910003f5     	mov	x21, sp
+      6c: f9001409     	str	x9, [x0, #0x28]
+      70: 3c808000     	stur	q0, [x0, #0x8]
+      74: 3c818001     	stur	q1, [x0, #0x18]
+      78: b9002c1f     	str	wzr, [x0, #0x2c]
+      7c: 910003e0     	mov	x0, sp
+      80: 94000000     	bl	0x80 <void nntrainer::ThreadManager::parallel_for<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>(unsigned long, unsigned long, causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0&&)+0x80>
+		0000000000000080:  R_AARCH64_CALL26	std::__ndk1::__function::__value_func<void (unsigned long)>::swap[abi:ne210000](std::__ndk1::__function::__value_func<void (unsigned long)>&)
+      84: f94013e0     	ldr	x0, [sp, #0x20]
+      88: eb15001f     	cmp	x0, x21
+      8c: 54000520     	b.eq	0x130 <void nntrainer::ThreadManager::parallel_for<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>(unsigned long, unsigned long, causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0&&)+0x130>
+      90: b4000580     	cbz	x0, 0x140 <void nntrainer::ThreadManager::parallel_for<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>(unsigned long, unsigned long, causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0&&)+0x140>
+      94: 52800508     	mov	w8, #0x28               // =40
+      98: 14000027     	b	0x134 <void nntrainer::ThreadManager::parallel_for<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>(unsigned long, unsigned long, causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0&&)+0x134>
+      9c: aa1f03f3     	mov	x19, xzr
+      a0: aa1f03f6     	mov	x22, xzr
+      a4: a9402aa9     	ldp	x9, x10, [x21]
+      a8: d36db2c8     	lsl	x8, x22, #19
+      ac: bd4022a0     	ldr	s0, [x21, #0x20]
+      b0: 52800802     	mov	w2, #0x40               // =64
+      b4: 52810003     	mov	w3, #0x800              // =2048
+      b8: 8b080120     	add	x0, x9, x8
+      bc: 8b080141     	add	x1, x10, x8
+      c0: 94000000     	bl	0xc0 <void nntrainer::ThreadManager::parallel_for<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>(unsigned long, unsigned long, causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0&&)+0xc0>
+		00000000000000c0:  R_AARCH64_CALL26	nntrainer::rms_norm_wrt_width_fp32_intrinsic(float const*, float*, unsigned long, unsigned long, float)
+      c4: aa1303f7     	mov	x23, x19
+      c8: 52800818     	mov	w24, #0x40              // =64
+      cc: a94102a3     	ldp	x3, x0, [x21, #0x10]
+      d0: 2f00e401     	movi	d1, #0000000000000000
+      d4: f94006a9     	ldr	x9, [x21, #0x8]
+      d8: 1e2e1000     	fmov	s0, #1.00000000
+      dc: 52810001     	mov	w1, #0x800              // =2048
+      e0: 52800025     	mov	w5, #0x1                // =1
+      e4: 52800026     	mov	w6, #0x1                // =1
+      e8: f9400008     	ldr	x8, [x0]
+      ec: 8b170122     	add	x2, x9, x23
+      f0: 8b170124     	add	x4, x9, x23
+      f4: f9402d08     	ldr	x8, [x8, #0x58]
+      f8: d63f0100     	blr	x8
+      fc: f1000718     	subs	x24, x24, #0x1
+     100: 91400af7     	add	x23, x23, #0x2, lsl #12 // =0x2000
+     104: 54fffe41     	b.ne	0xcc <void nntrainer::ThreadManager::parallel_for<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>(unsigned long, unsigned long, causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0&&)+0xcc>
+     108: 910006d6     	add	x22, x22, #0x1
+     10c: 91420273     	add	x19, x19, #0x80, lsl #12 // =0x80000
+     110: eb1402df     	cmp	x22, x20
+     114: 54fffc81     	b.ne	0xa4 <void nntrainer::ThreadManager::parallel_for<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>(unsigned long, unsigned long, causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0&&)+0xa4>
+     118: a9464ff4     	ldp	x20, x19, [sp, #0x60]
+     11c: a94557f6     	ldp	x22, x21, [sp, #0x50]
+     120: a9445ff8     	ldp	x24, x23, [sp, #0x40]
+     124: a9437bfd     	ldp	x29, x30, [sp, #0x30]
+     128: 9101c3ff     	add	sp, sp, #0x70
+     12c: d65f03c0     	ret
+     130: 52800408     	mov	w8, #0x20               // =32
+     134: f9400009     	ldr	x9, [x0]
+     138: f8686928     	ldr	x8, [x9, x8]
+     13c: d63f0100     	blr	x8
+     140: a9412a6b     	ldp	x11, x10, [x19, #0x10]
+     144: aa1f03e8     	mov	x8, xzr
+     148: aa1f03ec     	mov	x12, xzr
+     14c: aa1f03e9     	mov	x9, xzr
+     150: cb0b014a     	sub	x10, x10, x11
+     154: 9343fd4d     	asr	x13, x10, #3
+     158: 910005ae     	add	x14, x13, #0x1
+     15c: f900826d     	str	x13, [x19, #0x100]
+     160: 9ace0a8a     	udiv	x10, x20, x14
+     164: f10005df     	cmp	x14, #0x1
+     168: 9b0ed14b     	msub	x11, x10, x14, x20
+     16c: 5280002e     	mov	w14, #0x1               // =1
+     170: 9a8d95cd     	csinc	x13, x14, x13, ls
+     174: b901426e     	str	w14, [x19, #0x140]
+     178: f940166e     	ldr	x14, [x19, #0x28]
+     17c: eb0b013f     	cmp	x9, x11
+     180: 91000529     	add	x9, x9, #0x1
+     184: 9a8a254f     	cinc	x15, x10, lo
+     188: eb0901bf     	cmp	x13, x9
+     18c: f82869cc     	str	x12, [x14, x8]
+     190: 8b0c01ec     	add	x12, x15, x12
+     194: f940166e     	ldr	x14, [x19, #0x28]
+     198: 8b0801ce     	add	x14, x14, x8
+     19c: f90021cc     	str	x12, [x14, #0x40]
+     1a0: f940166e     	ldr	x14, [x19, #0x28]
+     1a4: 8b0801ce     	add	x14, x14, x8
+     1a8: 91030108     	add	x8, x8, #0xc0
+     1ac: f90041cf     	str	x15, [x14, #0x80]
+     1b0: 54fffe41     	b.ne	0x178 <void nntrainer::ThreadManager::parallel_for<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>(unsigned long, unsigned long, causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0&&)+0x178>
+     1b4: b940c268     	ldr	w8, [x19, #0xc0]
+     1b8: b9414a69     	ldr	w9, [x19, #0x148]
+     1bc: 91030261     	add	x1, x19, #0xc0
+     1c0: 2a080128     	orr	w8, w9, w8
+     1c4: 2a2803e8     	mvn	w8, w8
+     1c8: 32000108     	orr	w8, w8, #0x1
+     1cc: 889ffc28     	stlr	w8, [x1]
+     1d0: 52800c40     	mov	w0, #0x62               // =98
+     1d4: 52801022     	mov	w2, #0x81               // =129
+     1d8: 12b00003     	mov	w3, #0x7fffffff         // =2147483647
+     1dc: 94000000     	bl	0x1dc <void nntrainer::ThreadManager::parallel_for<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>(unsigned long, unsigned long, causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0&&)+0x1dc>
+		00000000000001dc:  R_AARCH64_CALL26	syscall
+     1e0: aa1303e0     	mov	x0, x19
+     1e4: aa1f03e1     	mov	x1, xzr
+     1e8: 94000000     	bl	0x1e8 <void nntrainer::ThreadManager::parallel_for<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>(unsigned long, unsigned long, causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0&&)+0x1e8>
+		00000000000001e8:  R_AARCH64_CALL26	nntrainer::ThreadManager::thread_parallelize(unsigned long)
+     1ec: aa1303e0     	mov	x0, x19
+     1f0: 94000000     	bl	0x1f0 <void nntrainer::ThreadManager::parallel_for<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>(unsigned long, unsigned long, causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0&&)+0x1f0>
+		00000000000001f0:  R_AARCH64_CALL26	nntrainer::ThreadManager::wait_worker_threads()
+     1f4: 9100c260     	add	x0, x19, #0x30
+     1f8: d50339bf     	dmb	ishld
+     1fc: 94000000     	bl	0x1fc <void nntrainer::ThreadManager::parallel_for<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>(unsigned long, unsigned long, causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0&&)+0x1fc>
+		00000000000001fc:  R_AARCH64_CALL26	std::__ndk1::mutex::unlock()
+     200: a9464ff4     	ldp	x20, x19, [sp, #0x60]
+     204: a94557f6     	ldp	x22, x21, [sp, #0x50]
+     208: a9445ff8     	ldp	x24, x23, [sp, #0x40]
+     20c: a9437bfd     	ldp	x29, x30, [sp, #0x30]
+     210: 9101c3ff     	add	sp, sp, #0x70
+     214: d65f03c0     	ret
+     218: aa0003f4     	mov	x20, x0
+     21c: 9100c260     	add	x0, x19, #0x30
+     220: 94000000     	bl	0x220 <void nntrainer::ThreadManager::parallel_for<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>(unsigned long, unsigned long, causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0&&)+0x220>
+		0000000000000220:  R_AARCH64_CALL26	std::__ndk1::mutex::unlock()
+     224: aa1403e0     	mov	x0, x20
+     228: 94000000     	bl	0x228 <void nntrainer::ThreadManager::parallel_for<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>(unsigned long, unsigned long, causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0&&)+0x228>
+		0000000000000228:  R_AARCH64_CALL26	_Unwind_Resume
+     22c: aa0003f4     	mov	x20, x0
+     230: 9100c260     	add	x0, x19, #0x30
+     234: 94000000     	bl	0x234 <void nntrainer::ThreadManager::parallel_for<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>(unsigned long, unsigned long, causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0&&)+0x234>
+		0000000000000234:  R_AARCH64_CALL26	std::__ndk1::mutex::unlock()
+     238: aa1403e0     	mov	x0, x20
+     23c: 94000000     	bl	0x23c <void nntrainer::ThreadManager::parallel_for<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>(unsigned long, unsigned long, causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0&&)+0x23c>
+		000000000000023c:  R_AARCH64_CALL26	_Unwind_Resume
+
+Disassembly of section .text._ZNSt6__ndk110__function6__funcIZN8causallmL17lfmPrefillRowNormERKN9nntrainer6TensorERS4_S6_fRNS3_15RunLayerContextERKNS_6vectorIjNS_9allocatorIjEEEESF_E3$_0NSB_ISG_EEFvmEED0Ev:

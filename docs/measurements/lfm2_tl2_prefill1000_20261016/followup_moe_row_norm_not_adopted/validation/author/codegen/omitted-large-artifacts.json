@@ -1,0 +1,70 @@
+{
+  "codegen/before/android-x86-clang/moe.asm": {
+    "sha256": "8029edf586ac174f8e7b88935dfbd11c5bd256c3deba31f008e83eb080dde374",
+    "bytes": 7167338
+  },
+  "codegen/before/android-x86-clang/moe.o": {
+    "sha256": "b9cd7dd942f1ec3a37e8642d5171ca6956fe88c4954bd8e10972b01778e74d78",
+    "bytes": 865040
+  },
+  "codegen/before/android-x86-clang/text.bin": {
+    "sha256": "ab9e72b524435ad1e64742a39a0e06c7acfaac9457064325ea938c09bbb24ca7",
+    "bytes": 81960
+  },
+  "codegen/before/linux-x86-gcc/moe.o": {
+    "sha256": "a38222c22f4075d52f9b29ab637c97586e74566c45efdbce32ea6ce695dd2eb5",
+    "bytes": 812016
+  },
+  "codegen/before/linux-x86-gcc/text.bin": {
+    "sha256": "afe16cb8fa977c1fbccdfd1c525c8d077eb698145ab81a5353f8a8c9d25a64a6",
+    "bytes": 90164
+  },
+  "codegen/before/moe.asm": {
+    "sha256": "3bad6c72282e85b40b4686cc51196696420d77e85b4167990e7b8b793ffafd39",
+    "bytes": 6773994
+  },
+  "codegen/before/moe.o": {
+    "sha256": "b3d8ba422f1b5e185cc1c93cdcaee3a8cc3380ce65c68ec30c544c0aec754627",
+    "bytes": 902128
+  },
+  "codegen/before/normRows.bin": {
+    "sha256": "02867b0fcd7e55d92dbcacb7956c23dd875afbbc87b18c9bcd5cd9e8a376ee47",
+    "bytes": 268
+  },
+  "codegen/candidate/android-x86-clang/moe.asm": {
+    "sha256": "447fb3e92f81760412bca7e184f07bb9212351f37d2fe468be6507e54de382e2",
+    "bytes": 7167584
+  },
+  "codegen/candidate/android-x86-clang/moe.o": {
+    "sha256": "31df4e2a275bcd813a66ae5b6e9a0d2a13a7e868c51ff29ae44bf33f795f1fdb",
+    "bytes": 865056
+  },
+  "codegen/candidate/android-x86-clang/text.bin": {
+    "sha256": "d2f4527574220f0c5a75a4ec40e3a83b61b18ee3488c07d03306f923df710011",
+    "bytes": 81976
+  },
+  "codegen/candidate/linux-x86-gcc/moe.o": {
+    "sha256": "a38222c22f4075d52f9b29ab637c97586e74566c45efdbce32ea6ce695dd2eb5",
+    "bytes": 812016
+  },
+  "codegen/candidate/linux-x86-gcc/text.bin": {
+    "sha256": "afe16cb8fa977c1fbccdfd1c525c8d077eb698145ab81a5353f8a8c9d25a64a6",
+    "bytes": 90164
+  },
+  "codegen/candidate/moe.asm": {
+    "sha256": "021f095ddc823e7c6f68a56ea47792efcb25e011dce41bc22611974bbbea9db7",
+    "bytes": 6860156
+  },
+  "codegen/candidate/moe.nm.txt": {
+    "sha256": "8f8dacbf18372681762cfa66922cd0e74357c3e7ec2fad44ef362e67e0d49d13",
+    "bytes": 507225
+  },
+  "codegen/candidate/moe.o": {
+    "sha256": "131fe8e080200ac86e3ffa780d1a569444f32bbbd638254656b3f8a466a7295c",
+    "bytes": 913952
+  },
+  "codegen/candidate/normRows.bin": {
+    "sha256": "02867b0fcd7e55d92dbcacb7956c23dd875afbbc87b18c9bcd5cd9e8a376ee47",
+    "bytes": 268
+  }
+}

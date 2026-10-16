@@ -1,0 +1,4 @@
+0000000000000000 <std::__ndk1::__function::__func<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0, std::__ndk1::allocator<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>, void (unsigned long)>::destroy()>:
+       0: d65f03c0     	ret
+
+Disassembly of section .text._ZNSt6__ndk110__function6__funcIZN8causallmL17lfmPrefillRowNormERKN9nntrainer6TensorERS4_S6_fRNS3_15RunLayerContextERKNS_6vectorIjNS_9allocatorIjEEEESF_E3$_0NSB_ISG_EEFvmEE18destroy_deallocateEv:

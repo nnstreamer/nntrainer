@@ -1,0 +1,14 @@
+{
+  "parent": "lfm-moe-row-norm-1",
+  "binaries": {
+    "libnntrainer.so": "072b5ca2700aaf10fb5b38ebd244d54691efd7ba96bf0dd699fd907bc6e42c09",
+    "libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+    "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+    "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+    "libcausallm.so": "02eb103cde506ce974987e422d6f66b5a3f101088bcbe421c3d0383c4ed5ddba",
+    "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76",
+    "libnntr_hvx_skel.so": "3baddb92d14d1d23fe9b6c6a7cacfe3a6cd4708001c110bb8b15e1b0b7276f7c"
+  },
+  "source_patch_sha256": "a6176033a8091f291568588a5567706bcf851a905d8e9784adee95e146c97aaf",
+  "base_commit": "f7b16e48ca01a650160d823141e86e67c7993a7c"
+}

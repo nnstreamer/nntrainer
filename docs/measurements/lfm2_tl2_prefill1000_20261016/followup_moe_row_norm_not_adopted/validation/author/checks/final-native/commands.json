@@ -1,0 +1,39 @@
+{
+  "source_sha256": "50c587595d586f6fd2e1e2da930220f236747408992c7406abc091e10cabdca8",
+  "fixture_sha256": "1a0c0cb8dce49f388d052b43cac0844038b8d64d7e6d1477e7cc13d7069bb48e",
+  "extracts": {
+    "baseline.inc": "bfb5c97f8809f00a0a942327edf0fd9aa5bb79241f99a74f887ac47c294e144a",
+    "helper.inc": "58c7228d48b4b4d31b6ba0b504fe6b574bc012eb4044ad472973bc52f725a6eb",
+    "caller.inc": "29a88565692894773ff8317d82251009ab770ec20a6554628d52e783bc50c1bd"
+  },
+  "compile": [
+    "/home/jungone-lee/workspace/nntrainer/android-ndk-r30/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang++",
+    "-std=c++17",
+    "-O3",
+    "-ffast-math",
+    "-frtti",
+    "-fexceptions",
+    "-fPIC",
+    "-fopenmp",
+    "-march=armv8.2-a+fp16+dotprod+i8mm",
+    "-DENABLE_FP16=1",
+    "-DUSE__FP16=1",
+    "-DENABLE_HEXKL=1",
+    "-Wall",
+    "-Wextra",
+    "-ffunction-sections",
+    "-fdata-sections",
+    "-I/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/builddir/android_build_result/include/nntrainer",
+    "/tmp/nntr-lfm2-moe-row-norm-20261016/checks/final-native/lfm2_moe_row_norm_native_check.cpp",
+    "-Wl,--gc-sections",
+    "-Wl,-rpath,$ORIGIN",
+    "-L/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/builddir/android_build_result/lib/arm64-v8a",
+    "-lnntrainer",
+    "-llog",
+    "-ldl",
+    "-o",
+    "/tmp/nntr-lfm2-moe-row-norm-20261016/checks/final-native/check"
+  ],
+  "runtime_nntrainer_sha256": "41f8ecdaa560e342f1e8da0f9bc1c472dd31b03979803337a096435f7a2a38d4",
+  "scope": "Actual app helper/caller with real Tensor, RunLayerContext, ThreadManager and linked core functions; no DSP RPC."
+}

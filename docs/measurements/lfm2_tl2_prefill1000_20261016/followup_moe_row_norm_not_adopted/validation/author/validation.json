@@ -1,0 +1,63 @@
+{
+  "status": "Author host/build and root native four-combination checks PASS; opt-in normal model measurement pending",
+  "production_source_sha256": "50c587595d586f6fd2e1e2da930220f236747408992c7406abc091e10cabdca8",
+  "production_patch_sha256": "61b72f9a7dfd66a529d6642dad76bf9c2f3760ce01fefe78388abd302054fcaf",
+  "host": {
+    "cases_per_environment": 89,
+    "environments": [
+      "1",
+      "0",
+      "unset",
+      "true"
+    ],
+    "sanitizers": [
+      "address",
+      "undefined"
+    ],
+    "runtime_mutants_rejected": 8,
+    "suppressions": false,
+    "log_sha256": "553dc4e7f8e4e5c07f2abd98ed77aac4c4ab152cce9bf0278cabb4d84215efd6",
+    "mutation_results_sha256": "6f9749a3cac29f5ecdd3517b1fa15ce523b85976b34a90f58c67004833a84221"
+  },
+  "builds": {
+    "android_aarch64_before_candidate": true,
+    "android_x86_before_candidate": true,
+    "linux_gcc_before_candidate": true
+  },
+  "codegen": {
+    "original_normRows_code_bytes": 268,
+    "original_normRows_code_sha256": "02867b0fcd7e55d92dbcacb7956c23dd875afbbc87b18c9bcd5cd9e8a376ee47",
+    "original_normRows_bytes_identical": true,
+    "incremental_caller_stack_before": 3008,
+    "incremental_caller_stack_candidate": 3008,
+    "new_helper_stack": 256,
+    "new_parallel_for_stack": 112,
+    "new_callback_stack": 48,
+    "callback_capture_bytes": 40,
+    "libcxx_callback_allocation_bytes": 48,
+    "static_option_named_bytes": 9,
+    "object_bss_delta_bytes": 16,
+    "linux_x86_text_identical": true,
+    "android_x86_text_identical": false,
+    "gemma_device_performance_claim": false
+  },
+  "native": {
+    "binary_sha256": "e936c5201916b2f43f0bc86ece3b45b71563117d1ad2ef941f8bd3ac79f59943",
+    "intended_cases_per_run": 30,
+    "executed_by_author": false,
+    "scope": "real deployed core/Tensor/Context/ThreadManager with actual extracted helper/caller; no DSP RPC",
+    "binary": "checks/native-v2/check",
+    "prior_harness_failure": "Weight initializer NONE rejected before helper; fixed to ZEROS with explicit unallocated assertion",
+    "executed_by_root": true,
+    "root_runs": 4,
+    "root_cases_per_run": 30,
+    "root_exact_cases_per_run": 6,
+    "root_results_sha256": "aedf88f432702e475d3310ddfe1713560c1dc26f63597e7936dae7aa9bbc4716"
+  },
+  "memory": "No tensor, ION, expert-cache, reader or worker-count capacity changes; small existing std::function slot allocation and stack/static metadata are disclosed.",
+  "format": {
+    "source_changed_lines_format14_exact": true,
+    "test/htp/host/lfm2_moe_row_norm_check.cpp": true,
+    "test/htp/host/lfm2_moe_row_norm_native_check.cpp": true
+  }
+}

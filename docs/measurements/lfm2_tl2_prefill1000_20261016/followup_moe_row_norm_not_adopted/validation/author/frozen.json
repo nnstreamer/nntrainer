@@ -1,0 +1,20 @@
+{
+  "base": "f7b16e48ca01a650160d823141e86e67c7993a7c",
+  "source_base_equivalent": "ccea0d476daf43ddd5dbe201178755e6ff978dfd",
+  "files": {
+    "production.patch": "61b72f9a7dfd66a529d6642dad76bf9c2f3760ce01fefe78388abd302054fcaf",
+    "tests.patch": "08ae48ae9babb5121b52de4c6d5b0f1e037ea722f2fd0d8cbac185e64ec91623",
+    "candidate/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp": "50c587595d586f6fd2e1e2da930220f236747408992c7406abc091e10cabdca8",
+    "before/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp": "4ed12667f11b5886648c18faf367ce1a1022b9baf81274f76045d028dd9dd5ec",
+    "test/htp/host/lfm2_moe_row_norm_check.cpp": "484728adeae4651d8b61d51142dcb36f9b00b22bfc5e63f17bb3585074ccc14b",
+    "test/htp/host/lfm2_moe_row_norm_native_check.cpp": "6977861dbeaa613335322dfc0050c1e47252c26cfc58f8f5bced2e590910712e",
+    "test/htp/host/run_lfm2_moe_row_norm_check.py": "9760de562ea18fb651da937da795e3b24570d1c88d1d3a27f0710d096f63ebf8",
+    "test/htp/host/run_lfm2_moe_row_norm_mutations.py": "c34000f834fbe5a0ab634bb31bdadaacb509cadf92d086e3f203984c0c50a2a7",
+    "test/htp/host/run_lfm2_moe_row_norm_native.py": "95e117a6bf8972d00da8b4151df5b77ed97110f69df3de14714450c144db6613",
+    "checks/final-native/check": "9f7643426d093ced51d71cf6c75ef5dbf638d18d53a0a787eb9e6ca87820a87b",
+    "checks/native-v2/check": "e936c5201916b2f43f0bc86ece3b45b71563117d1ad2ef941f8bd3ac79f59943",
+    "root-native-fixed-results.json": "aedf88f432702e475d3310ddfe1713560c1dc26f63597e7936dae7aa9bbc4716",
+    "validation.json": "286c29a6939ea9ed51f68335b90765651a1e521d1c512389f6cf6cdc2b44c7c3",
+    "README.txt": "0b6127d4f60a1125038ffede47a9abcd595e75c4241de70c02a8ed43589b8a05"
+  }
+}

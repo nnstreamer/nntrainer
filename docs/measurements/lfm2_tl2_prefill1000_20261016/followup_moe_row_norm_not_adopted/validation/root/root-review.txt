@@ -1,0 +1,33 @@
+Root review of isolated row normalization candidate
+
+Reviewed production61b72f9a/source50c58759 before app integration. This is
+root review, not a separate-agent review. TensorDim equality includes format
+and dtype, so matching destination dimensions also verifies destination FP32.
+The actual core RMS outer row loop and HTP inherited CPU ele_mul operation
+do not dispatch nested ThreadManager work. Each 64-row task retains the
+same RMS call and per-row alpha1/beta0 gamma multiplication as normRows.
+Qualified row counts divide64, and source/output/gamma ranges are checked
+before any write. Output is disjoint from both read-only inputs; job offsets
+end exactly at M*2048. parallel_for joins before the router can consume it.
+Existing source/destination HTP ops and conditional context-identity checks
+are conservative for this CPU-only helper. LayerNode configureRunContext
+attaches common contexts to normal runtime views; device dispatch evidence
+confirms eligibility for all38 actual LFM MoE layers at both tested lengths.
+No new activation/ION/cache/readers/pool capacity was found. The author
+documents the small closure/static/stack overheads, not zero memory overhead.
+
+Root native linked-library fixture: corrected e936c520 binary, env0/1 and
+1/8 threads, four runs of30 cases PASS with exact actual-core output. The
+initial fixture failed before helper execution because Weight initializer
+NONE is illegal despite allocation=false; that failure log is preserved.
+Separate diagnostic app has38/38 completed helper calls at1024 and2048;
+normal app source and binaries were restored exactly after diagnostics.
+Normal OFF/ON variants share all7 binary hashes and differ only in opt-in
+env. All12 full-model runs preserve65 output IDs and valid memory records.
+
+Decision: not adopted. The full-model prefill medians regress1.78% at1024
+and4.38% at2048, with0/3 and1/3 faster pairs respectively. Isolated CPU
+micro speed does not establish real-model benefit. The cause of the model
+regression and higher2048 sampled maximum is not established. Original
+source and seven original runtime hashes were restored. No additional
+Gemma device run or full Windows/Tizen/Yocto build was performed.

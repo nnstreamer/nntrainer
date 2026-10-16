@@ -1,0 +1,5 @@
+{
+  "source_changed_lines_format14_exact": true,
+  "test/htp/host/lfm2_moe_row_norm_check.cpp": true,
+  "test/htp/host/lfm2_moe_row_norm_native_check.cpp": true
+}

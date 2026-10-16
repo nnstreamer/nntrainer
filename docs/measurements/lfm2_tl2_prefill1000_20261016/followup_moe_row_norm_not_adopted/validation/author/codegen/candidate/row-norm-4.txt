@@ -1,0 +1,16 @@
+0000000000000000 <std::__ndk1::__function::__func<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0, std::__ndk1::allocator<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>, void (unsigned long)>::__clone(std::__ndk1::__function::__base<void (unsigned long)>*) const>:
+       0: 90000008     	adrp	x8, 0x0 <std::__ndk1::__function::__func<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0, std::__ndk1::allocator<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>, void (unsigned long)>::__clone(std::__ndk1::__function::__base<void (unsigned long)>*) const>
+		0000000000000000:  R_AARCH64_ADR_PREL_PG_HI21	.data.rel.ro._ZTVNSt6__ndk110__function6__funcIZN8causallmL17lfmPrefillRowNormERKN9nntrainer6TensorERS4_S6_fRNS3_15RunLayerContextERKNS_6vectorIjNS_9allocatorIjEEEESF_E3$_0NSB_ISG_EEFvmEEE+0x10
+       4: 91000108     	add	x8, x8, #0x0
+		0000000000000004:  R_AARCH64_ADD_ABS_LO12_NC	.data.rel.ro._ZTVNSt6__ndk110__function6__funcIZN8causallmL17lfmPrefillRowNormERKN9nntrainer6TensorERS4_S6_fRNS3_15RunLayerContextERKNS_6vectorIjNS_9allocatorIjEEEESF_E3$_0NSB_ISG_EEFvmEEE+0x10
+       8: f9000028     	str	x8, [x1]
+       c: f9401408     	ldr	x8, [x0, #0x28]
+      10: 3cc18000     	ldur	q0, [x0, #0x18]
+      14: 3cc08001     	ldur	q1, [x0, #0x8]
+      18: f9001428     	str	x8, [x1, #0x28]
+      1c: 3c818020     	stur	q0, [x1, #0x18]
+      20: 3c808021     	stur	q1, [x1, #0x8]
+      24: b9002c3f     	str	wzr, [x1, #0x2c]
+      28: d65f03c0     	ret
+
+Disassembly of section .text._ZNSt6__ndk110__function6__funcIZN8causallmL17lfmPrefillRowNormERKN9nntrainer6TensorERS4_S6_fRNS3_15RunLayerContextERKNS_6vectorIjNS_9allocatorIjEEEESF_E3$_0NSB_ISG_EEFvmEE7destroyEv:

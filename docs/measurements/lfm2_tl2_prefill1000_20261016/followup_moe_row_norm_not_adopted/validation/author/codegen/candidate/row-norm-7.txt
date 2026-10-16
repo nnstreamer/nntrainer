@@ -1,0 +1,38 @@
+0000000000000000 <std::__ndk1::__function::__func<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0, std::__ndk1::allocator<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>, void (unsigned long)>::operator()(unsigned long&&)>:
+       0: a9bd7bfd     	stp	x29, x30, [sp, #-0x30]!
+       4: f9000bf5     	str	x21, [sp, #0x10]
+       8: a9024ff4     	stp	x20, x19, [sp, #0x20]
+       c: 910003fd     	mov	x29, sp
+      10: f9400028     	ldr	x8, [x1]
+      14: bd402800     	ldr	s0, [x0, #0x28]
+      18: aa0003f3     	mov	x19, x0
+      1c: 52800802     	mov	w2, #0x40               // =64
+      20: 52810003     	mov	w3, #0x800              // =2048
+      24: 52800815     	mov	w21, #0x40              // =64
+      28: d36db114     	lsl	x20, x8, #19
+      2c: a940a408     	ldp	x8, x9, [x0, #0x8]
+      30: 8b140100     	add	x0, x8, x20
+      34: 8b140121     	add	x1, x9, x20
+      38: 94000000     	bl	0x38 <std::__ndk1::__function::__func<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0, std::__ndk1::allocator<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>, void (unsigned long)>::operator()(unsigned long&&)+0x38>
+		0000000000000038:  R_AARCH64_CALL26	nntrainer::rms_norm_wrt_width_fp32_intrinsic(float const*, float*, unsigned long, unsigned long, float)
+      3c: a9418263     	ldp	x3, x0, [x19, #0x18]
+      40: 2f00e401     	movi	d1, #0000000000000000
+      44: f9400a69     	ldr	x9, [x19, #0x10]
+      48: 1e2e1000     	fmov	s0, #1.00000000
+      4c: 52810001     	mov	w1, #0x800              // =2048
+      50: 52800025     	mov	w5, #0x1                // =1
+      54: 52800026     	mov	w6, #0x1                // =1
+      58: f9400008     	ldr	x8, [x0]
+      5c: 8b140122     	add	x2, x9, x20
+      60: 8b140124     	add	x4, x9, x20
+      64: f9402d08     	ldr	x8, [x8, #0x58]
+      68: d63f0100     	blr	x8
+      6c: f10006b5     	subs	x21, x21, #0x1
+      70: 91400a94     	add	x20, x20, #0x2, lsl #12 // =0x2000
+      74: 54fffe41     	b.ne	0x3c <std::__ndk1::__function::__func<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0, std::__ndk1::allocator<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>, void (unsigned long)>::operator()(unsigned long&&)+0x3c>
+      78: a9424ff4     	ldp	x20, x19, [sp, #0x20]
+      7c: f9400bf5     	ldr	x21, [sp, #0x10]
+      80: a8c37bfd     	ldp	x29, x30, [sp], #0x30
+      84: d65f03c0     	ret
+
+Disassembly of section .text._ZNKSt6__ndk110__function6__funcIZN8causallmL17lfmPrefillRowNormERKN9nntrainer6TensorERS4_S6_fRNS3_15RunLayerContextERKNS_6vectorIjNS_9allocatorIjEEEESF_E3$_0NSB_ISG_EEFvmEE6targetERKSt9type_info:

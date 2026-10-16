@@ -1,0 +1,30 @@
+{
+  "source_sha256": "2debea1aad387d6cda9970e2183a130b066d364b153fd35045e724f90844df6c",
+  "neon_source_sha256": "4212e0e9aa78c99b6275ea17d2e6abdc301a9beec1cfa5fcd42b079f0e891632",
+  "fixture_sha256": "484728adeae4651d8b61d51142dcb36f9b00b22bfc5e63f17bb3585074ccc14b",
+  "extracts": {
+    "baseline.inc": "bfb5c97f8809f00a0a942327edf0fd9aa5bb79241f99a74f887ac47c294e144a",
+    "helper.inc": "58c7228d48b4b4d31b6ba0b504fe6b574bc012eb4044ad472973bc52f725a6eb",
+    "caller.inc": "9762a1a4e2c687a9d342aed737034d23258a1397eb46700694fe156f140c8749",
+    "math.inc": "8a7f4725b80ce803ad9ae805c648be37facd06cf757c7e4c2158272ec1dd8970"
+  },
+  "compile": [
+    "g++",
+    "-fsanitize=address,undefined",
+    "-fno-omit-frame-pointer",
+    "-std=c++17",
+    "-O2",
+    "-g",
+    "-pthread",
+    "-mfma",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-ffp-contract=off",
+    "-I/tmp/nntr-lfm2-conv-chunk-view-20261016/deps/simde-0.8.2",
+    "/tmp/nntr-lfm2-moe-row-norm-20261016/checks/final-mutations/gelu_policy/check/lfm2_moe_row_norm_check.cpp",
+    "-o",
+    "/tmp/nntr-lfm2-moe-row-norm-20261016/checks/final-mutations/gelu_policy/check/check"
+  ],
+  "scope": "Actual app helper/caller and ARM math. Tensor/ops metadata, gamma broadcast and worker scheduler stand-ins. Native core/Tensor validation is separate."
+}

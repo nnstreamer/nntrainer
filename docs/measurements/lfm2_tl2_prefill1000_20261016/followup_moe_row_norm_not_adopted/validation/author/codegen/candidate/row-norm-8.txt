@@ -1,0 +1,12 @@
+0000000000000000 <std::__ndk1::__function::__func<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0, std::__ndk1::allocator<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>, void (unsigned long)>::target(std::type_info const&) const>:
+       0: f9400428     	ldr	x8, [x1, #0x8]
+       4: 90000009     	adrp	x9, 0x0 <std::__ndk1::__function::__func<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0, std::__ndk1::allocator<causallm::lfmPrefillRowNorm(nntrainer::Tensor const&, nntrainer::Tensor&, nntrainer::Tensor const&, float, nntrainer::RunLayerContext&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&, std::__ndk1::vector<unsigned int, std::__ndk1::allocator<unsigned int>> const&)::$_0>, void (unsigned long)>::target(std::type_info const&) const>
+		0000000000000004:  R_AARCH64_ADR_PREL_PG_HI21	.rodata._ZTSZN8causallmL17lfmPrefillRowNormERKN9nntrainer6TensorERS1_S3_fRNS0_15RunLayerContextERKNSt6__ndk16vectorIjNS7_9allocatorIjEEEESD_E3$_0
+       8: 91000129     	add	x9, x9, #0x0
+		0000000000000008:  R_AARCH64_ADD_ABS_LO12_NC	.rodata._ZTSZN8causallmL17lfmPrefillRowNormERKN9nntrainer6TensorERS1_S3_fRNS0_15RunLayerContextERKNSt6__ndk16vectorIjNS7_9allocatorIjEEEESD_E3$_0
+       c: 9100200a     	add	x10, x0, #0x8
+      10: eb09011f     	cmp	x8, x9
+      14: 9a9f0140     	csel	x0, x10, xzr, eq
+      18: d65f03c0     	ret
+
+Disassembly of section .text._ZNKSt6__ndk110__function6__funcIZN8causallmL17lfmPrefillRowNormERKN9nntrainer6TensorERS4_S6_fRNS3_15RunLayerContextERKNS_6vectorIjNS_9allocatorIjEEEESF_E3$_0NSB_ISG_EEFvmEE11target_typeEv:

@@ -1,0 +1,42 @@
+{
+  "dst_extent": {
+    "returncode": 1,
+    "expected_assertion": "invalid helper accepted",
+    "detected": true
+  },
+  "gamma_alias": {
+    "returncode": 1,
+    "expected_assertion": "invalid helper accepted",
+    "detected": true
+  },
+  "last_expert": {
+    "returncode": 1,
+    "expected_assertion": "invalid helper accepted",
+    "detected": true
+  },
+  "missing_rms_row": {
+    "returncode": 1,
+    "expected_assertion": "row norm numeric/canary mismatch",
+    "detected": true
+  },
+  "missing_gamma_row": {
+    "returncode": 1,
+    "expected_assertion": "row norm numeric/canary mismatch",
+    "detected": true
+  },
+  "wrong_mul_beta": {
+    "returncode": 1,
+    "expected_assertion": "gamma call coefficients changed",
+    "detected": true
+  },
+  "gelu_policy": {
+    "returncode": 1,
+    "expected_assertion": "caller policy dispatch",
+    "detected": true
+  },
+  "wrong_row_offset": {
+    "returncode": 1,
+    "expected_assertion": "row norm numeric/canary mismatch",
+    "detected": true
+  }
+}

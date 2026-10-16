@@ -1,0 +1,20 @@
+{
+  "checks": [
+    {
+      "calls": 38,
+      "rows": 1024,
+      "used": 38,
+      "jobs_per_call": 16,
+      "scope": "Actual helper completion, app incremental path only; no timing inference"
+    },
+    {
+      "calls": 38,
+      "rows": 2048,
+      "used": 38,
+      "jobs_per_call": 32,
+      "scope": "Actual helper completion, app incremental path only; no timing inference"
+    }
+  ],
+  "all_pass": true,
+  "scope": "Diagnostic-only binary; not used for performance comparison."
+}
