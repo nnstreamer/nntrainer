@@ -1,0 +1,21 @@
+[
+  "gcc",
+  "-O1",
+  "-g1",
+  "-Wall",
+  "-Wextra",
+  "-pthread",
+  "-fno-omit-frame-pointer",
+  "-fsanitize=address,undefined",
+  "/tmp/nntr-lfm2-partial-ready-20261016/root-check/miss_partial_check.o",
+  "/tmp/nntr-lfm2-partial-ready-20261016/root-check/hexkl_graph.o",
+  "/tmp/nntr-lfm2-partial-ready-20261016/root-check/hvx_m1_ops_f32.o",
+  "/tmp/nntr-lfm2-partial-ready-20261016/root-check/hvx_conv_gate_f32.o",
+  "/tmp/nntr-lfm2-partial-ready-20261016/root-check/hvx_attn_m1_f32.o",
+  "/tmp/nntr-lfm2-partial-ready-20261016/root-check/hvx_worker_pool.o",
+  "/tmp/nntr-lfm2-partial-ready-20261016/root-check/hvx_scale_add_f32.o",
+  "/tmp/nntr-lfm2-partial-ready-20261016/root-check/hvx_q4_gemv_f32.o",
+  "-lm",
+  "-o",
+  "/tmp/nntr-lfm2-partial-ready-20261016/root-check/graph-check"
+]

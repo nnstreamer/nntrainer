@@ -1,0 +1,129 @@
+{
+  "decision": "rejected; all three paired normal decode runs slower",
+  "normal_order": "A1 B1 B2 A2 A3 B3",
+  "same_binary": true,
+  "medians": {
+    "0": {
+      "prefill_tps": 835.237,
+      "decode_tps": 17.5824,
+      "max_complete_peak_kib": 2733428.0
+    },
+    "1": {
+      "prefill_tps": 820.513,
+      "decode_tps": 17.1628,
+      "max_complete_peak_kib": 2733652.0
+    }
+  },
+  "runs": [
+    {
+      "tag": "continue-partial-0-r1",
+      "variant": "partial-ready",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 796.887,
+      "decode_tps": 17.4577,
+      "full_run_sampled_peak_kib": 2733428.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-partial-1-r1",
+      "variant": "partial-ready",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 854.758,
+      "decode_tps": 17.172,
+      "full_run_sampled_peak_kib": 2732204.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-partial-0-r2",
+      "variant": "partial-ready",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 835.237,
+      "decode_tps": 17.6649,
+      "full_run_sampled_peak_kib": 2732208.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-partial-1-r2",
+      "variant": "partial-ready",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 820.513,
+      "decode_tps": 17.1169,
+      "full_run_sampled_peak_kib": 2733652.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-partial-0-r3",
+      "variant": "partial-ready",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 849.793,
+      "decode_tps": 17.5824,
+      "full_run_sampled_peak_kib": 2732428.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-partial-1-r3",
+      "variant": "partial-ready",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 817.239,
+      "decode_tps": 17.1628,
+      "full_run_sampled_peak_kib": 2733092.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-partial-trace0",
+      "variant": "partial-ready-trace",
+      "model": "model",
+      "profile": true,
+      "prefill_tps": 817.891,
+      "decode_tps": 17.316,
+      "full_run_sampled_peak_kib": 2732460.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-partial-trace1",
+      "variant": "partial-ready-trace",
+      "model": "model",
+      "profile": true,
+      "prefill_tps": 837.971,
+      "decode_tps": 17.1306,
+      "full_run_sampled_peak_kib": 2733288.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-partial-trace-v2-0",
+      "variant": "partial-ready-trace-v2",
+      "model": "model",
+      "profile": true,
+      "prefill_tps": 826.473,
+      "decode_tps": 17.5583,
+      "full_run_sampled_peak_kib": 2731228.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-partial-trace-v2-1",
+      "variant": "partial-ready-trace-v2",
+      "model": "model",
+      "profile": true,
+      "prefill_tps": 817.891,
+      "decode_tps": 16.9896,
+      "full_run_sampled_peak_kib": 2733056.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    }
+  ]
+}

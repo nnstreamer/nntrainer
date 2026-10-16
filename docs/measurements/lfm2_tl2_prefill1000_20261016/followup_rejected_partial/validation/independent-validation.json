@@ -1,0 +1,59 @@
+{
+  "result": "no_unresolved_code_blocker; requires_device_cache_and_TL2_arithmetic_validation",
+  "production_patch_sha256": "7fab14b4129485bccbc35c11288d1ef16b3315e64cac9b01592e66744e636807",
+  "tests_patch_sha256": "400ccce7051067a713b245cc07491f18f57ba2321b7666168b488ae82821f8ac",
+  "independent_tests": {
+    "actual_graph_token": 103,
+    "real_direct_io_scheduler": 84,
+    "mutations_rejected": [
+      "alias-rows",
+      "skip-error-drain",
+      "double-rebind"
+    ],
+    "sanitizers": [
+      "address",
+      "undefined"
+    ],
+    "unequal_weight_protocol_extension": 103,
+    "legacy_whole_token_extension": {
+      "resident_tokens": 256,
+      "normal_pool_tokens": 256,
+      "compact_pool_tokens": 256,
+      "error_cases": [
+        "missing owner timeout",
+        "stale answer",
+        "owner error"
+      ]
+    },
+    "weighted_fixture_sha256": "f6a19505fc721fec1221067d622bff4ff211c6c7ab47388f4b09dde5b9e9e73f"
+  },
+  "candidate_source_sha256": {
+    "nntrainer/tensor/htp_backend/htp_miss_partial.h": "44808584623dd8e0ebca41f3028644785c56d7df57d6430f2f967056d5a7619d",
+    "nntrainer/tensor/htp_backend/htp_dspq_wire.h": "ae217e7c045adcaa1b47e99a2c868271e5f58b561f900e215cdb639e2874b4b2",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "6e761cacb4fe4b666b4040ef5cc1276fd2d8d636d71b5aaadcfed83ca4734b01",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_token.h": "9cb08d0fccf9fee953d9421a1a95d9407310e0360d51abab01d648c274dca02e",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_token.c": "a81ee1c19f9a895509cc689800d486afa793c68087e66dba2bb852c00da1d3bc",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_graph.c": "46659fc3dae269f4b460430f3c59aa2898da8d5da02c6488aabb87fc4f51a092",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_graph.h": "9fd4dc7155008ba7f733c820bad476e5b070f6fa688b2e0339db7406cd49e12d",
+    "test/htp/nntr_hvx_graph.c": "87e794c543dbaeaf3b42e124104770deef295f6b655b26004c7b35bb21d6db9c",
+    "test/htp/host/run_miss_partial_checks.py": "8e33ac0545b70d653ab6e5ce4a45c5f64ff39b9abb016720338910ae5f9026e3",
+    "test/htp/host/token_host_check.c": "18fb5784dbc8f000e65aff776dba9ba3779781f8228a807b3d4eb9126f61e5b9",
+    "test/htp/host/graph_host_check.c": "6b7d66e7927fb730309f6140eb45504228ad0617269bd18fc97b9a7319d0c988",
+    "test/htp/host/miss_partial_reads_check.cpp": "e3740e98733f07f15ed8ffabd34739c272a3c9a53af9c2e803681712cc30cb1a",
+    "test/htp/host/miss_partial_check.c": "0aeeca02da2a15c80e0476a04cbc53800ea80c757edd3a95f59a8d990c52174d"
+  },
+  "reproduce": [
+    "python3",
+    "/tmp/nntr-lfm2-partial-ready-20261016/candidate/test/htp/host/run_miss_partial_checks.py",
+    "--repo",
+    "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000",
+    "--source",
+    "/tmp/nntr-lfm2-partial-ready-20261016/candidate",
+    "--output",
+    "/tmp/nntr-lfm2-partial-ready-review-20261016/checks",
+    "--io-dir",
+    "/tmp/nntr-lfm2-partial-ready-review-20261016",
+    "--sanitize",
+    "--mutations"
+  ]
+}

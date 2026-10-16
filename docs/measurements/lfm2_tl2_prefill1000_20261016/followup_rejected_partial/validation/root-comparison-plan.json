@@ -1,0 +1,9 @@
+{
+  "source_base": "03d652fc0; HEAD6859376df changes evidence only",
+  "normal_order": "A1 B1 B2 A2 A3 B3",
+  "same_binary": true,
+  "primary": "decode TPS and exact65IDs, no cache/reader growth",
+  "profile_level": 1,
+  "trace_separate": true,
+  "actual_DSP_early_compute_required": true
+}

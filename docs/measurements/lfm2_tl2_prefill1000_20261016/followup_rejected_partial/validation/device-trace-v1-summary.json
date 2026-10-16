@@ -1,0 +1,514 @@
+{
+  "schema": 1,
+  "valid": false,
+  "off": {
+    "stem": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-partial-trace0",
+    "knob": 0,
+    "files": {
+      ".log": {
+        "path": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-partial-trace0.log",
+        "bytes": 779431,
+        "sha256": "b72a72337335eb0942b601db2b12e1f4cca915f6d5741865abf9f99dfd75e652"
+      },
+      ".logcat.txt": {
+        "path": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-partial-trace0.logcat.txt",
+        "bytes": 446468,
+        "sha256": "bc6f368c171ad0a0862ee49bf2032a5739dadb1dda433b2549b43a49b0d1b92e"
+      },
+      ".json": {
+        "path": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-partial-trace0.json",
+        "bytes": 6423,
+        "sha256": "6207aba5bc3b7129f99e156bd8febb1613dc702e69037d42d088cb92469bdcf9"
+      },
+      ".ids": {
+        "path": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-partial-trace0.ids",
+        "bytes": 324,
+        "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e"
+      }
+    },
+    "errors": [
+      "missing [LFM-PARTIAL] diagnostics: expected 64 tokens; both sinks contain zero markers"
+    ],
+    "valid": false,
+    "metadata": {
+      "model_config_sha256": "25e976ccca0d49737bc9097a8212086036bbb9dd6ca999d318e6add06b95f79c",
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "ids_match_reference": true,
+      "instrumented": true,
+      "performance_comparison_eligible": false,
+      "full_run_sampled_peak_kib": 2732460.0,
+      "full_run_peak_scope": "Process RssAnon + deduplicated fdinfo size allocations; includes loading; excludes unreported DSP/driver memory",
+      "full_run_memory_sample_count": 297,
+      "full_run_memory_mean_interval_ms": 20.9620417973
+    },
+    "environment": {
+      "LD_LIBRARY_PATH": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/partial-ready-trace",
+      "ADSP_LIBRARY_PATH": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/partial-ready-trace",
+      "NNTR_NUM_THREADS": "8",
+      "NNTR_HTP_PAGE_CACHE": "0",
+      "NNTR_LOAD_PREFETCH": "0",
+      "NNTR_MOE_CACHE_GROW": "0",
+      "NNTR_MOE_PRELOAD_EXPERTS": "128",
+      "NNTR_GENERATED_IDS": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/continue-partial-trace0.ids",
+      "NNTR_INIT_TRACE": "1",
+      "NNTR_LAYER_PROFILE": "1",
+      "NNTR_HTP_PROFILE": "1",
+      "NNTR_OP_TIME": "prefill",
+      "NNTR_HTP_PREDICT": "2",
+      "NNTR_MOE_PREFETCH_RESIDUAL": "0.5",
+      "NNTR_HTP_TL2_STABLE_SLOTS": "1",
+      "NNTR_LFM2_PREFILL_EARLY": "1",
+      "NNTR_LFM2_DECODE_PAIR_READ": "1",
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": "1",
+      "NNTR_LFM2_DECODE_PARTIAL_READY": "0"
+    },
+    "ids": [
+      1463,
+      59279,
+      13038,
+      811,
+      43582,
+      810,
+      9909,
+      21932,
+      768,
+      12519,
+      17560,
+      8076,
+      509,
+      43582,
+      768,
+      3681,
+      9041,
+      856,
+      2059,
+      768,
+      47662,
+      810,
+      14463,
+      54436,
+      521,
+      19671,
+      15492,
+      8392,
+      521,
+      3410,
+      2195,
+      521,
+      810,
+      14674,
+      16768,
+      523,
+      1470,
+      8170,
+      41161,
+      5175,
+      7441,
+      811,
+      6122,
+      810,
+      7507,
+      768,
+      51535,
+      9041,
+      521,
+      18854,
+      7448,
+      5170,
+      810,
+      3636,
+      3681,
+      17186,
+      523,
+      767,
+      509,
+      8076,
+      15694,
+      46302,
+      810,
+      4400,
+      23263
+    ],
+    "summaries": {
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1252,
+        "tps": 817.891
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 3696,
+        "tps": 17.316
+      },
+      "pool": {
+        "misses": 4044,
+        "misses_per_token": 63.19,
+        "miss_wait_us_per_token": 31099.8,
+        "rounds": 2059,
+        "arm_ms_per_round": 1.068,
+        "pgpgin_mib": 8812.6,
+        "rss_mib": 111.3,
+        "mem_available_mib": 5284.5
+      },
+      "close": {
+        "tokens": 64,
+        "hops_per_token": 0.0,
+        "served": 64,
+        "timeouts": 0,
+        "stale": 0,
+        "id_checked": 0,
+        "id_mismatch": 0,
+        "stop_err": 0
+      },
+      "moe_calls": {
+        "per_token": 67.89,
+        "one_at_a_time": 123.84
+      },
+      "round_us": {
+        "notice": 0,
+        "pre": 19,
+        "read": 1048,
+        "answer": 1068,
+        "overlap": 125,
+        "wait": 967,
+        "anslat": 23,
+        "rebind": 20
+      },
+      "driver_us_per_token": {
+        "rt": 55183.4,
+        "dsp_wall": 54857.2,
+        "wake": 326.2,
+        "hop_us": 0.0,
+        "arm_fwd": 56088.3,
+        "arm_us": 397.5,
+        "arm_n": 63
+      },
+      "expert_pair_reads": 1265,
+      "arm_partial_ready_rounds": 0,
+      "arm_partial_count_source": "absent; production emits this line only when nonzero",
+      "graph_us_per_token": {
+        "RMSNORM": 642,
+        "FC": 6315,
+        "CONV1D_GATE": 332,
+        "QK_NORM": 185,
+        "ROPE": 48,
+        "ATTN_M1": 1858,
+        "ADD": 136,
+        "ROUTER_TOPK": 1561,
+        "MOE": 40645,
+        "DENSE_FFN": 1462,
+        "LM_HEAD": 1326,
+        "MOE_net_of_miss_wait": 9545,
+        "ops_wall_ratio": 0.9937,
+        "compute_mhz": 2112
+      }
+    },
+    "trace": {
+      "valid": false,
+      "sinks": {
+        ".log": {
+          "marker_count": 0,
+          "records": [],
+          "errors": []
+        },
+        ".logcat.txt": {
+          "marker_count": 0,
+          "records": [],
+          "errors": []
+        }
+      },
+      "source_sinks": [],
+      "aggregate": null,
+      "records": null
+    }
+  },
+  "on": {
+    "stem": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-partial-trace1",
+    "knob": 1,
+    "files": {
+      ".log": {
+        "path": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-partial-trace1.log",
+        "bytes": 782388,
+        "sha256": "efdd2562a21b726acb022039604e514002f34b1821ffd56b2eda45733462111d"
+      },
+      ".logcat.txt": {
+        "path": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-partial-trace1.logcat.txt",
+        "bytes": 446269,
+        "sha256": "dcc31387fa811dd9a4d6ec9ab3da15f988c9b9232f8b68c0d6675c671d2b30ea"
+      },
+      ".json": {
+        "path": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-partial-trace1.json",
+        "bytes": 6425,
+        "sha256": "27531ec58b25f311d4f9d304d4cef990bd3d914f8ec4753c3c6a953e9fb83a88"
+      },
+      ".ids": {
+        "path": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-partial-trace1.ids",
+        "bytes": 324,
+        "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e"
+      }
+    },
+    "errors": [
+      "missing [LFM-PARTIAL] diagnostics: expected 64 tokens; both sinks contain zero markers"
+    ],
+    "valid": false,
+    "metadata": {
+      "model_config_sha256": "25e976ccca0d49737bc9097a8212086036bbb9dd6ca999d318e6add06b95f79c",
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "ids_match_reference": true,
+      "instrumented": true,
+      "performance_comparison_eligible": false,
+      "full_run_sampled_peak_kib": 2733288.0,
+      "full_run_peak_scope": "Process RssAnon + deduplicated fdinfo size allocations; includes loading; excludes unreported DSP/driver memory",
+      "full_run_memory_sample_count": 298,
+      "full_run_memory_mean_interval_ms": 20.9622378215
+    },
+    "environment": {
+      "LD_LIBRARY_PATH": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/partial-ready-trace",
+      "ADSP_LIBRARY_PATH": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/partial-ready-trace",
+      "NNTR_NUM_THREADS": "8",
+      "NNTR_HTP_PAGE_CACHE": "0",
+      "NNTR_LOAD_PREFETCH": "0",
+      "NNTR_MOE_CACHE_GROW": "0",
+      "NNTR_MOE_PRELOAD_EXPERTS": "128",
+      "NNTR_GENERATED_IDS": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/continue-partial-trace1.ids",
+      "NNTR_INIT_TRACE": "1",
+      "NNTR_LAYER_PROFILE": "1",
+      "NNTR_HTP_PROFILE": "1",
+      "NNTR_OP_TIME": "prefill",
+      "NNTR_HTP_PREDICT": "2",
+      "NNTR_MOE_PREFETCH_RESIDUAL": "0.5",
+      "NNTR_HTP_TL2_STABLE_SLOTS": "1",
+      "NNTR_LFM2_PREFILL_EARLY": "1",
+      "NNTR_LFM2_DECODE_PAIR_READ": "1",
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": "1",
+      "NNTR_LFM2_DECODE_PARTIAL_READY": "1"
+    },
+    "ids": [
+      1463,
+      59279,
+      13038,
+      811,
+      43582,
+      810,
+      9909,
+      21932,
+      768,
+      12519,
+      17560,
+      8076,
+      509,
+      43582,
+      768,
+      3681,
+      9041,
+      856,
+      2059,
+      768,
+      47662,
+      810,
+      14463,
+      54436,
+      521,
+      19671,
+      15492,
+      8392,
+      521,
+      3410,
+      2195,
+      521,
+      810,
+      14674,
+      16768,
+      523,
+      1470,
+      8170,
+      41161,
+      5175,
+      7441,
+      811,
+      6122,
+      810,
+      7507,
+      768,
+      51535,
+      9041,
+      521,
+      18854,
+      7448,
+      5170,
+      810,
+      3636,
+      3681,
+      17186,
+      523,
+      767,
+      509,
+      8076,
+      15694,
+      46302,
+      810,
+      4400,
+      23263
+    ],
+    "summaries": {
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1222,
+        "tps": 837.971
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 3736,
+        "tps": 17.1306
+      },
+      "pool": {
+        "misses": 4044,
+        "misses_per_token": 63.19,
+        "miss_wait_us_per_token": 30684.1,
+        "rounds": 2059,
+        "arm_ms_per_round": 1.132,
+        "pgpgin_mib": 8824.2,
+        "rss_mib": 112.2,
+        "mem_available_mib": 5282.5
+      },
+      "close": {
+        "tokens": 64,
+        "hops_per_token": 0.0,
+        "served": 64,
+        "timeouts": 0,
+        "stale": 0,
+        "id_checked": 0,
+        "id_mismatch": 0,
+        "stop_err": 0
+      },
+      "moe_calls": {
+        "per_token": 97.91,
+        "one_at_a_time": 123.84
+      },
+      "round_us": {
+        "notice": 0,
+        "pre": 25,
+        "read": 1107,
+        "answer": 1132,
+        "overlap": 130,
+        "wait": 954,
+        "anslat": 31,
+        "rebind": 20
+      },
+      "driver_us_per_token": {
+        "rt": 56457.8,
+        "dsp_wall": 55873.9,
+        "wake": 583.9,
+        "hop_us": 0.0,
+        "arm_fwd": 56666.0,
+        "arm_us": 447.0,
+        "arm_n": 63
+      },
+      "expert_pair_reads": 1270,
+      "arm_partial_ready_rounds": 1291,
+      "arm_partial_count_source": "explicit",
+      "graph_us_per_token": {
+        "RMSNORM": 662,
+        "FC": 6683,
+        "CONV1D_GATE": 334,
+        "QK_NORM": 186,
+        "ROPE": 51,
+        "ATTN_M1": 1875,
+        "ADD": 136,
+        "ROUTER_TOPK": 1547,
+        "MOE": 41172,
+        "DENSE_FFN": 1499,
+        "LM_HEAD": 1371,
+        "MOE_net_of_miss_wait": 10488,
+        "ops_wall_ratio": 0.9936,
+        "compute_mhz": 2113
+      }
+    },
+    "trace": {
+      "valid": false,
+      "sinks": {
+        ".log": {
+          "marker_count": 0,
+          "records": [],
+          "errors": []
+        },
+        ".logcat.txt": {
+          "marker_count": 0,
+          "records": [],
+          "errors": []
+        }
+      },
+      "source_sinks": [],
+      "aggregate": null,
+      "records": null
+    }
+  },
+  "comparison": {
+    "errors": [],
+    "ids_equal": true,
+    "deltas": {
+      "decode_tps": {
+        "off": 17.316,
+        "on": 17.1306,
+        "delta": -0.1853999999999978,
+        "change_percent": -1.0706860706860555
+      },
+      "prefill_tps": {
+        "off": 817.891,
+        "on": 837.971,
+        "delta": 20.08000000000004,
+        "change_percent": 2.455094872055086
+      },
+      "miss_wait_us_per_token": {
+        "off": 31099.8,
+        "on": 30684.1,
+        "delta": -415.7000000000007,
+        "change_percent": -1.336664544466526
+      },
+      "moe_gross_us_per_token": {
+        "off": 40645,
+        "on": 41172,
+        "delta": 527,
+        "change_percent": 1.2965924467954304
+      },
+      "moe_net_us_per_token": {
+        "off": 9545,
+        "on": 10488,
+        "delta": 943,
+        "change_percent": 9.879518072289152
+      },
+      "moe_calls_per_token": {
+        "off": 67.89,
+        "on": 97.91,
+        "delta": 30.019999999999996,
+        "change_percent": 44.218588893798795
+      },
+      "dsp_wall_us_per_token": {
+        "off": 54857.2,
+        "on": 55873.9,
+        "delta": 1016.7000000000044,
+        "change_percent": 1.8533574444193457
+      },
+      "arm_read_us_per_round": {
+        "off": 1048,
+        "on": 1107,
+        "delta": 59,
+        "change_percent": 5.629770992366412
+      },
+      "arm_answer_us_per_round": {
+        "off": 1068,
+        "on": 1132,
+        "delta": 64,
+        "change_percent": 5.992509363295873
+      }
+    }
+  },
+  "limits": [
+    "Instrumented runs describe mechanism; use separate normal repeated runs for performance decisions.",
+    "Net MoE is the aggregate per-token mean from graph per-kind summary; per-token net compute is unavailable.",
+    "ARM partial_ready_rounds counts publications; DSP early_rows/batches count successful early compute.",
+    "Missing diagnostics are errors with null aggregates, never evidence of zero early compute.",
+    "Trace wait and pool miss wait use separate timer reads; tiny rounding/instrumentation offsets are expected.",
+    "IDs are independently compared between these runs; reference match is also checked as reported by the runner."
+  ]
+}

@@ -1,0 +1,131 @@
+LFM native decode partial-ready candidate
+Base: 03d652fc0b8e7785385d08bafd0ca51845b5bdb6.
+Isolated overlay only; no root tree edits, device use, commits, or pushes.
+The bounded-reader/barrier candidate is independent and is not included.
+
+Change and expected benefit
+The original path already computes resident expert rows during reads, but all
+missing experts wait for the final batch answer. This optional path lets each
+completed native expert publish one immutable record, rebind, and compute into
+its pre-existing row while other readers continue. Final row addition remains
+in ascending original expert order, including mixed resident/missing sets.
+Adjacent ready rows share one call; disjoint ready rows retain their positions.
+
+Earlier measured profile decomposition gives about 1.939 ms/token of missing
+expert computation that could ideally be hidden, assuming unchanged compute
+cost and favorable read skew. This is a conditional upper estimate, NOT a
+measured speedup and NOT a claim that 30 ms/token storage wait disappears.
+At 17.6 TPS, hiding 1.939 ms alone would be about 18.2 TPS. The target 25 TPS
+still requires other improvements. More kernel calls repeat activation setup,
+and splitting an all-four-miss batch can lose n_tl2>=4 fused GU scheduling.
+Ready polling, publication and dispatcher overhead can also consume the gain.
+Only matched device A/B and separate diagnostic measurements can decide this.
+
+Enablement
+NNTR_LFM2_DECODE_PARTIAL_READY=1; default off.
+Requires PAGE0, native TL2 K2048/inter1536/N2048, 2..4 misses, valid retired
+GU/DN handles, <=4 evictions, compatible pair-read geometry/knob, dedicated
+existing demand read pool, and configured existing demand lanes >= miss count.
+Unsupported cases use the unchanged final-answer path. The configured readers,
+C16, preload128, 32 speculative spare slots and weight format are not changed.
+No Gemma or prefill computation is selected by this guard.
+The ARM partial_ready_rounds summary counts publication rounds, not proof of
+actual DSP overlap; use the separate diagnostic below for that distinction.
+
+Wire compatibility / lifetime
+- Existing 64 KiB mailbox allocation and every old offset remain unchanged.
+- 768 bytes in the retired ping/pong region, starting at offset128, hold one
+  128-byte immutable header, one 128-byte cumulative progress line, and four
+  immutable 128-byte load records. Nothing reaches MISS_REQ at17152.
+- A capability word is appended after the old request's seq2. The old prefix
+  stays156 bytes and new request160 bytes fits the already-reserved256 bytes.
+- ARM clears capability/records while both server and DSP are idle and offers
+  a magic version plus full token ID. New DSP advertises the capability only
+  after accepting that offer and the shape guard. Old DSP leaves the cleared
+  capability0; old ARM zeroes its mailbox and offers no magic. Both combinations
+  use the old full answer. No IDL or token response/statistics ABI change.
+- The only graph-environment producer outside tests initializes ready=NULL;
+  token_main always overwrites ready explicitly. Host environments were already
+  initialized with memset or {0}. The internal DSP callback struct grows by one
+  pointer; all DSP files are rebuilt together.
+- The request order assigns each missing expert one stable vector/record index.
+  A reader owns its staged slot until the pool joins. A claimed prediction is
+  adopted before publishing: its filled spare moves to the retired handle pair;
+  the old arena buffer returns to the queue with no DSP handles.
+- takeClaimed consumers use distinct claimed keys. Existing queue mutex and
+  stable slot storage serialize adoption. takeClaimed releases its queue mutex
+  before ready takes handle_mutex_. No queue/handle lock inversion is added.
+- Header precedes any ready record. Each record body is written once then seq
+  is release-published. handle_mutex_ serializes ready_mask OR publication;
+  consumers use acquire and explicitly invalidate only their read-only lines.
+  DSP never writes these lines, so flush-invalidate cannot overwrite ARM data.
+- Stable TL2 generation is published after both weights and tails have read
+  successfully and before the corresponding load record becomes visible.
+- DSP clears evicted graph entries before the first early rebind. It skips those
+  evictions/rebinds in the final answer and still fills the legacy returned handle
+  fields, so the existing ARM poolHarvest remains the sole final registration.
+- Final answer is published only after read pool joins every read/adopt/callback.
+  The graph always drains that answer even after partial/rebind/compute error.
+  EOF yields an error record and failed final answer; no partial model output is
+  returned. Existing poolDisarm joins the server, then drains speculative work
+  before recycling pending slots or releasing model/file ownership.
+- Progress records are reset at idle token boundaries, including sequence wrap.
+  Full token/op/version and per-round seq checks reject mismatched publications.
+
+Memory and platform scope
+No new persistent weight/activation buffer, cache, VTCM, or I/O scratch. Existing
+per-thread 2 MiB direct-read scratch is reused. New persistent ARM data is an
+8-byte diagnostic count. Existing std::function dispatch can allocate temporary
+small callback objects, but no weight-sized allocation is introduced.
+Normal v81 static frames: token_main184->408 bytes (+224), graph_moe_miss496->504
+(+8), tk_miss_wait104 unchanged, tk_miss_ready136, ready-row helper88. The helper
+is on the early-compute call chain; this is additional stack, not extra VTCM.
+All new production operations are portable C/C++; MSVC atomics use guarded
+Interlocked intrinsics. Linux-only headers belong solely to the explicitly
+Linux-gated host fixture. A Windows compiler/runtime was not available here.
+
+Validation
+- Legacy actual token/graph host checks: 10,000 tokens bit-identical, both pool
+  modes, stale answer, owner error, and no-owner timeout passed.
+- 103 actual token-callback/graph-forward cases under ASan+UBSan passed: all24
+  completion permutations x3 splits, all mixed-hit/miss masks, final-first and
+  legacy fallbacks, old-side capability0, read/rebind/compute failures, invalid
+  header/ID/mask/final sequence, stale slot, shape and one-miss fallback.
+  Cancellation-sensitive FP32 terms sum to1 in original order; reordering can
+  produce2. A held owner final-answer gate proves the graph cannot return early
+  on either success or error. Handle aliases verify eviction before rebind and
+  exactly one rebind per successful load. Offer checks clear stale wrapped seqs.
+  This fixture uses a deterministic MoE stand-in and real HVX sum helpers; it
+  validates schedule and accumulation order, not target DSP kernel speed.
+- 84 actual production readMissesReady/adoptPrefetch cases under ASan+UBSan:
+  real HtpExpertReadPool, HtpExpertPrefetch and WeightFileReader O_DIRECT; every
+  prediction mask for2/3/4 misses, delayed prediction completion, EOF fallback,
+  throwing publication, epoch expiry, zero-copy ownership and subsequent pool
+  reuse. Successful reads are never duplicated; all callbacks join on throw.
+- Three targeted mutants were rejected by assertions: alias all output rows,
+  skip the final answer drain on error, and rebind partial records twice.
+- NDKr30 Android AArch64 full translation-unit syntax and v81 -O3 -Werror graph,
+  token and environment initializer compilation passed. clang-format14 applied.
+- No actual device result is claimed by this agent. No TSan result is claimed.
+
+Reproduce host fixture
+python3 test/htp/host/run_miss_partial_checks.py --repo <checkout> \
+  --output <temporary-output> --io-dir <real-filesystem-directory> \
+  --sanitize --mutations
+For the frozen overlay add --source <this-directory>/candidate.
+The O_DIRECT fixture creates/unlinks its temporary file in --io-dir.
+Raw commands, logs and objects are in checks/final-san; the full legacy check is
+checks/token-run.log. source-hashes.json binds every changed source to its base.
+
+Separate diagnostic (never the normal benchmark binary)
+Apply diagnostic.patch after production.patch and compile DSP with
+-DNNTR_LFM2_PARTIAL_TRACE=1. It emits one [LFM-PARTIAL] line per token:
+rounds, early_rows, early_batches, final_first, ready_wait_us, final_wait_us.
+It observes actual graph moe_calls between a nonzero ready callback and the
+following ready/final callback. On successful output IDs these are computed
+rows/calls, not merely ARM-published records. final_first identifies a final
+answer observed before any early row. Wait counters exclude rebind and compute.
+No public stats ABI is touched; temporary diagnostic fields grow token_main to
+464 bytes. FARF logging is diagnostic overhead and must not enter normal TPS.
+Diagnostic v81 compilation and the103-case ASan fixture, with assertions on
+actual early rows/calls versus final-first fallback, passed.

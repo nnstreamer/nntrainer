@@ -1,0 +1,39 @@
+{
+  "candidate": "partial-ready-v2",
+  "decision": "reject; all three paired normal decode runs slower",
+  "groups": {
+    "0": {
+      "decode_tps": [
+        17.4577,
+        17.6649,
+        17.5824
+      ],
+      "prefill_tps": [
+        796.887,
+        835.237,
+        849.793
+      ],
+      "median_decode_tps": 17.5824,
+      "max_peak_kib": 2733428.0
+    },
+    "1": {
+      "decode_tps": [
+        17.172,
+        17.1169,
+        17.1628
+      ],
+      "prefill_tps": [
+        854.758,
+        820.513,
+        817.239
+      ],
+      "median_decode_tps": 17.1628,
+      "max_peak_kib": 2733652.0
+    }
+  },
+  "decode_delta_percent": -2.3864773864773814,
+  "all65IDs_match": true,
+  "C": 16,
+  "page_cache": 0,
+  "new_readers": 0
+}

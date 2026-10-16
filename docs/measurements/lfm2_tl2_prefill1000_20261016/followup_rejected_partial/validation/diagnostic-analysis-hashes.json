@@ -1,0 +1,13 @@
+{
+  "production.patch": "7fab14b4129485bccbc35c11288d1ef16b3315e64cac9b01592e66744e636807",
+  "tests.patch": "400ccce7051067a713b245cc07491f18f57ba2321b7666168b488ae82821f8ac",
+  "diagnostic.patch": "97f95be1fd18af9eab156f3e63e97ed3d10dde846ca50789779e2cf1314c89d9",
+  "diagnostic-v2.patch": "c29ad82af9886e166062d29d02118becef304a3e07b3b3ac67c1f9aa6a681348",
+  "parse_partial_trace.py": "7cf1f4230a1403b62196327d6a8a6bfdbf06f20869a3b2ce7a8f29ac5dd306da",
+  "test_parse_partial_trace.py": "91a6242899e5fbde30191fc22a17f4e4e6ee80ecffb3a43aaf98a3270de56f5d",
+  "device-trace-v1-summary.json": "b5cefc32eb9f988dc773f66ad4b92687d71ed4707c66c84b191b3b8fda359f5b",
+  "device-trace-v2-summary.json": "e3e024f32ee9cb7fedd1aa8e6ab37e76163ceffc479d3586d4bf3dccedb8c625",
+  "device-interpretation.txt": "415c0c47514b99435be22058d1423938d5420ab363798026cb9c5045cfba8cdd",
+  "checks/parser-tests.log": "80c7b5c97702f82fc6c613e506cb26e2c1f635faaa26d62ea7dfd6e0d01c4951",
+  "checks/diagnostic-v2-token.o": "e8a4b282a96668c1a9c36d936ad83ba603376b2228fc0bba3c9eb44a1f11d551"
+}

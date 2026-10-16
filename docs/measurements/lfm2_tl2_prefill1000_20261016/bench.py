@@ -113,7 +113,7 @@ def main():
         logcat = shell("logcat -d -v threadtime -T " + shlex.quote(timestamp))
         # Retain accelerator diagnostics without unrelated phone-app logs.
         selected = [line for line in logcat.splitlines()
-                    if re.search(r"nntr|hexkl|HTP attn trace|LFM2-MOE-STAGES", line, re.I)]
+                    if re.search(r"nntr|hexkl|HTP attn trace|LFM2-MOE-STAGES|LFM-PARTIAL", line, re.I)]
         (ROOT / f"{args.tag}.logcat.txt").write_text("\n".join(selected) + "\n")
     text = output.decode(errors="replace")
     prefill = re.search(r"prefill: (\d+) tokens, ([\d.]+) ms, ([\d.]+) TPS", text)
