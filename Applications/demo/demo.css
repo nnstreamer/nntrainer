@@ -157,9 +157,10 @@ body[data-layout="1"] .context-panel { border-top: 1px solid var(--line); border
 body[data-layout="1"] .prediction-panel { --phone-h: min(1120px, calc(100cqh - 205px), calc((100cqw - 410px - var(--flow-gap) - 62px) / .964285714)); }
 /* Frequency baseline under the BEFORE/AFTER phones: one compact row. */
 .prediction-panel .frequency-baseline { margin-top: 10px; padding-top: 8px; }
-.prediction-panel .frequency-source { margin: 2px 0 6px; }
-.prediction-panel .frequency-apps { gap: 10px; }
-.prediction-panel .frequency-item { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 0 7px; text-align: left; align-items: center; }
+.prediction-panel .frequency-source { margin: 2px 0 8px; }
+.prediction-panel .frequency-baseline .recent-label, .prediction-panel .frequency-source { text-align: center; }
+.prediction-panel .frequency-apps { display: flex; justify-content: center; gap: 22px; }
+.prediction-panel .frequency-item { flex: none; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 0 7px; text-align: left; align-items: center; }
 .prediction-panel .frequency-item .app-icon, .prediction-panel .frequency-placeholder { width: 32px; height: 32px; grid-row: span 2; }
 .prediction-panel .frequency-name { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .prediction-panel .frequency-count { font-size: 10px; white-space: nowrap; }
