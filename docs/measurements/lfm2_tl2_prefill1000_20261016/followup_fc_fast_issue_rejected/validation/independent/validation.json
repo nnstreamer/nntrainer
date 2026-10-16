@@ -1,0 +1,135 @@
+{
+  "reviewer": "/root/decode_optimization",
+  "verdict": "No implementation blocker found",
+  "production_patch_sha256": "e1e45c09574d0b131fea13d2de3822b413effb47b550d22e81c718dfe93e9e0e",
+  "candidate_source_sha256": "2bca91efe81a34165818cdd0bee6a49b9029e1e4b2b557a63412e234152d7cb0",
+  "root_or_phone_modified": false,
+  "independent_caller": {
+    "pass": true,
+    "source_sha256": {
+      "baseline": "15b2b5cd54fddbbe16311ebc27fbb3b453dfaaa743440fa5621e6549ee1969f7",
+      "candidate": "2bca91efe81a34165818cdd0bee6a49b9029e1e4b2b557a63412e234152d7cb0"
+    },
+    "case_count": 46,
+    "whole_caller_control_events_exact": true,
+    "limits": [
+      "SDK packet arithmetic mocked; all actual packet addresses and order checked",
+      "Direct candidate helper exported in test-only appended wrapper",
+      "Host HMX header uses device alignment predicate and records packet addresses",
+      "No hardware timing claim"
+    ]
+  },
+  "independent_mutations": {
+    "m_guard": {
+      "rejected": true,
+      "returncode": -6,
+      "assertion": "review_align_queries>=packets",
+      "source_sha256": "0014e3d17215e1fe11bef04fa645e569e669aaffcb70e368ce769d79eafc1993"
+    },
+    "k_guard": {
+      "rejected": true,
+      "returncode": -6,
+      "assertion": "review_align_queries>=packets",
+      "source_sha256": "d9cfd8aabdd9447272fdb91f3b4925ffb01c917fb8d32b6853c98235f6e0e6c5"
+    },
+    "affine_guard": {
+      "rejected": true,
+      "returncode": -6,
+      "assertion": "review_align_queries>=packets",
+      "source_sha256": "1a42f6d606610d6d5fd264c395c9449f355a268fc91bbaf63d4172880602a9d9"
+    },
+    "base_alignment": {
+      "rejected": true,
+      "returncode": -6,
+      "assertion": "((uintptr_t)a&2047u)==0",
+      "source_sha256": "eff4c3f300691710ab11cdfa8f64cbb45428555309ea33f10f5a923a8eeeb683"
+    },
+    "weight_alignment": {
+      "rejected": true,
+      "returncode": -6,
+      "assertion": "!review_direct_guard",
+      "source_sha256": "02d33878bc2b519b21b31b560c12a50a5927909e59151eaa2171e7974248e891"
+    },
+    "weight_extent": {
+      "rejected": true,
+      "returncode": -6,
+      "assertion": "!review_direct_guard",
+      "source_sha256": "025802d4dc4e508dacb662d0b5e620f9115bf9de50d074d89266e46845fdb88b"
+    },
+    "shape_guard": {
+      "rejected": true,
+      "returncode": -6,
+      "assertion": "review_align_queries>=packets",
+      "source_sha256": "e52de58a01a4041f98149afdb4a90df3da56a2c7d6d814cdd500747eed39ffd4"
+    },
+    "reverse_k_packets": {
+      "rejected": true,
+      "returncode": -6,
+      "assertion": "a==gb+ao&&w==gb+wo",
+      "source_sha256": "ec2c07c043e2dfec70c1e10e6a65bd6e13e82f9fcca4cdd60bc755021a8e4827"
+    }
+  },
+  "independent_numeric": {
+    "pass": true,
+    "cases": 7,
+    "source_sha256": {
+      "baseline": "15b2b5cd54fddbbe16311ebc27fbb3b453dfaaa743440fa5621e6549ee1969f7",
+      "candidate": "2bca91efe81a34165818cdd0bee6a49b9029e1e4b2b557a63412e234152d7cb0"
+    },
+    "output_bytes": 233472,
+    "output_sha256": "136f90fffe085a84a56a1afcacb4425f20a0c2fa88777f91b0e336316a5712bd",
+    "limitations": [
+      "Whole caller with scalar HMX/HVX/quant stand-ins",
+      "Does not replace device arithmetic/cache/concurrency tests"
+    ]
+  },
+  "independent_codegen": {
+    "independently_compiled": true,
+    "compiler": "Hexagon19.0.04 v81 O3 HVX128 HMX PIC",
+    "baseline_aligned_path": {
+      "packets": 6,
+      "hmx_issues": 1,
+      "scalar_stack_loads": 2
+    },
+    "candidate_inner_loop": {
+      "packets": 4,
+      "hmx_issues": 2,
+      "scalar_stack_loads": 0,
+      "scalar_stack_stores": 0,
+      "calls_per_accumulator_tile": 1
+    },
+    "frame_bytes": {
+      "baseline_fc": 656,
+      "candidate_fc": 672,
+      "candidate_leaf": 0
+    },
+    "caveats": [
+      "Packet count is not cycle count",
+      "Candidate loop metric excludes leaf setup/call/return",
+      "HMX issue stalls and DMA/worker overlap are not timed",
+      "No TPS gain inferred"
+    ],
+    "source_assembly_sha256": {
+      "baseline.s": "237e54b61ed5c68d9ecb58608828321656315d620b415087e555421f7d0f1b37",
+      "candidate.s": "bb91735158ee5d3852066915fbe761d6e5e742c249dd877dd3b4a4225143f15e",
+      "baseline-issue.s": "20e6a26792b19cf86e9bfbd876ea70406e824e02237b1850ff85a957370fbba3",
+      "candidate-issue.s": "d49b4dee0d1b5d38875b644d1b12dcf74f59ce0591b3e66e036d758e810a2aab"
+    }
+  },
+  "report_sha256": "cfdf1815345b42bada2aa7d036a811e5d7c31df1e1765f260e8897ef282da763",
+  "frozen_manifest_sha256": "aef31dcef0badabb8b995dc8b0d954860d067e748212692c54cb92a71ec237f2",
+  "dependency_sha256": {
+    "test/htp/host/hvx_scalar_stubs.c": "c6d6ec9179e154959784863c6f7e196014d0884fe51c5ed6aee88df7c6d3df0c",
+    "test/htp/host/hvx_scalar_stubs.h": "ca2fad8503cb720bd8bafaa6d689dfc602b25e50bef5695fed7a4326b58cada8",
+    "test/htp/host/standin/hvx_scalar.c": "1501f58625c34a1f03d9b53ca4725058a0b6facdadcf245434b5a962900a1d80",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_hmx_mm.h": "15b8d311460c1e81ed9812829e12aceab6932479324586acc055fcaac8feb2d7",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.h": "e2c64934fd6307e575818ca0fda2e4c9b6af537072c03141baf2067f39fd60cd",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_opts.h": "05f50f77e01284e58bc12e76eabdfb78aa18b17032f92143d8da0091146c62ad"
+  },
+  "limits": [
+    "Numeric test uses scalar HMX/HVX/quant stand-ins, not hardware arithmetic",
+    "Topology test mocks primitive work",
+    "No RPC/DMA/cache/pool concurrency on hardware",
+    "No silicon timing or TPS gain claim"
+  ]
+}

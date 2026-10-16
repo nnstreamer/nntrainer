@@ -1,0 +1,16 @@
+{
+  "author-manifest.json": "e2349164c20ace491535b069f2c59628aa1ffa072929aa2141e3134eefff8213",
+  "author-validation.json": "afa33f216bef3580909e0cf9e08ad6959b85e1dd9a8214be9526781245e1be65",
+  "author-review.txt": "ab117c188f9ef6e701c741db1cac27381b49b262d1da717b6f53f665db189c00",
+  "production.patch": "e1e45c09574d0b131fea13d2de3822b413effb47b550d22e81c718dfe93e9e0e",
+  "fixture/run_mutations.py": "6aeb57ce4e4d9a93a9c6faf89ede5e9da35c6d1d70c10244e91d5af481e53ff1",
+  "fixture/run_check.py": "66b6a1e4fc1d1d38df05db334c2f45130a73a9cdd9b08172c85f69667cabfd20",
+  "fixture/numeric_check.c": "9bbd15935f7593f6a25a26c2e4718657ccf7978350e80bb583efa7418e68d6f5",
+  "fixture/caller_check.c": "8c549d20f0ea09367ab15d7a6ce07c2b7d7acb90bac37f6df45eaf32441383ac",
+  "fixture/hexkl_hmx_mm.h": "93dc82abc8cfe506ae81e6ea5c053433ae060ba3af7593dc05b61d2f05fe3fd9",
+  "fixture/run_numeric.py": "c261a5f9cc06cc27651db1bae9b685ac404c233efcf723886c3d8d370233cc93",
+  "baseline/nntrainer/tensor/htp_backend/htp_tl2_opts.h": "db52b9524de2db0ec6ba141afb59233b6c0079193658d65978456a3b550b49ac",
+  "baseline/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.c": "15b2b5cd54fddbbe16311ebc27fbb3b453dfaaa743440fa5621e6549ee1969f7",
+  "candidate/nntrainer/tensor/htp_backend/htp_tl2_opts.h": "db52b9524de2db0ec6ba141afb59233b6c0079193658d65978456a3b550b49ac",
+  "candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.c": "2bca91efe81a34165818cdd0bee6a49b9029e1e4b2b557a63412e234152d7cb0"
+}

@@ -1,0 +1,7 @@
+{
+  "head": "36a75df1a3e166c3cd923f668822c486680a5735",
+  "tracked_clean": true,
+  "normal_dsp_sha256": "3baddb92d14d1d23fe9b6c6a7cacfe3a6cd4708001c110bb8b15e1b0b7276f7c",
+  "fc_source_sha256": "15b2b5cd54fddbbe16311ebc27fbb3b453dfaaa743440fa5621e6549ee1969f7",
+  "status": "FC production candidate and both diagnostics removed; restore checked before isolated MoE candidate"
+}

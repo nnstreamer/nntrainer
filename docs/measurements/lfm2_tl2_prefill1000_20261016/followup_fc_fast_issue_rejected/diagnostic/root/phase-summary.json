@@ -1,0 +1,166 @@
+{
+  "status": "PASS: strict source-derived 2048 cohorts and separate independent raw readback",
+  "scope": "One diagnostic control/candidate pair; trace throughput excluded; parent owns device/model checks",
+  "control": {
+    "source_log_sha256": "244e9f710e63aa5e85c38280584f7352bd907fe4cf4bc1009a9d349d5629c4bf",
+    "pids": [
+      9706
+    ],
+    "records": 290,
+    "unique_packets": 870,
+    "raw_packets": 870,
+    "transport_duplicate_packets": 0,
+    "main_branch": {
+      "fast_calls": 0,
+      "generic_calls": 296960
+    }
+  },
+  "candidate": {
+    "source_log_sha256": "c6276d76c763761e1247161003a285026e6cd35067374c1446e079b8b4cadf3f",
+    "pids": [
+      10060
+    ],
+    "records": 290,
+    "unique_packets": 870,
+    "raw_packets": 870,
+    "transport_duplicate_packets": 0,
+    "main_branch": {
+      "fast_calls": 296960,
+      "generic_calls": 0
+    }
+  },
+  "each_run": {
+    "warmup_calls": 100,
+    "main_calls": 190,
+    "chronology": "first100 load warmups, then190 main calls",
+    "arena_bytes": 8372224,
+    "main_reads": 296960,
+    "main_joins": 13390,
+    "main_qtimer_reads_including_calibration": 635200,
+    "main_calls_by_shape": {
+      "M128_N2048": 40,
+      "M128_N6144": 30,
+      "M192_N6144": 30,
+      "M320_N3072": 10,
+      "M1728_N3072": 10,
+      "M1728_N6144": 30,
+      "M1920_N2048": 40
+    }
+  },
+  "main_ms": {
+    "body_ms": {
+      "control": 267.1675520833333,
+      "candidate": 216.75984375,
+      "candidate_minus_control": -50.40770833333332
+    },
+    "pack_ms": {
+      "control": 58.5609375,
+      "candidate": 58.979427083333334,
+      "candidate_minus_control": 0.41848958333333286
+    },
+    "sums_ms": {
+      "control": 2.182916666666667,
+      "candidate": 2.25078125,
+      "candidate_minus_control": 0.06786458333333334
+    },
+    "read_ms": {
+      "control": 56.32,
+      "candidate": 73.72682291666666,
+      "candidate_minus_control": 17.406822916666663
+    },
+    "join_ms": {
+      "control": 21.24390625,
+      "candidate": 28.027708333333333,
+      "candidate_minus_control": 6.783802083333335
+    },
+    "drain_ms": {
+      "control": 4.4240104166666665,
+      "candidate": 4.178333333333334,
+      "candidate_minus_control": -0.24567708333333282
+    },
+    "other_foreground_ms": {
+      "control": 124.43578124999996,
+      "candidate": 49.59677083333332,
+      "candidate_minus_control": -74.83901041666664
+    }
+  },
+  "main_groups": {
+    "M128_N2048": {
+      "calls": 40,
+      "control_body_ms": 7.604114583333334,
+      "candidate_body_ms": 6.566041666666667,
+      "body_delta_ms": -1.0380729166666667,
+      "control_join_ms": 0.31307291666666665,
+      "candidate_join_ms": 0.34057291666666667
+    },
+    "M128_N6144": {
+      "calls": 30,
+      "control_body_ms": 10.88578125,
+      "candidate_body_ms": 8.870260416666667,
+      "body_delta_ms": -2.0155208333333334,
+      "control_join_ms": 0.26364583333333336,
+      "candidate_join_ms": 0.5015104166666666
+    },
+    "M192_N6144": {
+      "calls": 30,
+      "control_body_ms": 15.864739583333334,
+      "candidate_body_ms": 12.690677083333334,
+      "body_delta_ms": -3.1740625,
+      "control_join_ms": 0.2864583333333333,
+      "candidate_join_ms": 0.3303125
+    },
+    "M320_N3072": {
+      "calls": 10,
+      "control_body_ms": 8.295989583333334,
+      "candidate_body_ms": 8.021875,
+      "body_delta_ms": -0.2741145833333345,
+      "control_join_ms": 2.7961458333333336,
+      "candidate_join_ms": 3.495
+    },
+    "M1728_N3072": {
+      "calls": 10,
+      "control_body_ms": 37.79348958333333,
+      "candidate_body_ms": 36.818020833333335,
+      "body_delta_ms": -0.9754687499999974,
+      "control_join_ms": 14.523385416666667,
+      "candidate_join_ms": 18.501041666666666
+    },
+    "M1728_N6144": {
+      "calls": 30,
+      "control_body_ms": 112.50083333333333,
+      "candidate_body_ms": 82.901875,
+      "body_delta_ms": -29.59895833333333,
+      "control_join_ms": 0.50671875,
+      "candidate_join_ms": 1.2166145833333333
+    },
+    "M1920_N2048": {
+      "calls": 40,
+      "control_body_ms": 74.22260416666667,
+      "candidate_body_ms": 60.89109375,
+      "body_delta_ms": -13.331510416666667,
+      "control_join_ms": 2.554479166666667,
+      "candidate_join_ms": 3.64265625
+    }
+  },
+  "load_warmup_body_ms": {
+    "control": 14.921666666666667,
+    "candidate": 13.608020833333333
+  },
+  "findings": [
+    "Actual candidate fast branch processed every expected main tile; control used generic branch for every expected main tile.",
+    "Instrumented main FC body decreased50.408ms; every source-derived geometry group decreased. The diagnostic does not show an FC-body slowdown.",
+    "Other foreground decreased74.839ms, while read increased17.407ms and join increased6.784ms. This can reflect issue/completion overlap redistribution; it is not proof of a specific regression mechanism.",
+    "Read includes completion of preceding HMX operations; other includes unbracketed issue/scalar/control work and trace-induced code changes. Neither is pure HMX or pure issue time.",
+    "QKV N3072 join accounts for17.320ms control and21.996ms candidate of21.244/28.028ms total main join. These are exposed waits, not summed worker time.",
+    "The uninstrumented12-run matrix reported by parent regresses1024PF840.033to827.141TPS and2048PF888.889to785.276TPS. This single heavily instrumented pair cannot attribute that end-to-end regression or establish a normal speedup.",
+    "Do not subtract empty-timer estimates or sum overlapped service times. Preserve the rejected normal result separately from diagnostic evidence."
+  ],
+  "performance_comparison_eligible": false,
+  "no_production_edits": true,
+  "artifacts": [
+    "control-device.json",
+    "candidate-device.json",
+    "root/raw-readback.json",
+    "root/phase_readback.py"
+  ]
+}

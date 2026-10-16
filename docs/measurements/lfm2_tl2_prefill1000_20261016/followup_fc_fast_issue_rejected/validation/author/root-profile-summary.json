@@ -1,0 +1,33 @@
+{
+  "runs": [
+    {
+      "tag": "continue-fc-issue-profile2048-0",
+      "lines": [
+        "[PERF-SPLIT] prefill_tok=2048 prefill_ms=2470 drain_ms=0 ttft_ms=2754.94 first_token_ms=218.615 steady_ms=57.3529 steady_tok=63 gen_tok=64 e2e_ms=6396",
+        "[HTP-PROFILE]   K=2048  N=64    M>1 FC     calls=38      rows=77824    host=    220.3 ms ( 5797.8 us/call)",
+        "[HTP-PROFILE]   K=2048  N=512   M>1 FC     calls=20      rows=1280     host=      4.3 ms (  216.9 us/call)",
+        "[HTP-PROFILE]   K=2048  N=2048  M>1 FC     calls=130     rows=85120    host=    126.2 ms (  970.4 us/call)",
+        "[HTP-PROFILE]   K=2048  N=3072  M>1 FC     calls=10      rows=20480    host=     53.5 ms ( 5352.2 us/call)",
+        "[HTP-PROFILE]   K=2048  N=6144  M>1 FC     calls=90      rows=63808    host=    176.5 ms ( 1961.3 us/call)",
+        "[HTP-PROFILE] arm staging memcpy:      239.6 ms  (5027.8 MB in+out, 22.0 GB/s) -- outside every host= above",
+        "[HTP-PROFILE] expert prefetch: 2304 experts read under the layer calls, exposed wait 0.0 ms (0.00 ms/expert), register rpc 2.2 ms (0.00 ms/expert)",
+        "[HTP-PROFILE] expert prefetch progress: 2304 of 2304 read when their layer asked (100%), caller cpus {1}, reader cpus {0,2,3,4,5}"
+      ]
+    },
+    {
+      "tag": "continue-fc-issue-profile2048-1",
+      "lines": [
+        "[PERF-SPLIT] prefill_tok=2048 prefill_ms=2512 drain_ms=0 ttft_ms=2801.13 first_token_ms=225.205 steady_ms=56.4155 steady_tok=63 gen_tok=64 e2e_ms=6415",
+        "[HTP-PROFILE]   K=2048  N=64    M>1 FC     calls=38      rows=77824    host=    228.4 ms ( 6011.1 us/call)",
+        "[HTP-PROFILE]   K=2048  N=512   M>1 FC     calls=20      rows=1280     host=      4.0 ms (  202.3 us/call)",
+        "[HTP-PROFILE]   K=2048  N=2048  M>1 FC     calls=130     rows=85120    host=    117.4 ms (  903.4 us/call)",
+        "[HTP-PROFILE]   K=2048  N=3072  M>1 FC     calls=10      rows=20480    host=     52.8 ms ( 5281.3 us/call)",
+        "[HTP-PROFILE]   K=2048  N=6144  M>1 FC     calls=90      rows=63808    host=    155.4 ms ( 1726.3 us/call)",
+        "[HTP-PROFILE] arm staging memcpy:      250.2 ms  (5027.8 MB in+out, 21.1 GB/s) -- outside every host= above",
+        "[HTP-PROFILE] expert prefetch: 2304 experts read under the layer calls, exposed wait 0.1 ms (0.00 ms/expert), register rpc 2.5 ms (0.00 ms/expert)",
+        "[HTP-PROFILE] expert prefetch progress: 2304 of 2304 read when their layer asked (100%), caller cpus {0}, reader cpus {1,2,4,5}"
+      ]
+    }
+  ],
+  "interpretation": "Separate normal profile=1 pair, not normal TPS comparison. Aggregate FC timings include load warmups and cannot be called main-only. FC aggregates decreased while full prefill increased42ms; the normal12-run regression cannot currently be attributed to a slower HMX issue loop alone."
+}

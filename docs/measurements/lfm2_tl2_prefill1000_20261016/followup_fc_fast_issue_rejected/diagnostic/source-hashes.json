@@ -1,0 +1,20 @@
+{
+  "control-diagnostic.patch": "37cfb4885ea4e9ddd47fb296e5cf548f84003ce3230edfdf7831347bac1e7d91",
+  "candidate-diagnostic.patch": "6338ebac45f01a85a6167f7417ea3ad89f2c437c7e6465a5dec67600c837da06",
+  "control/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.c": "1ffa4a59b81b4b562699cae184899105cad8d01057bff530c6a894aac3d5e34a",
+  "candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.c": "bda3a495e03e0eef4ca0485cad01b15e1175d9a3dbe0f81e71fc50da0083ba16",
+  "parse_fc_regression.py": "370490f5c1b84841f0b884cc400b9e4c1278689a4b4499730d0c1468ceb7db99",
+  "afc2_base.py": "bb16bf4b7e495b84afbfe5d7c4de27d920bc6b65b7c20912944aa4471add60f2",
+  "parser_check.py": "81af203bb48b0ed1bf68bf6a562f62b42cdcabd92bf8dec54c6230dd40ef6607",
+  "fixture/topology.c": "b95dfd51e7180856f98d55b4e563a1fbd3ff2a16ba6ff42db5823f9560871e9e",
+  "fixture/run_topology.py": "0c490b7f43dc757c971da368372342c8336f1a244cdb9ba305b060f293e96695",
+  "fixture/guard_check.c": "440e36d668c18fb27bb5f6933e5dcc561de768b4b0755b08093e8b071fc1f236",
+  "fixture/run_guard.py": "d905717afa312f8ccf2f5341e1e019af8fba2bb4870660409a2f64948ecf088f",
+  "fixture/hexkl_hmx_mm.h": "93dc82abc8cfe506ae81e6ea5c053433ae060ba3af7593dc05b61d2f05fe3fd9",
+  "source_boundaries": {
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "5e75571e5433132d8c9d17691882cbddea73ebbf651e2e8e0b3b6957ac3566df",
+    "test/htp/nntr_hvx_mm_u8i4.c": "a3aa39e7bd1335354ab98cec12ff7f082d1242b6175bd4547a32dfb1dc5682ad",
+    "test/htp/hvx_add_f32.c": "806b9e008c0ea231f9d3030edf9fcba141e94530a10391e435c8fbb94158cdb1"
+  },
+  "vendor_micro_archive": "6f2037c34020ea7299e7a999b7096a8808e626b4a782b324c04e7b400cb5ab7b"
+}

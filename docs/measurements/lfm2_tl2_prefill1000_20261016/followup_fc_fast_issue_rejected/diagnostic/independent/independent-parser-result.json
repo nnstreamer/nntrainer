@@ -1,0 +1,46 @@
+[
+  {
+    "variant": "control",
+    "prompt": 1024,
+    "records": 180,
+    "main_calls": 80,
+    "reads": 148480,
+    "main_branch": {
+      "fast_calls": 0,
+      "generic_calls": 148480
+    }
+  },
+  {
+    "variant": "control",
+    "prompt": 2048,
+    "records": 290,
+    "main_calls": 190,
+    "reads": 296960,
+    "main_branch": {
+      "fast_calls": 0,
+      "generic_calls": 296960
+    }
+  },
+  {
+    "variant": "candidate",
+    "prompt": 1024,
+    "records": 180,
+    "main_calls": 80,
+    "reads": 148480,
+    "main_branch": {
+      "fast_calls": 148480,
+      "generic_calls": 0
+    }
+  },
+  {
+    "variant": "candidate",
+    "prompt": 2048,
+    "records": 290,
+    "main_calls": 190,
+    "reads": 296960,
+    "main_branch": {
+      "fast_calls": 296960,
+      "generic_calls": 0
+    }
+  }
+]

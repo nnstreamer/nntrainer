@@ -1,0 +1,33 @@
+{
+  "independently_compiled": true,
+  "compiler": "Hexagon19.0.04 v81 O3 HVX128 HMX PIC",
+  "baseline_aligned_path": {
+    "packets": 6,
+    "hmx_issues": 1,
+    "scalar_stack_loads": 2
+  },
+  "candidate_inner_loop": {
+    "packets": 4,
+    "hmx_issues": 2,
+    "scalar_stack_loads": 0,
+    "scalar_stack_stores": 0,
+    "calls_per_accumulator_tile": 1
+  },
+  "frame_bytes": {
+    "baseline_fc": 656,
+    "candidate_fc": 672,
+    "candidate_leaf": 0
+  },
+  "caveats": [
+    "Packet count is not cycle count",
+    "Candidate loop metric excludes leaf setup/call/return",
+    "HMX issue stalls and DMA/worker overlap are not timed",
+    "No TPS gain inferred"
+  ],
+  "source_assembly_sha256": {
+    "baseline.s": "237e54b61ed5c68d9ecb58608828321656315d620b415087e555421f7d0f1b37",
+    "candidate.s": "bb91735158ee5d3852066915fbe761d6e5e742c249dd877dd3b4a4225143f15e",
+    "baseline-issue.s": "20e6a26792b19cf86e9bfbd876ea70406e824e02237b1850ff85a957370fbba3",
+    "candidate-issue.s": "d49b4dee0d1b5d38875b644d1b12dcf74f59ce0591b3e66e036d758e810a2aab"
+  }
+}

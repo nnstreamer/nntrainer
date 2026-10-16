@@ -1,0 +1,66 @@
+FC regression diagnostic bounded independent source/parser review
+
+No source/parser blocker found in the copied control/candidate diagnostic patches.
+AFC2 G/T bracket placement is unchanged; B identifies selected branch and arena
+using the same existing start tick. All three FARF lines are emitted after body
+measurement. New branch increments occur after a successful K issue loop once
+per accumulator tile; their overhead is part of body/other, not pure HMX cost.
+B maximum uint64/uint32 payload is 80 characters, below the 192-byte bound.
+The enabled trace cannot be used to recover uninstrumented throughput.
+
+Independently reran all four actual-formatter mock cohorts:
+1024:180 calls,80 main,148480 main readouts.
+2048:290 calls,190 main,296960 main readouts.
+Selected fast/generic totals agree with all main readouts in the requested
+variant. The 2048 topology accounts for ARM1920 and DSP1728 row splitting,
+including M1920 bank15; warmup100 calls remain separate.
+
+Independently reran author parser negative suite in this directory:
+21 malformed/error/cohort cases and 174 prefix truncations rejected;
+reordered complete packets accepted; identical replay of G/T/B reports 3
+transport duplicates; conflicting replay is rejected. Unknown parts, incomplete
+triplets, wrong prompt, wrong variant, wrong bank/arena and errors reject.
+
+This was a bounded source/parser review while MoE fixtures were being frozen.
+No additional full-TU/mock-primitive compile, v81 compile or device arithmetic,
+DMA or performance check was performed here. Main model IDs/settings are checked
+by the parent, and read_t includes waiting for prior HMX completion. Host-generated
+cohorts are topology evidence only. Exact copied-input hashes: input-manifest.json.
+
+Actual 2048 device readback (independently executed)
+
+Strict parser and a separate direct-token-field audit both PASS on
+E/continue-fc-phase2048-{control,candidate}.affine.logcat.txt. Each file has
+870 packets,290 complete unique call IDs,190 main calls and100 load warmups;
+no transport duplicate packet. Control PID9706, candidate PID10060. Both
+report actual arena8,372,224 bytes. All40 M1920 calls use bank15; all other
+source-audited cohorts and tile/join totals agree. Main readout296,960 and
+join13,390 counts match exactly. Control uses296,960 generic/0 leaf calls;
+candidate uses296,960 leaf/0 generic calls. Both65-ID files are byte-exact,
+SHA256 2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33.
+This pair equality is independently checked; canonical normal-model correctness
+and fixed run settings are owned by the parent's existing driver checks.
+
+Main instrumented foreground totals (ms, control -> candidate):
+  body267.167552 ->216.759844
+  pack58.560938 ->58.979427
+  affine sums2.182917 ->2.250781
+  accumulator read56.320000 ->73.726823
+  dequant join21.243906 ->28.027708
+  DMA drain4.424010 ->4.178333
+  remaining foreground124.435781 ->49.596771
+
+The measured body falls50.407708ms, while read+join grows24.190625ms and the
+remaining foreground falls74.839010ms. More exposed completion/join wait is
+consistent with less issue-side time available for overlap, but these counters
+alone do not prove that mechanism. read includes HMX completion, other contains
+more than issue work, and diagnostic counters/timers alter the compiled caller.
+Both execute635,200 qtimer reads in main bodies/calibration; empty-pair scale
+is retained without subtraction. These instrumented samples do NOT attribute
+the normal12-run end-to-end regression to FC body slowdown, and they do NOT
+overturn the parent's rejected normal-binary performance result. No additional
+production change or phone run is recommended by this review.
+
+Frozen final output files: control-device.json, candidate-device.json,
+device-raw-audit.json and validation.json. The direct audit does not call parser
+helpers when reconstructing packet IDs, geometry, branch totals and phase sums.

@@ -1,0 +1,6 @@
+[
+  "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/hexagon-llvm-objdump",
+  "-d",
+  "--disassemble-symbols=hexkl_micro_hmx_config_size",
+  "/home/jungone-lee/workspace/nntrainer/Qualcomm/hexkl-1.0-beta.2/hexkl_addon/lib/6.4.0.1/hexagon_toolv19_v81/libhexkl_micro.a"
+]

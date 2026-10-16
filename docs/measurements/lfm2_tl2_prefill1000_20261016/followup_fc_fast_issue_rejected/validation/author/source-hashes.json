@@ -1,0 +1,5 @@
+{
+  "base": "7b3db6d",
+  "production.patch": "e1e45c09574d0b131fea13d2de3822b413effb47b550d22e81c718dfe93e9e0e",
+  "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.c": "2bca91efe81a34165818cdd0bee6a49b9029e1e4b2b557a63412e234152d7cb0"
+}

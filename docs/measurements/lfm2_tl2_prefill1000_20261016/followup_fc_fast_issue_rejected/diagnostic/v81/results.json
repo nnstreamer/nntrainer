@@ -1,0 +1,32 @@
+{
+  "control": {
+    "normal": {
+      "object_sha256": "9de79e725c297f1fb6752f41094fd832ade9146eaca4ae15ea7d38473ff90358",
+      "layer_frame_bytes": 656
+    },
+    "off": {
+      "object_sha256": "9de79e725c297f1fb6752f41094fd832ade9146eaca4ae15ea7d38473ff90358",
+      "layer_frame_bytes": 656
+    },
+    "on": {
+      "object_sha256": "38d3268cce36ef2559911cafbc2c7223756f57f851272891046f860c37a5d632",
+      "layer_frame_bytes": 808
+    },
+    "off_identical_to_normal": true
+  },
+  "candidate": {
+    "normal": {
+      "object_sha256": "901f4651fd11985c08637a4395f22f974664d26e4054e5f67180358d76d82a2c",
+      "layer_frame_bytes": 672
+    },
+    "off": {
+      "object_sha256": "901f4651fd11985c08637a4395f22f974664d26e4054e5f67180358d76d82a2c",
+      "layer_frame_bytes": 672
+    },
+    "on": {
+      "object_sha256": "9d9f98e0c5d245c3b63a9c38c20547321333783823775e81e3eae0f21e353b4e",
+      "layer_frame_bytes": 784
+    },
+    "off_identical_to_normal": true
+  }
+}

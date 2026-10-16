@@ -1,0 +1,126 @@
+{
+  "control1024": {
+    "records": 180,
+    "unique_packets": 540,
+    "main": {
+      "calls": 80,
+      "reads": 148480,
+      "joins": 4880,
+      "brackets": 153840,
+      "qtimer_reads_including_calibration": 312800,
+      "body_ms": 11789.520833333334,
+      "pack_ms": 0.05,
+      "sums_ms": 0.058333333333333334,
+      "read_ms": 232.0,
+      "join_ms": 8.133333333333333,
+      "drain_ms": 0.475,
+      "other_foreground_ms": 11548.804166666667,
+      "empty_pair_mean_ns": 52.083333333333336,
+      "empty_interval_times_brackets_ms_NOT_overhead_correction": 8.0125
+    },
+    "main_calls_by_shape": {
+      "M1024_N2048": 40,
+      "M1024_N3072": 10,
+      "M1024_N6144": 30
+    },
+    "main_branch": {
+      "fast_calls": 0,
+      "generic_calls": 148480
+    }
+  },
+  "control2048": {
+    "records": 290,
+    "unique_packets": 870,
+    "main": {
+      "calls": 190,
+      "reads": 296960,
+      "joins": 13390,
+      "brackets": 311520,
+      "qtimer_reads_including_calibration": 635200,
+      "body_ms": 23593.336979166666,
+      "pack_ms": 0.11875,
+      "sums_ms": 0.13854166666666667,
+      "read_ms": 464.0,
+      "join_ms": 22.316666666666666,
+      "drain_ms": 1.1875,
+      "other_foreground_ms": 23105.575520833332,
+      "empty_pair_mean_ns": 52.083333333333336,
+      "empty_interval_times_brackets_ms_NOT_overhead_correction": 16.225
+    },
+    "main_calls_by_shape": {
+      "M128_N2048": 40,
+      "M128_N6144": 30,
+      "M192_N6144": 30,
+      "M320_N3072": 10,
+      "M1728_N3072": 10,
+      "M1728_N6144": 30,
+      "M1920_N2048": 40
+    },
+    "main_branch": {
+      "fast_calls": 0,
+      "generic_calls": 296960
+    }
+  },
+  "candidate1024": {
+    "records": 180,
+    "unique_packets": 540,
+    "main": {
+      "calls": 80,
+      "reads": 148480,
+      "joins": 4880,
+      "brackets": 153840,
+      "qtimer_reads_including_calibration": 312800,
+      "body_ms": 11789.520833333334,
+      "pack_ms": 0.05,
+      "sums_ms": 0.058333333333333334,
+      "read_ms": 232.0,
+      "join_ms": 8.133333333333333,
+      "drain_ms": 0.475,
+      "other_foreground_ms": 11548.804166666667,
+      "empty_pair_mean_ns": 52.083333333333336,
+      "empty_interval_times_brackets_ms_NOT_overhead_correction": 8.0125
+    },
+    "main_calls_by_shape": {
+      "M1024_N2048": 40,
+      "M1024_N3072": 10,
+      "M1024_N6144": 30
+    },
+    "main_branch": {
+      "fast_calls": 148480,
+      "generic_calls": 0
+    }
+  },
+  "candidate2048": {
+    "records": 290,
+    "unique_packets": 870,
+    "main": {
+      "calls": 190,
+      "reads": 296960,
+      "joins": 13390,
+      "brackets": 311520,
+      "qtimer_reads_including_calibration": 635200,
+      "body_ms": 23593.336979166666,
+      "pack_ms": 0.11875,
+      "sums_ms": 0.13854166666666667,
+      "read_ms": 464.0,
+      "join_ms": 22.316666666666666,
+      "drain_ms": 1.1875,
+      "other_foreground_ms": 23105.575520833332,
+      "empty_pair_mean_ns": 52.083333333333336,
+      "empty_interval_times_brackets_ms_NOT_overhead_correction": 16.225
+    },
+    "main_calls_by_shape": {
+      "M128_N2048": 40,
+      "M128_N6144": 30,
+      "M192_N6144": 30,
+      "M320_N3072": 10,
+      "M1728_N3072": 10,
+      "M1728_N6144": 30,
+      "M1920_N2048": 40
+    },
+    "main_branch": {
+      "fast_calls": 296960,
+      "generic_calls": 0
+    }
+  }
+}

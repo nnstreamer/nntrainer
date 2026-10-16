@@ -1,0 +1,11 @@
+{
+  "parse_fc_regression.py": "370490f5c1b84841f0b884cc400b9e4c1278689a4b4499730d0c1468ceb7db99",
+  "afc2_base.py": "bb16bf4b7e495b84afbfe5d7c4de27d920bc6b65b7c20912944aa4471add60f2",
+  "parser_check.py": "81af203bb48b0ed1bf68bf6a562f62b42cdcabd92bf8dec54c6230dd40ef6607",
+  "control-diagnostic.patch": "37cfb4885ea4e9ddd47fb296e5cf548f84003ce3230edfdf7831347bac1e7d91",
+  "candidate-diagnostic.patch": "6338ebac45f01a85a6167f7417ea3ad89f2c437c7e6465a5dec67600c837da06",
+  "checks/final-topology/control/cohort1024.log": "0ec7284241ad0014c362c58db7dc56a8c5e85f3d066d8edeed385341dcd99d2c",
+  "checks/final-topology/control/cohort2048.log": "72c2c66b6d65b181a39d611f7d47eb568e9fc9db59e3fad26d8df12a724ff3d3",
+  "checks/final-topology/candidate/cohort1024.log": "bc4146d2bfb6ff52acdbb4acdb0dcb44670756d98dd8051f02744e9956915d0a",
+  "checks/final-topology/candidate/cohort2048.log": "3aa6a66a6dbf0135f3acf9fe718aaf24ef9bf310f223bb105312a48fcc2b3b4d"
+}

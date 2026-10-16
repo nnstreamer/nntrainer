@@ -1,0 +1,30 @@
+{
+  "valid_actual_formatter_cohorts": 4,
+  "valid_reverse_packet_order": true,
+  "valid_transport_replay_reported": 3,
+  "invalid_cases_rejected": {
+    "missing-branch": "missing geometry/timing/branch counterpart",
+    "missing-timing": "missing geometry/timing/branch counterpart",
+    "missing-geometry": "missing geometry/timing/branch counterpart",
+    "whole-call-missing": "physical-kernel cohort differs from source-derived ARM/DSP chunking: {(64, 6144): 29, (64, 2048): 50, (64, 512): 20, (1728, 6144): 30, (192, 6144): 30, (128, 6144): 30, (1920, 2048): 40, (128, 2048): 40, (1728, 3072): 10, (320, 3072): 10}",
+    "branch-unused": "ID 1: actual selected branch/leaf count does not match requested variant",
+    "branch-not-selected": "ID 1: actual selected branch/leaf count does not match requested variant",
+    "wrong-arena": "ID 1: width or actual VTCM arena differs from audited topology",
+    "wrong-bank32-on1920": "ID 11b71821: error/fallback/unexpected accumulator layout",
+    "wrong-row-chunk": "ID 11b71821: error/fallback/unexpected accumulator layout",
+    "error-code": "ID 1: error/fallback/unexpected accumulator layout",
+    "pipeline-fallback": "ID 1: error/fallback/unexpected accumulator layout",
+    "truncated-branch": "line 3: malformed/truncated branch packet",
+    "branch-overflow": "out-of-range integer",
+    "branch-negative": "line 3: malformed/truncated branch packet",
+    "branch-duplicate-field": "line 3: malformed/truncated branch packet",
+    "unknown-packet": "line 871: incomplete packet/terminal marker",
+    "conflicting-duplicate": "ID 1: conflicting duplicate B",
+    "v1-mixed": "v1 trace cannot be mixed with AFC2",
+    "empty": "empty or mixed-process cohort",
+    "wrong-prompt": "physical-kernel cohort differs from source-derived ARM/DSP chunking: {(512, 6144): 1, (64, 6144): 29, (64, 2048): 50, (64, 512): 20, (1728, 6144): 30, (192, 6144): 30, (128, 6144): 30, (1920, 2048): 40, (128, 2048): 40, (1728, 3072): 10, (320, 3072): 10}",
+    "wrong-variant": "ID 1: actual selected branch/leaf count does not match requested variant"
+  },
+  "all_prefix_truncations_rejected": 174,
+  "scope": "Actual C mock-clock output; not phone timing or arithmetic proof"
+}

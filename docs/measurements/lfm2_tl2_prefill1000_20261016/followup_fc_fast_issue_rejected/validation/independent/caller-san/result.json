@@ -1,0 +1,15 @@
+{
+  "pass": true,
+  "source_sha256": {
+    "baseline": "15b2b5cd54fddbbe16311ebc27fbb3b453dfaaa743440fa5621e6549ee1969f7",
+    "candidate": "2bca91efe81a34165818cdd0bee6a49b9029e1e4b2b557a63412e234152d7cb0"
+  },
+  "case_count": 46,
+  "whole_caller_control_events_exact": true,
+  "limits": [
+    "SDK packet arithmetic mocked; all actual packet addresses and order checked",
+    "Direct candidate helper exported in test-only appended wrapper",
+    "Host HMX header uses device alignment predicate and records packet addresses",
+    "No hardware timing claim"
+  ]
+}

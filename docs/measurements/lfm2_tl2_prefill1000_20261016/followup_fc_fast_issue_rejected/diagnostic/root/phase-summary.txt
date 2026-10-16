@@ -1,0 +1,23 @@
+FC regression phase audit: diagnostic control vs candidate,2048 rows
+
+Both strict parsers and an independent raw-field readback PASS. Each run contains870 unique G/T/B packets,290 call identities,zero transport duplicates and one PID. Chronology is100 load warmups followed by190 main kernels. Actual arena is8,372,224bytes.
+Main cohort: N6144 has30 each of1728/192/128 rows; N2048 has40 each of1920/128; N3072 has10 each of1728/320. The source-derived bank15 atM1920 is present.
+Actual main dispatch: control generic296,960/fast0; candidate generic0/fast296,960. Both have296,960 readouts and13,390 joins. Candidate is executed, not merely enabled.
+
+Main foreground milliseconds (load excluded):
+phase                 control    candidate       delta
+body_ms                    267.168      216.760     -50.408
+pack_ms                     58.561       58.979       0.418
+sums_ms                      2.183        2.251       0.068
+read_ms                     56.320       73.727      17.407
+join_ms                     21.244       28.028       6.784
+drain_ms                     4.424        4.178      -0.246
+other_foreground_ms        124.436       49.597     -74.839
+
+All seven main geometry groups have a lower instrumented body time. QKV joins total17.320->21.996ms; load warmup body14.922->13.608ms is kept separate.
+
+Interpretation: the candidate body is50.408ms lower in this diagnostic pair, so these data do not identify an FC-body slowdown as the cause of the normal2048 regression. They show timing redistribution: read/HMX-completion and exposed join increase while unbracketed foreground declines. They do not prove return barriers, HMX serialization or a normal speedup.
+This single trace pair adds635,200 qtimer reads across the main cohort plus per-tile counters, altered codegen and post-body logs. Trace TPS is excluded. Read includes HMX completion; other includes issue/scalar/control work. No empty-timer correction is subtracted and no worker aggregate is treated as serial time.
+Parent normal12-run result remains the performance decision:1024PF840.033->827.141(-1.53%);2048PF888.889->785.276(-11.66%,0/3paired wins). IDs/settings/complete memory are root checks. This audit does not explain the end-to-end regression.
+
+Files: phase-summary.json,raw-readback.json; ../control-device.json and ../candidate-device.json. Frozen diagnostic patches and parser are unchanged.

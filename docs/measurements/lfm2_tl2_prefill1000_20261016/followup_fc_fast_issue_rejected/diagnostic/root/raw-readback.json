@@ -1,0 +1,52 @@
+{
+  "control": {
+    "valid": true,
+    "raw_sha256": "244e9f710e63aa5e85c38280584f7352bd907fe4cf4bc1009a9d349d5629c4bf",
+    "records": 290,
+    "packets": 870,
+    "transport_duplicates": 0,
+    "load_then_main_chronology": [
+      100,
+      190
+    ],
+    "pids": [
+      9706
+    ],
+    "max_payload_bytes": 89,
+    "main_phase_ms": {
+      "body_ms": 267.1675520833333,
+      "pack_ms": 58.5609375,
+      "sums_ms": 2.182916666666667,
+      "read_ms": 56.32,
+      "join_ms": 21.24390625,
+      "drain_ms": 4.4240104166666665,
+      "other_foreground_ms": 124.43578124999996
+    },
+    "independent_of_parser_modules": true
+  },
+  "candidate": {
+    "valid": true,
+    "raw_sha256": "c6276d76c763761e1247161003a285026e6cd35067374c1446e079b8b4cadf3f",
+    "records": 290,
+    "packets": 870,
+    "transport_duplicates": 0,
+    "load_then_main_chronology": [
+      100,
+      190
+    ],
+    "pids": [
+      10060
+    ],
+    "max_payload_bytes": 89,
+    "main_phase_ms": {
+      "body_ms": 216.75984375,
+      "pack_ms": 58.979427083333334,
+      "sums_ms": 2.25078125,
+      "read_ms": 73.72682291666666,
+      "join_ms": 28.027708333333333,
+      "drain_ms": 4.178333333333334,
+      "other_foreground_ms": 49.59677083333332
+    },
+    "independent_of_parser_modules": true
+  }
+}

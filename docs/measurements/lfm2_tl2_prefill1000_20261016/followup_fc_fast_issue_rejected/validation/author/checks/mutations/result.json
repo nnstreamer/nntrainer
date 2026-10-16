@@ -1,0 +1,50 @@
+{
+  "m_guard": {
+    "rejected": true,
+    "returncode": -6,
+    "assertion": "review_align_queries>=packets",
+    "source_sha256": "0014e3d17215e1fe11bef04fa645e569e669aaffcb70e368ce769d79eafc1993"
+  },
+  "k_guard": {
+    "rejected": true,
+    "returncode": -6,
+    "assertion": "review_align_queries>=packets",
+    "source_sha256": "d9cfd8aabdd9447272fdb91f3b4925ffb01c917fb8d32b6853c98235f6e0e6c5"
+  },
+  "affine_guard": {
+    "rejected": true,
+    "returncode": -6,
+    "assertion": "review_align_queries>=packets",
+    "source_sha256": "1a42f6d606610d6d5fd264c395c9449f355a268fc91bbaf63d4172880602a9d9"
+  },
+  "base_alignment": {
+    "rejected": true,
+    "returncode": -6,
+    "assertion": "((uintptr_t)a&2047u)==0",
+    "source_sha256": "eff4c3f300691710ab11cdfa8f64cbb45428555309ea33f10f5a923a8eeeb683"
+  },
+  "weight_alignment": {
+    "rejected": true,
+    "returncode": -6,
+    "assertion": "!review_direct_guard",
+    "source_sha256": "02d33878bc2b519b21b31b560c12a50a5927909e59151eaa2171e7974248e891"
+  },
+  "weight_extent": {
+    "rejected": true,
+    "returncode": -6,
+    "assertion": "!review_direct_guard",
+    "source_sha256": "025802d4dc4e508dacb662d0b5e620f9115bf9de50d074d89266e46845fdb88b"
+  },
+  "shape_guard": {
+    "rejected": true,
+    "returncode": -6,
+    "assertion": "review_align_queries>=packets",
+    "source_sha256": "e52de58a01a4041f98149afdb4a90df3da56a2c7d6d814cdd500747eed39ffd4"
+  },
+  "reverse_k_packets": {
+    "rejected": true,
+    "returncode": -6,
+    "assertion": "a==gb+ao&&w==gb+wo",
+    "source_sha256": "ec2c07c043e2dfec70c1e10e6a65bd6e13e82f9fcca4cdd60bc755021a8e4827"
+  }
+}

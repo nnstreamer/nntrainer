@@ -1,0 +1,10 @@
+{
+  "production.patch": "e1e45c09574d0b131fea13d2de3822b413effb47b550d22e81c718dfe93e9e0e",
+  "candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.c": "2bca91efe81a34165818cdd0bee6a49b9029e1e4b2b557a63412e234152d7cb0",
+  "fixture/caller_check.c": "8c549d20f0ea09367ab15d7a6ce07c2b7d7acb90bac37f6df45eaf32441383ac",
+  "fixture/numeric_check.c": "9bbd15935f7593f6a25a26c2e4718657ccf7978350e80bb583efa7418e68d6f5",
+  "fixture/hexkl_hmx_mm.h": "93dc82abc8cfe506ae81e6ea5c053433ae060ba3af7593dc05b61d2f05fe3fd9",
+  "fixture/run_check.py": "66b6a1e4fc1d1d38df05db334c2f45130a73a9cdd9b08172c85f69667cabfd20",
+  "fixture/run_numeric.py": "c261a5f9cc06cc27651db1bae9b685ac404c233efcf723886c3d8d370233cc93",
+  "fixture/run_mutations.py": "6aeb57ce4e4d9a93a9c6faf89ede5e9da35c6d1d70c10244e91d5af481e53ff1"
+}

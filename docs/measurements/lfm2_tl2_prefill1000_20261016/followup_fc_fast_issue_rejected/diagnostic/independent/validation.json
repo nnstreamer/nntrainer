@@ -1,0 +1,179 @@
+{
+  "result": "PASS bounded source/parser review and independent actual raw readback",
+  "input_manifest": {
+    "parse_fc_regression.py": "370490f5c1b84841f0b884cc400b9e4c1278689a4b4499730d0c1468ceb7db99",
+    "afc2_base.py": "bb16bf4b7e495b84afbfe5d7c4de27d920bc6b65b7c20912944aa4471add60f2",
+    "parser_check.py": "81af203bb48b0ed1bf68bf6a562f62b42cdcabd92bf8dec54c6230dd40ef6607",
+    "control-diagnostic.patch": "37cfb4885ea4e9ddd47fb296e5cf548f84003ce3230edfdf7831347bac1e7d91",
+    "candidate-diagnostic.patch": "6338ebac45f01a85a6167f7417ea3ad89f2c437c7e6465a5dec67600c837da06",
+    "checks/final-topology/control/cohort1024.log": "0ec7284241ad0014c362c58db7dc56a8c5e85f3d066d8edeed385341dcd99d2c",
+    "checks/final-topology/control/cohort2048.log": "72c2c66b6d65b181a39d611f7d47eb568e9fc9db59e3fad26d8df12a724ff3d3",
+    "checks/final-topology/candidate/cohort1024.log": "bc4146d2bfb6ff52acdbb4acdb0dcb44670756d98dd8051f02744e9956915d0a",
+    "checks/final-topology/candidate/cohort2048.log": "3aa6a66a6dbf0135f3acf9fe718aaf24ef9bf310f223bb105312a48fcc2b3b4d"
+  },
+  "independent_mock_parser": [
+    {
+      "variant": "control",
+      "prompt": 1024,
+      "records": 180,
+      "main_calls": 80,
+      "reads": 148480,
+      "main_branch": {
+        "fast_calls": 0,
+        "generic_calls": 148480
+      }
+    },
+    {
+      "variant": "control",
+      "prompt": 2048,
+      "records": 290,
+      "main_calls": 190,
+      "reads": 296960,
+      "main_branch": {
+        "fast_calls": 0,
+        "generic_calls": 296960
+      }
+    },
+    {
+      "variant": "candidate",
+      "prompt": 1024,
+      "records": 180,
+      "main_calls": 80,
+      "reads": 148480,
+      "main_branch": {
+        "fast_calls": 148480,
+        "generic_calls": 0
+      }
+    },
+    {
+      "variant": "candidate",
+      "prompt": 2048,
+      "records": 290,
+      "main_calls": 190,
+      "reads": 296960,
+      "main_branch": {
+        "fast_calls": 296960,
+        "generic_calls": 0
+      }
+    }
+  ],
+  "negative_suite": {
+    "valid_actual_formatter_cohorts": 4,
+    "valid_reverse_packet_order": true,
+    "valid_transport_replay_reported": 3,
+    "invalid_cases_rejected": {
+      "missing-branch": "missing geometry/timing/branch counterpart",
+      "missing-timing": "missing geometry/timing/branch counterpart",
+      "missing-geometry": "missing geometry/timing/branch counterpart",
+      "whole-call-missing": "physical-kernel cohort differs from source-derived ARM/DSP chunking: {(64, 6144): 29, (64, 2048): 50, (64, 512): 20, (1728, 6144): 30, (192, 6144): 30, (128, 6144): 30, (1920, 2048): 40, (128, 2048): 40, (1728, 3072): 10, (320, 3072): 10}",
+      "branch-unused": "ID 1: actual selected branch/leaf count does not match requested variant",
+      "branch-not-selected": "ID 1: actual selected branch/leaf count does not match requested variant",
+      "wrong-arena": "ID 1: width or actual VTCM arena differs from audited topology",
+      "wrong-bank32-on1920": "ID 11b71821: error/fallback/unexpected accumulator layout",
+      "wrong-row-chunk": "ID 11b71821: error/fallback/unexpected accumulator layout",
+      "error-code": "ID 1: error/fallback/unexpected accumulator layout",
+      "pipeline-fallback": "ID 1: error/fallback/unexpected accumulator layout",
+      "truncated-branch": "line 3: malformed/truncated branch packet",
+      "branch-overflow": "out-of-range integer",
+      "branch-negative": "line 3: malformed/truncated branch packet",
+      "branch-duplicate-field": "line 3: malformed/truncated branch packet",
+      "unknown-packet": "line 871: incomplete packet/terminal marker",
+      "conflicting-duplicate": "ID 1: conflicting duplicate B",
+      "v1-mixed": "v1 trace cannot be mixed with AFC2",
+      "empty": "empty or mixed-process cohort",
+      "wrong-prompt": "physical-kernel cohort differs from source-derived ARM/DSP chunking: {(512, 6144): 1, (64, 6144): 29, (64, 2048): 50, (64, 512): 20, (1728, 6144): 30, (192, 6144): 30, (128, 6144): 30, (1920, 2048): 40, (128, 2048): 40, (1728, 3072): 10, (320, 3072): 10}",
+      "wrong-variant": "ID 1: actual selected branch/leaf count does not match requested variant"
+    },
+    "all_prefix_truncations_rejected": 174,
+    "scope": "Actual C mock-clock output; not phone timing or arithmetic proof"
+  },
+  "actual_device_raw_audit": {
+    "control": {
+      "raw_sha256": "244e9f710e63aa5e85c38280584f7352bd907fe4cf4bc1009a9d349d5629c4bf",
+      "unique_calls": 290,
+      "packet_lines": 870,
+      "pids": [
+        "9706"
+      ],
+      "max_payload": 89,
+      "cohort": {
+        "M64_N512": 20,
+        "M64_N2048": 50,
+        "M64_N6144": 29,
+        "M128_N2048": 40,
+        "M128_N6144": 30,
+        "M192_N6144": 30,
+        "M320_N3072": 10,
+        "M512_N6144": 1,
+        "M1728_N3072": 10,
+        "M1728_N6144": 30,
+        "M1920_N2048": 40
+      },
+      "bank_M1920_15_calls": 40,
+      "main_branch": {
+        "fast": 0,
+        "generic": 296960
+      },
+      "main_phase_ms": {
+        "body": 267.1675520833333,
+        "pack": 58.5609375,
+        "sums": 2.182916666666667,
+        "read": 56.32,
+        "join": 21.24390625,
+        "drain": 4.4240104166666665
+      },
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "ids_lines": 65
+    },
+    "candidate": {
+      "raw_sha256": "c6276d76c763761e1247161003a285026e6cd35067374c1446e079b8b4cadf3f",
+      "unique_calls": 290,
+      "packet_lines": 870,
+      "pids": [
+        "10060"
+      ],
+      "max_payload": 89,
+      "cohort": {
+        "M64_N512": 20,
+        "M64_N2048": 50,
+        "M64_N6144": 29,
+        "M128_N2048": 40,
+        "M128_N6144": 30,
+        "M192_N6144": 30,
+        "M320_N3072": 10,
+        "M512_N6144": 1,
+        "M1728_N3072": 10,
+        "M1728_N6144": 30,
+        "M1920_N2048": 40
+      },
+      "bank_M1920_15_calls": 40,
+      "main_branch": {
+        "fast": 296960,
+        "generic": 0
+      },
+      "main_phase_ms": {
+        "body": 216.75984375,
+        "pack": 58.979427083333334,
+        "sums": 2.25078125,
+        "read": 73.72682291666666,
+        "join": 28.027708333333333,
+        "drain": 4.178333333333334
+      },
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "ids_lines": 65
+    }
+  },
+  "main_delta_ms": {
+    "body_ms": -50.40770833333332,
+    "pack_ms": 0.41848958333333286,
+    "sums_ms": 0.06786458333333334,
+    "read_ms": 17.406822916666663,
+    "join_ms": 6.783802083333335,
+    "drain_ms": -0.24567708333333282,
+    "other_foreground_ms": -74.83901041666664
+  },
+  "main_qtimer_reads_each": 635200,
+  "interpretation": "Instrumented FC body decreases, so this pair does not demonstrate FC-body slowdown as cause of normal end-to-end regression. Not a normal performance comparison.",
+  "additional_v81_or_whole_TU_executed_here": false,
+  "root_or_device_modified": false
+}

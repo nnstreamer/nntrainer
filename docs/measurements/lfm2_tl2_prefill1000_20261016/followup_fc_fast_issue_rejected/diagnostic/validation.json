@@ -1,0 +1,85 @@
+{
+  "status": "Frozen diagnostic: host/topology/parser/v81 and both root device phase cohorts PASS; normal regression remains unexplained",
+  "production_change": false,
+  "source_hashes": "source-hashes.json",
+  "base_fc_patch_sha256": "e1e45c09574d0b131fea13d2de3822b413effb47b550d22e81c718dfe93e9e0e",
+  "whole_tu_host_cases_per_variant": 50,
+  "actual_formatter_full_cohorts_per_variant": {
+    "1024": 180,
+    "2048": 290
+  },
+  "host_scope": "Actual source control/timer/counter topology with HMX/DMA/pool primitive stand-ins; no numeric/performance claim",
+  "guard_cases": 25,
+  "max_payload_bytes": {
+    "G": 188,
+    "T": 167,
+    "B": 80
+  },
+  "invalid_parser_cases": 21,
+  "all_prefix_truncations_rejected": 174,
+  "v81": {
+    "control": {
+      "normal": {
+        "object_sha256": "9de79e725c297f1fb6752f41094fd832ade9146eaca4ae15ea7d38473ff90358",
+        "layer_frame_bytes": 656
+      },
+      "off": {
+        "object_sha256": "9de79e725c297f1fb6752f41094fd832ade9146eaca4ae15ea7d38473ff90358",
+        "layer_frame_bytes": 656
+      },
+      "on": {
+        "object_sha256": "38d3268cce36ef2559911cafbc2c7223756f57f851272891046f860c37a5d632",
+        "layer_frame_bytes": 808
+      },
+      "off_identical_to_normal": true
+    },
+    "candidate": {
+      "normal": {
+        "object_sha256": "901f4651fd11985c08637a4395f22f974664d26e4054e5f67180358d76d82a2c",
+        "layer_frame_bytes": 672
+      },
+      "off": {
+        "object_sha256": "901f4651fd11985c08637a4395f22f974664d26e4054e5f67180358d76d82a2c",
+        "layer_frame_bytes": 672
+      },
+      "on": {
+        "object_sha256": "9d9f98e0c5d245c3b63a9c38c20547321333783823775e81e3eae0f21e353b4e",
+        "layer_frame_bytes": 784
+      },
+      "off_identical_to_normal": true
+    }
+  },
+  "added_state": {
+    "persistent_bytes": 0,
+    "call_local_trace_fields_bytes": 16,
+    "new_qtimer_reads": 0,
+    "extra_log_calls_per_traced_call": 1,
+    "counter_increments_per_completed_tile": 1
+  },
+  "expected_2048": {
+    "actual_arena_bytes_required": 8372224,
+    "arm_fc_step": 1920,
+    "dsp_norm_step": 1728,
+    "main_kernel_calls": 190,
+    "load_warmup_calls": 100,
+    "main_reads": 296960,
+    "main_joins": 13390,
+    "main_brackets": 311520,
+    "main_qtimer_reads_with_calibration": 635200,
+    "plain_M1920_bank_tiles": 15
+  },
+  "expected_1024": {
+    "main_kernel_calls": 80,
+    "load_warmup_calls": 100,
+    "main_reads": 148480,
+    "main_joins": 4880,
+    "main_brackets": 153840,
+    "main_qtimer_reads_with_calibration": 312800
+  },
+  "independent_quick_review": "/tmp/nntr-lfm2-fc-regression-diag-review-20261016: source/parser, four actual-formatter cohorts + malformed cases independently PASS; not extra full-TU/DMA validation",
+  "performance_comparison_eligible": false,
+  "root_or_device_edits_by_author": false,
+  "deferred_conv_whole_span_prototype": "Simple whole2048 guard expansion rejected: fit actual output capacity rises45MiB+page to48MiB+page despite same64MiB class. Chunk-consumption alternative remains read-only design audit.",
+  "device_phase_audit": "root/phase-summary.json",
+  "independent_raw_readback": "root/raw-readback.json"
+}

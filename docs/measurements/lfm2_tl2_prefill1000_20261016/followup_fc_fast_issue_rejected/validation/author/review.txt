@@ -1,0 +1,89 @@
+LFM affine FC issue-loop candidate
+Base: 7b3db6d. One production file: hmx/hexkl_mm_u8i4_dma.c.
+
+Purpose and bounded change
+The original v81 compiler already hoists the alignment-mask arithmetic. This
+candidate therefore does NOT remove 9.5 million recomputed alignment tests.
+The original aligned inner path still has a predicate/branch, descriptor setup,
+two SP loads and pointer/control work in six instruction packets per HMX issue.
+A guarded noinline leaf keeps the original volatile u8 x i4 packet and order,
+with two packets per issue in the measured v81 -O3 assembly. A hardware loop
+is unrolled by two, with descriptors outside it and no SP loads inside it.
+For the measured normal 1024 geometry, 148,480 accumulator tiles imply
+9,502,720 K-step packets. This is code-generation evidence, not a speed claim:
+HMX waits may hide scalar work and the new leaf has call/return overhead.
+
+Dispatch and complete bounds proof
+- Only M > 1, K = 2048, all live affine int4 handles without TL2 backing;
+  nh=1 widths512/2048, or nh=3 widths[2048,512,512]/[2048,2048,2048].
+- No prepacked/u16/accumulate path. Gemma K2816/704, M1, nonaffine and other
+  geometries retain the existing generic loop. On non-Hexagon builds, the
+  production aligned predicate returns false, so its inline no-op cannot run.
+- The guard validates the complete VTCM activation and both weight spans with
+  uint64_t arithmetic; rounded M*K must exactly equal the original act_bytes.
+  The aligned base, act_off=0, and 2048-byte AH tile steps imply every A packet
+  address is 2048 aligned. Both WH bases are128 aligned; every column and K
+  step is a multiple of512, so every W packet has the original128 alignment.
+- For rb<R, kt<64, nt0+j<N/32:
+  A range=[(rb*64+kt)*2048, (rb*64+kt+1)*2048) lies in act_bytes;
+  W range=bank+(kt*(N/32)+nt0+j)*512+[0,512) lies in K*N/2<=wb_max.
+  Both complete intervals are inside arena=min(vtcm_size, config_off).
+- The leaf computes only actually used indexed addresses. It never forms the
+  otherwise unused final w+step pointer, which could exceed a tight allocation.
+  LLVM produces the same pointer-induction assembly for the indexed source.
+
+Lifetime, math, memory and error behavior
+The same source rows and WH bytes are read in increasing kt order, using the
+same volatile packet and memory clobber. No arithmetic formula, accumulator
+clear/readout, staging parity, tile order, output layout, worker submit/join,
+DMA push/drain, scratch lifetime or allocation is changed. The fast branch
+cannot trigger the old alignment error after its proof; every unproven case
+keeps the original helper and error exit. Quantization and readout failures
+were exercised from the whole caller and retain the original event sequence.
+The additional noinline attribute is guarded for GNU/Clang. Other compilers
+can inline it without changing semantics.
+
+No heap/VTCM/cache/readers/preload capacity is added. Actual v81 stack reports
+show caller656->672 bytes (+16), outlined leaf0. The uint32 widths[3] is local
+temporary metadata and not persistent cache. Peak app memory and throughput
+remain device measurements for the parent; this report has no such result.
+
+Validation
+1. Whole original/candidate C translation units, with a test-local HMX header
+   that uses the device alignment predicate and records every packet, passed
+   46 cases under ASan+UBSan with halt-on-error. An independent flat packet
+   index determines expected handle/rowblock/column/kt addresses and arena
+   bounds. Clear/readout/DMA/pool event fingerprints match byte for byte.
+   M2/64/65/512/1024/1920 x four supported shapes, M1, tight allocation with
+   one accumulator tile per bank, K1024, Gemma K2816/704, nonaffine/bits2/TL2,
+   prepacked/u16, misaligned VTCM, unsupported widths/order/nh, quantization
+   failure and mid-stream accumulator-read failure are covered.
+2. Seven full-caller numerical cases use the existing repository scalar
+   HMX/HVX/quant/DMA stand-ins. Positive affine offsets, negative offsets,
+   random weights/input, all four widths, concatenated and interleaved output,
+   M65 tail/tight arena, and M1/nonaffine fallback produce233,472 identical
+   FP32 bytes: SHA256136f90fffe085a84a56a1afcacb4425f20a0c2fa88777f91b0e336316a5712bd.
+   This validates schedule-dependent scalar output; it is not hardware math
+   or asynchronous cache/concurrency validation.
+3. The eight deliberate mutations remove M/K/affine/shape/base-alignment/
+   bank-alignment/weight-extent guards or reverse K packet order. Their actual
+   assertion results are recorded separately in checks/mutations/result.json.
+   Invalid alignment cases deliberately leave sufficient bank gap, so they
+   cannot be rejected by an unrelated overlap check.
+4. Actual v81 -O3 -Wall -Werror assembly/stack compilation passed; commands and
+   complete .s/.su are under codegen. Baseline-fc.s, candidate-fc.s and
+   candidate-issue.s are excerpts of these exact final assemblies.
+5. Production and C fixture files are clang-format14 clean. Independent
+   source review is at /tmp/nntr-lfm2-fc-fast-issue-review-20261016/review.txt.
+   That agent's subsequent independent execution is separate from author
+   results here and must be recorded as such.
+
+Reproduction (set D to this artifact directory and R to the repository)
+python3 "$D/fixture/run_check.py" --repo "$R" --source "$D/candidate" \
+  --reference "$D/baseline" --output "$D/checks/repro-caller" --sanitize
+python3 "$D/fixture/run_mutations.py" --checked "$D/checks/repro-caller" \
+  --output "$D/checks/repro-mutants"
+python3 "$D/fixture/run_numeric.py" --repo "$R" --source "$D/candidate" \
+  --reference "$D/baseline" --output "$D/checks/repro-numeric" --sanitize
+The codegen/*-command.json files contain the exact v81 compiler invocations.
+No phone or root source was changed by this agent.

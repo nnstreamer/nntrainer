@@ -1,0 +1,7 @@
+{
+  "base_commit": "207d299c41393bfffbab23d40692d8fdeb25dcfd",
+  "fc_source_sha256": "2bca91efe81a34165818cdd0bee6a49b9029e1e4b2b557a63412e234152d7cb0",
+  "moe_source_sha256": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea",
+  "parent_variant": "tl2-gu-direct-epilogue",
+  "dsp_sha256": "9056191eed9d8766c033cccc379227e3f5d3e672a2e99b4c5301965b3b0fcf83"
+}

@@ -1,0 +1,115 @@
+FC fast issue — final independent review, 2026-10-16
+Reviewer: /root/decode_optimization
+Verdict: no blocker found in the frozen production source. No code change requested.
+
+Patch SHA256:
+  e1e45c09574d0b131fea13d2de3822b413effb47b550d22e81c718dfe93e9e0e
+hexkl_mm_u8i4_dma.c candidate SHA256:
+  2bca91efe81a34165818cdd0bee6a49b9029e1e4b2b557a63412e234152d7cb0
+This final report adds independent frozen-fixture execution and v81 compilation
+to the source review. The original source-only report is retained unchanged in
+source-only-v1/. No root edit, phone access, commit or push occurred.
+
+1. Complete accepted shape is bounded before entering the leaf: M>1, K2048,
+   one or three handles, all live int4 affine handles with matching K and no TL2
+   bytes. Allowed per-handle widths are 512/2048 (one handle), 2048/2048/2048 or
+   2048/512/512 (three). Prepacked, u16 and accumulate inputs are excluded.
+   The guard's UINT64 arithmetic rejects an overflowing padded-M/activation
+   size and proves disjoint activation and both full weight-buffer spans.
+   Generic caller validation precedes this helper, including pointer/handle
+   validity. The helper adds no weaker alternate validation path.
+
+2. act_off is the existing constant zero. For each active row band, a packet
+   reads at rb*64*2048 + kt*2048 (0<=kt<64); all activation tile starts are
+   2048-aligned and the last tile ends within padded_M*K. Weight packet index
+   kt*nt_n+nt0+j is in [0,64*nt_n), because nt0+j<nt_n in the unchanged outer
+   tile loop. Its byte range is within the handle's K*N/2 <= wb_max. Both wbuf
+   bases meet HEXKL_HMX_WEIGHTS_ALIGNMENT (128), and 512-byte tiles preserve it.
+   Thus every admitted packet meets exactly the old mm_u8i4_tile alignment
+   condition and would have taken its successful inline branch. The skipped
+   library fallback could not have returned a newly-hidden error for these
+   pointers. Guard rejection leaves the original per-packet helper unchanged.
+
+3. Indexed pointer expressions form only actual packet addresses for kt<64;
+   the C source no longer steps a column-offset weight pointer beyond its array
+   after the last issue. The compiler's final unused machine-register increment
+   does not add an invalid C pointer expression. No restrict promise or alias
+   assumption was introduced. The activation/weights occupy existing VTCM and
+   the leaf does not retain their addresses beyond its synchronous call.
+
+4. The leaf calls the same volatile HMX packet with its memory clobber, in the
+   same increasing kt order. Accumulator clear/read, row/handle order, affine
+   correction, dequantization, background worker joins and DMA drains are outside
+   the changed region and remain unchanged. Error exits after readout still use
+   the same drain path. No buffers, cache, reader, heap allocation, ABI or kernel
+   API were added. A guard is evaluated once per layer call, not per tile.
+
+5. Gemma's K2816 is excluded; M1 and non-affine paths are excluded. The change is
+   inside the existing generic FC TU and does not edit MoE issue code. Host and
+   non-Hexagon builds have hexkl_hmx_mm_aligned() return false unconditionally,
+   preserving their library/stand-in path instead of selecting the no-op inline
+   packet. noinline is guarded for GCC/Clang, with no new OS-specific headers.
+
+6. Both complete FC translation units were independently compiled with Hexagon
+   Tools 19.0.04, v81/HVX128/HMX, O3/PIC, Wall/Werror. Both pass. The original
+   aligned hot path issues six packets per HMX operation, including two scalar
+   stack loads. The leaf emits four packets for two HMX operations, with constant
+   descriptors in registers and no stack access in its inner loop. FC frame is
+   656 -> 672 bytes (+16); leaf frame is zero. Its setup, call and return still
+   occur once per accumulator tile. Packet counts are not cycle counts and
+   exclude those leaf overheads; HMX stalls and DMA/worker overlap are not timed.
+   No hardware bandwidth or TPS gain is inferred. Complete .s/.su and commands
+   are in codegen/, with extracted paths and machine-checked assessment.json.
+
+7. Frozen final fixture independent rerun: caller-san/.
+   ASan+UBSan, halt-on-error, no sanitizer suppression. Baseline and candidate
+   each passed 46 actual whole-FC-caller cases with byte-identical event logs.
+   Cases cover M=2/64/65/512/1024/1920, all four supported handle layouts, tight
+   accumulator space, M1, K1024 and Gemma K2816/K704 fallbacks, non-affine, bits2,
+   TL2 flags, prepacked/u16, misaligned base, unsupported width/order/handle count,
+   quant failure and the 33rd accumulator-read failure. Each packet is checked
+   against its independently derived handle/rb/nt/kt address and bounds. Clear,
+   read, DMA, pool-submit and wait event order are also compared. A test-only
+   appended wrapper exposes the actual guard for negative alignment/extent,
+   accumulated-output, invalid-handle and inactive-slot checks. Primitive work
+   is mocked in this topology test; it is not a numerical or hardware proof.
+
+8. Eight independent mutation reruns passed: mutations-san/.
+   M guard, K guard, affine guard, base alignment, weight alignment, weight
+   extent, shape guard, and reversed K packet order each compiled and were
+   rejected by their intended assertion. These are expected assertion aborts,
+   not valid-candidate sanitizer failures. The weight-alignment negative leaves
+   a separate bank gap so rejection cannot be attributed to the overlap guard.
+   The original frozen source was never edited by these runs.
+
+9. Numeric rerun: numeric-san/.
+   Seven actual whole-caller cases using repository scalar HMX/HVX/quantization
+   stand-ins passed ASan+UBSan with no suppression. This includes nonzero signed
+   int4 weights and affine offsets, dynamically quantized input, row tails,
+   tight staging, separate/interleaved output layouts, and M1/non-affine fallback.
+   All 233,472 bytes of finite FP32 output are identical, SHA256:
+     136f90fffe085a84a56a1afcacb4425f20a0c2fa88777f91b0e336316a5712bd
+   This establishes schedule parity for the scalar arithmetic, not equivalence
+   between those stand-ins and hardware FP/HMX. Production only changes issue
+   mechanics; the same actual HMX descriptor packet and increasing K order are
+   independently established by source, generated code and the address fixture.
+   Hardware cache visibility, asynchronous DMA/pool execution, final model IDs
+   and net performance remain root-owned device validation.
+
+Frozen evidence and reproduction
+  frozen/fixture contains the exact six author fixture files. Their hashes and
+  all frozen sources are in frozen-manifest.json. Every independent build/run
+  command, stdout/stderr and result is retained in the output directories above.
+  These SDK/scalar host fixtures use Linux/GNU host support; no new production
+  cross-platform dependency is introduced.
+  From this review directory, run:
+    python3 frozen/fixture/run_check.py --repo "$R" \
+      --source "$PWD/frozen/candidate" --reference "$PWD/frozen/baseline" \
+      --output "$PWD/rerun-caller" --sanitize
+    python3 frozen/fixture/run_mutations.py \
+      --checked "$PWD/rerun-caller" --output "$PWD/rerun-mutants"
+    python3 frozen/fixture/run_numeric.py --repo "$R" \
+      --source "$PWD/frozen/candidate" --reference "$PWD/frozen/baseline" \
+      --output "$PWD/rerun-numeric" --sanitize
+  R is the repository whose unchanged scalar stand-ins and headers are listed
+  in the final validation.json dependency hashes. v81 commands are in codegen/.
