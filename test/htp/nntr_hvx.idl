@@ -1151,6 +1151,9 @@ interface nntr_hvx : remote_handle64 {
    // fewer than 5 query rows with head_dim <= 128, prefill (HMX) otherwise.
    // stats_us = { append us, attention us, 0 decode / 1 prefill, total us,
    // append quantize us, append stage us, append bake us, rows appended }.
+   // With length >= 20, the next 12 entries report prefill stages:
+   // qprep, dma, qk, dequant, softmax, pquant, pv, output update, store,
+   // n_blocks, kernel total us, kernel kcycles. Decode leaves them zero.
    AEEResult attn_q_step(in uint32 kv_handle, in uint32 row0,
                          in sequence<uint16> k_rows, in sequence<uint16> v_rows,
                          in uint32 n_q, in uint32 cache_from, in uint32 cache_to,

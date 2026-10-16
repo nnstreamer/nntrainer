@@ -212,10 +212,30 @@ static int phase_qprep(attn_ctx *c, uint32_t n, uint32_t qb0, uint32_t n_qb) {
       }
     }
   }
-  hvx_quant_rows_u8_params(qx_row(c, 0), rows, rows, hd, c->q_scale, c->q_zp,
-                           c->pool);
-  int rc = hvx_quant_pack_u8_ah(qx_row(c, 0), rows, rows, hd, c->q_scale,
-                                c->q_zp, q_tile(c, 0, 0, 0), c->pool);
+  int rc;
+  if (c->kv->kind == HEXKL_KV_Q8 && !c->kv->fixed && c->s->n_head_q == 32u &&
+      c->s->n_head_kv == 8u && hd == 64u && c->s->n_q >= 128u &&
+      c->s->n_q % 128u == 0u && c->s->cache_from == 0u &&
+      c->s->cache_to == c->s->n_q && c->s->window == 0u &&
+      c->s->softcap == 0.0f) {
+    // LFM2's two column tiles underfill the separate pack's worker split.
+    // Keep the same quantizer and four-row pack, but distribute row groups
+    // in one pass without the pack's per-row splat-vector allocations.
+    // The fused helper leaves zero rows' parameters alone, including rows
+    // zero-padded by the gather above: preserve the separate pass's defaults.
+    for (uint32_t r = 0; r < rows; ++r) {
+      c->q_scale[r] = 1.0f;
+      c->q_zp[r] = 0;
+    }
+    rc = hvx_quant_params_pack_u8_ah(qx_row(c, 0), NULL, NULL, 0u, rows, rows,
+                                     hd, NULL, 0.0f, NULL, c->q_scale, c->q_zp,
+                                     q_tile(c, 0, 0, 0), c->pool);
+  } else {
+    hvx_quant_rows_u8_params(qx_row(c, 0), rows, rows, hd, c->q_scale, c->q_zp,
+                             c->pool);
+    rc = hvx_quant_pack_u8_ah(qx_row(c, 0), rows, rows, hd, c->q_scale, c->q_zp,
+                              q_tile(c, 0, 0, 0), c->pool);
+  }
   if (rc != AEE_SUCCESS) {
     return rc;
   }
@@ -582,9 +602,10 @@ static int phase_pv(attn_ctx *c, uint32_t buf, int first) {
 }
 
 /** @brief out rows = O / l, f32. */
-static void phase_store(attn_ctx *c, uint32_t n, uint32_t qb) {
+static void phase_store_rows(attn_ctx *c, uint32_t n, uint32_t qb, uint32_t lo,
+                             uint32_t hi) {
   const uint32_t hd = c->s->head_dim;
-  for (uint32_t r = 0; r < c->t->g_br; ++r) {
+  for (uint32_t r = lo; r < hi; ++r) {
     uint32_t q, g;
     if (!hexkl_attn_f16_tile_row_to_qg(c->s, c->t, qb, r, &q, &g)) {
       continue;
@@ -596,6 +617,33 @@ static void phase_store(attn_ctx *c, uint32_t n, uint32_t qb) {
     for (uint32_t d = 0; d < c->L.n_dot_tiles; ++d) {
       hvx_tile_store_u(dst + 32u * d, Q6_Vsf_vmpy_VsfVsf(o[d], inv_l));
     }
+  }
+}
+
+typedef struct {
+  attn_ctx *c;
+  uint32_t n, qb;
+} store_ctx;
+
+static void store_worker(uint32_t threads, uint32_t id, void *ctx_) {
+  const store_ctx *ctx = (const store_ctx *)ctx_;
+  uint32_t lo, hi;
+  unit_range(ctx->c->t->g_br, threads, id, &lo, &hi);
+  phase_store_rows(ctx->c, ctx->n, ctx->qb, lo, hi);
+}
+
+/** Independent LFM output rows keep the same scalar divide and vector multiply.
+ * The last softmax/quantization job has joined before this store phase. */
+static void phase_store(attn_ctx *c, uint32_t n, uint32_t qb) {
+  if (c->pool && c->s->n_q >= 128u && c->s->n_q % 128u == 0u &&
+      c->s->cache_from == 0u && c->s->cache_to == c->s->n_q &&
+      c->s->n_head_q == 32u && c->s->n_head_kv == 8u && c->s->head_dim == 64u &&
+      c->s->window == 0u && c->s->softcap == 0.0f &&
+      c->kv->kind == HEXKL_KV_Q8 && !c->kv->fixed) {
+    store_ctx ctx = {c, n, qb};
+    hvx_worker_pool_run(c->pool, store_worker, &ctx, c->t->g_br);
+  } else {
+    phase_store_rows(c, n, qb, 0u, c->t->g_br);
   }
 }
 

@@ -1056,6 +1056,8 @@ int nntr_hvx_attn_q_step(remote_handle64 handle, uint32 kv_handle, uint32 row0,
   io.out_stride = n_head_q * kv->head_dim;
   io.kv = kv;
 
+  hexkl_attn_q_stats prefill_stats;
+  memset(&prefill_stats, 0, sizeof(prefill_stats));
   int res;
   const int decode = n_q < 5u && kv->head_dim <= 128u;
   if (decode) {
@@ -1066,8 +1068,9 @@ int nntr_hvx_attn_q_step(remote_handle64 handle, uint32 kv_handle, uint32 row0,
     if (hexkl_attn_q_tiling_init(&shape, &tiling) != HEXKL_ATTN_OK) {
       return AEE_EBADPARM;
     }
-    res = hexkl_attn_q_prefill(s->vtcm_base, s->config_off, &shape, &tiling,
-                               &io, s->quant_pool, NULL);
+    res = hexkl_attn_q_prefill(
+      s->vtcm_base, s->config_off, &shape, &tiling, &io, s->quant_pool,
+      stats_usLen >= 8 + QSTAT_COUNT ? &prefill_stats : NULL);
   }
   if (res != AEE_SUCCESS) {
     FARF(ERROR, "attn_q_step: kernel failed: 0x%08x", res);
@@ -1086,5 +1089,22 @@ int nntr_hvx_attn_q_step(remote_handle64 handle, uint32 kv_handle, uint32 row0,
   stats_us[5] = ast.stage_us;
   stats_us[6] = ast.bake_us;
   stats_us[7] = (uint32)((uint32_t)k_rowsLen / stride);
+  // Optional detail follows the original eight slots; old clients keep the
+  // same layout and the same kernel path. Decode has no prefill stages.
+  if (stats_usLen >= 8 + QSTAT_COUNT) {
+    uint32 *detail = stats_us + 8;
+    detail[QSTAT_QPREP] = (uint32)prefill_stats.us_qprep;
+    detail[QSTAT_DMA] = (uint32)prefill_stats.us_dma;
+    detail[QSTAT_QK] = (uint32)prefill_stats.us_qk;
+    detail[QSTAT_DEQUANT] = (uint32)prefill_stats.us_dequant;
+    detail[QSTAT_SOFTMAX] = (uint32)prefill_stats.us_softmax;
+    detail[QSTAT_PQUANT] = (uint32)prefill_stats.us_pquant;
+    detail[QSTAT_PV] = (uint32)prefill_stats.us_pv;
+    detail[QSTAT_OUPD] = (uint32)prefill_stats.us_oupd;
+    detail[QSTAT_STORE] = (uint32)prefill_stats.us_store;
+    detail[QSTAT_N_BLOCKS] = prefill_stats.n_blocks;
+    detail[QSTAT_US_TOTAL] = (uint32)prefill_stats.us_total;
+    detail[QSTAT_KCYCLES] = (uint32)(prefill_stats.pcycles / 1000u);
+  }
   return AEE_SUCCESS;
 }

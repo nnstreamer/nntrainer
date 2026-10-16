@@ -10863,19 +10863,26 @@ public:
     const int q_len = static_cast<int>(n_q * n_head_q * head_dim);
     const int sinks_len = sinks ? static_cast<int>(n_head_q) : 0;
     const int rows_len = static_cast<int>(append_rows * kv_stride);
-    uint32_t stats[8] = {0};
+    const bool trace = attn_trace_enabled();
+    uint32_t stats[20] = {0};
     const int64_t t0 = now_us();
     const int err = nntr_hvx_attn_q_step(
       h, static_cast<uint32_t>(handle), append_row0, k_rows, rows_len, v_rows,
       rows_len, n_q, cache_from, cache_to, n_head_q, window, softcap, q, q_len,
-      sinks, sinks_len, out, q_len, stats, 8);
-    if (attn_trace_enabled()) {
+      sinks, sinks_len, out, q_len, stats, trace ? 20 : 8);
+    if (trace) {
       ml_logi("HTP attn trace q: handle=%d n_q=%u cache=%u..%u append=%u "
               "err=0x%x wall_us=%lld dsp_us=%u append_us=%u attn_us=%u "
               "quant_us=%u stage_us=%u bake_us=%u",
               handle, n_q, cache_from, cache_to, append_rows, err,
               static_cast<long long>(now_us() - t0), stats[3], stats[0],
               stats[1], stats[4], stats[5], stats[6]);
+      ml_logi("HTP attn stages q: n_q=%u qprep=%u dma=%u qk=%u dequant=%u "
+              "softmax=%u pquant=%u pv=%u oupd=%u store=%u blocks=%u "
+              "total=%u kcycles=%u",
+              n_q, stats[8], stats[9], stats[10], stats[11], stats[12],
+              stats[13], stats[14], stats[15], stats[16], stats[17], stats[18],
+              stats[19]);
     }
     if (err != AEE_SUCCESS) {
       ml_logw("HTP quantized attention step failed: 0x%x; CPU fallback", err);
