@@ -1,0 +1,260 @@
+{
+  "production_patch_sha256": "59306fe9542a22cd278f0ed08fbee5a7cbcafbee2d2515da88a045bbe7af971e",
+  "tests_patch_sha256": "6c345f4fcfe7bf7fda059a049857297c5d8b72544725c0e1036ad42dfc40f6e7",
+  "source_hashes": {
+    "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.c": "e6d36c146ad665405eb9cb3b2a226d7eddb7779b806e8a65bd2be732d93c6f48",
+    "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.h": "ac0d714b63eb9570782956f8c8d2ac9600a5a40322741d4e6492bfd9dab27670",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "241396def91330268db275c47a1968a3c0f8382f30a1e36f5a8466c118600406",
+    "production.patch": "59306fe9542a22cd278f0ed08fbee5a7cbcafbee2d2515da88a045bbe7af971e"
+  },
+  "host": {
+    "primitive_cases": 1440,
+    "actual_caller_cases": 72,
+    "sanitize": [
+      "ASan",
+      "UBSan"
+    ],
+    "results": {
+      "pass": true,
+      "mutants_rejected": [
+        "snapshot-selection",
+        "gu-stride",
+        "dn-stride"
+      ],
+      "sources": {
+        "reference": {
+          "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "22923bb5f77c300a1d1bf53a87eaa4c0047619c9df46e31a68fe6da6bb256097",
+          "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.c": "922e6c4bdb239b00c6d7d0a46b946f1da1943da425d0520f20260bbc857bbee6",
+          "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.h": "4e8289b5918632200b4e6123257901972c272a1e074565100d3cc723b33c163a"
+        },
+        "candidate": {
+          "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "241396def91330268db275c47a1968a3c0f8382f30a1e36f5a8466c118600406",
+          "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.c": "e6d36c146ad665405eb9cb3b2a226d7eddb7779b806e8a65bd2be732d93c6f48",
+          "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.h": "ac0d714b63eb9570782956f8c8d2ac9600a5a40322741d4e6492bfd9dab27670"
+        }
+      },
+      "limitations": [
+        "HVX arithmetic uses SDK libnative; DMA/timing are not simulated.",
+        "Eight actual caller units execute in permuted serial order; no worker-pool race claim.",
+        "Only complete caller type and expansion-unit body are extracted; source-level dispatch unchanged."
+      ]
+    }
+  },
+  "codegen": {
+    "generic_normalized_instructions_identical": true,
+    "reference": {
+      "all_vector_loads": 39,
+      "vector_stores": 48,
+      "vlut32": 96,
+      "direct_vector_stack_ops": 0,
+      "frames": [
+        "allocframe(r29,#176)"
+      ]
+    },
+    "generic": {
+      "all_vector_loads": 39,
+      "vector_stores": 48,
+      "vlut32": 96,
+      "direct_vector_stack_ops": 0,
+      "frames": [
+        "allocframe(r29,#176)"
+      ]
+    },
+    "disjoint": {
+      "all_vector_loads": 23,
+      "vector_stores": 48,
+      "vlut32": 96,
+      "direct_vector_stack_ops": 0,
+      "frames": [
+        "allocframe(#192)"
+      ]
+    },
+    "packed_input_loads_full96": {
+      "before": 36,
+      "after": 20
+    },
+    "tables_per_function": 3,
+    "worker": {
+      "baseline": {
+        "all_vector_loads": 0,
+        "vector_stores": 2,
+        "vlut32": 0,
+        "direct_vector_stack_ops": 0,
+        "frames": [
+          "allocframe(r29,#2816)",
+          "allocframe(r29,#0)",
+          "allocframe(r30)"
+        ]
+      },
+      "candidate": {
+        "all_vector_loads": 0,
+        "vector_stores": 2,
+        "vlut32": 0,
+        "direct_vector_stack_ops": 0,
+        "frames": [
+          "allocframe(r29,#2816)",
+          "allocframe(r29,#0)",
+          "allocframe(r30)"
+        ]
+      }
+    },
+    "limitations": [
+      "Full96 vector load count includes three LUT loads separately from packed input.",
+      "Static frame size is not peak runtime memory.",
+      "Logical load reduction is not DDR traffic or measured speed."
+    ]
+  },
+  "simulator": {
+    "cases": [
+      {
+        "rows": 32,
+        "stride": 32768,
+        "magnitude": 1,
+        "repeat": 500,
+        "baseline_pcycles_per_call": 202.144,
+        "candidate_pcycles_per_call": 180.108,
+        "reduction_percent": 10.901139781541872
+      },
+      {
+        "rows": 32,
+        "stride": 32768,
+        "magnitude": 7,
+        "repeat": 500,
+        "baseline_pcycles_per_call": 202.116,
+        "candidate_pcycles_per_call": 180.104,
+        "reduction_percent": 10.890775594213224
+      },
+      {
+        "rows": 32,
+        "stride": 49152,
+        "magnitude": 1,
+        "repeat": 500,
+        "baseline_pcycles_per_call": 202.116,
+        "candidate_pcycles_per_call": 180.108,
+        "reduction_percent": 10.888796532684202
+      },
+      {
+        "rows": 32,
+        "stride": 49152,
+        "magnitude": 7,
+        "repeat": 500,
+        "baseline_pcycles_per_call": 202.122,
+        "candidate_pcycles_per_call": 180.106,
+        "reduction_percent": 10.892431303865981
+      },
+      {
+        "rows": 64,
+        "stride": 32768,
+        "magnitude": 1,
+        "repeat": 500,
+        "baseline_pcycles_per_call": 384.12,
+        "candidate_pcycles_per_call": 346.108,
+        "reduction_percent": 9.895865875247319
+      },
+      {
+        "rows": 64,
+        "stride": 32768,
+        "magnitude": 7,
+        "repeat": 500,
+        "baseline_pcycles_per_call": 384.116,
+        "candidate_pcycles_per_call": 346.104,
+        "reduction_percent": 9.895968926053587
+      },
+      {
+        "rows": 64,
+        "stride": 49152,
+        "magnitude": 1,
+        "repeat": 500,
+        "baseline_pcycles_per_call": 384.116,
+        "candidate_pcycles_per_call": 346.108,
+        "reduction_percent": 9.894927573962033
+      },
+      {
+        "rows": 64,
+        "stride": 49152,
+        "magnitude": 7,
+        "repeat": 500,
+        "baseline_pcycles_per_call": 384.126,
+        "candidate_pcycles_per_call": 346.116,
+        "reduction_percent": 9.895190640571062
+      },
+      {
+        "rows": 96,
+        "stride": 32768,
+        "magnitude": 1,
+        "repeat": 500,
+        "baseline_pcycles_per_call": 566.124,
+        "candidate_pcycles_per_call": 512.108,
+        "reduction_percent": 9.541372561488297
+      },
+      {
+        "rows": 96,
+        "stride": 32768,
+        "magnitude": 7,
+        "repeat": 500,
+        "baseline_pcycles_per_call": 566.124,
+        "candidate_pcycles_per_call": 512.104,
+        "reduction_percent": 9.542079120475373
+      },
+      {
+        "rows": 96,
+        "stride": 49152,
+        "magnitude": 1,
+        "repeat": 500,
+        "baseline_pcycles_per_call": 566.124,
+        "candidate_pcycles_per_call": 512.108,
+        "reduction_percent": 9.541372561488297
+      },
+      {
+        "rows": 96,
+        "stride": 49152,
+        "magnitude": 7,
+        "repeat": 500,
+        "baseline_pcycles_per_call": 566.134,
+        "candidate_pcycles_per_call": 512.116,
+        "reduction_percent": 9.541557299155324
+      }
+    ],
+    "limitations": [
+      "Standalone v81 --timing uses ordinary simulator memory, not device VTCM.",
+      "Helper-only run excludes caller selection, pool scheduling, DMA, overlapping HMX and end-to-end IO.",
+      "No device TPS claim; no overlap wait total is assigned to this helper."
+    ]
+  },
+  "device_results_included": false,
+  "author_scope": "isolated overlay only; no root/device edits, commit or push",
+  "independent_review": {
+    "report": "/tmp/nntr-lfm2-tl2-expand-review-20261016/review.txt",
+    "validation": "/tmp/nntr-lfm2-tl2-expand-review-20261016/validation.json",
+    "verdict": "No unresolved blocker for root device parity and paired performance test",
+    "production_and_test_hash_match": true,
+    "independently_rerun_primitive_cases": 1440,
+    "independently_rerun_caller_cases": 72,
+    "independently_rejected_mutants": 3
+  },
+  "parent_integrated_host": {
+    "pass": true,
+    "mutants_rejected": [
+      "snapshot-selection",
+      "gu-stride",
+      "dn-stride"
+    ],
+    "sources": {
+      "reference": {
+        "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "dcd1f6500e0a3bb191ac37601dca16c6170d9c55fe6e8903de52aa78b3ede161",
+        "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.c": "922e6c4bdb239b00c6d7d0a46b946f1da1943da425d0520f20260bbc857bbee6",
+        "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.h": "4e8289b5918632200b4e6123257901972c272a1e074565100d3cc723b33c163a"
+      },
+      "candidate": {
+        "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "816647df631873ebb5dfef9ceb12c368063736313e612cfe0c33bed1af6e09bc",
+        "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.c": "e6d36c146ad665405eb9cb3b2a226d7eddb7779b806e8a65bd2be732d93c6f48",
+        "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.h": "ac0d714b63eb9570782956f8c8d2ac9600a5a40322741d4e6492bfd9dab27670"
+      }
+    },
+    "limitations": [
+      "HVX arithmetic uses SDK libnative; DMA/timing are not simulated.",
+      "Eight actual caller units execute in permuted serial order; no worker-pool race claim.",
+      "Only complete caller type and expansion-unit body are extracted; source-level dispatch unchanged."
+    ]
+  }
+}

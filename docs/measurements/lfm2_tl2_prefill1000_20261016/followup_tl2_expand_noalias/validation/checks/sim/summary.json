@@ -1,0 +1,117 @@
+{
+  "cases": [
+    {
+      "rows": 32,
+      "stride": 32768,
+      "magnitude": 1,
+      "repeat": 500,
+      "baseline_pcycles_per_call": 202.144,
+      "candidate_pcycles_per_call": 180.108,
+      "reduction_percent": 10.901139781541872
+    },
+    {
+      "rows": 32,
+      "stride": 32768,
+      "magnitude": 7,
+      "repeat": 500,
+      "baseline_pcycles_per_call": 202.116,
+      "candidate_pcycles_per_call": 180.104,
+      "reduction_percent": 10.890775594213224
+    },
+    {
+      "rows": 32,
+      "stride": 49152,
+      "magnitude": 1,
+      "repeat": 500,
+      "baseline_pcycles_per_call": 202.116,
+      "candidate_pcycles_per_call": 180.108,
+      "reduction_percent": 10.888796532684202
+    },
+    {
+      "rows": 32,
+      "stride": 49152,
+      "magnitude": 7,
+      "repeat": 500,
+      "baseline_pcycles_per_call": 202.122,
+      "candidate_pcycles_per_call": 180.106,
+      "reduction_percent": 10.892431303865981
+    },
+    {
+      "rows": 64,
+      "stride": 32768,
+      "magnitude": 1,
+      "repeat": 500,
+      "baseline_pcycles_per_call": 384.12,
+      "candidate_pcycles_per_call": 346.108,
+      "reduction_percent": 9.895865875247319
+    },
+    {
+      "rows": 64,
+      "stride": 32768,
+      "magnitude": 7,
+      "repeat": 500,
+      "baseline_pcycles_per_call": 384.116,
+      "candidate_pcycles_per_call": 346.104,
+      "reduction_percent": 9.895968926053587
+    },
+    {
+      "rows": 64,
+      "stride": 49152,
+      "magnitude": 1,
+      "repeat": 500,
+      "baseline_pcycles_per_call": 384.116,
+      "candidate_pcycles_per_call": 346.108,
+      "reduction_percent": 9.894927573962033
+    },
+    {
+      "rows": 64,
+      "stride": 49152,
+      "magnitude": 7,
+      "repeat": 500,
+      "baseline_pcycles_per_call": 384.126,
+      "candidate_pcycles_per_call": 346.116,
+      "reduction_percent": 9.895190640571062
+    },
+    {
+      "rows": 96,
+      "stride": 32768,
+      "magnitude": 1,
+      "repeat": 500,
+      "baseline_pcycles_per_call": 566.124,
+      "candidate_pcycles_per_call": 512.108,
+      "reduction_percent": 9.541372561488297
+    },
+    {
+      "rows": 96,
+      "stride": 32768,
+      "magnitude": 7,
+      "repeat": 500,
+      "baseline_pcycles_per_call": 566.124,
+      "candidate_pcycles_per_call": 512.104,
+      "reduction_percent": 9.542079120475373
+    },
+    {
+      "rows": 96,
+      "stride": 49152,
+      "magnitude": 1,
+      "repeat": 500,
+      "baseline_pcycles_per_call": 566.124,
+      "candidate_pcycles_per_call": 512.108,
+      "reduction_percent": 9.541372561488297
+    },
+    {
+      "rows": 96,
+      "stride": 49152,
+      "magnitude": 7,
+      "repeat": 500,
+      "baseline_pcycles_per_call": 566.134,
+      "candidate_pcycles_per_call": 512.116,
+      "reduction_percent": 9.541557299155324
+    }
+  ],
+  "limitations": [
+    "Standalone v81 --timing uses ordinary simulator memory, not device VTCM.",
+    "Helper-only run excludes caller selection, pool scheduling, DMA, overlapping HMX and end-to-end IO.",
+    "No device TPS claim; no overlap wait total is assigned to this helper."
+  ]
+}

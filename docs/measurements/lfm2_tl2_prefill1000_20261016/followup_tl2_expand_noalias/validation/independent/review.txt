@@ -1,0 +1,116 @@
+Independent review of LFM TL2 disjoint expansion, final production 59306fe
+
+Result: No unresolved correctness, lifetime, portability or memory-growth blocker
+found. Suitable for the root agent's device parity and paired performance test.
+No production tree or device was modified during this review. This is a source,
+host/libnative and code-generation review, not proof of model TPS improvement.
+
+Reviewed production.patch SHA256:
+59306fe9542a22cd278f0ed08fbee5a7cbcafbee2d2515da88a045bbe7af971e
+Reviewed tests.patch SHA256:
+6c345f4fcfe7bf7fda059a049857297c5d8b72544725c0e1036ad42dfc40f6e7
+Baseline overlay: 83b3235830771ed2313135393efb48d7efaf549b.
+The root's later M1 cleanup is independent of the expansion-unit change. Root
+reported its integrated checks separately; none are claimed as my execution.
+
+Scope and code generation
+The original expansion body is shared by the existing generic wrapper and a
+new disjoint wrapper. Only the latter conveys the caller's existing nonalias
+fact through internal __restrict pointers. Selection requires native_packed,
+GU K2048/24panels/stride49152 or DN K1536/16panels/stride32768. The invariant
+selection predicate is outside the worker's group loop. There is no arithmetic,
+quantization, scheduling or allocation change.
+
+I independently compiled baseline and final candidate HVX and MoE translation
+units with v81, O3, Wall, Werror and stack-usage output (four commands). After
+normalizing labels, comments and local LUT symbol names, the existing generic
+wrapper's instruction stream is unchanged. The new wrapper reduces packed
+vector load instructions from36 to20 for the full96x128 HVX path, retaining
+48 vector stores,96 VLUT operations and3 LUT loads. There are no vector spills;
+all observed folded spills/reloads are scalar4/8-byte operations, and no
+vector memory address is derived from SP/FP. Generic wrapper frame176B,
+disjoint192B (+16B); moe_expand_unit frame2816B remains unchanged. These are
+static instruction counts, not measured cycles or model throughput. Code
+size/layout and concurrent execution effects must be judged on the device.
+
+Source/destination ownership, tails and work partition
+The normal and compact-i24 layouts place native_gu/native_dn beyond the WH
+buffers and accumulator banks. The GU and DN compact slabs are also mutually
+disjoint and bounded by the existing arena-capacity checks. No layout or size
+changes occur in this patch. The source slab remains immutable while its
+expansion job runs. No job reads another expansion job's destination.
+
+For GU, each of24 panels occupies55040 packed bytes (ceil2048/24 *640).
+There are21 groups of96 rows plus a final32-row group. Full groups read2560
+bytes; the last reads1280. For DN,16 panels occupy40960 bytes each and use16
+full96-row groups. Source is packed + panel*panel_bytes + group*2560.
+WH destination is base + group*3*stride + panel*2048, with up to3 slices of
+2048 bytes at strides49152 (GU) or32768 (DN). I independently enumerated all
+784 panel/group source and destination extents and the8-unit partition.
+No extent exceeded its allocation or overlapped another unit's output.
+
+Main MoE validation already requires native N divisible by128, so npanels
+identifies the intended production N. Exact stride guards additionally make
+this scope explicit for the helper; they are defensive, not a correction of
+an observed production bounds defect. LFM chunk boundaries cover whole
+128-column panels. The existing tl2_pushed/tl2_expanded ownership masks and
+DMA-wait-before-job-publication prevent a packed input overwrite. The relevant
+expansion job is joined before HMX reads its WH chunk; all phase chunks are
+consumed before reuse by the next expert. Separate GU/DN slabs retain the
+existing previous-DN/next-GU overlap. Error cleanup drains all live work.
+No new dispatch, barrier, pool job, mask mutation or DMA scheduling was added.
+
+Fallback and Gemma
+When native_packed is absent, the actual caller still copies at most2560 bytes
+into its existing stack source[] before the generic expansion call. The public
+primitive already requires nonoverlap; direct in-place use is not a supported
+API contract. The fixture tests the real in-place caller snapshot, including
+all unit output/canary ranges. Gemma GU2816/1408 and DN704/2816 select the
+generic wrapper, whose compiled instruction stream remains unchanged. All
+palette and nibble operations share the original body, including magnitudes
+1/7, invalid raw codes and the scalar fallback for other magnitudes.
+
+Independent executed validation
+1. Final frozen actual HVX C TUs with SDK libnative, actual complete caller
+   context/type and expansion-unit extraction:1440 primitive parity/oracle/
+   canary cases plus72 actual caller cases PASS under ASan and UBSan with
+   nonrecovering checks. Covers rows0/32/64/96, cols0/32/64/96/128, magnitudes
+   1/7/2, unaligned addresses, tail redzones, patterns, packed and snapshot
+   paths, Gemma and rejected strides, empty/sparse/full masks and permuted
+   eight-unit execution. All3 deliberately removed guards fail as intended:
+   snapshot-selection, GU stride and DN stride.
+2. Existing run_host_checks.sh g++ direct-.c integration pathways were run
+   using candidate source/header: native packing, both prepared fixture
+   modes including corruption/bounds checks, and model conversion. All PASS.
+   Public header C11 and C++17 pedantic/Werror syntax checks also PASS.
+3. Four independent full v81 O3/Werror assembly compiles PASS. Static assembly
+   and stack audit described above is from these independently built files.
+4. Frozen source and patch hashes rechecked after all validation and match
+   the source hashes embedded in the independent fixture results.
+
+Portability issue resolved before this final review
+The earlier bare C99 restrict variant would fail the repository's g++ builds.
+Final59306fe uses __restrict internally (supported by current GCC/Clang and
+MSVC spelling), keeps the public header plain C/C++, and guards always_inline
+for GNU/Clang with a portable inline fallback. Existing g++ consumers, not
+just header parsing, were executed. No Windows/MSVC build was performed.
+No Linux-only header or API is introduced.
+
+Reproduction and artifacts (all paths relative to this review directory)
+- validation.json: verdict, hashes, executed checks and limits.
+- native-asan/commands.json, run.log, results.json, mutant-*.log: full actual
+  source fixture commands/results, with sanitizer enabled.
+- existing-cpp/commands.json and *.log: exact existing g++ build/run commands.
+- codegen/commands.json, compile-*.log and baseline/candidate assembly+.su.
+- codegen-review.json and *-instructions.txt: normalized instruction audit.
+- ownership-notes.txt and range-enumeration.json: lifetime/range proof.
+- header-compatibility.json: exact header C/C++ syntax commands/results.
+
+Limits
+SDK libnative executes HVX semantics but not real hardware DMA/cache timing.
+The8 caller units are executed in permuted serial order; this is not a new
+concurrency stress test. Scheduler code and lifetimes were audited read-only.
+There is no new heap, VTCM or persistent cache/context allocation. The new
+wrapper adds16 bytes of scalar stack only. Actual application peak memory,
+normal generation IDs and full-model speed remain root device gates. Do not
+interpret the reduced static loads as an established TPS gain.

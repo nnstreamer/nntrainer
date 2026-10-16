@@ -1,0 +1,114 @@
+{
+  "reviewer": "/root/gemma_prefill_port",
+  "verdict": "No unresolved blocker for root device parity and paired performance test",
+  "production_patch_sha256": "59306fe9542a22cd278f0ed08fbee5a7cbcafbee2d2515da88a045bbe7af971e",
+  "tests_patch_sha256": "6c345f4fcfe7bf7fda059a049857297c5d8b72544725c0e1036ad42dfc40f6e7",
+  "source_hashes": {
+    "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.c": "e6d36c146ad665405eb9cb3b2a226d7eddb7779b806e8a65bd2be732d93c6f48",
+    "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.h": "ac0d714b63eb9570782956f8c8d2ac9600a5a40322741d4e6492bfd9dab27670",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "241396def91330268db275c47a1968a3c0f8382f30a1e36f5a8466c118600406"
+  },
+  "test_hashes": {
+    "run_tl2_expand_disjoint_checks.py": "4f2a4ff66fd2aa1b9143fff42f28250cc397f54b082874a9b5d3b5d51fea1962",
+    "tl2_expand_disjoint_check.c": "d75b87b41bc29fdd20d3b08ad50557b4829dad5e285c0b3fa575f6c32e1e3bd3"
+  },
+  "independently_executed": {
+    "native_fixture": {
+      "primitive_cases": 1440,
+      "actual_caller_cases": 72,
+      "asan": true,
+      "ubsan": true,
+      "mutants_rejected": [
+        "snapshot-selection",
+        "gu-stride",
+        "dn-stride"
+      ],
+      "pass": true,
+      "command": [
+        "python3",
+        "/tmp/nntr-lfm2-tl2-expand-noalias-20261016/candidate/test/htp/host/run_tl2_expand_disjoint_checks.py",
+        "--repo",
+        "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000",
+        "--source",
+        "/tmp/nntr-lfm2-tl2-expand-noalias-20261016/candidate",
+        "--reference",
+        "/tmp/nntr-lfm2-tl2-expand-noalias-20261016/baseline",
+        "--output",
+        "/tmp/nntr-lfm2-tl2-expand-review-20261016/native-asan",
+        "--hexagon-tools",
+        "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04",
+        "--sanitize",
+        "--mutations"
+      ]
+    },
+    "existing_gpp_consumers": {
+      "packing": "PASS",
+      "prepared_standard": "PASS",
+      "prepared_unit": "PASS",
+      "conversion": "PASS",
+      "commands": "existing-cpp/commands.json"
+    },
+    "header_C11_CXX17": "PASS",
+    "full_v81_TUs": {
+      "count": 4,
+      "pass": true,
+      "commands": "codegen/commands.json"
+    },
+    "range_enumeration": {
+      "count": 784,
+      "pass": true
+    },
+    "final_hash_match": true
+  },
+  "codegen": {
+    "generic_instructions_identical": true,
+    "baseline": {
+      "packed_loads": 36,
+      "stores": 48,
+      "vlut": 96
+    },
+    "disjoint": {
+      "packed_loads": 20,
+      "stores": 48,
+      "vlut": 96
+    },
+    "scalar_stack": {
+      "generic": 176,
+      "disjoint": 192
+    },
+    "moe_worker_stack": {
+      "baseline": 2816,
+      "candidate": 2816
+    },
+    "vector_stack_direct_references": [],
+    "stage": "final frozen source independently compiled v81 O3 Werror; not device cycles"
+  },
+  "changes": {
+    "new_heap_bytes": 0,
+    "new_vtcm_bytes": 0,
+    "new_persistent_cache_bytes": 0,
+    "wrapper_scalar_stack_delta_bytes": 16,
+    "worker_stack_delta_bytes": 0,
+    "generic_normalized_instructions_identical": true,
+    "Gemma_selects_generic": true
+  },
+  "limits": [
+    "No root edits or device execution by reviewer",
+    "Libnative does not reproduce hardware DMA/cache/timing",
+    "Eight actual worker units are permuted serially, not concurrent stress",
+    "No Windows/MSVC build performed",
+    "TPS gain and application peak memory not established by static/host evidence"
+  ],
+  "author_device_cycle_results_used": false,
+  "artifacts": [
+    "review.txt",
+    "ownership-notes.txt",
+    "range-enumeration.json",
+    "native-asan/results.json",
+    "native-asan/commands.json",
+    "existing-cpp/commands.json",
+    "codegen/commands.json",
+    "codegen-review.json",
+    "header-compatibility.json"
+  ]
+}

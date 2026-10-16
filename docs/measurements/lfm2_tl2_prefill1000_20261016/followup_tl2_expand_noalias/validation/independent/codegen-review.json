@@ -1,0 +1,23 @@
+{
+  "generic_instructions_identical": true,
+  "baseline": {
+    "packed_loads": 36,
+    "stores": 48,
+    "vlut": 96
+  },
+  "disjoint": {
+    "packed_loads": 20,
+    "stores": 48,
+    "vlut": 96
+  },
+  "scalar_stack": {
+    "generic": 176,
+    "disjoint": 192
+  },
+  "moe_worker_stack": {
+    "baseline": 2816,
+    "candidate": 2816
+  },
+  "vector_stack_direct_references": [],
+  "stage": "final frozen source independently compiled v81 O3 Werror; not device cycles"
+}

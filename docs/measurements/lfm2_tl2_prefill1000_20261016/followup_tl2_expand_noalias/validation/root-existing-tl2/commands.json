@@ -1,0 +1,45 @@
+{
+  "note": "Records the successful root commands executed before the diagnostic overlay. No timing claim.",
+  "commands": [
+    {
+      "compile": [
+        "gcc",
+        "-std=gnu11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-I",
+        "nntrainer/tensor/htp_backend/hvx",
+        "test/htp/host/tl2_lut_check.c",
+        "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.c",
+        "-o",
+        "/tmp/nntr-lfm2-tl2-expand-noalias-20261016/root-existing-tl2/lut"
+      ],
+      "run": [
+        "/tmp/nntr-lfm2-tl2-expand-noalias-20261016/root-existing-tl2/lut"
+      ],
+      "exit_code": 0,
+      "output": "/tmp/nntr-lfm2-tl2-expand-noalias-20261016/root-existing-tl2/lut.log"
+    },
+    {
+      "compile": [
+        "gcc",
+        "-std=gnu11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-I",
+        "nntrainer/tensor/htp_backend/hvx",
+        "test/htp/host/tl2_expand_check.c",
+        "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.c",
+        "-o",
+        "/tmp/nntr-lfm2-tl2-expand-noalias-20261016/root-existing-tl2/expand"
+      ],
+      "run": [
+        "/tmp/nntr-lfm2-tl2-expand-noalias-20261016/root-existing-tl2/expand"
+      ],
+      "exit_code": 0,
+      "output": "/tmp/nntr-lfm2-tl2-expand-noalias-20261016/root-existing-tl2/expand.log"
+    }
+  ]
+}

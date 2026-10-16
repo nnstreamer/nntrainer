@@ -1,0 +1,9 @@
+{
+  "base_commit": "8288e3ba3dff986e0c72f37c8db4f3adec4c628c",
+  "applied_patch_sha256": "8b00982fb0554cff756dbd870c4b20cd5a54181e8889e303310ba93277de0802",
+  "files": {
+    "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.c": "e6d36c146ad665405eb9cb3b2a226d7eddb7779b806e8a65bd2be732d93c6f48",
+    "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.h": "ac0d714b63eb9570782956f8c8d2ac9600a5a40322741d4e6492bfd9dab27670",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "816647df631873ebb5dfef9ceb12c368063736313e612cfe0c33bed1af6e09bc"
+  }
+}

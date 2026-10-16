@@ -1,0 +1,25 @@
+{
+  "pass": true,
+  "mutants_rejected": [
+    "snapshot-selection",
+    "gu-stride",
+    "dn-stride"
+  ],
+  "sources": {
+    "reference": {
+      "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "dcd1f6500e0a3bb191ac37601dca16c6170d9c55fe6e8903de52aa78b3ede161",
+      "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.c": "922e6c4bdb239b00c6d7d0a46b946f1da1943da425d0520f20260bbc857bbee6",
+      "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.h": "4e8289b5918632200b4e6123257901972c272a1e074565100d3cc723b33c163a"
+    },
+    "candidate": {
+      "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "816647df631873ebb5dfef9ceb12c368063736313e612cfe0c33bed1af6e09bc",
+      "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.c": "e6d36c146ad665405eb9cb3b2a226d7eddb7779b806e8a65bd2be732d93c6f48",
+      "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.h": "ac0d714b63eb9570782956f8c8d2ac9600a5a40322741d4e6492bfd9dab27670"
+    }
+  },
+  "limitations": [
+    "HVX arithmetic uses SDK libnative; DMA/timing are not simulated.",
+    "Eight actual caller units execute in permuted serial order; no worker-pool race claim.",
+    "Only complete caller type and expansion-unit body are extracted; source-level dispatch unchanged."
+  ]
+}

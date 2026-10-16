@@ -1,0 +1,64 @@
+{
+  "generic_normalized_instructions_identical": true,
+  "reference": {
+    "all_vector_loads": 39,
+    "vector_stores": 48,
+    "vlut32": 96,
+    "direct_vector_stack_ops": 0,
+    "frames": [
+      "allocframe(r29,#176)"
+    ]
+  },
+  "generic": {
+    "all_vector_loads": 39,
+    "vector_stores": 48,
+    "vlut32": 96,
+    "direct_vector_stack_ops": 0,
+    "frames": [
+      "allocframe(r29,#176)"
+    ]
+  },
+  "disjoint": {
+    "all_vector_loads": 23,
+    "vector_stores": 48,
+    "vlut32": 96,
+    "direct_vector_stack_ops": 0,
+    "frames": [
+      "allocframe(#192)"
+    ]
+  },
+  "packed_input_loads_full96": {
+    "before": 36,
+    "after": 20
+  },
+  "tables_per_function": 3,
+  "worker": {
+    "baseline": {
+      "all_vector_loads": 0,
+      "vector_stores": 2,
+      "vlut32": 0,
+      "direct_vector_stack_ops": 0,
+      "frames": [
+        "allocframe(r29,#2816)",
+        "allocframe(r29,#0)",
+        "allocframe(r30)"
+      ]
+    },
+    "candidate": {
+      "all_vector_loads": 0,
+      "vector_stores": 2,
+      "vlut32": 0,
+      "direct_vector_stack_ops": 0,
+      "frames": [
+        "allocframe(r29,#2816)",
+        "allocframe(r29,#0)",
+        "allocframe(r30)"
+      ]
+    }
+  },
+  "limitations": [
+    "Full96 vector load count includes three LUT loads separately from packed input.",
+    "Static frame size is not peak runtime memory.",
+    "Logical load reduction is not DDR traffic or measured speed."
+  ]
+}

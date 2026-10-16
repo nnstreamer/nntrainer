@@ -1,0 +1,6 @@
+{
+  "normal_source_hashes_match": true,
+  "diagnostic_rpc_patch_absent": true,
+  "normal_dsp_sha256": "b30be327d815af865452bb6f4a18c1d80c785a4c6abbdc0c1f06840345219273",
+  "method": "Restored exactly the frozen, normally measured full-build DSP binary; local diagnostic intermediate objects are not claimed rebuilt."
+}

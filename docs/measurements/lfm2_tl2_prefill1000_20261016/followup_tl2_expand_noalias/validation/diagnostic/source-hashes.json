@@ -1,0 +1,15 @@
+{
+  "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.c": {
+    "baseline": "e6d36c146ad665405eb9cb3b2a226d7eddb7779b806e8a65bd2be732d93c6f48",
+    "trace": "f5d8634f212cc222c8534f37032d8de0ee0c6d347f3a398777f7dca6dcc74047"
+  },
+  "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.h": {
+    "baseline": "ac0d714b63eb9570782956f8c8d2ac9600a5a40322741d4e6492bfd9dab27670",
+    "trace": "74d9dea554efc190e049623e5a2c04f0f071cff7ccc7821e5ecefe1ad380690d"
+  },
+  "test/htp/nntr_hvx_mm_u8i4.c": {
+    "baseline": "a3aa39e7bd1335354ab98cec12ff7f082d1242b6175bd4547a32dfb1dc5682ad",
+    "trace": "790350912996b07c659cf9b643944aa6ee933aef1fc596ea97d0c82cb3833dce"
+  },
+  "diagnostic.patch": "371efbd1be5f69a7fd8dd49e895b6e316e2b33f870f439f50d12c567c99a8c0e"
+}

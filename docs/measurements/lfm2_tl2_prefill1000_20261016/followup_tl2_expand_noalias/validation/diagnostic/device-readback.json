@@ -1,0 +1,37 @@
+{
+  "read_only_author_recheck": true,
+  "parent_executed_device_runs": true,
+  "parent_report": "/tmp/nntr-lfm2-tl2-expand-noalias-20261016/root-trace-validation.json",
+  "parent_report_sha256": "165aea0147f7976042ed54baa5c55ddab79b0761230cbfbb88b97b5209b137f4",
+  "checks": {
+    "1024": {
+      "log_path": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-expand-noalias-trace1024.logcat.txt",
+      "log_sha256": "1cdc87d58da190d15085a7de89b4486d65cb82f6684bea0337e39767a81196b9",
+      "records": 39,
+      "warmup_M": 1024,
+      "warmup_E": 64,
+      "warmup_calls": 50176,
+      "main_records": 38,
+      "main_active_experts": 2283,
+      "main_actual_entries": 1789872,
+      "all_record_counts_equal_784_times_active": true,
+      "matches_root_report_exactly": true,
+      "ids_exact_reported_by_root": true
+    },
+    "2048": {
+      "log_path": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-expand-noalias-trace2048.logcat.txt",
+      "log_sha256": "d8a587efb0e566aece8d1742131d83d92a32d28ff6862fb8f0f02d9950b05e1c",
+      "records": 39,
+      "warmup_M": 2048,
+      "warmup_E": 64,
+      "warmup_calls": 50176,
+      "main_records": 38,
+      "main_active_experts": 2328,
+      "main_actual_entries": 1825152,
+      "all_record_counts_equal_784_times_active": true,
+      "matches_root_report_exactly": true,
+      "ids_exact_reported_by_root": true
+    }
+  },
+  "trace_TPS_used": false
+}

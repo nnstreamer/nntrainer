@@ -1,0 +1,59 @@
+Read-only caller lifetime and range audit (final frozen source reviewed and independently validated)
+
+Production input provenance
+moe_push_native_chunk transfers compact TL2 panels into native_gu/native_dn.
+The normal layout places native_gu at L.total after WH, gate/mid scratch and
+all accumulator rings; native_dn follows the exact GU packed byte extent.
+The compact-i24 layout still places both after its four smaller accumulator
+banks (end). hexkl_acc_i24_banks additionally checks packed sources and the
+convert scratch against the arena end. No new storage is introduced here.
+The existing fallback has no packed slab: each worker snapshots at most
+4*640=2560 bytes from the in-place WH staging into its pre-existing stack
+source[] and passes that disjoint snapshot to the unchanged generic API.
+
+Accepted LFM addresses
+GU K2048/N3072: 24 panels, each ceil(2048/24)*640=55040 source bytes,
+22 K-groups: 21*96 plus final32. Each full group reads2560 bytes; tail1280.
+DN K1536/N2048: 16 panels, each64*640=40960 bytes, 16*96 groups.
+Caller src = packed + panel*panel_bytes + group*2560.
+Caller dst = WHbase + group*3*stride + panel*2048.
+Full group outputs three 2048-byte panel slices at stride49152 (GU) or32768
+(DN). GU32 outputs exactly one such slice. These ranges remain within their
+individual packed/WH allocations. range-enumeration.json checks all784
+panel/group extents and the existing 8-unit decomposition independently.
+Main MoE entry already validates native N%128==0. Exact stride guards additionally
+make the N3072/2048 scope explicit in the standalone expansion-unit helper.
+Gemma K2816/N1408 and K704/N2816 therefore select the generic wrapper.
+
+Ownership and concurrency
+- Issuing thread claims whole native panels via tl2_pushed/tl2_expanded;
+  jobs are published after the producer's DMA wait. Context and native mask
+  are fixed before any worker runs. LFM gate/up boundary and chunk widths
+  align to whole128-column panels; no second job owns a partial same panel.
+- Each panel/group is assigned to exactly one of the existing8 work units.
+  No worker reads another worker's output, and all packed inputs remain
+  immutable for the job. Other foreground HMX reads use already-expanded
+  disjoint WH columns. New wrapper does not submit, wait or synchronize.
+- The corresponding exp_job is joined before its WH chunk is consumed by
+  HMX. All chunks of the current expert have been joined/consumed before
+  another expert's packed slab DMA is queued for that phase. GU/DN slabs are
+  mutually disjoint, so GU(next) can overlap DN(previous) as before.
+- Error cleanup waits the foreground pool, final down job, and every live
+  expansion slot before the caller can reuse VTCM or return. No protocol,
+  ownership generation, expert handles, read queue or weight cache changes.
+
+Palette and arithmetic
+The accepted native palettes have magnitude1 (including all-zero palette) or7.
+Both wrappers execute the same lookup, nibble merge, transpose and stores;
+only compiler alias facts differ. Legacy unsupported magnitudes use the same
+scalar fallback body. Raw invalid magnitude codes14/15 and signed zero map
+identically. No scale, quantization or FP32 arithmetic is changed.
+
+Final independent evidence
+Final source libnative oracle+actual extracted caller fixture PASS (1440+72);
+all3 deliberate guard mutants rejected. ASan/UBSan includes tail redzones
+and in-place snapshot fallback. Final v81 assembly has no vector spills.
+Existing g++ packing, prepared and conversion consumers of the .c file
+compile and run successfully. See review.txt and validation.json.
+Host/libnative does not prove hardware cycle timing, cache visibility or
+async scheduling. Root alone performs final model/device gates.

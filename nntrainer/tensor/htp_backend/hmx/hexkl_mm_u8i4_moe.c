@@ -333,6 +333,11 @@ typedef struct {
 static void moe_expand_unit(uint32_t n_units, uint32_t u, void *vctx) {
   moe_expand_ctx *c = (moe_expand_ctx *)vctx;
   if (c->native_base) {
+    const int disjoint_lfm2 =
+      c->native_packed && ((c->native_K == 2048u && c->native_npanels == 24u &&
+                            c->stride == 96u * 512u) ||
+                           (c->native_K == 1536u && c->native_npanels == 16u &&
+                            c->stride == 64u * 512u));
     const uint32_t groups = c->native_groups;
     const uint32_t lo = c->native_jobs * u / n_units;
     const uint32_t hi = c->native_jobs * (u + 1u) / n_units;
@@ -373,8 +378,15 @@ static void moe_expand_unit(uint32_t n_units, uint32_t u, void *vctx) {
             memcpy(source + 1280u, dst + c->stride, (count - 2u) * 640u);
 #endif
         }
-        hvx_tl2_expand_wh96(src, rows < 96u ? rows : 96u, 128u, c->stride,
-                            c->native_magnitude, dst);
+        /** Only LFM's existing packed slabs are disjoint from the WH
+         * destination by construction. Leave other shapes and in-place
+         * staging's snapshot on the original expansion entry. */
+        if (disjoint_lfm2)
+          hvx_tl2_expand_wh96_disjoint(src, rows < 96u ? rows : 96u, 128u,
+                                       c->stride, c->native_magnitude, dst);
+        else
+          hvx_tl2_expand_wh96(src, rows < 96u ? rows : 96u, 128u, c->stride,
+                              c->native_magnitude, dst);
       }
     }
     return;

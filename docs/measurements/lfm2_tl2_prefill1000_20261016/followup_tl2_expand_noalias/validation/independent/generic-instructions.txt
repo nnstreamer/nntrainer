@@ -1,0 +1,1603 @@
+hvx_tl2_expand_wh96:
+{
+p3 = cmp.eq(r4,#1)
+r11 = r5
+p0 = cmp.eq(r4,#7)
+allocframe(r29,#176):raw
+}
+{
+memd(r29+#168) = r17:16
+memd(r29+#160) = r19:18
+}
+{
+memd(r29+#152) = r21:20
+memd(r29+#144) = r23:22
+}
+{
+if (p3) jump:nt .LBBx_2
+if (!p0) jump:nt .LBBx_5
+memd(r29+#136) = r25:24
+memd(r29+#128) = r27:26
+}
+.falign
+.LBBx_2:
+{
+r4 = #-32
+}
+{
+p2 = bitsclr(r1,r4)
+if (!p2.new) r6 = ##16875776
+if (p2.new) jump:nt .LBBx_32
+}
+{
+r4 = add(pc,##tl2_expand_nibbles@PCREL)
+r5 = ##252645135
+}
+{
+r13 = mux(p0,##384,#0)
+r8 = ##269520911
+}
+{
+r9 = ##33718785
+r10 = add(r6,#-32767)
+r13 = add(r4,r13)
+}
+{
+r12 = ##67404803
+p1 = cmp.gtu(r2,#31)
+p3 = cmp.gtu(r2,#63)
+}
+{
+v3 = vsplat(r5)
+r7:6 = combine(#4,#2)
+r5 = #1
+v5 = vmem(r13+#0)
+}
+{
+r16 = add(r8,#-32767)
+r14 = add(r9,#-32767)
+r4 = add(r12,#-32767)
+v4 = vmem(r13+#1)
+}
+{
+p0 = and(p0,!p0)
+v2.h = vasl(v5.h,r7)
+v6 = vmem(r13+#2)
+}
+{
+if (p1) jump:nt .LBBx_16
+v1.h = vasl(v4.h,r7)
+v0.h = vasl(v6.h,r7)
+}
+{
+p2 = or(p0,p0)
+p3 = or(p0,p0)
+jump .LBBx_23
+}
+.falign
+.LBBx_5:
+{
+r19 = r4
+p0 = cmp.gtu(r1,#31); if (!p0.new) jump:t .LBBx_32
+}
+{
+if (p1.new) r4 = add(r0,##512)
+p1 = cmp.gtu(r2,#31); if (!p1.new) jump:t .LBBx_32
+}
+{
+r21 = add(pc,##TL2_TRITS@PCREL)
+r2 = lsr(r2,#5)
+memw(r29+#52) = r2.new
+}
+{
+r2 = add(r0,#524)
+r23 = sub(#0,r19)
+r20 = add(r11,#12)
+memw(r29+#96) = r2.new
+}
+{
+r4 = lsr(r1,#5)
+r2 = add(r0,#12)
+memw(r29+#88) = r4
+memw(r29+#84) = r3
+}
+{
+r5 = #0
+r6 = r11
+memw(r29+#100) = r2
+memw(r29+#92) = r4
+}
+{
+r2 = add(r0,#520)
+memw(r29+#104) = r2.new
+}
+{
+r2 = add(r0,#8)
+r4 = add(r11,#4)
+memw(r29+#108) = r2.new
+}
+{
+r2 = add(r0,#516)
+memw(r29+#112) = r2.new
+}
+{
+r2 = add(r0,#4)
+memw(r29+#76) = r0
+memw(r29+#80) = r11
+}
+{
+r2 = add(r11,#8)
+memw(r29+#116) = r2
+}
+.falign
+.LBBx_8:
+{
+r11 += mpyi(r5,r3)
+r3 = #0
+r17 = memw(r29+#100)
+memw(r29+#4) = r0
+}
+{
+r7 = asl(r5,#5)
+r16 = memw(r29+#96)
+memw(r29+#60) = r2
+}
+{
+r0 = memw(r29+#88)
+memw(r29+#28) = r2
+}
+{
+r1 = memw(r29+#116)
+memw(r29+#8) = r0
+}
+{
+r2 = memw(r29+#108)
+memw(r29+#32) = r2.new
+}
+{
+r0 = memw(r29+#112)
+memw(r29+#40) = r7
+}
+{
+r2 = memw(r29+#104)
+memw(r29+#72) = r6
+}
+{
+memw(r29+#12) = r6
+memw(r29+#64) = r4
+}
+{
+memw(r29+#16) = r4
+memw(r29+#20) = r1
+}
+{
+memw(r29+#24) = r0
+memw(r29+#68) = r5
+}
+{
+memw(r29+#48) = r11
+memw(r29+#36) = r2
+}
+{
+memw(r29+#56) = r20
+}
+.falign
+.LBBx_9:
+{
+r1 = #0
+r2 = #512
+r0 = memw(r29+#48)
+memw(r29+#44) = r3
+}
+{
+r0 += asl(r3,#9)
+call memset
+r24 = #0
+}
+.falign
+{
+loop1(.LBBx_11,#32)
+r3:2 = combine(#0,#0)
+}
+.falign
+.LBBx_11:
+{
+r6 = and(r24,#3)
+r7 = ##-1431655765
+r4 = memw(r29+#40)
+}
+{
+r5 = and(r3,#4)
+r12 = r2
+r4 = add(r3,r4)
+r14 = memw(r29+#12)
+}
+{
+r12 = insert(r6,#7,#0)
+r13 = mpyu(r4,r7)
+r8 = r4
+r28 = memw(r29+#8)
+}
+{
+r7 = lsr(r13,#4)
+r1 = lsr(r13,#1)
+r6 = add(r20,r12)
+r15 = memw(r29+#24)
+}
+{
+r8 -= mpyi(r7,#24)
+}
+{
+r0 = +mpyi(r7,##640)
+r9 = and(r8,#255)
+r7 = memw(r29+#28)
+}
+{
+r9 = +mpyi(r9,#171)
+r7 = add(r7,r12)
+r15 = add(r15,r0)
+r8 = memw(r29+#16)
+}
+{
+r8 = add(r8,r12)
+r12 = add(r14,r12)
+r10 = r9
+r14 = memw(r29+#36)
+}
+{
+r11 = lsr(r9,#9)
+r13 = add(r16,r0)
+r14 = add(r14,r0)
+r28 = add(r28,r0)
+}
+{
+r10 = and(##8064,lsr(r10,#3))
+r9 = and(#4,lsr(r9,#7))
+r18 = memw(r29+#4)
+}
+{
+r4 -= mpyi(r1,#3)
+r25 = add(r0,r10)
+r10 = memw(r29+#32)
+}
+{
+r0 = lsl(#1,r11)
+r1 = add(r17,r25)
+r11 = memw(r29+#20)
+}
+{
+loop0(.LBBx_12,#8)
+r10 = add(r10,r25)
+r11 = add(r11,r25)
+r25 = add(r18,r25)
+}
+.falign
+.LBBx_12:
+{
+r18 = #15
+r26 = r21
+r22 = memub(r25+#0)
+r27 = memub(r28+#0)
+}
+{
+r18 &= lsr(r22,r9)
+p2 = bitsclr(r0,r27)
+r28 = add(r28,#16)
+r25 = add(r25,#16)
+}
+{
+r26 += mpyi(r18,#3)
+r18 = mux(p2,r19,r23)
+}
+{
+r22 = memub(r4+r26<<#0)
+}
+{
+r18 = mpyi(r22,r18)
+}
+{
+r18 = and(r18,#15)
+}
+{
+r18 = asl(r18,r5)
+}
+{
+r18 = #15
+r12 = add(r12,#16)
+memb(r12+#0) |= r18
+}
+{
+r11 = add(r11,#16)
+r15 = add(r15,#16)
+r22 = memub(r11+#0)
+r26 = memub(r15+#0)
+}
+{
+r18 &= lsr(r22,r9)
+p3 = bitsclr(r0,r26)
+r22 = r21
+}
+{
+r22 += mpyi(r18,#3)
+r18 = mux(p3,r19,r23)
+}
+{
+r22 = memub(r4+r22<<#0)
+}
+{
+r18 = mpyi(r22,r18)
+}
+{
+r18 = and(r18,#15)
+}
+{
+r18 = asl(r18,r5)
+}
+{
+r18 = #15
+r8 = add(r8,#16)
+memb(r8+#0) |= r18
+}
+{
+r10 = add(r10,#16)
+r14 = add(r14,#16)
+r22 = memub(r10+#0)
+r26 = memub(r14+#0)
+}
+{
+r18 &= lsr(r22,r9)
+p0 = bitsclr(r0,r26)
+r22 = r21
+}
+{
+r22 += mpyi(r18,#3)
+r18 = mux(p0,r19,r23)
+}
+{
+r22 = memub(r4+r22<<#0)
+}
+{
+r18 = mpyi(r22,r18)
+}
+{
+r18 = and(r18,#15)
+}
+{
+r18 = asl(r18,r5)
+}
+{
+r18 = #15
+r7 = add(r7,#16)
+memb(r7+#0) |= r18
+}
+{
+r1 = add(r1,#16)
+r13 = add(r13,#16)
+r22 = memub(r1+#0)
+r26 = memub(r13+#0)
+}
+{
+r18 &= lsr(r22,r9)
+p1 = bitsclr(r0,r26)
+r22 = r21
+}
+{
+r22 += mpyi(r18,#3)
+r18 = mux(p1,r19,r23)
+}
+{
+r22 = memub(r4+r22<<#0)
+}
+{
+r18 = mpyi(r22,r18)
+}
+{
+r18 = and(r18,#15)
+}
+{
+r18 = asl(r18,r5)
+}
+{
+r6 = add(r6,#16)
+memb(r6+#0) |= r18
+} :endloop0
+{
+r24 = add(r24,#1)
+nop
+r2 = add(r2,#16)
+r3 = add(r3,#1)
+} :endloop1
+{
+r16 = add(r16,#1)
+r17 = add(r17,#1)
+r2 = memw(r29+#36)
+r3 = memw(r29+#44)
+}
+{
+r2 = add(r2,#1)
+r3 = add(r3,#1)
+r20 = add(r20,#512)
+memw(r29+#36) = r2.new
+}
+{
+r2 = memw(r29+#32)
+}
+{
+r2 = add(r2,#1)
+memw(r29+#32) = r2.new
+}
+{
+r2 = memw(r29+#28)
+}
+{
+r2 = add(r2,#512)
+memw(r29+#28) = r2.new
+}
+{
+r2 = memw(r29+#24)
+}
+{
+r2 = add(r2,#1)
+memw(r29+#24) = r2.new
+}
+{
+r2 = memw(r29+#52)
+}
+{
+p1 = cmp.eq(r3,r2)
+r2 = memw(r29+#20)
+if (p1.new) r11 = memw(r29+#80)
+}
+{
+r2 = add(r2,#1)
+memw(r29+#20) = r2.new
+}
+{
+r2 = memw(r29+#16)
+}
+{
+r2 = add(r2,#512)
+memw(r29+#16) = r2.new
+}
+{
+r2 = memw(r29+#12)
+}
+{
+r2 = add(r2,#512)
+memw(r29+#12) = r2.new
+}
+{
+r2 = memw(r29+#8)
+}
+{
+r2 = add(r2,#1)
+memw(r29+#8) = r2.new
+}
+{
+r2 = memw(r29+#4)
+}
+{
+r2 = add(r2,#1)
+if (!p1) jump:nt .LBBx_9
+memw(r29+#4) = r2.new
+}
+{
+r5 = memw(r29+#68)
+r2 = memw(r29+#92)
+}
+{
+r5 = add(r5,#1)
+r20 = memw(r29+#56)
+r3 = memw(r29+#84)
+}
+{
+p2 = cmp.eq(r5,r2)
+r20 = add(r20,r3)
+r6 = memw(r29+#72)
+r2 = memw(r29+#60)
+}
+{
+r2 = add(r2,r3)
+r6 = add(r6,r3)
+r4 = memw(r29+#64)
+r0 = memw(r29+#76)
+}
+{
+r4 = add(r4,r3)
+if (!p2) jump:nt .LBBx_8
+}
+{
+jump .LBBx_32
+}
+.falign
+.LBBx_16:
+{
+v7 = vmemu(r0+#0)
+}
+{
+v9 = vand(v7,v3)
+v8 = vmemu(r0+#4)
+}
+{
+q3 = vand(v8,r10)
+v11.uh = vlsr(v7.uh,r7)
+v10 = vmemu(r0+#1)
+}
+{
+q1 = vand(v8,r14)
+v9 |= vand(q3,r16)
+v12 = vand(v11,v3)
+v16 = vand(v10,v3)
+}
+{
+v12 |= vand(q1,r16)
+q2 = vand(v8,r4)
+}
+{
+v16 |= vand(q2,r16)
+v13.b = vlut32(v9.b,v5.b,#0)
+}
+{
+v14.b = vlut32(v9.b,v4.b,#0)
+}
+{
+v15.b = vlut32(v9.b,v6.b,#0)
+}
+{
+v17.b = vlut32(v12.b,v5.b,#0)
+}
+{
+v13.b |= vlut32(v12.b,v1.b,#0)
+}
+{
+v14.b |= vlut32(v12.b,v0.b,#0)
+}
+{
+v15.b |= vlut32(v16.b,v2.b,#0)
+}
+{
+v17.b |= vlut32(v16.b,v1.b,#0)
+}
+{
+v29:28 = vshuff(v14,v13,r5)
+}
+{
+v31:30 = vshuff(v17,v15,r5)
+}
+{
+v11:10 = vshuff(v30,v28,r6)
+}
+{
+if (!p3) jump:nt .LBBx_20
+vmemu(r11+#0) = v10
+}
+{
+p2 = cmp.gtu(r2,#95)
+if (p2.new) r7 = add(r11,##1024)
+v9:8 = vshuff(v31,v29,r6)
+}
+{
+if (!p2) jump:nt .LBBx_21
+vmemu(r11+#4) = v8
+}
+{
+p3 = cmp.gtu(r2,#127)
+if (p3.new) r2 = add(r11,##1536)
+}
+{
+if (!p3) jump:nt .LBBx_22
+vmemu(r7+#0) = v11
+}
+{
+p0 = or(p0,!p0)
+}
+{
+p2 = or(p0,p0)
+p3 = or(p0,p0)
+vmemu(r2+#0) = v9
+}
+{
+jump .LBBx_23
+}
+.falign
+.LBBx_20:
+{
+p2 = or(p0,p0)
+p3 = or(p0,p0)
+jump .LBBx_23
+}
+.falign
+.LBBx_21:
+{
+p2 = or(p2,!p2)
+p3 = or(p0,p0)
+jump .LBBx_23
+}
+.falign
+.LBBx_22:
+{
+p2 = or(p2,!p2)
+}
+{
+p3 = or(p2,p2)
+}
+.falign
+.LBBx_23:
+{
+r7 = ##134776839
+v18 = vmemu(r0+#1)
+}
+{
+r2 = #4
+r7 = add(r7,#-32767)
+v19 = vmemu(r0+#2)
+}
+{
+v22.uh = vlsr(v18.uh,r2)
+v20 = vand(v18,v3)
+v21 = vmemu(r0+#4)
+}
+{
+r2 = ##539009055
+v24.uh = vlsr(v19.uh,r2)
+v23 = vand(v19,v3)
+}
+{
+q0 = vand(v21,r4)
+q3 = vand(v21,r7)
+r2 = add(r2,#-32767)
+v25 = vand(v22,v3)
+}
+{
+v20 |= vand(q0,r16)
+v25 |= vand(q3,r16)
+r12 = #4
+v30 = vand(v24,v3)
+}
+{
+q1 = vand(v21,r16)
+r8 = ##1077985343
+r13 = add(r11,#1408)
+}
+{
+q2 = vand(v21,r2)
+v23 |= vand(q1,r16)
+r9 = ##-2139029377
+}
+{
+v30 |= vand(q2,r16)
+r8 = add(r8,#-32767)
+r9 = add(r9,#-32767)
+v26.b = vlut32(v20.b,v6.b,#0)
+}
+{
+v27.b = vlut32(v25.b,v5.b,#0)
+}
+{
+v28.b = vlut32(v25.b,v4.b,#0)
+}
+{
+v29.b = vlut32(v25.b,v6.b,#0)
+}
+{
+v26.b |= vlut32(v23.b,v2.b,#0)
+}
+{
+v27.b |= vlut32(v23.b,v1.b,#0)
+}
+{
+v28.b |= vlut32(v23.b,v0.b,#0)
+}
+{
+v29.b |= vlut32(v30.b,v2.b,#0)
+}
+{
+v9:8 = vshuff(v27,v26,r5)
+}
+{
+r5 = add(r11,#1152)
+v11:10 = vshuff(v29,v28,r5)
+}
+{
+v25:24 = vshuff(v10,v8,r6)
+}
+{
+r6 = #1
+v17:16 = vshuff(v11,v9,r6)
+}
+{
+if (p0) r5 = add(r11,##1664)
+if (p3) vmemu(r5+#0) = v25
+}
+{
+r5 = #4
+if (p0) vmemu(r5+#0) = v17
+}
+{
+if (p1) vmemu(r11+#1) = v24
+}
+{
+if (p2) vmemu(r11+#5) = v16
+}
+{
+v7 = vmemu(r0+#2)
+}
+{
+v31 = vmemu(r0+#3)
+}
+{
+v30.uh = vlsr(v7.uh,r5)
+v28 = vmemu(r0+#4)
+}
+{
+q2 = vand(v28,r8)
+v29.uh = vlsr(v31.uh,r5)
+v31 = vand(v31,v3)
+v13 = vand(v30,v3)
+}
+{
+q3 = vand(v28,r2)
+v31 |= vand(q2,r16)
+r5 = #1
+v12 = vand(v29,v3)
+}
+{
+v13 |= vand(q3,r16)
+q3 = vand(v28,r9)
+}
+{
+v12 |= vand(q3,r16)
+v14.b = vlut32(v31.b,v5.b,#0)
+}
+{
+v15.b = vlut32(v31.b,v4.b,#0)
+}
+{
+v9.b = vlut32(v13.b,v4.b,#0)
+}
+{
+v10.b = vlut32(v13.b,v6.b,#0)
+}
+{
+v14.b |= vlut32(v12.b,v1.b,#0)
+}
+{
+v15.b |= vlut32(v12.b,v0.b,#0)
+}
+{
+v9.b |= vlut32(v31.b,v0.b,#0)
+}
+{
+v10.b |= vlut32(v12.b,v2.b,#0)
+}
+{
+v21:20 = vshuff(v15,v14,r5)
+}
+{
+r5 = #2
+v23:22 = vshuff(v10,v9,r5)
+}
+{
+v27:26 = vshuff(v20,v22,r5)
+}
+{
+r5 = add(r11,#1280)
+v19:18 = vshuff(v21,v23,r5)
+}
+{
+if (p0) r5 = add(r11,##1792)
+if (p3) vmemu(r5+#0) = v27
+}
+{
+r5 = p3
+if (p0) vmemu(r5+#0) = v19
+}
+{
+if (p1) vmemu(r11+#2) = v26
+}
+{
+if (p2) vmemu(r11+#6) = v18
+}
+{
+v18 = vmemu(r0+#5)
+}
+{
+r5 = add(r0,#1152)
+v12 = vand(v18,v3)
+memw(r29+#4) = r5
+}
+{
+r12 = and(r1,#-32)
+v13.uh = vlsr(v18.uh,r12)
+v19 = vmemu(r5+#0)
+}
+{
+q1 = vand(v19,r10)
+v16 = vand(v13,v3)
+v14 = vmemu(r0+#6)
+}
+{
+q3 = vand(v19,r14)
+v12 |= vand(q1,r16)
+p3 = cmp.gtu(r12,#32)
+v15 = vand(v14,v3)
+}
+{
+v16 |= vand(q3,r16)
+q3 = vand(v19,r4)
+if (p3) r1 = #1
+}
+{
+v15 |= vand(q3,r16)
+v17.b = vlut32(v12.b,v5.b,#0)
+}
+{
+v18.b = vlut32(v12.b,v4.b,#0)
+}
+{
+v21.b = vlut32(v12.b,v6.b,#0)
+}
+{
+v22.b = vlut32(v16.b,v5.b,#0)
+}
+{
+v17.b |= vlut32(v16.b,v1.b,#0)
+}
+{
+v18.b |= vlut32(v16.b,v0.b,#0)
+}
+{
+v21.b |= vlut32(v15.b,v2.b,#0)
+}
+{
+v22.b |= vlut32(v15.b,v1.b,#0)
+}
+{
+v25:24 = vshuff(v18,v17,r6)
+}
+{
+r6 = #2
+v31:30 = vshuff(v22,v21,r6)
+}
+{
+v13:12 = vshuff(v30,v24,r6)
+}
+{
+r6 = p2
+v21:20 = vshuff(v31,v25,r6)
+memw(r29+#8) = r6.new
+}
+{
+r6 = memw(r29+#4)
+}
+{
+p2 = r6
+if (p2) vmemu(r11+#7) = v20
+}
+{
+r13 = add(r11,#1920)
+if (p2) vmemu(r13+#0) = v13
+}
+{
+if (p1) vmemu(r11+#3) = v12
+}
+{
+if (p3) r13 = #4
+if (!p3) jump:nt .LBBx_32
+if (p0) vmemu(r13+#0) = v21
+}
+{
+p3 = cmp.gtu(r12,#40)
+v30 = vmemu(r0+#6)
+}
+{
+v7 = vand(v30,v3)
+v31 = vmemu(r0+#7)
+}
+{
+v8.uh = vlsr(v30.uh,r13)
+v9 = vand(v31,v3)
+v29 = vmemu(r5+#0)
+}
+{
+q2 = vand(v29,r4)
+q3 = vand(v29,r7)
+v11.uh = vlsr(v31.uh,r13)
+v10 = vand(v8,v3)
+}
+{
+v10 |= vand(q3,r16)
+q0 = vand(v29,r16)
+v12 = vand(v11,v3)
+r6 = memw(r29+#8)
+}
+{
+v7 |= vand(q2,r16)
+q1 = vand(v29,r2)
+r13 = add(r11,r3)
+}
+{
+v9 |= vand(q0,r16)
+v12 |= vand(q1,r16)
+r15 = add(r13,#1024)
+v14.b = vlut32(v10.b,v5.b,#0)
+}
+{
+p2 = r6
+v13.b = vlut32(v7.b,v6.b,#0)
+r6 = memw(r29+#4)
+}
+{
+v15.b = vlut32(v10.b,v4.b,#0)
+}
+{
+v16.b = vlut32(v10.b,v6.b,#0)
+}
+{
+v13.b |= vlut32(v9.b,v2.b,#0)
+}
+{
+v14.b |= vlut32(v9.b,v1.b,#0)
+}
+{
+v15.b |= vlut32(v9.b,v0.b,#0)
+}
+{
+v16.b |= vlut32(v12.b,v2.b,#0)
+}
+{
+v21:20 = vshuff(v14,v13,r1)
+}
+{
+r1 = #2
+v23:22 = vshuff(v16,v15,r1)
+}
+{
+v15:14 = vshuff(v22,v20,r1)
+}
+{
+v23:22 = vshuff(v23,v21,r1)
+}
+{
+if (p1) vmemu(r13+#0) = v14
+}
+{
+p2 = r6
+if (p2) vmemu(r13+#4) = v22
+}
+{
+r15 = add(r15,#512)
+if (p2) vmemu(r15+#0) = v15
+}
+{
+if (p3) r15 = #4
+if (!p3) jump:nt .LBBx_32
+if (p0) vmemu(r15+#0) = v23
+}
+{
+r5 = add(r0,#1024)
+p3 = cmp.gtu(r12,#48)
+v17 = vmemu(r5+#0)
+}
+{
+q0 = vand(v17,r2)
+q2 = vand(v17,r8)
+v19 = vmemu(r0+#7)
+}
+{
+q3 = vand(v17,r9)
+r5 = #1
+v18 = vmemu(r5+#0)
+}
+{
+if (p3) r1 = #1
+v22.uh = vlsr(v19.uh,r15)
+v20 = vand(v18,v3)
+r6 = memw(r29+#8)
+}
+{
+p2 = r6
+v20 |= vand(q2,r16)
+v21.uh = vlsr(v18.uh,r15)
+v24 = vand(v22,v3)
+}
+{
+v24 |= vand(q0,r16)
+v23 = vand(v21,v3)
+r6 = memw(r29+#4)
+}
+{
+v23 |= vand(q3,r16)
+if (p3) r15 = add(r0,##1280)
+v25.b = vlut32(v20.b,v5.b,#0)
+}
+{
+if (p3) r28 = add(r0,##1408)
+v26.b = vlut32(v20.b,v4.b,#0)
+}
+{
+v27.b = vlut32(v24.b,v4.b,#0)
+}
+{
+v28.b = vlut32(v24.b,v6.b,#0)
+}
+{
+v27.b |= vlut32(v20.b,v0.b,#0)
+}
+{
+v28.b |= vlut32(v23.b,v2.b,#0)
+}
+{
+v25.b |= vlut32(v23.b,v1.b,#0)
+}
+{
+v26.b |= vlut32(v23.b,v0.b,#0)
+}
+{
+v29:28 = vshuff(v28,v27,r5)
+}
+{
+r5 = #2
+v25:24 = vshuff(v26,v25,r5)
+}
+{
+v17:16 = vshuff(v24,v28,r5)
+}
+{
+r5 = add(r13,#1152)
+v25:24 = vshuff(v25,v29,r5)
+}
+{
+if (p1) vmemu(r13+#1) = v16
+}
+{
+p2 = r6
+if (p3) r6 = #4
+if (p2) vmemu(r13+#5) = v24
+}
+{
+r5 = add(r13,#1664)
+if (p2) vmemu(r5+#0) = v17
+}
+{
+if (p3) r5 = add(r0,##1792)
+if (!p3) jump:nt .LBBx_32
+if (p0) vmemu(r5+#0) = v25
+}
+{
+r15 = add(r13,#1280)
+p3 = cmp.gtu(r12,#56)
+v29 = vmemu(r15+#0)
+}
+{
+v31 = vand(v29,v3)
+v30 = vmemu(r5+#0)
+}
+{
+q0 = vand(v30,r10)
+v7.uh = vlsr(v29.uh,r6)
+v8 = vmemu(r28+#0)
+}
+{
+q1 = vand(v30,r14)
+v31 |= vand(q0,r16)
+v9 = vand(v7,v3)
+v13 = vand(v8,v3)
+}
+{
+v9 |= vand(q1,r16)
+q2 = vand(v30,r4)
+r6 = memw(r29+#8)
+}
+{
+p2 = r6
+v13 |= vand(q2,r16)
+v10.b = vlut32(v31.b,v5.b,#0)
+r6 = memw(r29+#4)
+}
+{
+v11.b = vlut32(v31.b,v4.b,#0)
+}
+{
+v12.b = vlut32(v31.b,v6.b,#0)
+}
+{
+v14.b = vlut32(v9.b,v5.b,#0)
+}
+{
+v10.b |= vlut32(v9.b,v1.b,#0)
+}
+{
+v11.b |= vlut32(v9.b,v0.b,#0)
+}
+{
+v12.b |= vlut32(v13.b,v2.b,#0)
+}
+{
+v14.b |= vlut32(v13.b,v1.b,#0)
+}
+{
+v27:26 = vshuff(v11,v10,r1)
+}
+{
+r1 = #2
+v25:24 = vshuff(v14,v12,r1)
+}
+{
+v19:18 = vshuff(v24,v26,r1)
+}
+{
+if (p3) r1 = #1
+v27:26 = vshuff(v25,v27,r1)
+}
+{
+if (p1) vmemu(r13+#2) = v18
+}
+{
+p2 = r6
+if (p3) r6 = #4
+if (p2) vmemu(r13+#6) = v26
+}
+{
+r15 = add(r13,#1792)
+if (p2) vmemu(r15+#0) = v19
+}
+{
+if (p3) r15 = add(r0,##1536)
+if (!p3) jump:nt .LBBx_32
+if (p0) vmemu(r15+#0) = v27
+}
+{
+p2 = cmp.gtu(r12,#64)
+v16 = vmemu(r28+#0)
+}
+{
+v18 = vand(v16,v3)
+v17 = vmemu(r15+#0)
+}
+{
+v19.uh = vlsr(v16.uh,r6)
+v20 = vand(v17,v3)
+v15 = vmemu(r5+#0)
+}
+{
+q3 = vand(v15,r4)
+q0 = vand(v15,r7)
+v22.uh = vlsr(v17.uh,r6)
+v21 = vand(v19,v3)
+}
+{
+v21 |= vand(q0,r16)
+v18 |= vand(q3,r16)
+v27 = vand(v22,v3)
+r17 = memw(r29+#8)
+}
+{
+q1 = vand(v15,r16)
+q3 = vand(v15,r2)
+r28 = add(r13,#1408)
+}
+{
+v20 |= vand(q1,r16)
+v27 |= vand(q3,r16)
+v23.b = vlut32(v18.b,v6.b,#0)
+}
+{
+r6 = p2
+p2 = r17
+v24.b = vlut32(v21.b,v5.b,#0)
+r17 = memw(r29+#4)
+}
+{
+p3 = r17
+v25.b = vlut32(v21.b,v4.b,#0)
+memw(r29+#12) = r6
+}
+{
+v26.b = vlut32(v21.b,v6.b,#0)
+}
+{
+v23.b |= vlut32(v20.b,v2.b,#0)
+}
+{
+v24.b |= vlut32(v20.b,v1.b,#0)
+}
+{
+v25.b |= vlut32(v20.b,v0.b,#0)
+}
+{
+v26.b |= vlut32(v27.b,v2.b,#0)
+}
+{
+v11:10 = vshuff(v24,v23,r1)
+}
+{
+r1 = #2
+v13:12 = vshuff(v26,v25,r1)
+}
+{
+v9:8 = vshuff(v12,v10,r1)
+}
+{
+v13:12 = vshuff(v13,v11,r1)
+}
+{
+if (p1) vmemu(r13+#3) = v8
+}
+{
+r13 = add(r13,#1920)
+if (p2) vmemu(r13+#7) = v12
+}
+{
+r13 = r6
+if (p0) vmemu(r13+#0) = v13
+}
+{
+p3 = r13
+if (!p3.new) jump:t .LBBx_32
+if (p3) vmemu(r28+#0) = v9
+}
+{
+r5 = add(r0,#1664)
+r13 = #4
+v28 = vmemu(r5+#0)
+}
+{
+q1 = vand(v28,r2)
+q2 = vand(v28,r8)
+v30 = vmemu(r15+#0)
+}
+{
+q3 = vand(v28,r9)
+r5 = #1
+v29 = vmemu(r5+#0)
+}
+{
+p2 = cmp.gtu(r12,#72)
+if (p2.new) r6 = #4
+v8.uh = vlsr(v30.uh,r13)
+v31 = vand(v29,v3)
+}
+{
+r13 = addasl(r11,r3,#1)
+v31 |= vand(q2,r16)
+v7.uh = vlsr(v29.uh,r13)
+v10 = vand(v8,v3)
+}
+{
+v10 |= vand(q1,r16)
+if (p2) r1 = #1
+v9 = vand(v7,v3)
+r3 = memw(r29+#8)
+}
+{
+p3 = r3
+v9 |= vand(q3,r16)
+v11.b = vlut32(v31.b,v5.b,#0)
+r3 = memw(r29+#4)
+}
+{
+if (p2) r28 = add(r0,##1920)
+v12.b = vlut32(v31.b,v4.b,#0)
+}
+{
+if (p2) r15 = add(r0,##2048)
+v13.b = vlut32(v10.b,v4.b,#0)
+}
+{
+v14.b = vlut32(v10.b,v6.b,#0)
+}
+{
+v13.b |= vlut32(v31.b,v0.b,#0)
+}
+{
+v14.b |= vlut32(v9.b,v2.b,#0)
+}
+{
+v11.b |= vlut32(v9.b,v1.b,#0)
+}
+{
+v12.b |= vlut32(v9.b,v0.b,#0)
+}
+{
+v29:28 = vshuff(v14,v13,r5)
+}
+{
+r5 = #2
+v31:30 = vshuff(v12,v11,r5)
+}
+{
+v21:20 = vshuff(v30,v28,r5)
+}
+{
+r5 = add(r13,#1024)
+v29:28 = vshuff(v31,v29,r5)
+}
+{
+if (p1) vmemu(r13+#0) = v20
+}
+{
+p3 = r3
+if (p3) vmemu(r13+#4) = v28
+}
+{
+r5 = add(r5,#512)
+if (p3) vmemu(r5+#0) = v21
+}
+{
+if (p2) r5 = add(r0,##2432)
+if (!p2) jump:nt .LBBx_32
+if (p0) vmemu(r5+#0) = v29
+}
+{
+p2 = cmp.gtu(r12,#80)
+v15 = vmemu(r28+#0)
+}
+{
+v17 = vand(v15,v3)
+v16 = vmemu(r5+#0)
+}
+{
+q1 = vand(v16,r10)
+v18.uh = vlsr(v15.uh,r6)
+v19 = vmemu(r15+#0)
+}
+{
+q0 = vand(v16,r14)
+v17 |= vand(q1,r16)
+v20 = vand(v18,v3)
+v24 = vand(v19,v3)
+}
+{
+v20 |= vand(q0,r16)
+q2 = vand(v16,r4)
+r6 = #2
+r3 = memw(r29+#8)
+}
+{
+p3 = r3
+v24 |= vand(q2,r16)
+v21.b = vlut32(v17.b,v5.b,#0)
+r3 = memw(r29+#4)
+}
+{
+if (p2) r14 = #4
+v22.b = vlut32(v17.b,v4.b,#0)
+}
+{
+v23.b = vlut32(v17.b,v6.b,#0)
+}
+{
+v25.b = vlut32(v20.b,v5.b,#0)
+}
+{
+v21.b |= vlut32(v20.b,v1.b,#0)
+}
+{
+v22.b |= vlut32(v20.b,v0.b,#0)
+}
+{
+v23.b |= vlut32(v24.b,v2.b,#0)
+}
+{
+v25.b |= vlut32(v24.b,v1.b,#0)
+}
+{
+v29:28 = vshuff(v22,v21,r1)
+}
+{
+v31:30 = vshuff(v25,v23,r1)
+}
+{
+v23:22 = vshuff(v30,v28,r6)
+}
+{
+r6 = add(r13,#1152)
+v31:30 = vshuff(v31,v29,r6)
+}
+{
+if (p1) vmemu(r13+#1) = v22
+}
+{
+p3 = r3
+if (p3) vmemu(r13+#5) = v30
+}
+{
+r6 = add(r13,#1664)
+if (p3) vmemu(r6+#0) = v23
+}
+{
+if (p2) r6 = add(r0,##2176)
+if (!p2) jump:nt .LBBx_32
+if (p0) vmemu(r6+#0) = v31
+}
+{
+p2 = cmp.gtu(r12,#88)
+if (p2.new) r1 = #4
+v27 = vmemu(r15+#0)
+}
+{
+v29 = vand(v27,v3)
+v28 = vmemu(r6+#0)
+}
+{
+v30.uh = vlsr(v27.uh,r14)
+v31 = vand(v28,v3)
+v26 = vmemu(r5+#0)
+}
+{
+q3 = vand(v26,r4)
+q1 = vand(v26,r7)
+v8.uh = vlsr(v28.uh,r14)
+v7 = vand(v30,v3)
+}
+{
+v7 |= vand(q1,r16)
+v29 |= vand(q3,r16)
+r4 = #1
+v13 = vand(v8,v3)
+}
+{
+q0 = vand(v26,r16)
+q3 = vand(v26,r2)
+r7 = #2
+r3 = memw(r29+#8)
+}
+{
+v31 |= vand(q0,r16)
+v13 |= vand(q3,r16)
+v9.b = vlut32(v29.b,v6.b,#0)
+}
+{
+p3 = r3
+v10.b = vlut32(v7.b,v5.b,#0)
+r3 = memw(r29+#4)
+}
+{
+v11.b = vlut32(v7.b,v4.b,#0)
+}
+{
+v12.b = vlut32(v7.b,v6.b,#0)
+}
+{
+v9.b |= vlut32(v31.b,v2.b,#0)
+}
+{
+v10.b |= vlut32(v31.b,v1.b,#0)
+}
+{
+v11.b |= vlut32(v31.b,v0.b,#0)
+}
+{
+v12.b |= vlut32(v13.b,v2.b,#0)
+}
+{
+v21:20 = vshuff(v10,v9,r4)
+}
+{
+r4 = add(r13,#1280)
+v23:22 = vshuff(v12,v11,r4)
+}
+{
+v15:14 = vshuff(v23,v21,r7)
+}
+{
+r7 = add(r13,#1792)
+v11:10 = vshuff(v22,v20,r7)
+}
+{
+p3 = r3
+if (p3) vmemu(r13+#6) = v14
+}
+{
+if (p1) vmemu(r13+#2) = v10
+}
+{
+if (p2) r4 = add(r0,##2304)
+if (p3) vmemu(r4+#0) = v11
+}
+{
+if (!p2) jump:nt .LBBx_32
+if (p0) vmemu(r7+#0) = v15
+}
+{
+v16 = vmemu(r6+#0)
+}
+{
+r7 = #1
+r0 = #2
+v15 = vmemu(r4+#0)
+}
+{
+v19.uh = vlsr(v16.uh,r1)
+v17 = vand(v15,v3)
+v14 = vmemu(r5+#0)
+}
+{
+q2 = vand(v14,r2)
+q3 = vand(v14,r8)
+v18.uh = vlsr(v15.uh,r1)
+v30 = vand(v19,v3)
+}
+{
+v17 |= vand(q3,r16)
+v30 |= vand(q2,r16)
+v20 = vand(v18,v3)
+r3 = memw(r29+#8)
+}
+{
+q0 = vand(v14,r9)
+r2 = add(r13,#1408)
+}
+{
+v20 |= vand(q0,r16)
+v5.b = vlut32(v17.b,v5.b,#0)
+}
+{
+v21.b = vlut32(v17.b,v4.b,#0)
+}
+{
+v31.b = vlut32(v30.b,v4.b,#0)
+}
+{
+v6.b = vlut32(v30.b,v6.b,#0)
+}
+{
+v31.b |= vlut32(v17.b,v0.b,#0)
+}
+{
+v6.b |= vlut32(v20.b,v2.b,#0)
+}
+{
+v5.b |= vlut32(v20.b,v1.b,#0)
+}
+{
+v21.b |= vlut32(v20.b,v0.b,#0)
+}
+{
+v7:6 = vshuff(v6,v31,r7)
+}
+{
+v31:30 = vshuff(v21,v5,r7)
+}
+{
+v3:2 = vshuff(v30,v6,r0)
+}
+{
+v1:0 = vshuff(v31,v7,r0)
+r0 = memw(r29+#4)
+}
+{
+p1 = r3
+if (p1) vmemu(r13+#3) = v2
+}
+{
+p1 = r0
+if (p1) vmemu(r13+#7) = v0
+}
+{
+if (p0) r2 = add(r13,##1920)
+if (p1) vmemu(r2+#0) = v3
+}
+{
+if (p0) vmemu(r2+#0) = v1
+}
+.falign
+.LBBx_32:
+{
+r17:16 = memd(r29+#168)
+r19:18 = memd(r29+#160)
+}
+{
+r21:20 = memd(r29+#152)
+r23:22 = memd(r29+#144)
+}
+{
+r25:24 = memd(r29+#136)
+r27:26 = memd(r29+#128)
+}
+{
+r31:30 = dealloc_return(r30):raw
+}
+.Lfunc_endX:
+.size	hvx_tl2_expand_wh96, .Lfunc_endX-hvx_tl2_expand_wh96

@@ -1,0 +1,38 @@
+[
+  {
+    "command": [
+      "cc",
+      "-std=c11",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-pedantic",
+      "-I",
+      "/tmp/nntr-lfm2-tl2-expand-noalias-20261016/candidate/nntrainer/tensor/htp_backend/hvx",
+      "-x",
+      "c",
+      "-fsyntax-only",
+      "-"
+    ],
+    "exit_code": 0,
+    "output": ""
+  },
+  {
+    "command": [
+      "c++",
+      "-std=c++17",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-pedantic",
+      "-I",
+      "/tmp/nntr-lfm2-tl2-expand-noalias-20261016/candidate/nntrainer/tensor/htp_backend/hvx",
+      "-x",
+      "c++",
+      "-fsyntax-only",
+      "-"
+    ],
+    "exit_code": 0,
+    "output": ""
+  }
+]

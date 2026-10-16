@@ -1,0 +1,650 @@
+{
+  "1024": {
+    "tag": "continue-expand-noalias-trace1024",
+    "warmup_calls": 1,
+    "main_calls": 38,
+    "main_active_experts": 2283,
+    "actual_disjoint_main_calls": 1789872,
+    "all_counts_equal_784_per_active_expert": true,
+    "ids_match_reference": true,
+    "trace_excluded_from_perf": true,
+    "rows": [
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 64,
+        "count": 50176
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 52,
+        "count": 40768
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 63,
+        "count": 49392
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 64,
+        "count": 50176
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 62,
+        "count": 48608
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 64,
+        "count": 50176
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 62,
+        "count": 48608
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 64,
+        "count": 50176
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 61,
+        "count": 47824
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 54,
+        "count": 42336
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 62,
+        "count": 48608
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 64,
+        "count": 50176
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 63,
+        "count": 49392
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 55,
+        "count": 43120
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 58,
+        "count": 45472
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 62,
+        "count": 48608
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 62,
+        "count": 48608
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 52,
+        "count": 40768
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 57,
+        "count": 44688
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 62,
+        "count": 48608
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 64,
+        "count": 50176
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 50,
+        "count": 39200
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 58,
+        "count": 45472
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 56,
+        "count": 43904
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 58,
+        "count": 45472
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 59,
+        "count": 46256
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 61,
+        "count": 47824
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 64,
+        "count": 50176
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 62,
+        "count": 48608
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 61,
+        "count": 47824
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 62,
+        "count": 48608
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 62,
+        "count": 48608
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 60,
+        "count": 47040
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 61,
+        "count": 47824
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 60,
+        "count": 47040
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 60,
+        "count": 47040
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 63,
+        "count": 49392
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 61,
+        "count": 47824
+      },
+      {
+        "M": 1024,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 58,
+        "count": 45472
+      }
+    ]
+  },
+  "2048": {
+    "tag": "continue-expand-noalias-trace2048",
+    "warmup_calls": 1,
+    "main_calls": 38,
+    "main_active_experts": 2328,
+    "actual_disjoint_main_calls": 1825152,
+    "all_counts_equal_784_per_active_expert": true,
+    "ids_match_reference": true,
+    "trace_excluded_from_perf": true,
+    "rows": [
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 64,
+        "count": 50176
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 54,
+        "count": 42336
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 63,
+        "count": 49392
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 64,
+        "count": 50176
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 63,
+        "count": 49392
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 64,
+        "count": 50176
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 64,
+        "count": 50176
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 64,
+        "count": 50176
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 63,
+        "count": 49392
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 55,
+        "count": 43120
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 63,
+        "count": 49392
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 64,
+        "count": 50176
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 64,
+        "count": 50176
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 56,
+        "count": 43904
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 60,
+        "count": 47040
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 63,
+        "count": 49392
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 63,
+        "count": 49392
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 54,
+        "count": 42336
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 61,
+        "count": 47824
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 62,
+        "count": 48608
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 64,
+        "count": 50176
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 53,
+        "count": 41552
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 61,
+        "count": 47824
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 59,
+        "count": 46256
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 60,
+        "count": 47040
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 59,
+        "count": 46256
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 61,
+        "count": 47824
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 64,
+        "count": 50176
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 62,
+        "count": 48608
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 62,
+        "count": 48608
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 63,
+        "count": 49392
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 63,
+        "count": 49392
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 61,
+        "count": 47824
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 61,
+        "count": 47824
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 62,
+        "count": 48608
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 63,
+        "count": 49392
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 64,
+        "count": 50176
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 61,
+        "count": 47824
+      },
+      {
+        "M": 2048,
+        "K": 2048,
+        "I": 1536,
+        "N": 2048,
+        "active_experts": 61,
+        "count": 47824
+      }
+    ]
+  }
+}

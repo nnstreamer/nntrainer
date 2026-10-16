@@ -1,0 +1,2 @@
+         U __hexagon_udivsi3
+         U memset

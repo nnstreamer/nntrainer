@@ -1,0 +1,6 @@
+{
+  "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.c": "e6d36c146ad665405eb9cb3b2a226d7eddb7779b806e8a65bd2be732d93c6f48",
+  "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.h": "ac0d714b63eb9570782956f8c8d2ac9600a5a40322741d4e6492bfd9dab27670",
+  "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "241396def91330268db275c47a1968a3c0f8382f30a1e36f5a8466c118600406",
+  "production.patch": "59306fe9542a22cd278f0ed08fbee5a7cbcafbee2d2515da88a045bbe7af971e"
+}
