@@ -225,6 +225,39 @@
     $("runUser").disabled = !connected || busy;
     $("runUser").textContent = `사용자 ${u?.label || "C"} 추론 실행 · 추가 학습 없음`;
   }
+  // One dock cell; shared by the phone mockups and the frequency strip so both
+  // use the same geometry and the same target outline.
+  function dockItem(index, value, sc) {
+    const row = element("div", "app-result");
+    row.dataset.appId = ids[index];
+    if (expectedApps(sc).includes(index)) row.classList.add("native-target");
+    row.append(icon(index));
+    const text = element("div", "app-result-name");
+    text.append(element("strong", "", names[index]), element("span", "", value));
+    row.append(text);
+    return row;
+  }
+  const expectedApps = (sc) => sc.required_indices.length ? sc.required_indices : [sc.answer_index];
+  const personas = {
+    B: {title: "개인사업자", summary: "길찾기는 네이버지도, 송금은 사업용과 개인용을 나눠 씁니다.",
+      facts: [["이동", 0], ["사업 송금", 9], ["개인 송금", 5]]},
+    C: {title: "대학생", summary: "이동할 땐 카카오맵과 YouTube를 함께 켜고, 송금은 모두 토스로 합니다.",
+      facts: [["이동", 1], ["영상", 6], ["모든 송금", 4]]},
+  };
+  // Why each user's labelled answer follows from the persona, per scenario variant.
+  const reasons = {
+    B: {moving_map: "이동 중 길찾기는 항상 네이버지도", moving_video: "직전에 영상을 봤어도 이동 중엔 네이버지도",
+      business_goods: "물품 대금은 사업 송금 → 기업은행", personal_meal: "점심값은 개인 송금 → 카카오페이"},
+    C: {moving_map: "이동 중엔 카카오맵 길찾기와 YouTube를 함께", moving_video: "보던 YouTube를 이어 보며 카카오맵으로 이동",
+      business_goods: "용도와 상관없이 송금은 토스", personal_meal: "개인 송금도 토스"},
+  };
+  function selectUser(row) {
+    if (row.id === selectedUser) return;
+    selectedUser = row.id;
+    selectedScenario = visibleScenarios(row)[0]?.index || 0;
+    render();
+    command("select");
+  }
   function phone(result, label, sc) {
     const col = element("div", "result-column " + label);
     col.append(
@@ -274,19 +307,8 @@
         )
       );
     const dock = element("div", "recommendation-dock");
-    for (const index of top4(result)) {
-      const row = element("div", "app-result");
-      row.dataset.appId = ids[index];
-      if (index === sc.answer_index) row.classList.add("native-target");
-      row.append(icon(index));
-      const text = element("div", "app-result-name");
-      text.append(
-        element("strong", "", names[index]),
-        element("span", "", pct(result.probs[index]))
-      );
-      row.append(text);
-      dock.append(row);
-    }
+    for (const index of top4(result))
+      dock.append(dockItem(index, pct(result.probs[index]), sc));
     while (dock.children.length < 4) dock.append(element("div", "dock-empty"));
     screen.append(dock);
     shell.append(screen);
@@ -298,48 +320,71 @@
     return col;
   }
   function renderPreferences(u, sc) {
-    const profiles = {
-      B: {title: "개인사업자", facts: [["이동", 0], ["사업 송금", 9], ["개인 송금", 5]]},
-      C: {title: "대학생", facts: [["이동", 1], ["영상", 6], ["모든 송금", 4]]},
-    };
-    $("userPreferences").replaceChildren(...["B", "C"].map(label => {
-      const active = label === u.label;
-      const card = element("section", "user-overview preference-card" + (active ? " selected" : ""));
+    $("userPreferences").replaceChildren(...device.users.map(row => {
+      const label = row.label, persona = personas[label], active = row.id === u.id;
+      const card = element("div", "user-overview preference-card" + (active ? " selected" : ""));
       card.dataset.user = label;
-      card.setAttribute("aria-labelledby", `persona-${label}`);
+      card.setAttribute("role", "button");
+      card.setAttribute("aria-pressed", String(active));
+      card.tabIndex = 0;
+      card.onclick = () => selectUser(row);
+      card.onkeydown = (event) => {
+        if (event.key === "Enter" || event.key === " ") { event.preventDefault(); selectUser(row); }
+      };
       const heading = element("header", "persona-header");
       const identity = element("div", "persona-identity");
-      const title = element("h3", "persona-title", profiles[label].title);
-      title.id = `persona-${label}`;
-      identity.append(element("span", "persona-user", `사용자 ${label}`), title);
+      identity.append(element("span", "persona-user", `사용자 ${label}`), element("h3", "persona-title", persona.title));
       heading.append(element("span", "user-avatar", label), identity);
-      if (active) heading.append(element("span", "persona-selected", "선택 중"));
+      heading.append(element("span", "persona-selected", active ? "선택 중" : "선택"));
       const facts = element("dl", "persona-patterns");
-      for (const [category, app] of profiles[label].facts) {
+      for (const [category, app] of persona.facts) {
         const item = element("div", "persona-pattern"), value = element("dd");
         value.append(icon(app), element("span", "", names[app]));
         item.append(element("dt", "", category), value);
         facts.append(item);
       }
-      const peer = device.users.find(row => row.label === label).scenarios.find(row => row.event_id === sc.event_id);
-      const expected = peer.required_indices.length ? peer.required_indices : [peer.answer_index];
-      const current = element("div", "persona-current");
-      const apps = element("div", "persona-current-apps");
-      for (const index of expected) {
-        const app = element("span", "persona-current-app");
-        app.append(icon(index), element("span", "", names[index]));
-        apps.append(app);
-      }
-      current.append(element("span", "persona-current-label", "이 시나리오의 선호"), apps);
-      card.append(heading, facts, current);
+      card.append(heading, element("p", "persona-summary", persona.summary), facts);
       return card;
     }));
-    const expected = sc.required_indices.length ? sc.required_indices : [sc.answer_index];
-    const matched = expected.filter(i => top4(sc.after).includes(i)).length;
-    $("preferenceStatus").textContent = sc.after
-      ? `사용자 ${u.label} · AFTER 선호 앱 ${matched}/${expected.length} 포함`
-      : `사용자 ${u.label} · 학습 후 결과 대기`;
-    $("preferenceStatus").classList.toggle("partial", Boolean(sc.after && matched < expected.length));
+    renderExpectation(u, sc);
+  }
+  function appChip(index, cls = "expect-app") {
+    const app = element("span", cls);
+    app.append(icon(index), element("span", "", names[index]));
+    return app;
+  }
+  function renderExpectation(u, sc) {
+    const expected = expectedApps(sc);
+    const reason = element("div", "expect-reason");
+    reason.append(element("span", "user-avatar", u.label),
+      element("p", "", `${personas[u.label].title} · ${reasons[u.label]?.[sc.variant] || "학습 데이터의 선호 패턴"}`));
+    const apps = element("div", "expect-apps");
+    apps.append(...expected.map(index => appChip(index)));
+    const main = element("div", "expect-main"), line = element("div", "expect-line");
+    line.append(apps);
+    main.append(reason, line);
+
+    const checks = element("dl", "expect-checks");
+    const freq = u.frequency_baseline.top4.map(row => row.index);
+    for (const [name, top] of [["BEFORE", sc.before && top4(sc.before)], ["빈도 추천", freq], ["AFTER", sc.after && top4(sc.after)]]) {
+      const hit = top ? expected.filter(i => top.includes(i)).length : null;
+      const value = element("dd", hit == null ? "pending" : hit === expected.length ? "hit" : "miss",
+        hit == null ? "대기" : `${hit === expected.length ? "✓" : "✗"} ${hit}/${expected.length}`);
+      checks.append(element("dt", "", name), value);
+    }
+    const side = element("div", "expect-side");
+    side.append(element("div", "expect-side-label", "Top4 포함"), checks);
+    const peer = device.users.find(row => row.id !== u.id);
+    const peerSc = peer?.scenarios.find(row => row.event_id === sc.event_id);
+    if (peerSc) {
+      const contrast = element("div", "expect-contrast");
+      contrast.append(element("span", "", `같은 입력, 사용자 ${peer.label}라면`));
+      const peerApps = element("span", "expect-contrast-apps");
+      peerApps.append(...expectedApps(peerSc).map(index => appChip(index, "expect-contrast-app")));
+      contrast.append(peerApps);
+      line.append(contrast);
+    }
+    $("expectation").replaceChildren(main, side);
   }
   function renderTrainingDetails(u) {
     const epochs = u.epochs;
@@ -404,25 +449,6 @@
     if (!u) return;
     if (selectedScenario >= u.scenarios.length) selectedScenario = 0;
     const sc = scenario();
-    $("profiles").replaceChildren(
-      ...device.users.map((row) =>
-        button(`${row.label} · ${row.persona}`, row.id === selectedUser, () => {
-          selectedUser = row.id;
-          selectedScenario = visibleScenarios(row)[0]?.index || 0;
-          render();
-          command("select");
-        })
-      )
-    );
-    $("profileDescription").textContent = `${u.label === "B" ? "개인사업자 · 사업 기업은행/개인 카카오페이" : "대학생 · 카카오맵/YouTube · 토스"} · ${u.data_rows}개 학습 · ${
-      u.status === "complete"
-        ? "전후 비교 준비 완료"
-        : u.status === "trained"
-        ? "학습 완료"
-        : u.status === "training"
-        ? "학습 중"
-        : "학습 전"
-    }`;
     $("scenarios").replaceChildren(
       ...visibleScenarios(u).map(({label, index}) =>
         button(label, index === selectedScenario, () => {
@@ -472,19 +498,13 @@
       return index ? [element("span", "recent-arrow", "›"), item] : [item];
     }));
     const frequency = u.frequency_baseline;
-    $("frequencySource").textContent = `학습 데이터 정답 앱 ${frequency.total}건 기준 · 상황 미반영`;
+    $("frequencySource").textContent = `학습 데이터 ${frequency.total}건 · 상황 미반영`;
     $("frequencySource").title = "사용 횟수 내림차순, 동률이면 고정된 앱 후보 순서로 표시합니다.";
     $("frequencyApps").replaceChildren(...Array.from({length: 4}, (_, rank) => {
-      const row = frequency.top4[rank], item = element("div", "frequency-item");
-      if (row) {
-        item.dataset.appId = ids[row.index];
-        if (row.index === sc.answer_index) item.classList.add("native-target");
-        item.append(icon(row.index), element("span", "frequency-name", names[row.index]),
-          element("span", "frequency-count", `${row.count}회 · ${pct(row.share)}`));
-      } else {
-        item.classList.add("frequency-empty");
-        item.append(element("span", "frequency-placeholder", "—"), element("span", "frequency-name", "기록 없음"));
-      }
+      const row = frequency.top4[rank];
+      if (!row) return element("div", "dock-empty");
+      const item = dockItem(row.index, pct(row.share), sc);
+      item.title = `${row.count}회 / ${frequency.total}건`;
       return item;
     }));
     renderPreferences(u, sc);
@@ -495,10 +515,8 @@
       phone(sc.before, "before", sc),
       phone(sc.after, "after", sc)
     );
-    const target = names[sc.answer_index];
-    $(
-      "targetNote"
-    ).textContent = `정답: ${target} · Top4에 포함 시 테두리 표시`;
+    $("targetNote").textContent =
+      `기대 앱: ${expectedApps(sc).map(i => names[i]).join(" · ")} · Top4에 포함되면 테두리 표시`;
     const required = sc.required_indices;
     $("pairFocus").hidden = !required.length;
     if (required.length) {

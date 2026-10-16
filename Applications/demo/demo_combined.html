@@ -105,17 +105,7 @@
         </div>
         <div class="flow-grid">
           <div class="workspace-panel">
-            <nav class="selection-panel" aria-label="사용자와 시나리오 선택">
-              <div class="selection-users">
-                <div class="panel-label">사용자 선택</div>
-                <div
-                  id="profiles"
-                  class="segmented"
-                  role="group"
-                  aria-label="개인 adapter 비교"
-                ></div>
-                <p id="profileDescription" class="subtle"></p>
-              </div>
+            <nav class="selection-panel" aria-label="시나리오 선택">
               <div class="selection-scenarios">
                 <div class="panel-label">시나리오 선택</div>
                 <div id="scenarios" class="scenario-tabs" role="group" aria-label="시나리오 선택"></div>
@@ -135,6 +125,10 @@
                 </div>
               </div>
             </div>
+            <div class="expect-panel">
+              <div class="panel-label">EXPECTED <span>사용자 선호 → 이 상황의 기대 앱</span></div>
+              <div id="expectation" class="expectation"></div>
+            </div>
           </div>
           <div class="prediction-panel">
             <div class="panel-label">
@@ -149,19 +143,19 @@
             ></div>
             <div id="predictionResults" class="prediction-results"></div>
             <div class="frequency-row">
-              <div class="frequency-baseline">
-                <div class="recent-label">사용 빈도 기준 추천 <span>사용자별 고정</span></div>
-                <p id="frequencySource" class="frequency-source"></p>
-                <div id="frequencyApps" class="frequency-apps"></div>
+              <div class="frequency-shell">
+                <p class="frequency-heading">사용 빈도 기준 추천 <span id="frequencySource"></span></p>
+                <div class="frequency-screen">
+                  <div id="frequencyApps" class="recommendation-dock frequency-dock"></div>
+                </div>
               </div>
               <div class="frequency-spacer"></div>
             </div>
             <p id="targetNote" class="target-note"></p>
           </div>
           <aside class="story-panel" aria-labelledby="userStoryTitle">
-            <div class="panel-label" id="userStoryTitle">사용자 소개 <span>데모의 이용 성향</span></div>
-            <div id="userPreferences" class="overview-grid"></div>
-            <p id="preferenceStatus" class="preference-status"></p>
+            <div class="panel-label" id="userStoryTitle">사용자 선택 <span>카드를 눌러 전환 · 사용자별 LoRA</span></div>
+            <div id="userPreferences" class="overview-grid" role="group" aria-label="사용자 선택"></div>
           </aside>
         </div>
         <p id="actionStatus" role="status" aria-live="polite">
