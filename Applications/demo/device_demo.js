@@ -478,6 +478,7 @@
       const row = frequency.top4[rank], item = element("div", "frequency-item");
       if (row) {
         item.dataset.appId = ids[row.index];
+        if (row.index === sc.answer_index) item.classList.add("native-target");
         item.append(icon(row.index), element("span", "frequency-name", names[row.index]),
           element("span", "frequency-count", `${row.count}회 · ${pct(row.share)}`));
       } else {
