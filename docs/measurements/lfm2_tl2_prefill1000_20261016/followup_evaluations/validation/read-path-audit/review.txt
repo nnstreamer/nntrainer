@@ -1,0 +1,146 @@
+Decode direct-I/O path audit (read-only), 2026-10-16
+Source inspected: root HEAD 9d8706182fcf56fb41de3c9ec5af17c7ee80e8a4,
+with current handoff/pair-read code. Root tree and phone were not changed.
+Constraints: C16, PAGE0, preload128, existing 2 speculative/4 demand readers,
+32 spare slots. No new reader/cache/preload or ownership capacity proposed.
+
+Measured location of time
+Latest three normal handoff-on 1024/64 runs: 4044 misses, 2059 miss rounds.
+Exposed miss wait is 30.397/30.777/30.849 ms per token (old release 31.992).
+A round has pre19-20us, read1027-1038us, answer total1047-1058us,
+existing DSP overlap125-126us, answer observation23-25us, rebind20us.
+These correspond per token to pre0.61-0.64ms, read33.04-33.39ms,
+already-overlapped work4.02-4.05ms, observation0.74-0.80ms, rebind0.64ms.
+Answer preparation after read is only 0-1us/round at printed precision.
+Rebind is AFTER miss_us stops, so removing rebind would reduce MoE net time,
+not the measured 30ms miss-wait component. Numbers are rounded counters.
+
+Registration/copy is already avoided where possible
+* htp_compute_ops.cpp:3853 poolAnswer stages slots and claims predictions.
+  :8837 readMisses starts all unrelated demand jobs first, then joins claimed
+  reads. The takeClaimed loop does not serialize the physical reads: those
+  callbacks are already running concurrently. Error fallback is serial but
+  failed=0 in these runs, so it is not the observed bottleneck.
+* :8813 adoptPrefetch swaps owned buffers/handles. No full-weight memcpy.
+* :3951 readMisses is followed by one miss answer, no registration RPC.
+  Logs explicitly report registration_rpc=0. The DSP handles are rebound
+  inside its existing token RPC, hmx/hexkl_token.c:215 tk_miss_wait.
+* :3990-4020 publishes the answer only after ALL misses finish. Each read can
+  become host-ready earlier, but there is no per-expert DSP-ready publication.
+* hmx/hexkl_mm_u8i4_dma.c:169 copies just scales/sums into DSP metadata via
+  DMA and drains. Compact rebind :514 updates addresses and copies metadata.
+  Stable-slot generation is set to the observed value after rebind, so the
+  next compute's refresh check does not duplicate that metadata copy.
+* utils/weight_file_reader.cpp:232 has one direct pread into the existing
+  2MiB scratch, then one scatter to the DMA slot plus small CPU metadata.
+  It deliberately uses ordinary scratch because FastRPC mappings can fail
+  O_DIRECT page pinning with EFAULT. Merely changing the destination to ION
+  is not an established zero-copy alternative. Alignment overhead is already
+  about 0.2% in the native prefill trace; each full pair needs one syscall.
+
+Partial-completion calculation: feasible, limited time budget
+hmx/hexkl_graph.c:180 graph_moe_miss already posts first, computes resident
+experts into g->moe_rows while the ARM reads, then waits for ALL misses,
+computes missing rows, and combines weighted rows in ascending expert order.
+Existing hit compute is already hidden (about4ms/token). Its gain must not be
+counted a second time when estimating a partial-ready design.
+
+For k missing experts with completion times r1<=...<=rk, resident work ending
+at H, and early expert computation C1...C(k-1), the optimistic additional gain
+is bounded by min(max(0,rk-max(H,r1)), sum(C1...C(k-1))). Scheduling gaps,
+metadata rebind, smaller batches, extra quantization/pool dispatch subtract
+from this bound. No existing decode trace records r1...rk, so a measured
+first-to-last completion gap cannot be extracted from aggregate profiles.
+
+Counts give a stronger work limit than pretending all30ms is removable:
+38*64=2432 layer executions; 67.89 calls/token resolves to4345 kernel calls.
+With the native ROWS_OUT schedule, mixed resident/miss rounds=4345-2432=1913,
+and all-four-missing rounds=2059-1913=146 (2.28/token). This inference assumes
+the current native ROWS_OUT support, without per-expert unsupported fallback.
+Across every round there are at most4044-2059=1985 early-arrival experts,
+or31.02/token, whose work could precede the final read completion.
+A UNIFORM-COST estimate from MoE net9.504ms/152 experts gives ~1.94ms/token;
+a single four-miss round permits at most three early experts, ~188us on that
+same model. This is a cost model, not a measured or rigorous time ceiling:
+per-expert costs vary and graph/kernel fixed costs cannot simply be divided.
+With unchanged I/O completion times, the rigorous compute-overlap ceiling is
+the remaining missed-expert compute component, bounded loosely by the whole
+9.5ms MoE net. Actual useful overlap
+needs completion-gap counters and is expected below the uniform estimate
+when splitting loses the current batch efficiencies.
+
+Possible implementation boundary, NOT implemented
+The current 32KiB g->moe_rows at top4/N2048 already stores each weighted expert
+result independently. A partial-ready consumer can retain each result in its
+original row and perform the SAME final ascending sum, without new heap/VTCM.
+Each pending StagedExpert and its slot remains owned until read completion;
+a claimed speculative slot moves exactly once. All evictions must be applied
+once before any partial rebind. Only the DSP compute thread may rebind between
+kernel calls, because metadata rebind shares the compute DMA ring. Read worker
+threads must not launch concurrent registration RPCs.
+Need: bounded per-load readiness + final completion/error in mailbox protocol,
+readiness callback/try-consume for demanded and claimed reads, DSP wait_some,
+error draining/harvest of partial successes, original-position output rows.
+Both ARM and DSP must be versioned/gated together; partial records need cache
+line isolation from DSP-written handle acknowledgments. Existing 1024B answer
+uses860B (16 experts), leaving164B, but layout/coherency design must be proven;
+no assumption of freely sharing dirty ARM/DSP cache lines. Can retain current
+protocol entirely for Gemma and older skeletons. EOF after earlier successes
+must still abort token and drain/return every slot before reuse. This is a
+protocol change, not a local immediate-register switch. Not implemented.
+
+Speculation: queued cancellations versus already-started I/O
+Three runs: submitted3859-3860, completed3303-3335, used2780-2798,
+handoff321-338, failed/cancelled0. Demand physical reads=4044-used, so each
+needed miss is read once: e.g.2780 used +1264 demand =4044 exactly.
+200-218 wrong queued guesses/run already expire without any physical read.
+321-338 handed-off queued guesses also do no speculative I/O; their needed
+read runs in the existing demand pool. Handoff mostly removes scheduling
+wait, not one additional necessary payload.
+523-542 completed pairs/run are never used:8.17-8.47/token,
+16.48-17.08MB/token,11.45%-11.82% of all physical full-pair reads.
+Current native pair callback ignores cancellation once it starts one blocking
+pread; it cannot cancel that syscall. Expiry retires the slot and does not
+reuse it while the worker writes. Completed but wrong reads are discarded.
+No claim that all of these were still in-flight when the real route arrived:
+aggregate counters also include already-ready wrong guesses.
+
+One small bounded candidate: after a speculative pread completes, consult
+its cancellation check BEFORE scattering payload/metadata, and return
+Cancelled if retired. This preserves claimed/owned-slot semantics and skips
+CPU copy/validation on obsolete pairs, but saves NO bytes of the completed
+pread. It helps only wrong pairs that expire before copy starts. Using the
+prefill's122us average copy as a cost reference, skipping every unused pair
+would save roughly1.0ms reader-CPU time/token; actual eligible subset and
+critical-path time are smaller and are not measured by current decode logs.
+The current queued expiry already removes unread wrong jobs; moving it20us
+earlier during poolAnswer has a small window and cannot erase30ms of waits.
+No code/experimental expansion was made.
+
+Panel2 dispatch follow-up
+Actual local libnntr_hvx_skel.so SHA5e9f0cffb5b264e35360c4ffb94c2faf3d48525f6f30ea872f35b1a7fed3814c
+matches panel2-dngu-artifacts.json. Its disassembly has actual panel_pair calls
+from GU0x35718 and DN0x37680, and the v81 nomatch/predicated-sign body,384B
+frame. Build log says V81, model log says M1on/feedVTCM/dma_q4. Native compact
+registration gives bits2 and +/-1 palette, M1/shape guard is satisfied by the
+model's K2048/inter1536/N2048. No dispatch-off evidence was found, though there
+is no runtime call counter in this production image.
+The isolated simulator's absolute saving is only~900cycles/DN pair and
+~1208cycles/GU2+1 per lane. At152 experts and eight parallel lanes,2113MHz,
+that projects to~65us DN plus~87us GU per token before DMA/pool overlap effects.
+The13%/9% isolated percentages must NOT be applied to the entire9.5ms MoE net.
+Device results showing no useful gain are consistent; keep candidate excluded.
+
+Panel2 final device decision (root measurements, same C16/PAGE0/preload128)
+  Control: decode TPS 17.7187,17.6698,17.4911, median17.6698; profile MoE net9490.0us/token, wait30409.5us/token.
+  DN: decode TPS 17.6942,17.7384,17.6163, median17.6942; profile MoE net9523.0us/token, wait31250.4us/token.
+  DN+GU: decode TPS 17.5294,17.6211,17.2136, median17.5294; profile MoE net9471.0us/token, wait30703.1us/token.
+  All nine normal runs: valid, reference IDs exact (same SHA256).
+  No consistent model/kernel gain; parent reversed production/tests and kept
+  artifacts. Panel2 is EXCLUDED from accepted optimization. The isolated
+  ~0.065ms DN +~0.087ms GU are ideal eight-lane projections, not silicon
+  guarantees; DMA/pool contention/overlap and additional scratch writes can
+  erase them. No runtime diagnostic or extra device experiment was requested.
+  Source/patch/host+sim validation remain under ../panel2; actual binary
+  disassembly is ../panel2/production-disasm.txt. Normal/profile raw files are
+  in the root measurement directory under postpush-panel{0,dn,gu}-*.

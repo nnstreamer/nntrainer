@@ -1,0 +1,92 @@
+Native TL2 paired activation-LUT candidate, 2026-10-16
+
+Base and artifacts
+  Own worktree: nntrainer-lfm2-tl2-panel2-20261016, bf10e0e04 plus DN4.
+  lfm2-tl2-panel-pair-production.patch: three production files only.
+  lfm2-tl2-panel-pair-tests.patch: primitive fixture, actual-worker fixture delta,
+    and portable run_host_checks.sh commands.
+  lfm2-tl2-panel-pair-complete.patch: production plus tests, applies AFTER DN4.
+  Both deltas passed git apply --check on parent root. Root/device not modified.
+
+Scope
+  DN dispatch defaults on for Hexagon v81+, off on older/host targets.
+  GU dispatch defaults off; NNTR_LFM2_TL2_PAIR_GU=1 enables the second candidate.
+  Both require native TL2, M1, K2048/inter1536/N2048, GU/DN magnitude one.
+  GU additionally requires split-K=1. Both stay within a lane AND one expert.
+  Gemma geometry, prefill, palette seven, partial N and non-native paths retain
+  their previous operations. The original single-panel kernel is unchanged.
+
+Exactness and spill control
+  One activation-table vector feeds two adjacent native weight panels.
+  The signed halfword sums combine at most 24 u8 ternary products, bounded by
+  +/-6120, before exact int32 accumulation. No FP32 operation is reassociated.
+  The naive implementation spilled vector registers and was rejected.
+  Final paired kernel: 384-byte compiler stack frame, no hot-loop spill/reload.
+  kernel-final.s paired function is identical to the simulator-tested variant.
+  -fstack-usage: DN caller 896B, unchanged from DN4; GU caller 160B when enabled
+  versus 168B baseline. Pair adds its 384B callee frame below the existing 32KiB
+  per-worker stack allocation. No recursion/new stack arrays added in worker.
+
+Memory
+  No heap, weight-cache, VTCM, read-pool, resident-slot or preload growth.
+  Paired DN writes the already allocated per-expert acc_dn: first 8KiB of the
+  existing 32KiB allocation, at most 32KiB across four experts. It may newly
+  touch those pages; actual peak is for parent to measure. No expert/lane
+  aliases: lane range plus panel boundary guards precede the pair invocation.
+  GU reuses the same acc_gu outputs that single-panel calls already populate.
+
+Checks PASS
+  Host O2 primitive: K1/24/25/704/1536/2048/8192, max-u8 positive/negative,
+    GU 2+1 panels, independent scalar dot and output canaries.
+  Host actual worker + actual dequant source under HVX emulation, O2 and
+    ASan/UBSan O0: seven DN scope guards, lane splits 1/2/3/4/5/7/8;
+    GU split-K1/2, lanes1..8; FP32 bytes and full-output canaries exact.
+  Actual Hexagon v81 instructions in simulator: primitive cases above plus
+    same production DN/GU worker fixture; bit-exact PASS.
+  Hexagon v79 primitive fallback compile PASS; host gcc -Werror compile PASS.
+  clang-format14 changed-line check PASS. Final reproduction host script PASS.
+  Full host suite not repeated; focused tests cover this delta.
+
+Isolated simulator timing (Hexagon Tools 19.0.04, v81, --timing)
+  Four alternating-order rounds, 50 calls each; all compare identical outputs.
+  Shape         storage   old cycles     paired cycles    time decrease
+  DN K1536 N256 cached    347058..347202   302065..302071    about 12.96%
+  DN K1536 N256 VTCM      347068..347071   302390..302391    about 12.87%
+  GU K2048 N384 cached    698758..698903   638359..638362    about 8.65%
+  GU K2048 N384 VTCM      698772..698779   638365..638368    about 8.64%
+  Values above omit each group's cold first round; all four are in the log.
+  Actual simulator VTCM address is obtained from __rdcfg(__vtcm_base), not a
+  hardcoded address. Its input footprint is under 256KiB per measurement.
+  This is one worker with no DMA or other-lane contention, NOT silicon/model
+  TPS. Functional-mode reductions were only about 2.6% DN / 1.7% GU, showing
+  why memory timing matters. Cached/VTCM agreement in this setup does not
+  establish device L2 behavior. Existing ~32ms/token exposed direct-I/O wait
+  remains outside this change, so this alone cannot close the gap to 25TPS.
+
+Device A/B suggestions (parent only)
+  Baseline after DN4: HEX_EXTRA_CFLAGS=-DNNTR_LFM2_TL2_PAIR_DN=0
+  DN only: default candidate build
+  DN plus GU: HEX_EXTRA_CFLAGS=-DNNTR_LFM2_TL2_PAIR_GU=1
+  Keep C16/preload128/PAGE0/GROW0 and all other runtime flags unchanged.
+  Check normal output IDs, decode TPS, MoE profile time, peak memory.
+
+Reproduction (no repository-absolute paths inside the scripts)
+  bash run-host.sh <candidate-repo> <output-dir>
+  SANITIZE=1 bash run-host.sh <candidate-repo> <asan-output-dir>
+  Source SDK setup so DEFAULT_HEXAGON_TOOLS_ROOT points to the tools root.
+  bash run-sim.sh <candidate-repo> <output-dir> correctness
+  bash run-sim.sh <candidate-repo> <output-dir> timing
+  On this Ubuntu host the simulator additionally needs its compatible
+  libncurses.so.5/libtinfo.so.5 on LD_LIBRARY_PATH. No system files were changed.
+
+Key logs
+  repro-host.log, workers-asan.log, workers-v81.log, pair-half-u4.log,
+  pair-half-timing.log, kernel-final.s/.su, moe-base.su, moe-current.su,
+  moe-gu.su. Independent review of multi-expert boundaries is in progress.
+
+FINAL DEVICE OUTCOME: candidate excluded, not adopted. Three-run normal
+medians control17.6698 /DN17.6942 /DN+GU17.5294 TPS, IDs all exact.
+MoE net profiles9490 /9523 /9471us/token. Paired calls confirmed in matching
+production disassembly; isolated percentages concern a small subkernel.
+Ideal eight-lane projected saving is only DN~0.065ms and GU~0.087ms/token.
+Details and raw-log references: ../read-path-audit/review.txt.

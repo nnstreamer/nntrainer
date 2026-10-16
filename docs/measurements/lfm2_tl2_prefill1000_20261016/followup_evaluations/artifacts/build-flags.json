@@ -1,0 +1,13 @@
+{
+  "panel2-dn": {
+    "HEX_EXTRA_CFLAGS": ""
+  },
+  "panel2-dngu": {
+    "HEX_EXTRA_CFLAGS": "-DNNTR_LFM2_TL2_PAIR_GU=1"
+  },
+  "attn-output-reuse": {
+    "dsp_identical_to": "panel2-dngu"
+  },
+  "intcorr_base": "conv-ion",
+  "final_source_has_none_of_these_changes": true
+}

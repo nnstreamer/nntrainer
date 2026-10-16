@@ -1,0 +1,14 @@
+{
+  "parent": "conv-ion",
+  "binaries": {
+    "libnntrainer.so": "41f8ecdaa560e342f1e8da0f9bc1c472dd31b03979803337a096435f7a2a38d4",
+    "libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+    "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+    "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+    "libcausallm.so": "1104f6f6c1a3ca2fd81765a534b33539411fb273f64878f8f85072681bbca70b",
+    "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76",
+    "libnntr_hvx_skel.so": "48b43d1ee3f1eb4c8948f440dffb9c143ab7e9ce82db95bd8e2f977892ad9424"
+  },
+  "source_patch_sha256": "5e4abd4ec91ed9c1773c4b850dc2654b7e351e7aed8ee61d40abb91c18e129f6",
+  "base_commit": "222336577bb97651f4ce9b91a72bafaa3a072fd0"
+}

@@ -1,0 +1,14 @@
+{
+  "parent": "panel2-dngu",
+  "binaries": {
+    "libnntrainer.so": "af25b1b8e849a37fca73133060615eee96b9068625ce44e3dc8ba7f066963ee7",
+    "libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+    "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+    "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+    "libcausallm.so": "1104f6f6c1a3ca2fd81765a534b33539411fb273f64878f8f85072681bbca70b",
+    "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76",
+    "libnntr_hvx_skel.so": "5e9f0cffb5b264e35360c4ffb94c2faf3d48525f6f30ea872f35b1a7fed3814c"
+  },
+  "source_patch_sha256": "351d3e6c241d2a1d49dd5dc9c20ea5f9b4d1bde62e658d55d4c3cbf6e06b62ca",
+  "base_commit": "9d8706182fcf56fb41de3c9ec5af17c7ee80e8a4"
+}

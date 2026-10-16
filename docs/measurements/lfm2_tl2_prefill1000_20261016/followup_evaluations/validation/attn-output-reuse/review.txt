@@ -1,0 +1,38 @@
+LFM dynamic-Q8 attention output reuse: evidence and bounded candidate
+
+Patch scope
+- attn-output-reuse.patch changes only HtpComputeOps::sdpa_q_kvcache in the ARM backend. No app, public API, DSP, quantization, Q preparation, KV encoding, cache capacity or persistent activation storage changes.
+- Guard: 1<n_q<=1024, Q heads32, KV heads8, head_dim64, zero softcap, no sinks, nonnull Q/output. Decode, larger steps including2048, Gemma fixed-Q8 methods and other head shapes follow the original path.
+- Under invoke_mutex_, find the existing out_pool_ size class. Require an actual ION buffer whose current allocated size is sufficient, no kept holds/copied_out record, and no intersection between its ENTIRE allocation and the live Q, appended K/V, or host-output ranges. Missing/null/small/non-ION slots or any collision use the original heap-output RPC. No stage()/fit() occurs on those fallbacks.
+- The selected slot is staged only after these checks, so fit cannot allocate/grow it. A reused output is fully copied to the host by copyOutOf(...,true) only on successful RPC. The copied_out record is kept=false. No noteIonAlias addition and no window-only output are needed.
+
+Call order and the1024 proof
+1. LFM builder sets attention_kv_dtype=q8_row and creates an HTP QKV layer, external KV-cache MHA, then an HTP fully_connected output projection with no bias. Its activation dtype is FP32.
+2. Layer0/1 conv out_proj already requests an8MiB output for M1024 and the fused dense FFNs also request8MiB via invokeMoeLayer. Therefore the same output class exists before the first attention at layer2. This is additionally runtime-checked; the candidate does not assume warmup created it.
+3. QKV outputs Q/K/V widths2048/512/512 in one12MiB packed allocation, class16MiB. host_view hands MHA the existing ION Q; no new Q staging is introduced. MHA finishes copying/rotating K/V into their separate external caches before the attention call. Candidate output is the existing8MiB class and is physically checked against the Q and K/V ranges.
+4. Attention writes the8MiB ION output. copyOutOf performs the complete host copy and records its host pointer and8MiB size. MHA's FP32 AccelF32Io::commit is a no-op; diagnostic CPU reads remain valid. Its quantized-cache release may issue a cache-release RPC, but does not touch these staging pools or the copied_out record.
+5. The next fully_connected calls input_step.dot -> FloatTensor::dotQs4cx -> gemm_qs4cx_accel_fp32 -> invokeFc. For M1024/K2048 it is one call. invokeLayer first runs stageInput(act_pool_,host,8MiB,&out_pool_), before it stages its own output.
+6. stageInput finds the matching copied_out record, checks sampledSame and swaps the existing ION buffers. The attention allocation becomes the FC input, and the former input allocation becomes its output. Thus FC input is not overwritten and no additional8MiB input copy occurs.
+
+Why host_view alone is insufficient
+- FullyConnectedLayer does not call host_view for this input. noteIonAlias alone would not make stageInput reuse the buffer, since stageInput consults holds/copied_out and trueSource instead.
+- copyOutOf(true) uses the current supported ownership path. Retaining only sampled output windows would change sdpa_q_kvcache's caller contract and break generic FP16 commit, CPU observers or diagnostic fallbacks unless separately opted in. This candidate leaves all host bytes valid.
+
+Chunk and mutation safety
+- M2048's attention output is16MiB; prior dense FFNs may already have that allocation. However invokeFc consumes1920+128 rows, so its first input request is15MiB, which is not the whole16MiB copied_out record required for the swap. The candidate explicitly leaves2048 on the original path.
+- Some intermediate row counts have attention and packed-QKV in the same power-of-two class (e.g.600 rows). The physical allocation overlap check rejects them while Q remains live, even if the requested output prefix itself would not overlap part of Q. No duplicate buffer is allocated.
+- If the graph or a diagnostic modifies the host attention output before FC, stageInput's existing sample comparison rejects the swap and uploads the host data. The existing sampled-cache contract can miss a mutation that preserves every sampled window; this candidate does not enlarge or change that existing design.
+- On RPC failure, nothing is copied or published as a completed attention output. Q/K/V are outside the reused buffer, so MHA's existing fallback can synchronize Q and compute safely.
+- A slot with any kept record is rejected; this avoids silently overwriting an incompletely materialized earlier tensor or paying an unmeasured spill.
+
+Memory and expected performance
+- No ION allocation or capacity growth. At most ordinary temporary/record bookkeeping in the existing maps; no new persistent weight/activation cache.
+- The CPU staging profiler need not show a net byte reduction: the10 following FC input copies of8MiB each disappear, while10 explicit attention output copies of8MiB appear. Before this change the FastRPC heap output copy/mapping was outside the ARM staging counter. The intended saving is that transport work, while the copied_out swap avoids adding another CPU roundtrip.
+- Diagnostic1024 trace (postpush-conv-attn-profile.logcat.txt):10 attention calls, wall250.032ms, DSP215.022ms, difference35.010ms. This is an upper bound for ALL non-DSP attention call work, not an expected gain or a measurement of output-only overhead. Q/cache maintenance and fixed transport cost remain.
+- Diagnostic2048 trace difference82.876ms is recorded only for context;2048 is not enabled by this candidate.
+
+Validation
+- Full modified htp_compute_ops.cpp compiles with Android NDK r30 AArch64 using the current generated Android.mk include paths/defines/optimization settings; compile-command.json and compile.log preserve the command. No root build outputs were written.
+- Host sanitizer fixture extracts the candidate selection/publish code and the unchanged production Held/StagingPool/stage/fit/sampledSame/stageInput/copyOutOf methods verbatim. Allocation, DSP calls and unentered kept-window/profile helpers use stand-ins; the tested full-host handoff code is unchanged. ASan+UBSan29 cases PASS: valid reuse, full host output, no additional buffer allocation or Q copy, copyOut->FC swap, distinct FC input/output buffers, missing/null/small/non-ION slots, both kept record kinds, Q/K/V/output and DMA-buffer-tail collisions, decode and2048 guards, Gemma/other shapes, zero append, failed RPC, host mutation fallback.
+- The fixture does not validate real DMA mapping or numerical output; DSP computation is untouched, but root must still run normal model output IDs/peak/performance on device.
+- Reproduction: python3 checks/run_check.py --source candidate/nntrainer/tensor/htp_backend/htp_compute_ops.cpp --output DIR (optional --cxx). This fixture is portable C++17 and does not require the SDK. Windows full-core compilation was not run.

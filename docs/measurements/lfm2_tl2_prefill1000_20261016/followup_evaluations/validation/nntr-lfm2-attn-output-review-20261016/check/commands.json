@@ -1,0 +1,26 @@
+{
+  "source_sha256": "1098408f01750454821325ac7194b27ce02eacf1e32066c9c3fae93e150e0213",
+  "extracted_sha256": {
+    "pool.inc": "506e3885da70e96edfdec1c2a316e49422f524e0f97ac004805f7bab5791b17c",
+    "copy_out.inc": "fca8955359668f7e03d0415be429b67a1a0f5490441567ef7c7d17d45602e112",
+    "reuse.inc": "059a5472f4fabf54db7dd0d69a8ae15c9a10421621bfa672b3143098b6961ca0",
+    "publish.inc": "18ee4caafcc78f6d46b59e898aa4f5a2c04fb54cdad1d3974a396e771d435848"
+  },
+  "compile": [
+    "c++",
+    "-std=c++17",
+    "-O2",
+    "-g",
+    "-Wall",
+    "-Wextra",
+    "-pthread",
+    "-fsanitize=address,undefined",
+    "-fno-omit-frame-pointer",
+    "/tmp/nntr-lfm2-attn-output-review-20261016/check/lfm2_attn_output_reuse_check.cpp",
+    "-o",
+    "/tmp/nntr-lfm2-attn-output-review-20261016/check/attn_output_reuse_check"
+  ],
+  "run": [
+    "/tmp/nntr-lfm2-attn-output-review-20261016/check/attn_output_reuse_check"
+  ]
+}
