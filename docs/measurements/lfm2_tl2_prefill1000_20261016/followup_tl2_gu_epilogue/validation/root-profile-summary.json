@@ -1,0 +1,27 @@
+{
+  "runs": [
+    {
+      "variant": 0,
+      "tag": "continue-gu-direct-profile0",
+      "lines": [
+        "[HTP] graph per-kind us/token: RMSNORM=611 FC=6317 CONV1D_GATE=327 QK_NORM=185 ROPE=46 ATTN_M1=1874 ADD=136 ROUTER_TOPK=1528 MOE=40462(net of miss wait 9516) DENSE_FFN=1431 LM_HEAD=1323 | ops/wall=0.9956 compute_mhz=2113",
+        "[HTP] token driver: round us: notice=0 pre=19 read=1043 answer=1063 (arm total) | dsp overlap=125 wait=962 anslat=23 rebind=19",
+        "[HTP] token driver: moe calls/token=67.89 (one-at-a-time 123.84)"
+      ],
+      "moe_us_per_token": 40462,
+      "net_moe_us_per_token": 9516
+    },
+    {
+      "variant": 1,
+      "tag": "continue-gu-direct-profile1",
+      "lines": [
+        "[HTP] graph per-kind us/token: RMSNORM=633 FC=6380 CONV1D_GATE=332 QK_NORM=185 ROPE=45 ATTN_M1=1886 ADD=136 ROUTER_TOPK=1523 MOE=40189(net of miss wait 9471) DENSE_FFN=1453 LM_HEAD=1330 | ops/wall=0.9955 compute_mhz=2113",
+        "[HTP] token driver: round us: notice=0 pre=20 read=1034 answer=1054 (arm total) | dsp overlap=124 wait=955 anslat=24 rebind=19",
+        "[HTP] token driver: moe calls/token=67.89 (one-at-a-time 123.84)"
+      ],
+      "moe_us_per_token": 40189,
+      "net_moe_us_per_token": 9471
+    }
+  ],
+  "interpretation": "Single profile pair, 9516 to 9471 us/token is -45us/-0.47%; not a resolved timing improvement. Profile TPS excluded from normal comparison. Same 67.89 kernel calls/token."
+}

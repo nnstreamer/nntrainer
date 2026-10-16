@@ -1,0 +1,27 @@
+{
+  "v1_rejected": "line 2980: incomplete or malformed sequence record",
+  "v1_raw_records": 40246,
+  "v1_full_line_unique": 4649,
+  "v1_log_sha256": "c057ccf828704c715ece9a7a815bb42b52136c7e6c90b0f8170e724105c26434",
+  "v1_scope": "Invalid invocation counts; timestamp/full-line deduplication cannot establish calls",
+  "ids_equal_control_profile": true,
+  "ids_count": 65,
+  "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+  "profiles": {
+    "continue-gu-direct-profile0": {
+      "calls_per_token": 67.89,
+      "net_moe_us_per_token": 9516,
+      "sha256": "55a901a31680703b631ae30a419b8284bd13f2a6cd93d2621ab76c8c3336454f"
+    },
+    "continue-gu-direct-profile1": {
+      "calls_per_token": 67.89,
+      "net_moe_us_per_token": 9471,
+      "sha256": "b7c48c42e23c0d42cb2d51c698fdda5c19652e8f549ca99bdd0d8f9f8ca40b1d"
+    },
+    "continue-gu-direct-trace-v2-1024": {
+      "calls_per_token": 67.89,
+      "net_moe_us_per_token": 12360,
+      "sha256": "8ce5c3533058b47b69732e2345b78540b8773bfd74ba8acfaac721cd15f4a5ae"
+    }
+  }
+}

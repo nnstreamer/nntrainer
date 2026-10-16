@@ -1,0 +1,118 @@
+Native LFM M1 GU direct epilogue — independent review
+Date: 2026-10-16
+Reviewer: /root/decode_optimization
+Verdict: no implementation blocker found. Device parity/performance validation
+remains separate. No source change is requested by this review.
+
+Frozen scope
+  Base source is byte-identical to repository HEAD
+  207d299c41393bfffbab23d40692d8fdeb25dcfd (source unchanged after 7b3db6d).
+  Production patch SHA256:
+    d86b15ae408261f17728b3928dc29dd72fb375d5a772213234338c5c16f94d74
+  Candidate hexkl_mm_u8i4_moe.c:
+    a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea
+  Baseline hexkl_mm_u8i4_moe.c:
+    816647df631873ebb5dfef9ceb12c368063736313e612cfe0c33bed1af6e09bc
+  Author tests patch:
+    4792923d1e0fa16f8f6bcc35981652a25ea56589bf3ed8d2030f192b63c3db88
+  Exact frozen copies are in frozen/. The review changed only its own /tmp
+  artifacts, with no root-tree edit, phone use, commit or push.
+
+Code findings
+1. Guard and layouts
+   moe_tl2_gate_direct admits only native K2048 (k_tiles64), I1536 (48 pairs),
+   N2048, split1, row1, SILU, and both native weight handles with magnitude1.
+   The nonfused caller additionally requires one aligned, whole-expert range.
+   The existing native GU worker writes contiguous gate[1536], up[1536] for
+   split1. A 128-byte tile stride and n_pairs48 therefore address exactly the
+   same two 32-int32 tiles as each original stack copy. Metadata indices are
+   cg=32*j and cu=1536+cg in both paths. The new helper's job is synchronous.
+
+2. Exact arithmetic and work ownership
+   Both implementations call the same production hvx_dq_swiglu_worker and
+   dq_swiglu arithmetic. The candidate removes the identity magnitude1/split1
+   assembly into the temporary stack tile and repeated NULL-pool wrapper.
+   For nonfused expert e and p lanes, old global tile bounds are
+     48*e + floor(48*id/p) .. 48*e + floor(48*(id+1)/p).
+   The new worker uses the same local bounds and expert e's pointers. All
+   accepted geometry is small enough that the old uint32 partition arithmetic
+   and the worker's uint64 arithmetic have identical results.
+   In the fused branch the existing lane still owns the same expert and calls
+   worker(1,0), then the original quantizer and LUT preparation in that order.
+   It does not split calls or change down computation/final expert sum order.
+
+3. Lifetimes and synchronization
+   acc_gu is carved from each expert's persistent-for-this-call M1 scratch,
+   separately from the VTCM GU/DN DMA slabs. Stage A's existing pool/queue run
+   joins before nonfused epilogue dispatch; all A runs finish before fused B.
+   Thus even when B overlaps a later weight DMA, the direct source is not that
+   DMA slab. Parameters and gate output remain per-expert and alive through B.
+   No job escapes the helper, and no worker can read its stack job after return.
+   No pool dispatch/join, DMA ownership, error drain, cancellation, or cleanup
+   was removed. Allocation failure and existing DMA error behavior are unchanged.
+
+4. Fallback and platform scope
+   Gemma K2816/I704/N2816 and GEGLU, split2/4, magnitude7 on either handle,
+   non-native/missing native handles, multirow, or partial/cross-expert ranges
+   continue through the original epilogue. Same-call mixed native and QS2
+   experts are handled independently; only qualified native experts use direct.
+   There is no new heap/VTCM/cache allocation, reader, public API, ABI, external
+   symbol, operating-system header or host-side behavior. The production change
+   is confined to the existing DSP translation unit. Gemma arithmetic/fallback
+   is preserved by inspection and host parity; this is not a Gemma timing claim.
+
+Independent execution
+  host-san/validation.json and commands.json:
+    Author frozen fixture independently compiled/reran with ASan+UBSan halt:
+    544 parity cases, including 264 requant and 88 fallback cases;
+    2,664 checks after individual lanes; 13 no-write guard cases.
+    Actual extracted candidate/reference helpers use production dequant,
+    quantizer and LUT code linked with SDK libnative. Four mutations were
+    independently rejected: wrong up-plane, all-lane writes, split acceptance,
+    magnitude7 acceptance. The valid source was restored and passed afterward.
+    The fused active1..3 unit cases intentionally exercise a worker outside the
+    whole-kernel n_tl2>=4 selection; actual threshold cases are also covered by
+    native3+QS2/unfused and native4+QS2/fused, including mixed magnitude7.
+
+  concurrent-san-final/validation.json and commands.json:
+    Independent extension of that frozen fixture, also ASan+UBSan, adds 176
+    pipeline cases with simultaneous pthread lanes (1..8), native1..4 experts,
+    optional QS2, mixed magnitude7, split2/4, and Gemma fallback. A start barrier
+    overlaps the explicit worker lanes; test call counters are atomic. Both
+    reference and candidate run the same actual math and lane decomposition.
+    All gate FP32 bytes, requant scale/zp, intermediate bytes, LUT bytes and
+    redzones match; the input accumulator snapshot is unchanged. Unused row,
+    parameter and split padding is poisoned. Existing per-lane checks additionally
+    detect an implementation that writes a different lane's otherwise-identical
+    bytes. This is not a ThreadSanitizer result or a QuRT pool integration test.
+    The independent C extension is formatted with clang-format14/repo style.
+
+  codegen/commands.json:
+    Independently compiled complete baseline/candidate MoE TU for v81/HVX128/HMX,
+    O3, PIC, Wall/Werror with current repository headers (stale overlay include
+    directories removed). Both pass. The three author-overlay HVX headers were
+    also compared and are byte-identical to current repository headers.
+    moe_tl2_gate_epilogue_worker frame: 640 -> 640 bytes.
+    moe_m1_requant_worker frame:        896 -> 896 bytes.
+    The small direct helper is inlined. There is no new dynamic allocation.
+
+Limits
+  These fixtures validate primitive math, layout, guard selection and ownership
+  under explicit host lanes. They do not emulate RPC, DMA cache visibility, QuRT
+  queue timeouts, whole-token graph execution, or silicon timing. Host libnative
+  execution is not evidence of TPS gain. Source inspection establishes that the
+  existing pipeline joins/drains are unchanged; root owns the required phone
+  parity and normal A/B measurements. No speedup is inferred in this report.
+
+Reproduction (paths shown for this review environment)
+  python3 frozen/candidate/test/htp/host/run_tl2_gu_epilogue_checks.py \
+    --repo /home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000 \
+    --source "$PWD/frozen/candidate" --reference "$PWD/frozen/baseline" \
+    --output "$PWD/rerun-host-san" \
+    --hexagon-tools /local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04 \
+    --sanitize --mutations
+  For the concurrent extension, use concurrent-source/test/htp/host/runner,
+  --source "$PWD/concurrent-source", another --output, and --sanitize only.
+  Exact commands and source hashes for both independent runs are retained in
+  their output directories. The pthread extension is a Linux host review tool,
+  not a new production or cross-platform test dependency.

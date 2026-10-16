@@ -1,0 +1,10 @@
+{
+  "base": "7b3db6d189fa8086fa0daaa19e61eaca78a5c87c",
+  "sha256": {
+    "production.patch": "d86b15ae408261f17728b3928dc29dd72fb375d5a772213234338c5c16f94d74",
+    "tests.patch": "4792923d1e0fa16f8f6bcc35981652a25ea56589bf3ed8d2030f192b63c3db88",
+    "candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea",
+    "candidate/test/htp/host/run_tl2_gu_epilogue_checks.py": "c8895f0282be9f92bf8f3751ad1b030b65a1c9dc6a2963049cea059dfa655f54",
+    "candidate/test/htp/host/tl2_gu_epilogue_check.c": "c8a9257989c468495846f2a906f1db3ed3d63a3cac84b1dd077a1a5733517ebf"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "moe_source_sha256": "67d34648fe0994b0293c34aa933d617a48f9cb36b5e76de58456d4838a4cbefa",
+  "diagnostic_patch_sha256": "86cd3276bf6e5f75753330972ee571fe3621a21cca9cb3351bf9ff33cd4cece3",
+  "dsp_sha256": "7b40246809200651f5d1ab5f0f39a0c03a7c7bea77e0970517d2c8dd83b8d1c6",
+  "compile_flag": "-DNNTR_LFM2_TL2_GU_TRACE=1"
+}

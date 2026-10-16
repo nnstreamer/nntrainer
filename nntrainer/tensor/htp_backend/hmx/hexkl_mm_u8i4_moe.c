@@ -1221,10 +1221,45 @@ static void moe_tl2_gate_epilogue(const moe_m1_ctx *c, uint32_t lo,
   }
 }
 
+/** The unsplit native LFM accumulator already holds contiguous gate/up
+ * planes. Preserve the existing dequant/SwiGLU worker and its tile partition,
+ * without copying every pair through a stack tile and a serial pool wrapper. */
+static int moe_tl2_gate_direct(const moe_m1_ctx *c, uint32_t expert,
+                               uint32_t threads, uint32_t id) {
+  const moe_m1_expert *e = &c->ex[expert];
+  if (!c->native_tl2 || c->k_tiles != 64u || c->inter != 1536u ||
+      c->inter_ntiles != 48u || c->N_out != 2048u || c->tl2_splits != 1u ||
+      c->act != HVX_GLU_SILU || e->m != 1u || !e->g->tl2_bytes ||
+      !e->d->tl2_bytes || htp_tl2_palette_magnitude(e->g->pal) != 1u ||
+      htp_tl2_palette_magnitude(e->d->pal) != 1u)
+    return 0;
+  hvx_dq_swiglu_job job = {(const uint8_t *)e->acc_gu,
+                           32u * sizeof(int32_t),
+                           c->inter_ntiles,
+                           0u,
+                           32u,
+                           1u,
+                           e->act_scale,
+                           e->act_zp,
+                           e->g->colsum_w,
+                           e->g->w_scale,
+                           e->g->bias,
+                           c->inter,
+                           e->gate_f32,
+                           c->inter,
+                           c->act};
+  hvx_dq_swiglu_worker(threads, id, &job);
+  return 1;
+}
+
 static void moe_tl2_gate_epilogue_worker(uint32_t threads, uint32_t id,
                                          void *v) {
   const moe_m1_ctx *c = v;
   const uint32_t jobs = c->u_hi - c->u_lo;
+  if (c->inter_ntiles == 48u && jobs == c->inter_ntiles &&
+      c->u_lo % c->inter_ntiles == 0u &&
+      moe_tl2_gate_direct(c, c->u_lo / c->inter_ntiles, threads, id))
+    return;
   moe_tl2_gate_epilogue(c, c->u_lo + jobs * id / threads,
                         c->u_lo + jobs * (id + 1u) / threads);
 }
@@ -1407,7 +1442,7 @@ static void moe_m1_requant_worker(uint32_t n_lanes, uint32_t i, void *v) {
   moe_m1_slice(0u, c->n_active, n_lanes, i, &lo, &hi);
   for (uint32_t u = lo; u < hi; ++u) {
     moe_m1_expert *e = &c->ex[u];
-    if (e->g->tl2_bytes && c->tl2_fused)
+    if (e->g->tl2_bytes && c->tl2_fused && !moe_tl2_gate_direct(c, u, 1u, 0u))
       moe_tl2_gate_epilogue(c, u * c->inter_ntiles, (u + 1u) * c->inter_ntiles);
     if (e->d->tl2_bytes) {
       /** Native TL2 consumes one dense row. Reuse its idle AH allocation

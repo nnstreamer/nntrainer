@@ -1,0 +1,55 @@
+{
+  "reviewer": "/root/decode_optimization",
+  "verdict": "No implementation blocker found",
+  "root_or_phone_modified": false,
+  "base": "207d299c41393bfffbab23d40692d8fdeb25dcfd",
+  "production_patch_sha256": "d86b15ae408261f17728b3928dc29dd72fb375d5a772213234338c5c16f94d74",
+  "candidate_source_sha256": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea",
+  "tests_patch_sha256": "4792923d1e0fa16f8f6bcc35981652a25ea56589bf3ed8d2030f192b63c3db88",
+  "independent_author_fixture": {
+    "result": "TL2_GU_EPILOGUE 544 parity cases (264 requant, 88 fallback), 2664 intermediate lane checks, 13 unchanged-output guards PASS",
+    "mutations": {
+      "wrong-up-plane": -6,
+      "all-lanes-write": -6,
+      "accept-split": -6,
+      "accept-mag7": -6
+    },
+    "output": "host-san/"
+  },
+  "independent_concurrent_extension": {
+    "result": "TL2_GU_EPILOGUE 544 parity cases (264 requant, 88 fallback), 2664 intermediate lane checks, 13 unchanged-output guards PASS\nIndependent simultaneous pthread-lane actual-math pipeline: 176 cases PASS; no DMA or device-timing claim",
+    "output": "concurrent-san-final/",
+    "thread_sanitizer": false
+  },
+  "independent_v81_compile": {
+    "baseline_pass": true,
+    "candidate_pass": true,
+    "current_repository_headers_only": true,
+    "epilogue_frame_bytes": [
+      640,
+      640
+    ],
+    "requant_frame_bytes": [
+      896,
+      896
+    ],
+    "commands": "codegen/commands.json"
+  },
+  "limits": [
+    "No DMA or RPC execution",
+    "No QuRT scheduling integration claim",
+    "No silicon or performance claim",
+    "ASan/UBSan is not TSan",
+    "Device validation remains root-owned"
+  ],
+  "files_sha256": {
+    "review.txt": "41d9cd93fbe177aa3484e795d9a82fde3fe2a49a0c7cc8e26c72fcc89a5008da",
+    "prepare_concurrent.py": "797b128cfd63c57db34cad6965044cca42e76cead02ef063d7ca8e8901091ac5",
+    "host-san/validation.json": "5418d9dc9c262f76a84ab83e5333b3de9013123b456c81f03df2ecce2471624c",
+    "concurrent-san-final/validation.json": "80e3822bfc410ec2f83b6e899ea8104939de9af996edff7a1c62e12c9179c5ac",
+    "concurrent-source/test/htp/host/tl2_gu_epilogue_check.c": "747c3937f971ecf09bb9014eea468ad6fb95adaabfef861f7c6723fb6c3f044c",
+    "concurrent-source/test/htp/host/run_tl2_gu_epilogue_checks.py": "4c35829efcaa704e1cd5d230f0e0f09cb5a4ea03e85b91d8229531e8ebda4979",
+    "codegen/baseline.s": "e0fb2aeb145741c6e42096bc832d87a926888f31d95f351c51aa6bf927b72858",
+    "codegen/candidate.s": "1f872ffb8571915dc5e6e077aa8ba355d663c33b68576fc051dcf46dc5e2c5f7"
+  }
+}

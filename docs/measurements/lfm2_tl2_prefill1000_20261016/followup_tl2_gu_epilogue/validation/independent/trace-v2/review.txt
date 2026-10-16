@@ -1,0 +1,103 @@
+GU trace v2 — independent final review, 2026-10-16
+Reviewer: /root/decode_optimization
+Verdict: no remaining blocker. Diagnostic evidence establishes that the direct
+GU path executes and removes the counted redundant wrapper/stack operations;
+it does not establish a resolved TPS gain.
+
+Frozen diagnostic patch:
+  7c3f1148c25eab5769cae0d2ea8df9d51662c5b28c00b4a6138c5bec444d22af
+Frozen diagnostic MoE source:
+  5d46fd796f2c92f8df2b688ba26273d60d167a5f4cc076d3fca844759ae1374f
+Final parser (bounded contiguity check):
+  3d3caa458bf23138eb3b70065f11b658f480c361006272561a6b4d53568b209e
+Normal GU production remains d86b15ae / source a19d1ee9. Trace v2 is a separate
+compile-time diagnostic, not a production path or public API change.
+
+Protocol/source review
+  Each qualified successful native LFM M1 call snapshots counters after the
+  existing foreground, last-background and live expansion-slot joins. The
+  counter workers update four relaxed atomic uint32 values. The existing pool
+  join supplies completion; no concurrent writer remains while snapshots are
+  taken. Serialized kernel calls are an explicit precondition, also required
+  by the existing global HMX/DMA state. The diagnostic does not remove joins or
+  change computation. A fifth uint32 is incremented only inside the successful
+  trace filter, giving one process-local sequence per log record. Sequence
+  state is +4 bytes over v1, diagnostic total 20 bytes; no allocation/cache.
+  Zero or wraparound sequence is rejected by the parser. This is adequate for
+  a fresh process containing the bounded workload; it is not a multi-process
+  or >UINT32_MAX-call tracing protocol. Errors do not consume sequence IDs.
+
+  Matching repeated sequence+fields are transport replays, not new calls.
+  Conflicting repeats fail. One PID, contiguous IDs starting at 1, fixed native
+  geometry, valid lane counts, exact fused/unfused counters and the complete
+  token*layer*top-k expert/tile totals are required. Reordered delivery is
+  allowed and reported separately. Timestamps/TIDs are not invocation identity.
+  Missing trailing records fail the expected workload total, not just sequence
+  continuity. The parser is intentionally for all-native magnitude1 LFM data;
+  zero fast-path counts or mixed/fallback traces are rejected, not generalized.
+
+  Review found and author corrected a parser-only issue: materializing
+  set(range(1,max_sequence+1)) could allocate billions of entries for a sparse
+  uint32-valid sequence. Final parser instead checks max_sequence==unique_count,
+  given keys are unique and >=1, so rejection is bounded by input size. The
+  diagnostic source and production patch did not change for that correction.
+
+Independent executed checks
+  - parse_trace.py --self-test: valid replay plus 12 malformed categories PASS.
+  - independent_check.py: 4 valid ordered/reordered/replayed delivery cases,
+    22 malformed cases, and 75 truncated duplicates all handled as expected.
+    Includes zero/overflow/max-u32 sparse sequence, missing head/middle/tail,
+    conflicting duplicate, invalid fields/counters/lane count and mixed PID.
+  - Actual extracted helper + production HVX/libnative counter fixture:
+    10 concurrent groups, 1,280 calls/38,400 tile pairs exact; widths 1/2/3/6/8,
+    fused/unfused, uint32 counter wrap, rejected helper no-count and FP bytes.
+  - Actual extracted out/drain + trace block: 162 FG/BG/16-slot/shape/error
+    combinations PASS. An independent extension keeps sequence across all
+    calls: 36 successes advance monotonically, invalid/error calls do not;
+    UINT32_MAX wrap is defined and separately rejected by the parser.
+    Worst bounded-model formatted payload is 113 bytes; with 64 prefix bytes
+    and a terminator it remains below 256. Actual phone maximum is 100 bytes.
+  - Full baseline/off/on v81 MoE TU builds independently PASS. Diagnostic-off
+    object is byte-identical to normal baseline. Atomic32 uses memw_locked;
+    no __atomic/__sync runtime imports. All commands, objects, assembly and
+    sanitizer logs are retained. Two author host-driver paths were adapted to
+    use this review's own previously compiled objects; source/tests are frozen.
+
+Actual device readback, independently parsed
+  Raw: continue-gu-direct-trace-v2-1024.logcat.txt
+  SHA256: 0577164bedd57ffc66e8cdd32bbb0739aa57ec905af2829ded386faf0f242a59
+  One PID 8595, 21,510 delivered records, 4,345 unique seq 1..4345,
+  17,165 transport duplicates; all duplicate payloads agree.
+  Unique calls by active expert count:
+    E=1: 1,170; E=2: 1,486; E=3: 1,170; E=4: 519.
+  Experts 9,728 = 64 tokens*38 layers*4 experts. Tile pairs 466,944 = 9,728*48.
+  Fused direct calls 2,076 / 99,648 tile pairs; unfused direct calls 61,216 /
+  367,296 tile pairs; all pool lane fields 8. New SwiGLU worker entries 63,292
+  versus 466,944 original serial entries. The separate wrapper disappears for
+  every tile pair. This is 7,296 removed wrappers/token and 6,307.0625 fewer
+  worker entries/token. Stack logical accesses removed are 239,075,328 bytes
+  over the 64 tokens (two 128-byte stores and two 128-byte loads per tile pair).
+  These are logical stack accesses, not DDR traffic or measured bandwidth.
+
+ 4,345/64 = 67.890625 kernel calls/token agrees with both normal profiles' 67.89.
+  Normal net MoE profiles are 9.516/9.471 ms/token; diagnostic v2 is 12.360 ms/token
+  and includes counter/logging overhead. No speedup is inferred from the trace.
+  All 65 ID values were independently compared byte-for-byte with control
+  continue-gu-direct-profile0.ids and are identical (hash in readback-audit).
+
+V1 disposition
+  V1 raw SHA c057ccf828704c715ece9a7a815bb42b52136c7e6c90b0f8170e724105c26434
+  contains 40,246 tagged lines and 4,649 distinct complete logcat lines, but
+  timestamps/full-line uniqueness cannot identify calls. V2 parser explicitly
+  rejects it for missing sequence. Original v1 source/log evidence remains
+  retained and no aggregate v1 invocation count is accepted here.
+
+Limits and artifacts
+  Counter fixture executes actual HVX math via libnative, not DMA/QuRT/RPC.
+  Drain fixture executes actual extracted control code with synthetic pending
+  jobs, not silicon DMA. Device trace establishes execution counts and sequence
+  completeness; model IDs establish the observed output parity. Timing claims
+  require the separately collected normal binaries. No root tree or phone was
+  changed by this reviewer. See actual-device.json, readback-audit.json,
+  independent-result.json, parser-self-test.json, host/, sequence-lifecycle/,
+  v81/, input-manifest.json and final validation.json for commands/hashes/results.

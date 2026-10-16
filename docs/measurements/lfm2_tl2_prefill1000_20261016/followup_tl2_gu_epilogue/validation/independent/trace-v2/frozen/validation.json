@@ -1,0 +1,22 @@
+{
+  "patch_sha256": "7c3f1148c25eab5769cae0d2ea8df9d51662c5b28c00b4a6138c5bec444d22af",
+  "source_sha256": {
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "5d46fd796f2c92f8df2b688ba26273d60d167a5f4cc076d3fca844759ae1374f"
+  },
+  "global_bytes": 20,
+  "counter_host_pass": "PASS: 10 actual-HVX concurrent groups; 1280 direct calls/38400 tiles exact; widths1,2,3,6,8 fused/unfused, wraparound, rejection-no-count, float bytes exact",
+  "drain_host_pass": "PASS: 162 actual out-join/trace combinations; all FG/last-BG/16 expansion-slot joins precede snapshot/log; success/shape/native filters and uint32 wrap exact",
+  "v81": {
+    "off_object_identical": true,
+    "off_and_normal_object_sha256": "487a17f390396ea0a9c234ce402fe7424d051221fc0ca517943cff0cba502f8e",
+    "inline_atomic32": true,
+    "atomic_runtime_imports": false
+  },
+  "parser_self_test": "parser-self-test.json",
+  "payload_bound_bytes": 114,
+  "sdk_legacy_format_buffer_bytes": 256,
+  "runtime_v2_format_limit": "Not specified in SDK header; strict parser requires final ! on every raw matching line.",
+  "device_readback": "pending",
+  "trace_timing_eligible": false,
+  "v1_artifacts_unchanged": "../trace/; counts invalid"
+}

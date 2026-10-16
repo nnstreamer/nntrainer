@@ -1,0 +1,50 @@
+{
+  "status": "PASS",
+  "method": "Independent raw token/field parse; does not import the author strict parser",
+  "raw_sha256": "0577164bedd57ffc66e8cdd32bbb0739aa57ec905af2829ded386faf0f242a59",
+  "raw_records": 21510,
+  "unique_records": 4345,
+  "repeated_deliveries": 17165,
+  "all_duplicate_payloads_identical": true,
+  "contiguous_first_seen_sequences": [
+    1,
+    4345
+  ],
+  "pids": [
+    8595
+  ],
+  "tids": [
+    8634
+  ],
+  "first_timestamp": "10-16 22:13:35.943",
+  "last_timestamp": "10-16 22:13:39.592",
+  "max_payload_bytes": 100,
+  "delivery_multiplicity_histogram": {
+    "1": 630,
+    "2": 1127,
+    "3": 456,
+    "4": 49,
+    "5": 38,
+    "6": 82,
+    "7": 308,
+    "8": 727,
+    "9": 872,
+    "10": 56
+  },
+  "active_expert_histogram": {
+    "1": 1170,
+    "2": 1486,
+    "3": 1170,
+    "4": 519
+  },
+  "totals": {
+    "E": 9728,
+    "fc": 2076,
+    "ft": 99648,
+    "uc": 61216,
+    "ut": 367296
+  },
+  "expected_experts": 9728,
+  "expected_tiles": 466944,
+  "performance_evidence": false
+}

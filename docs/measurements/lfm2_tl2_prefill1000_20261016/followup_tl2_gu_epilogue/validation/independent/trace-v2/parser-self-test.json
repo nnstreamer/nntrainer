@@ -1,0 +1,17 @@
+{
+  "valid_transport_replay_fixture": true,
+  "rejected": {
+    "missing": "missing sequence(s); unique set is not contiguous from 1",
+    "conflicting": "conflicting duplicate sequence 2",
+    "zero-path": "sequence 2: actual helper counts (0, 0, 0, 0) != (0, 0, 3, 48)",
+    "truncated": "line 2: incomplete or malformed sequence record",
+    "wrong-total": "active-expert total 4 != complete workload 8",
+    "wrong-tile-range": "sequence 3: actual helper counts (0, 0, 9, 143) != (0, 0, 9, 144)",
+    "wrong-native": "sequence 1: expected all-native active experts in 1..4",
+    "wrong-shape": "sequence 1: unsupported shape",
+    "multiple-pids": "multiple process cohorts [100, 200]",
+    "nonfresh-sequence": "missing sequence(s); unique set is not contiguous from 1",
+    "sparse-max-u32-sequence": "missing sequence(s); unique set is not contiguous from 1",
+    "empty": "no complete sequence records"
+  }
+}

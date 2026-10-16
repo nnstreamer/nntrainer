@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "sanitized": true,
+  "result": "TL2_GU_EPILOGUE 544 parity cases (264 requant, 88 fallback), 2664 intermediate lane checks, 13 unchanged-output guards PASS",
+  "mutations": {
+    "wrong-up-plane": -6,
+    "all-lanes-write": -6,
+    "accept-split": -6,
+    "accept-mag7": -6
+  },
+  "source_sha256": {
+    "/tmp/nntr-lfm2-tl2-gu-epilogue-20261016/baseline/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "816647df631873ebb5dfef9ceb12c368063736313e612cfe0c33bed1af6e09bc",
+    "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea",
+    "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/test/htp/host/run_tl2_gu_epilogue_checks.py": "c8895f0282be9f92bf8f3751ad1b030b65a1c9dc6a2963049cea059dfa655f54",
+    "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.c": "2c4fed50f3e84cdd53124a15405eb563694c6e3c739271b354f21ffc1708b3b6",
+    "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c": "f0544c1cb13422e63d72526f54cd9dab7ce5f1db4e611f714c31bfde8b857813",
+    "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.c": "e6d36c146ad665405eb9cb3b2a226d7eddb7779b806e8a65bd2be732d93c6f48",
+    "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/nntrainer/tensor/htp_backend/hvx/hvx_rmsnorm_rows_f32.c": "3a83961a5feeaae64dfd5caa5aad5f2a10244f7c8a2d370edf447a54d06df928",
+    "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/test/htp/host/tl2_gu_epilogue_check.c": "c8a9257989c468495846f2a906f1db3ed3d63a3cac84b1dd077a1a5733517ebf"
+  },
+  "scope": "Actual extracted M1 GU/requant helpers and production HVX math; explicit lanes, pool NULL only. No DMA, RPC or silicon timing claim."
+}

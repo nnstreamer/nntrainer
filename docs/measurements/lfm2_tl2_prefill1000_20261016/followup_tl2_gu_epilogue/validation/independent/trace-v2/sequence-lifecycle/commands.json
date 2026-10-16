@@ -1,0 +1,22 @@
+[
+  [
+    "gcc",
+    "-std=c11",
+    "-O1",
+    "-g",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-fsanitize=address,undefined",
+    "-fno-sanitize-recover=all",
+    "-fno-omit-frame-pointer",
+    "-fno-pie",
+    "-no-pie",
+    "/tmp/nntr-lfm2-tl2-gu-epilogue-review-20261016/trace-v2/sequence-lifecycle/check.c",
+    "-o",
+    "/tmp/nntr-lfm2-tl2-gu-epilogue-review-20261016/trace-v2/sequence-lifecycle/check"
+  ],
+  [
+    "/tmp/nntr-lfm2-tl2-gu-epilogue-review-20261016/trace-v2/sequence-lifecycle/check"
+  ]
+]

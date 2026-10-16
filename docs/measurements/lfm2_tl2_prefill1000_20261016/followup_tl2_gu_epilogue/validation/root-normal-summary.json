@@ -1,0 +1,211 @@
+{
+  "source_patch_sha256": "d86b15ae408261f17728b3928dc29dd72fb375d5a772213234338c5c16f94d74",
+  "runs": [
+    {
+      "tag": "continue-gu-direct-0-r1",
+      "variant": "tl2-expand-noalias",
+      "prefill_tokens": 1024,
+      "prefill_tps": 846.981,
+      "decode_tps": 17.66,
+      "full_run_sampled_peak_kib": 2731204.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e"
+    },
+    {
+      "tag": "continue-gu-direct-1-r1",
+      "variant": "tl2-gu-direct-epilogue",
+      "prefill_tokens": 1024,
+      "prefill_tps": 849.088,
+      "decode_tps": 17.7334,
+      "full_run_sampled_peak_kib": 2733732.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e"
+    },
+    {
+      "tag": "continue-gu-direct-1-r2",
+      "variant": "tl2-gu-direct-epilogue",
+      "prefill_tokens": 1024,
+      "prefill_tps": 833.198,
+      "decode_tps": 17.4863,
+      "full_run_sampled_peak_kib": 2731636.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e"
+    },
+    {
+      "tag": "continue-gu-direct-0-r2",
+      "variant": "tl2-expand-noalias",
+      "prefill_tokens": 1024,
+      "prefill_tps": 825.806,
+      "decode_tps": 17.302,
+      "full_run_sampled_peak_kib": 2734120.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e"
+    },
+    {
+      "tag": "continue-gu-direct-0-r3",
+      "variant": "tl2-expand-noalias",
+      "prefill_tokens": 1024,
+      "prefill_tps": 849.088,
+      "decode_tps": 17.5198,
+      "full_run_sampled_peak_kib": 2734944.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e"
+    },
+    {
+      "tag": "continue-gu-direct-1-r3",
+      "variant": "tl2-gu-direct-epilogue",
+      "prefill_tokens": 1024,
+      "prefill_tps": 846.281,
+      "decode_tps": 17.7089,
+      "full_run_sampled_peak_kib": 2733064.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e"
+    },
+    {
+      "tag": "continue-gu-direct2048-0-r1",
+      "variant": "tl2-expand-noalias",
+      "prefill_tokens": 2048,
+      "prefill_tps": 797.197,
+      "decode_tps": 16.4651,
+      "full_run_sampled_peak_kib": 3052352.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33"
+    },
+    {
+      "tag": "continue-gu-direct2048-1-r1",
+      "variant": "tl2-gu-direct-epilogue",
+      "prefill_tokens": 2048,
+      "prefill_tps": 778.411,
+      "decode_tps": 16.8288,
+      "full_run_sampled_peak_kib": 3050588.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33"
+    },
+    {
+      "tag": "continue-gu-direct2048-1-r2",
+      "variant": "tl2-gu-direct-epilogue",
+      "prefill_tokens": 2048,
+      "prefill_tps": 845.233,
+      "decode_tps": 16.8955,
+      "full_run_sampled_peak_kib": 3052760.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33"
+    },
+    {
+      "tag": "continue-gu-direct2048-0-r2",
+      "variant": "tl2-expand-noalias",
+      "prefill_tokens": 2048,
+      "prefill_tps": 810.127,
+      "decode_tps": 16.9492,
+      "full_run_sampled_peak_kib": 3053112.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33"
+    },
+    {
+      "tag": "continue-gu-direct2048-0-r3",
+      "variant": "tl2-expand-noalias",
+      "prefill_tokens": 2048,
+      "prefill_tps": 912.249,
+      "decode_tps": 16.7452,
+      "full_run_sampled_peak_kib": 3050356.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33"
+    },
+    {
+      "tag": "continue-gu-direct2048-1-r3",
+      "variant": "tl2-gu-direct-epilogue",
+      "prefill_tokens": 2048,
+      "prefill_tps": 794.723,
+      "decode_tps": 16.3809,
+      "full_run_sampled_peak_kib": 3052128.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33"
+    }
+  ],
+  "summary": [
+    {
+      "tokens": 1024,
+      "prefill_tps": {
+        "control": [
+          846.981,
+          825.806,
+          849.088
+        ],
+        "candidate": [
+          849.088,
+          833.198,
+          846.281
+        ],
+        "median_control": 846.981,
+        "median_candidate": 846.281,
+        "median_pct": -0.08264648203443192,
+        "paired_deltas_pct": [
+          0.24876591092362066,
+          0.8951254895217531,
+          -0.33058999773875053
+        ],
+        "pairs_faster": 2
+      },
+      "decode_tps": {
+        "control": [
+          17.66,
+          17.302,
+          17.5198
+        ],
+        "candidate": [
+          17.7334,
+          17.4863,
+          17.7089
+        ],
+        "median_control": 17.5198,
+        "median_candidate": 17.7089,
+        "median_pct": 1.0793502208929384,
+        "paired_deltas_pct": [
+          0.41562853907135544,
+          1.0651947751705082,
+          1.0793502208929384
+        ],
+        "pairs_faster": 3
+      },
+      "control_max_peak_kib": 2734944.0,
+      "candidate_max_peak_kib": 2733732.0
+    },
+    {
+      "tokens": 2048,
+      "prefill_tps": {
+        "control": [
+          797.197,
+          810.127,
+          912.249
+        ],
+        "candidate": [
+          778.411,
+          845.233,
+          794.723
+        ],
+        "median_control": 810.127,
+        "median_candidate": 794.723,
+        "median_pct": -1.9014302695750218,
+        "paired_deltas_pct": [
+          -2.356506610034914,
+          4.333394640593391,
+          -12.88310538021966
+        ],
+        "pairs_faster": 1
+      },
+      "decode_tps": {
+        "control": [
+          16.4651,
+          16.9492,
+          16.7452
+        ],
+        "candidate": [
+          16.8288,
+          16.8955,
+          16.3809
+        ],
+        "median_control": 16.7452,
+        "median_candidate": 16.8288,
+        "median_pct": 0.4992475455652956,
+        "paired_deltas_pct": [
+          2.208914613333657,
+          -0.3168291128785028,
+          -2.1755488139884815
+        ],
+        "pairs_faster": 1
+      },
+      "control_max_peak_kib": 3053112.0,
+      "candidate_max_peak_kib": 3052760.0
+    }
+  ],
+  "checks": "12 runs passed exact token IDs, fixed C16/Direct IO/preload128/handoff1 and complete deduplicated peak sample. Sampled process RssAnon + fdinfo allocations, not total physical device memory.",
+  "decision": "pending; decode median changes overlap run variability, 2048 only 1/3 pairs faster; prefill outside changed guard"
+}

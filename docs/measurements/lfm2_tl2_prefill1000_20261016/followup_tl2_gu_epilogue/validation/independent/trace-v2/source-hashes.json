@@ -1,0 +1,7 @@
+{
+  "normal_production_sha256": "d86b15ae408261f17728b3928dc29dd72fb375d5a772213234338c5c16f94d74",
+  "diagnostic_sha256": "7c3f1148c25eab5769cae0d2ea8df9d51662c5b28c00b4a6138c5bec444d22af",
+  "source_sha256": {
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "5d46fd796f2c92f8df2b688ba26273d60d167a5f4cc076d3fca844759ae1374f"
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "valid": true,
+  "instrumented": true,
+  "performance_comparison_eligible": false,
+  "raw_records": 21510,
+  "unique_kernel_calls": 4345,
+  "transport_duplicate_records": 17165,
+  "sequences_with_duplicates": 3715,
+  "maximum_transport_occurrences": 10,
+  "sequence_min": 1,
+  "sequence_max": 4345,
+  "first_seen_sequence_order_monotonic": true,
+  "pid": 8595,
+  "transport_tids": [
+    8634
+  ],
+  "first_delivery_timestamp": "10-16 22:13:35.943",
+  "last_delivery_timestamp": "10-16 22:13:39.592",
+  "payload_byte_max": 100,
+  "active_experts": 9728,
+  "decode_tokens": 64,
+  "moe_layers_per_token": 38,
+  "top_k": 4,
+  "kernel_calls_by_active_experts": {
+    "1": 1170,
+    "2": 1486,
+    "3": 1170,
+    "4": 519
+  },
+  "actual_pool_lanes": [
+    8
+  ],
+  "direct_counts": {
+    "fc": 2076,
+    "ft": 99648,
+    "uc": 61216,
+    "ut": 367296
+  },
+  "tile_pairs": 466944,
+  "removed_serial_wrapper_calls": 466944,
+  "old_swiglu_worker_calls": 466944,
+  "new_swiglu_worker_calls": 63292,
+  "fewer_swiglu_worker_calls": 403652,
+  "removed_stack_vector_stores": 933888,
+  "removed_stack_vector_loads": 933888,
+  "removed_stack_logical_access_bytes": 239075328,
+  "per_decode_token": {
+    "kernel_calls": 67.890625,
+    "serial_wrapper_calls_removed": 7296.0,
+    "new_swiglu_worker_calls": 988.9375,
+    "swiglu_worker_calls_removed": 6307.0625,
+    "stack_logical_access_bytes_removed": 3735552.0
+  },
+  "limits": [
+    "Sequence validates transport identity, not kernel arithmetic.",
+    "Workload total assumes one fresh process, one prompt and the explicit tokens/layers/top-k.",
+    "Stack counts are logical vector accesses, not DDR bytes or measured bandwidth.",
+    "Instrumented timing is excluded from normal TPS comparisons."
+  ],
+  "source_log": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-gu-direct-trace-v2-1024.logcat.txt",
+  "source_log_sha256": "0577164bedd57ffc66e8cdd32bbb0739aa57ec905af2829ded386faf0f242a59"
+}

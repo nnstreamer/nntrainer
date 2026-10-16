@@ -1,0 +1,19 @@
+{
+  "counter_check.py": "0c7156e8490f11e0418806bc7b7d20069ffb6da67426334c72e6e949499f9f11",
+  "counter_check.c": "bf9d84ebd47afee566a2f066acc98d53b02a0c24dde4ad118c48335fd472a26f",
+  "build_check.py": "7c047f0b6ae9a0772387d0b9438ebf5e2f977106671de91c4e8c65abaaa94c60",
+  "parse_trace.py": "3d3caa458bf23138eb3b70065f11b658f480c361006272561a6b4d53568b209e",
+  "drain_check.py": "272c6b1b8492a4d05386e16f72901d2fb4ee24bd25187f18d719b100816f487a",
+  "diagnostic.patch": "7c3f1148c25eab5769cae0d2ea8df9d51662c5b28c00b4a6138c5bec444d22af",
+  "source-hashes.json": "30ca68be722078238de54441be66c928cf65950a838e2567cf6b76eb11e3073f",
+  "frozen/counter_check.py": "e9714a4abb5af57e6549e7e7ad2b9f51ac880cb9232383721f750c2226780ea6",
+  "frozen/counter_check.c": "bf9d84ebd47afee566a2f066acc98d53b02a0c24dde4ad118c48335fd472a26f",
+  "frozen/build_check.py": "a4b77e735e8321e769189d27db30a0509e5245917caf4f60fb0b037c41eef3b7",
+  "frozen/parse_trace.py": "3d3caa458bf23138eb3b70065f11b658f480c361006272561a6b4d53568b209e",
+  "frozen/validation.json": "3ffc5b9770b19fd718d69b31594120c389350c6d7b9be617da7b854fdcf3bf5b",
+  "frozen/drain_check.py": "272c6b1b8492a4d05386e16f72901d2fb4ee24bd25187f18d719b100816f487a",
+  "frozen/diagnostic.patch": "7c3f1148c25eab5769cae0d2ea8df9d51662c5b28c00b4a6138c5bec444d22af",
+  "frozen/source-hashes.json": "30ca68be722078238de54441be66c928cf65950a838e2567cf6b76eb11e3073f",
+  "baseline/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea",
+  "candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "5d46fd796f2c92f8df2b688ba26273d60d167a5f4cc076d3fca844759ae1374f"
+}

@@ -1,0 +1,96 @@
+{
+  "baseline-moe_tl2_gate_epilogue_worker": {
+    "text_lines": 771,
+    "packets": 144,
+    "calls": [
+      "__hexagon_udivsi3",
+      "__hexagon_udivsi3",
+      "__hexagon_udivsi3",
+      "hvx_dequant_swiglu_acc_tiles_to_f32"
+    ],
+    "vector_sp_fp_access": [
+      "vmem(r29+#2) = v0",
+      "vmem(r29+#2) = v5.new",
+      "vmem(r29+#3) = v1",
+      "vmem(r29+#3) = v22.new"
+    ]
+  },
+  "baseline-moe_m1_requant_worker": {
+    "text_lines": 1239,
+    "packets": 231,
+    "calls": [
+      "__hexagon_udivdi3",
+      "__hexagon_udivdi3",
+      "__hexagon_udivsi3",
+      "hvx_dequant_swiglu_acc_tiles_to_f32",
+      "hvx_quant_rows_u8_params_rm",
+      "hvx_tl2_prepare",
+      "memset",
+      "hvx_quant_rows_u8_params",
+      "hvx_quant_pack_u8_ah_rows"
+    ],
+    "vector_sp_fp_access": [
+      "vmem(r29+#2) = v20.new",
+      "vmem(r29+#3) = v22.new",
+      "vmem(r29+#4) = v0",
+      "vmem(r29+#4) = v13.new",
+      "vmem(r29+#5) = v1",
+      "vmem(r29+#5) = v30.new",
+      "v21.cur = vmem(r29+#3)",
+      "vmem(r29+#4) = v21",
+      "v2 = vmem(r29+#2)",
+      "v2 = vmem(r29+#2)",
+      "vmem(r29+#4) = v19.new"
+    ]
+  },
+  "candidate-moe_tl2_gate_epilogue_worker": {
+    "text_lines": 947,
+    "packets": 182,
+    "calls": [
+      "htp_tl2_palette_magnitude",
+      "htp_tl2_palette_magnitude",
+      "hvx_dq_swiglu_worker",
+      "__hexagon_udivsi3",
+      "__hexagon_udivsi3",
+      "__hexagon_udivsi3",
+      "hvx_dequant_swiglu_acc_tiles_to_f32"
+    ],
+    "vector_sp_fp_access": [
+      "vmem(r29+#2) = v0",
+      "vmem(r29+#2) = v5.new",
+      "vmem(r29+#3) = v1",
+      "vmem(r29+#3) = v22.new"
+    ]
+  },
+  "candidate-moe_m1_requant_worker": {
+    "text_lines": 1401,
+    "packets": 261,
+    "calls": [
+      "__hexagon_udivdi3",
+      "__hexagon_udivdi3",
+      "htp_tl2_palette_magnitude",
+      "htp_tl2_palette_magnitude",
+      "hvx_dq_swiglu_worker",
+      "__hexagon_udivsi3",
+      "hvx_dequant_swiglu_acc_tiles_to_f32",
+      "hvx_quant_rows_u8_params_rm",
+      "hvx_tl2_prepare",
+      "memset",
+      "hvx_quant_rows_u8_params",
+      "hvx_quant_pack_u8_ah_rows"
+    ],
+    "vector_sp_fp_access": [
+      "vmem(r29+#2) = v20.new",
+      "vmem(r29+#3) = v22.new",
+      "vmem(r29+#4) = v0",
+      "vmem(r29+#4) = v13.new",
+      "vmem(r29+#5) = v1",
+      "vmem(r29+#5) = v30.new",
+      "v21.cur = vmem(r29+#3)",
+      "vmem(r29+#4) = v21",
+      "v2 = vmem(r29+#2)",
+      "v2 = vmem(r29+#2)",
+      "vmem(r29+#4) = v19.new"
+    ]
+  }
+}

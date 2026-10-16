@@ -1,0 +1,67 @@
+{
+  "status": "production_host_codegen_and_device_execution_count_passed; no resolved TPS gain",
+  "base": "7b3db6d189fa8086fa0daaa19e61eaca78a5c87c",
+  "production_patch_sha256": "d86b15ae408261f17728b3928dc29dd72fb375d5a772213234338c5c16f94d74",
+  "tests_patch_sha256": "4792923d1e0fa16f8f6bcc35981652a25ea56589bf3ed8d2030f192b63c3db88",
+  "production_source_sha256": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea",
+  "host_result": "TL2_GU_EPILOGUE 544 parity cases (264 requant, 88 fallback), 2664 intermediate lane checks, 13 unchanged-output guards PASS",
+  "host_mutants": {
+    "wrong-up-plane": -6,
+    "all-lanes-write": -6,
+    "accept-split": -6,
+    "accept-mag7": -6
+  },
+  "author_validation_path": "checks/host-san-final/validation.json",
+  "full_v81_compile": true,
+  "caller_frames_bytes": {
+    "moe_tl2_gate_epilogue_worker": {
+      "baseline": 640,
+      "candidate": 640
+    },
+    "moe_m1_requant_worker": {
+      "baseline": 896,
+      "candidate": 896
+    }
+  },
+  "codegen_summary": "checks/codegen/caller-codegen.json",
+  "independent_review_directory": "/tmp/nntr-lfm2-tl2-gu-epilogue-review-20261016",
+  "production_allocation_growth_bytes": 0,
+  "production_persistent_state_growth_bytes": 0,
+  "performance_claim": "No resolved TPS gain; bounded redundant-work removal only. Parent normal paired measurements have variance. Trace timing excluded.",
+  "trace_v1_count_valid": false,
+  "trace_v1_reason": "Transport repetitions cannot be safely identified without sequence; same timestamp/geometry can be legitimate calls. No heuristic deduplication accepted.",
+  "trace_v2_patch_sha256": "7c3f1148c25eab5769cae0d2ea8df9d51662c5b28c00b4a6138c5bec444d22af",
+  "trace_v2_parser_sha256": "3d3caa458bf23138eb3b70065f11b658f480c361006272561a6b4d53568b209e",
+  "limitations": [
+    "Host scalar scheduling stand-in only for the existing pool-NULL branch; production HVX arithmetic compiled with libnative.",
+    "Private structs are actual source with host pointer width; real32-bit layout/stack separately compiled onv81.",
+    "No author device access, root edits, commits or pushes."
+  ],
+  "trace_v2_device": {
+    "raw_records": 21510,
+    "unique_kernel_calls": 4345,
+    "transport_duplicate_records": 17165,
+    "sequence_min": 1,
+    "sequence_max": 4345,
+    "active_experts": 9728,
+    "direct_counts": {
+      "fc": 2076,
+      "ft": 99648,
+      "uc": 61216,
+      "ut": 367296
+    },
+    "tile_pairs": 466944,
+    "new_swiglu_worker_calls": 63292,
+    "per_decode_token": {
+      "kernel_calls": 67.890625,
+      "serial_wrapper_calls_removed": 7296.0,
+      "new_swiglu_worker_calls": 988.9375,
+      "swiglu_worker_calls_removed": 6307.0625,
+      "stack_logical_access_bytes_removed": 3735552.0
+    },
+    "source_log_sha256": "0577164bedd57ffc66e8cdd32bbb0739aa57ec905af2829ded386faf0f242a59",
+    "author_parser_result": "trace-v2/device-validation.json",
+    "independent_raw_readback": "trace-v2/raw-readback.json",
+    "device_ids": "Parent verified65 exact IDs; separate from count parser"
+  }
+}

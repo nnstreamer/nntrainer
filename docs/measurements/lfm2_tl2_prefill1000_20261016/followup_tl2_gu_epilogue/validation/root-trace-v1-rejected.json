@@ -1,0 +1,8 @@
+{
+  "valid_count_evidence": false,
+  "raw_trace_rows": 40246,
+  "unique_full_lines": 4649,
+  "reason": "Transport repeats many identical records; millisecond timestamp and payload do not uniquely identify kernel calls. Full-line deduplication can merge legitimate calls. No total wrapper/tile count inference. A v2 sequence ID is required.",
+  "inference_ids_match": true,
+  "diagnostic_TPS_excluded": true
+}
