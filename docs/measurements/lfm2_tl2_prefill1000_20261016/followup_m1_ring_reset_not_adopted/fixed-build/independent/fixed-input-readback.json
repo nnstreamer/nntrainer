@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "frozen_objects": 63,
+  "unchanged_link_object_positions": 61,
+  "changed_positions": [
+    33,
+    38
+  ],
+  "changed_names": [
+    "18-hexkl_mm_u8i4_moe.o",
+    "23-hexkl_dma_ring.o"
+  ],
+  "external_hashed_inputs": 38,
+  "cc1_records_exact_driver_flags_except_output_dependency_metadata": 65,
+  "source_order_entries": 63,
+  "two_ieee_objects_only": true,
+  "common_link_flag": "-no-threads",
+  "normal_control_sha256": "1efcd9dcde2109634be700bb778ce1ba802ea6bc69c3dec1612030edcd4ce1e4",
+  "normal_candidate_sha256": "f3e68660aff009b218efe16ab51e2ea93ba31e66611d555d768f5a82355c08bf",
+  "both_repeated_links_exact": true
+}

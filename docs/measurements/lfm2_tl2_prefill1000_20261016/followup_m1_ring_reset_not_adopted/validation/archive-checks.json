@@ -1,0 +1,290 @@
+{
+  "normal_runs_validated": 12,
+  "normal_summary_recomputed": true,
+  "all_raw_memory_hashes_exact": true,
+  "65_ids_each": true,
+  "fixed_c16_page0_preload128_readers": true,
+  "six_host_binaries_identical": true,
+  "production_and_tests_patch_replayed": true,
+  "device_manifest_sources_replayed_by_frozen_independent_readback": true,
+  "frozen_object_hashes_verified": true,
+  "fixed_build_manifest_and_reviewer_hashes_verified": true,
+  "restoration_verified": true,
+  "source_sha256": {
+    "nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.c": "50c839d6e7585bc63741a104771409b69866e540d88c7fefa75f4dee1257c95e",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.h": "291655c8e9169df6f3ca759df022a569e25d86f0fd934a772a9411b612e39751",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "48ec68ebfd9ed340fd485ab7401bfce6d2c4c18ee8833fb793eb2e1e72ccfe3f"
+  },
+  "production_patch_sha256": "7803996b40175702f5d9978d29aa8ea31df5ec26282f592fbac6b97ae3ef2a89",
+  "tests_patch_sha256": "1e9b6b6394ed911db733ed60259aa4a727c81d7ae92182da827c37adf0707c61",
+  "memory_sampling": [
+    {
+      "tag": "continue-m1-ring-reset-0-r1",
+      "requested_period_ms": 20,
+      "sample_count": 298,
+      "composite_samples": 296,
+      "interval_ms": {
+        "count": 297,
+        "min": 20.12099,
+        "mean": 20.7675894276,
+        "p50": 20.807083,
+        "p95": 21.086614,
+        "max": 23.521406
+      },
+      "scan_ms": {
+        "mean": 0.672892204698,
+        "max": 3.37125
+      },
+      "dma_identity_verified": false,
+      "peak_kib": 2714944.0,
+      "peak_dedup_complete": true,
+      "peak_error_fields_zero": true
+    },
+    {
+      "tag": "continue-m1-ring-reset-1-r1",
+      "requested_period_ms": 20,
+      "sample_count": 294,
+      "composite_samples": 293,
+      "interval_ms": {
+        "count": 293,
+        "min": 20.125834,
+        "mean": 20.7677102799,
+        "p50": 20.804063,
+        "p95": 21.0325,
+        "max": 23.455989
+      },
+      "scan_ms": {
+        "mean": 0.672650017007,
+        "max": 3.31677
+      },
+      "dma_identity_verified": false,
+      "peak_kib": 2714192.0,
+      "peak_dedup_complete": true,
+      "peak_error_fields_zero": true
+    },
+    {
+      "tag": "continue-m1-ring-reset-1-r2",
+      "requested_period_ms": 20,
+      "sample_count": 297,
+      "composite_samples": 295,
+      "interval_ms": {
+        "count": 296,
+        "min": 20.128333,
+        "mean": 20.7573652095,
+        "p50": 20.786146,
+        "p95": 21.032396,
+        "max": 23.483229
+      },
+      "scan_ms": {
+        "mean": 0.659628589226,
+        "max": 3.344843
+      },
+      "dma_identity_verified": false,
+      "peak_kib": 2713800.0,
+      "peak_dedup_complete": true,
+      "peak_error_fields_zero": true
+    },
+    {
+      "tag": "continue-m1-ring-reset-0-r2",
+      "requested_period_ms": 20,
+      "sample_count": 297,
+      "composite_samples": 296,
+      "interval_ms": {
+        "count": 296,
+        "min": 20.130156,
+        "mean": 20.7417688919,
+        "p50": 20.776823,
+        "p95": 21.008386,
+        "max": 23.216823
+      },
+      "scan_ms": {
+        "mean": 0.658519424242,
+        "max": 3.135469
+      },
+      "dma_identity_verified": false,
+      "peak_kib": 2713728.0,
+      "peak_dedup_complete": true,
+      "peak_error_fields_zero": true
+    },
+    {
+      "tag": "continue-m1-ring-reset-0-r3",
+      "requested_period_ms": 20,
+      "sample_count": 303,
+      "composite_samples": 301,
+      "interval_ms": {
+        "count": 302,
+        "min": 20.134323,
+        "mean": 20.7311646258,
+        "p50": 20.775365,
+        "p95": 20.984271,
+        "max": 22.80625
+      },
+      "scan_ms": {
+        "mean": 0.648715986799,
+        "max": 2.663073
+      },
+      "dma_identity_verified": false,
+      "peak_kib": 2714596.0,
+      "peak_dedup_complete": true,
+      "peak_error_fields_zero": true
+    },
+    {
+      "tag": "continue-m1-ring-reset-1-r3",
+      "requested_period_ms": 20,
+      "sample_count": 305,
+      "composite_samples": 303,
+      "interval_ms": {
+        "count": 304,
+        "min": 20.139427,
+        "mean": 20.7582613684,
+        "p50": 20.803229,
+        "p95": 21.008125,
+        "max": 23.718125
+      },
+      "scan_ms": {
+        "mean": 0.676048462295,
+        "max": 3.514948
+      },
+      "dma_identity_verified": false,
+      "peak_kib": 2714636.0,
+      "peak_dedup_complete": true,
+      "peak_error_fields_zero": true
+    },
+    {
+      "tag": "continue-m1-ring-reset2048-0-r1",
+      "requested_period_ms": 20,
+      "sample_count": 378,
+      "composite_samples": 377,
+      "interval_ms": {
+        "count": 377,
+        "min": 20.128854,
+        "mean": 20.9262651883,
+        "p50": 20.926615,
+        "p95": 21.139219,
+        "max": 24.899532
+      },
+      "scan_ms": {
+        "mean": 0.789410671958,
+        "max": 2.596875
+      },
+      "dma_identity_verified": false,
+      "peak_kib": 3019188.0,
+      "peak_dedup_complete": true,
+      "peak_error_fields_zero": true
+    },
+    {
+      "tag": "continue-m1-ring-reset2048-1-r1",
+      "requested_period_ms": 20,
+      "sample_count": 378,
+      "composite_samples": 376,
+      "interval_ms": {
+        "count": 377,
+        "min": 20.129583,
+        "mean": 20.9359542095,
+        "p50": 20.906094,
+        "p95": 21.17073,
+        "max": 24.583021
+      },
+      "scan_ms": {
+        "mean": 0.785394116402,
+        "max": 3.32401
+      },
+      "dma_identity_verified": false,
+      "peak_kib": 3016940.0,
+      "peak_dedup_complete": true,
+      "peak_error_fields_zero": true
+    },
+    {
+      "tag": "continue-m1-ring-reset2048-1-r2",
+      "requested_period_ms": 20,
+      "sample_count": 375,
+      "composite_samples": 373,
+      "interval_ms": {
+        "count": 374,
+        "min": 20.126823,
+        "mean": 20.930650754,
+        "p50": 20.910052,
+        "p95": 21.17276,
+        "max": 25.05625
+      },
+      "scan_ms": {
+        "mean": 0.791878336,
+        "max": 4.096615
+      },
+      "dma_identity_verified": false,
+      "peak_kib": 3019336.0,
+      "peak_dedup_complete": true,
+      "peak_error_fields_zero": true
+    },
+    {
+      "tag": "continue-m1-ring-reset2048-0-r2",
+      "requested_period_ms": 20,
+      "sample_count": 364,
+      "composite_samples": 363,
+      "interval_ms": {
+        "count": 363,
+        "min": 20.158646,
+        "mean": 20.9757569945,
+        "p50": 21.031563,
+        "p95": 21.177553,
+        "max": 24.230625
+      },
+      "scan_ms": {
+        "mean": 0.842671107143,
+        "max": 3.609636
+      },
+      "dma_identity_verified": false,
+      "peak_kib": 3016580.0,
+      "peak_dedup_complete": true,
+      "peak_error_fields_zero": true
+    },
+    {
+      "tag": "continue-m1-ring-reset2048-0-r3",
+      "requested_period_ms": 20,
+      "sample_count": 380,
+      "composite_samples": 378,
+      "interval_ms": {
+        "count": 379,
+        "min": 20.123073,
+        "mean": 20.9919692639,
+        "p50": 21.041979,
+        "p95": 21.228385,
+        "max": 24.883697
+      },
+      "scan_ms": {
+        "mean": 0.834948184211,
+        "max": 3.600625
+      },
+      "dma_identity_verified": false,
+      "peak_kib": 3018980.0,
+      "peak_dedup_complete": true,
+      "peak_error_fields_zero": true
+    },
+    {
+      "tag": "continue-m1-ring-reset2048-1-r3",
+      "requested_period_ms": 20,
+      "sample_count": 367,
+      "composite_samples": 365,
+      "interval_ms": {
+        "count": 366,
+        "min": 20.156562,
+        "mean": 20.9464230328,
+        "p50": 21.025625,
+        "p95": 21.150625,
+        "max": 24.888437
+      },
+      "scan_ms": {
+        "mean": 0.82509920436,
+        "max": 3.35401
+      },
+      "dma_identity_verified": false,
+      "peak_kib": 3016144.0,
+      "peak_dedup_complete": true,
+      "peak_error_fields_zero": true
+    }
+  ],
+  "diagnostics_parsed_from_live_pid_raw": true,
+  "diagnostic_independent_count_from_same_run": true,
+  "independent_review_hashes_verified": true,
+  "validation_scope": "Read-only evidence validation. Existing host/compiler/device experiments were not rerun."
+}

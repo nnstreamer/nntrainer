@@ -1,0 +1,19 @@
+{
+  "baseline.json": "633e38d400ea1ecc4c85346c2cbadc4dbcfc0262d02669e0dfca85a16c52a3e8",
+  "tests.patch": "1e9b6b6394ed911db733ed60259aa4a727c81d7ae92182da827c37adf0707c61",
+  "tests-hashes.json": "78d6f20a528d6882920f9e0b6bca2656e711f89c397645a543ec2729c1a263f2",
+  "production-hashes.json": "6425e16a2d7934ec15f371a197fe9aa6dbee3bf987e9af695a7acafbd9f80337",
+  "production.patch": "7803996b40175702f5d9978d29aa8ea31df5ec26282f592fbac6b97ae3ef2a89",
+  "baseline/nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.c": "7751082a9a8a2f0f8655ca6031a685f58dd018a27212995221ecb21f0bec5fea",
+  "baseline/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea",
+  "baseline/nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.h": "201270bd0f936e8f168f909eaa3e9631c36da3aabdd9d6029bd73f8fe49a4b3c",
+  "baseline/test/htp/host/moe_layer_host_check.c": "0e4508bca7b166400e521f3aba53cbbfd70c27863d462d491c9256184eb08be3",
+  "baseline/test/htp/host/hvx_scalar_stubs.c": "c6d6ec9179e154959784863c6f7e196014d0884fe51c5ed6aee88df7c6d3df0c",
+  "candidate/nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.c": "50c839d6e7585bc63741a104771409b69866e540d88c7fefa75f4dee1257c95e",
+  "candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "48ec68ebfd9ed340fd485ab7401bfce6d2c4c18ee8833fb793eb2e1e72ccfe3f",
+  "candidate/nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.h": "291655c8e9169df6f3ca759df022a569e25d86f0fd934a772a9411b612e39751",
+  "candidate/test/htp/host/moe_layer_host_check.c": "03a68a75e0230dc025fb60ce7c753e5084deaa65a716d6727e8725e77e435316",
+  "candidate/test/htp/host/hvx_scalar_stubs.c": "ac6d1203dbe6cdca16f96570eb7f91b04b37d9f1911bf07e118f2023ee1f9792",
+  "test/htp/host/run_lfm2_m1_ring_reset_checks.py": "2b6ff1ed388006d817ab44aea841e086830c0d0ccb39766be776085b491b6949",
+  "test/htp/host/lfm2_m1_ring_reset_check.c": "6a09d88be3ed19183f6fad488130dffe0348214bd9768dcd2a97e798d79e2269"
+}

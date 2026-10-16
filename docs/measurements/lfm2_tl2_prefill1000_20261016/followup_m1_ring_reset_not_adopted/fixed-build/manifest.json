@@ -1,0 +1,158 @@
+{
+  "build_fixed_objects.py": {
+    "sha256": "86b659496fc401c9cc14415b50978593968ef60e9cc1776ca1cc832b4771704e",
+    "bytes": 18811
+  },
+  "compare_functions.py": {
+    "sha256": "dd5ad3b40864dc8f03c4727253e94ae9fbd878904db19f9ee91de98e2ff39dab",
+    "bytes": 3313
+  },
+  "README.txt": {
+    "sha256": "18e4bddc1b0a212b59541aaeae15dda307e091d834d63a12581868030014ec30",
+    "bytes": 7364
+  },
+  "validation.json": {
+    "sha256": "9f4d0090fc43844c99e99aa676dad190d865430b29c21418aa8f21fcb90772fe",
+    "bytes": 3053
+  },
+  "build/validation.json": {
+    "sha256": "51ca594e6fb74012eb867865c95ff63f921a54c3a835b15fdf504563478d430e",
+    "bytes": 27619
+  },
+  "build/inputs.json": {
+    "sha256": "08e82a4d56ed437fe31fbfb09e9607839859344ae820756dc99dcfc734e65146",
+    "bytes": 1917
+  },
+  "build/source-order.json": {
+    "sha256": "e13ad66c319e86b426648f60edf5ef65bd3a05181913988414132f3e887dd927",
+    "bytes": 5144
+  },
+  "build/commands.json": {
+    "sha256": "162b1dadd5c7eed490ab2f7c03fa7a68cb8091825d1a19bee3e08308d62d5e98",
+    "bytes": 352620
+  },
+  "build/compilations.json": {
+    "sha256": "f772511e3af3b94687c518ba8bde69cff4529ed61668e3df68f73393be34b56f",
+    "bytes": 498928
+  },
+  "build/frozen-object-hashes.json": {
+    "sha256": "953f9726498cdee1b6f7bbd7a604d75372889a24ead7fe27e2506586a5ce2de4",
+    "bytes": 10108
+  },
+  "build/object-map.json": {
+    "sha256": "28be292d7817f5912c2a42a1f559a3fa7ab7a66abc6d19cfe7750a4fd2dfce9e",
+    "bytes": 18361
+  },
+  "build/link-tool-input-hashes.json": {
+    "sha256": "c2d07486a191a485f175bbde474a5ac5ed339f73d4ab6947db0e5e1112840541",
+    "bytes": 7376
+  },
+  "build/baseline-source-hashes.json": {
+    "sha256": "dc2e62eb4b3c903265a43967b3a09e85ba68e2a15a1c2cd179a7d48ce40545de",
+    "bytes": 85361
+  },
+  "build/generated-hashes.json": {
+    "sha256": "fc21a4846b5b8a010170d3ee3c3279355a578b5076e18d307ff7e8c41578a57e",
+    "bytes": 295
+  },
+  "build/production.patch": {
+    "sha256": "7803996b40175702f5d9978d29aa8ea31df5ec26282f592fbac6b97ae3ef2a89",
+    "bytes": 2102
+  },
+  "build/control/libnntr_hvx_skel.so": {
+    "sha256": "1efcd9dcde2109634be700bb778ce1ba802ea6bc69c3dec1612030edcd4ce1e4",
+    "bytes": 742544
+  },
+  "build/control/repeat.so": {
+    "sha256": "1efcd9dcde2109634be700bb778ce1ba802ea6bc69c3dec1612030edcd4ce1e4",
+    "bytes": 742544
+  },
+  "build/candidate/libnntr_hvx_skel.so": {
+    "sha256": "f3e68660aff009b218efe16ab51e2ea93ba31e66611d555d768f5a82355c08bf",
+    "bytes": 742576
+  },
+  "build/candidate/repeat.so": {
+    "sha256": "f3e68660aff009b218efe16ab51e2ea93ba31e66611d555d768f5a82355c08bf",
+    "bytes": 742576
+  },
+  "build/link-determinism/validation.json": {
+    "sha256": "9a620e36780088b45231bb1de62b6a47f37f677713ec142d5c1936b1c8241bc6",
+    "bytes": 7823
+  },
+  "build/threaded-link-attempt/control/libnntr_hvx_skel.so": {
+    "sha256": "a19d86bcc635e5f0892c878d0da7d009b2cc11af4ceb093ad0fe0fda2c6bf450",
+    "bytes": 742544
+  },
+  "build/threaded-link-attempt/control/repeat.so": {
+    "sha256": "1044a086816a451f98cecbe608832e524138c71971cc812f51dd04b2a1c67d28",
+    "bytes": 742544
+  },
+  "build/threaded-link-attempt/control/repeat-section-comparison.json": {
+    "sha256": "ec96017e12038937c338f632db2177c6c788aa1c6241e29a160bd74f848d2db7",
+    "bytes": 9660
+  },
+  "build/changed-tu-function-comparison.json": {
+    "sha256": "9286f9b90125f5ceea94f7fe9aff37b56b68dd959565e135fe78a60c524dd2f7",
+    "bytes": 16840
+  },
+  "build/normalized-functions/comparison.json": {
+    "sha256": "188cf629410f48d129445a4ac35c3cfdad77b3afcd02a7c366978c6f5e2a17f9",
+    "bytes": 1806
+  },
+  "diagnostic/prepare.py": {
+    "sha256": "34ff5a53b21c3c9d4b09741522925927f08d48a52f01b28abe884e516258e6e7",
+    "bytes": 8346
+  },
+  "diagnostic/parse.py": {
+    "sha256": "86be9a4ed9b2cdb86b3744b20c5675621aa859ae62694211d7bfafe00bb55661",
+    "bytes": 3587
+  },
+  "diagnostic/parser_check.py": {
+    "sha256": "713b0b844058f7534724babf9f0c261c8d1ca26cfe45b3b21e3f0bcf6c773133",
+    "bytes": 1831
+  },
+  "diagnostic/parser-check.json": {
+    "sha256": "c5da5f44378dac6d38c14126b11589f112a0cd74f752d251fa8ba627f72f7552",
+    "bytes": 55
+  },
+  "diagnostic/host-readback.json": {
+    "sha256": "4a2beadc961a45820123f4057df2203bf92034838956471c4004b147100d23cc",
+    "bytes": 494
+  },
+  "diagnostic/build/diagnostic.patch": {
+    "sha256": "9aadb311233191a4c3cd1013ed55fcfd64b4cc8dbbe552088c9f2d0f6ae6c188",
+    "bytes": 1170
+  },
+  "diagnostic/build/validation.json": {
+    "sha256": "b0682c21da6ced3bfdb7f34abfa16f07ef00bc809bc3bf67b601db4394cf0dc1",
+    "bytes": 1088
+  },
+  "diagnostic/build/commands.json": {
+    "sha256": "58a9a210d69ade19e86301df28468edc41ab659f09e1aa43c84560d19681528e",
+    "bytes": 25122
+  },
+  "diagnostic/build/libnntr_hvx_skel.so": {
+    "sha256": "c19c64272c1edada380477012c73f74ee90ae82df9298998da1577e82868693f",
+    "bytes": 742768
+  },
+  "diagnostic/build/host-run.log": {
+    "sha256": "36405f6b6a6cdb136181b17f0dd0ae17d2eeed299a8f5a57450490b774beffb6",
+    "bytes": 5390
+  },
+  "diagnostic/build/host/fixture.c": {
+    "sha256": "394244a1de6470a7e357f0e71f066837992f6807f9b574c8c128485a69adfbc7",
+    "bytes": 10624
+  },
+  "diagnostic/build/ring-diagnostic.c": {
+    "sha256": "ef837fe7a757aa0594422b6393c224ea5fef00a6a0d08bd1a9a7acf9cb06fb4a",
+    "bytes": 6414
+  },
+  "diagnostic/build/ring-0.o": {
+    "sha256": "fff3afa108dc295af0d2d987529eea236f1344c610f3662edf1e000de2a58262",
+    "bytes": 3092
+  },
+  "diagnostic/build/ring-1.o": {
+    "sha256": "b5d66fc5020c9610b1cd35c97e62ed3c44b3e51fd8b05c6b858726997f08de4a",
+    "bytes": 4264
+  }
+}

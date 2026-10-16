@@ -1,0 +1,145 @@
+{
+  "status": "PASS",
+  "independent_parser": true,
+  "new_tests_or_device_runs": false,
+  "diagnostic_records": [
+    {
+      "rows": 1024,
+      "pid": 7354,
+      "tid_set": [
+        7392
+      ],
+      "same_run_rate": "67.89",
+      "integer_rounding_interval": [
+        "108616/25",
+        "108632/25"
+      ],
+      "independent_total": 4345,
+      "raw_records": 4345,
+      "sequence": [
+        1,
+        4345
+      ],
+      "hits": 4345,
+      "fallbacks": 0,
+      "duplicates": 0,
+      "missing_or_reordered": 0,
+      "first_timestamp": "10-17 01:30:53.683",
+      "last_timestamp": "10-17 01:30:57.256",
+      "logical_clear_bytes_avoided": 142376960,
+      "ids_count": 65,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "complete_exit": true,
+      "performance_eligible": false,
+      "live_log_sha256": "d91cdbd164f234bcaa0611e94b5dd1bd1a9f0044aef20834b0b247c0ad96b173"
+    },
+    {
+      "rows": 2048,
+      "pid": 7567,
+      "tid_set": [
+        7603
+      ],
+      "same_run_rate": "68.58",
+      "integer_rounding_interval": [
+        "21944/5",
+        "109736/25"
+      ],
+      "independent_total": 4389,
+      "raw_records": 4389,
+      "sequence": [
+        1,
+        4389
+      ],
+      "hits": 4389,
+      "fallbacks": 0,
+      "duplicates": 0,
+      "missing_or_reordered": 0,
+      "first_timestamp": "10-17 01:31:09.215",
+      "last_timestamp": "10-17 01:31:12.927",
+      "logical_clear_bytes_avoided": 143818752,
+      "ids_count": 65,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "complete_exit": true,
+      "performance_eligible": false,
+      "live_log_sha256": "293cc7556130442ad3039550fe82f561d4b949fb73332bed1ee725326775e4d6"
+    }
+  ],
+  "common_six_host_binaries": {
+    "libnntrainer.so": "072b5ca2700aaf10fb5b38ebd244d54691efd7ba96bf0dd699fd907bc6e42c09",
+    "libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+    "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+    "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+    "libcausallm.so": "c34aa784141ce3c3d8cda2d8ccfd12ed759757284ee916ee4fac7f75f6197c05",
+    "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76"
+  },
+  "controlled_dsp": {
+    "control": "1efcd9dcde2109634be700bb778ce1ba802ea6bc69c3dec1612030edcd4ce1e4",
+    "candidate": "f3e68660aff009b218efe16ab51e2ea93ba31e66611d555d768f5a82355c08bf",
+    "diagnostic": "c19c64272c1edada380477012c73f74ee90ae82df9298998da1577e82868693f"
+  },
+  "source_patch_replay": {
+    "control": {
+      "nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.c": "7751082a9a8a2f0f8655ca6031a685f58dd018a27212995221ecb21f0bec5fea",
+      "nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.h": "201270bd0f936e8f168f909eaa3e9631c36da3aabdd9d6029bd73f8fe49a4b3c",
+      "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea"
+    },
+    "candidate": {
+      "nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.c": "50c839d6e7585bc63741a104771409b69866e540d88c7fefa75f4dee1257c95e",
+      "nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.h": "291655c8e9169df6f3ca759df022a569e25d86f0fd934a772a9411b612e39751",
+      "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "48ec68ebfd9ed340fd485ab7401bfce6d2c4c18ee8833fb793eb2e1e72ccfe3f"
+    },
+    "diagnostic": {
+      "nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.c": "ef837fe7a757aa0594422b6393c224ea5fef00a6a0d08bd1a9a7acf9cb06fb4a",
+      "nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.h": "291655c8e9169df6f3ca759df022a569e25d86f0fd934a772a9411b612e39751",
+      "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "48ec68ebfd9ed340fd485ab7401bfce6d2c4c18ee8833fb793eb2e1e72ccfe3f"
+    }
+  },
+  "common_application_source_sha256": {
+    "Applications/CausalLM/app_build/meson.build": "c602cf6785c1790ee361fedc0d45490cf0194d208b75acf4ba895f0c527ac92f",
+    "Applications/CausalLM/models/gemma4/meson.build": "f54cbe5e90b246898649425607a7010cdd06e8df52f3540aaa402947267b7d9c",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp": "103b1e1df18efe8de8085f01167f29f2a4502178ac22e5c1aaab68dc38c036a8",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_router_arm.cpp": "d74cacb8b4c42ea701c37922ff773dff95804e92d0f38d84a09ce3d86000aa79",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_router_arm.h": "5a79209dd974817dc20a7a13ee4e29b7b71c90fc2fb6e42dcafadda4a8794339"
+  },
+  "not_original_3b_binary_comparison": true,
+  "no_timing_claim": true,
+  "input_sha256": {
+    "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-diagnostic1024.json": "f9b2be9bcf048830ede50b75b9afc4f38803cbe12cd49680042284120a423fd7",
+    "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-diagnostic1024.memory.json": "d6db4cd6294f244db12a6402d623a7b1736e0f8b9c67ddecebac1cc1a9f23286",
+    "/tmp/nntr-lfm2-m1-ring-reset-20261017/continue-m1-ring-reset-diagnostic1024.live.logcat.txt": "d91cdbd164f234bcaa0611e94b5dd1bd1a9f0044aef20834b0b247c0ad96b173",
+    "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-diagnostic1024.log": "50aca1a224c55aa9774b43f6777f20fcbbf9bccf3bfb367221612b3e74605618",
+    "/tmp/nntr-lfm2-m1-ring-reset-20261017/continue-m1-ring-reset-diagnostic1024.parsed.json": "eb7190adfe4304b9ae1add5eb9263a1f2065b35e75f9a4c4056457df8cf9ec48",
+    "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-diagnostic1024.ids": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+    "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-diagnostic2048.json": "04732218657c6fe71c896bd33309f1f39ed8a017df7ccaecde067cf253f21ba5",
+    "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-diagnostic2048.memory.json": "6babf1ba6f8f062f9a825f7d297fa177e1a14d106780b6d8f02fa946715bbaa2",
+    "/tmp/nntr-lfm2-m1-ring-reset-20261017/continue-m1-ring-reset-diagnostic2048.live.logcat.txt": "293cc7556130442ad3039550fe82f561d4b949fb73332bed1ee725326775e4d6",
+    "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-diagnostic2048.log": "06ee9bcf6759f1874a29292129cd579f32dc97f04a92b8dc8c386c4e64018b75",
+    "/tmp/nntr-lfm2-m1-ring-reset-20261017/continue-m1-ring-reset-diagnostic2048.parsed.json": "a278e20d910477b1b8d828b9487ed7736bab2f65c645255c3081a885f50f02b2",
+    "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-diagnostic2048.ids": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+    "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/validation.json": "51ca594e6fb74012eb867865c95ff63f921a54c3a835b15fdf504563478d430e",
+    "/tmp/nntr-lfm2-ring-fixed-objects-20261017/diagnostic/build/validation.json": "b0682c21da6ced3bfdb7f34abfa16f07ef00bc809bc3bf67b601db4394cf0dc1",
+    "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/lfm-m1-ring-reset-control-artifacts.json": "229ba368920585a10ab55af0ff82b0aae06a471624ba09d84b07a2ec63a3c84c",
+    "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/control/libnntr_hvx_skel.so": "1efcd9dcde2109634be700bb778ce1ba802ea6bc69c3dec1612030edcd4ce1e4",
+    "/tmp/nntr-lfm2-tl2-prefill1000-20261016/lfm-m1-ring-reset-control.source.patch": "cf1f99fc550bee96b6efa06d93fca15ec68063fa5cdaa0bb58e189610aa33cbf",
+    "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/lfm-m1-ring-reset-artifacts.json": "7dd9bb258a1a3cc3f900f99ec850762ed8ef176c74d23c30ca67c995a2ae8d9f",
+    "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/candidate/libnntr_hvx_skel.so": "f3e68660aff009b218efe16ab51e2ea93ba31e66611d555d768f5a82355c08bf",
+    "/tmp/nntr-lfm2-tl2-prefill1000-20261016/lfm-m1-ring-reset.source.patch": "b63a84ff4fa22e41c4331e6309c102bfe73251f1d832a7fa9129c2395722f9d3",
+    "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/lfm-m1-ring-reset-diagnostic-artifacts.json": "42ece8ab3ecd83eab30ac4b04aa42d69f6bfe582049f48553460c724d83da520",
+    "/tmp/nntr-lfm2-ring-fixed-objects-20261017/diagnostic/build/libnntr_hvx_skel.so": "c19c64272c1edada380477012c73f74ee90ae82df9298998da1577e82868693f",
+    "/tmp/nntr-lfm2-tl2-prefill1000-20261016/lfm-m1-ring-reset-diagnostic.source.patch": "467305667fa84f4ad8c8e6b7d9e9d4591f6e78a291bcd3481f49dddec066931d",
+    "/tmp/nntr-lfm2-m1-ring-reset-20261017/root-accepted-control.json": "b0f8e2ac50927e72b3708b65607c9c147ac36fe8fde293764082e387013d5464",
+    "/tmp/nntr-lfm2-m1-ring-reset-20261017/root-accepted-control/libnntrainer.so": "072b5ca2700aaf10fb5b38ebd244d54691efd7ba96bf0dd699fd907bc6e42c09",
+    "/tmp/nntr-lfm2-m1-ring-reset-20261017/root-accepted-control/libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+    "/tmp/nntr-lfm2-m1-ring-reset-20261017/root-accepted-control/libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+    "/tmp/nntr-lfm2-m1-ring-reset-20261017/root-accepted-control/libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+    "/tmp/nntr-lfm2-m1-ring-reset-20261017/root-accepted-control/libcausallm.so": "c34aa784141ce3c3d8cda2d8ccfd12ed759757284ee916ee4fac7f75f6197c05",
+    "/tmp/nntr-lfm2-m1-ring-reset-20261017/root-accepted-control/nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76",
+    "/tmp/nntr-lfm2-m1-ring-reset-20261017/root-runtime-identity.json": "35deb441da9bfac71910048a0dad03f4c3f3d0d8d40bd154ade93ce4e3b2aaf3",
+    "/tmp/nntr-lfm2-m1-ring-reset-20261017/root-normal-jobs.json": "8738bcfb4906d881c94c9ebe06165d2a6e02ab513f2613d1c9385ad9a1ebf719"
+  },
+  "normal_job_metadata": {
+    "jobs": 12,
+    "ARM_router_option_all": 1,
+    "same_environments": true
+  }
+}

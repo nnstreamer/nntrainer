@@ -1,0 +1,14 @@
+[
+  "python3",
+  "/tmp/nntr-lfm2-ring-device-review-20261017/readback.py",
+  "--repo",
+  "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000",
+  "--author",
+  "/tmp/nntr-lfm2-m1-ring-reset-20261017",
+  "--fixed",
+  "/tmp/nntr-lfm2-ring-fixed-objects-20261017",
+  "--scratch",
+  "/tmp/nntr-lfm2-tl2-prefill1000-20261016",
+  "--output",
+  "/tmp/nntr-lfm2-ring-device-review-20261017/readback"
+]

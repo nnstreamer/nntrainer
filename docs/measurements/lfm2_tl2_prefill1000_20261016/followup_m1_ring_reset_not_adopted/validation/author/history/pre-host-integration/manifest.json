@@ -1,0 +1,11 @@
+{
+  "production.patch": "7803996b40175702f5d9978d29aa8ea31df5ec26282f592fbac6b97ae3ef2a89",
+  "production-hashes.json": "6425e16a2d7934ec15f371a197fe9aa6dbee3bf987e9af695a7acafbd9f80337",
+  "tests.patch": "de3b844966572b3e4c5baa2e2695300d7d1272c6ec460c7b3996ae2614c938e2",
+  "README.txt": "ccb2c1363649e2574387450073b2ec195a10f232361e05825493090fefd18cc7",
+  "validation.json": "dab54751df85bf89ae800b2feefcf7dfe988d1bd877c5d6251c58b3267f933a4",
+  "codegen/comparison.json": "9099996f563a16d46aa55904c25de06ea5bf0d1f3bb21c31076dbac250015e94",
+  "codegen/normalized-comparison.json": "c31a9beeeba4f8372e5e78bd95e0528a566790f32e4bd63ef58cba5adbd61210",
+  "test/htp/host/lfm2_m1_ring_reset_check.c": "6a09d88be3ed19183f6fad488130dffe0348214bd9768dcd2a97e798d79e2269",
+  "test/htp/host/run_lfm2_m1_ring_reset_checks.py": "afaf8ce81532af40f595c0741572786f9aeb40417e58bc2d7475351da85690b4"
+}

@@ -1,0 +1,205 @@
+{
+  "decision": "not_adopted",
+  "reason": "No decode TPS gain established;2048 is lower in all3pairs. Prefill variation is not attributed to this M1-only branch.",
+  "normal": [
+    {
+      "tokens": 1024,
+      "prefill_tps": {
+        "control": [
+          827.141,
+          832.52,
+          808.847
+        ],
+        "candidate": [
+          844.884,
+          827.141,
+          772.247
+        ],
+        "median_control": 827.141,
+        "median_candidate": 827.141,
+        "median_pct": 0.0,
+        "pairs_faster": 1,
+        "paired_deltas_pct": [
+          2.1450998076506966,
+          -0.6461106039494569,
+          -4.52495960299043
+        ]
+      },
+      "decode_tps": {
+        "control": [
+          17.6552,
+          17.6163,
+          17.2833
+        ],
+        "candidate": [
+          17.6066,
+          17.6357,
+          17.5728
+        ],
+        "median_control": 17.6163,
+        "median_candidate": 17.6066,
+        "median_pct": -0.05506264084965684,
+        "pairs_faster": 2,
+        "paired_deltas_pct": [
+          -0.2752730073859233,
+          0.11012528169933589,
+          1.6750273385291115
+        ]
+      },
+      "control_max_peak_kib": 2714944.0,
+      "candidate_max_peak_kib": 2714636.0
+    },
+    {
+      "tokens": 2048,
+      "prefill_tps": {
+        "control": [
+          807.571,
+          929.641,
+          814.314
+        ],
+        "candidate": [
+          816.587,
+          852.268,
+          932.605
+        ],
+        "median_control": 814.314,
+        "median_candidate": 852.268,
+        "median_pct": 4.660855640453199,
+        "pairs_faster": 2,
+        "paired_deltas_pct": [
+          1.1164343444724834,
+          -8.322890233972036,
+          14.526460308922617
+        ]
+      },
+      "decode_tps": {
+        "control": [
+          16.3557,
+          16.2148,
+          16.3474
+        ],
+        "candidate": [
+          16.285,
+          16.2025,
+          16.2066
+        ],
+        "median_control": 16.3474,
+        "median_candidate": 16.2066,
+        "median_pct": -0.8612990444963664,
+        "pairs_faster": 0,
+        "paired_deltas_pct": [
+          -0.4322652041795716,
+          -0.07585662481189859,
+          -0.8612990444963664
+        ]
+      },
+      "control_max_peak_kib": 3019188.0,
+      "candidate_max_peak_kib": 3019336.0
+    }
+  ],
+  "normal_run_count": 12,
+  "all_65_ids_exact": true,
+  "six_host_binaries_identical": true,
+  "controlled_dsp_pair_not_original_3b": true,
+  "runtime_binaries": {
+    "lfm-m1-ring-reset-control": {
+      "libnntrainer.so": "072b5ca2700aaf10fb5b38ebd244d54691efd7ba96bf0dd699fd907bc6e42c09",
+      "libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+      "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+      "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+      "libcausallm.so": "c34aa784141ce3c3d8cda2d8ccfd12ed759757284ee916ee4fac7f75f6197c05",
+      "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76",
+      "libnntr_hvx_skel.so": "1efcd9dcde2109634be700bb778ce1ba802ea6bc69c3dec1612030edcd4ce1e4"
+    },
+    "lfm-m1-ring-reset": {
+      "libnntrainer.so": "072b5ca2700aaf10fb5b38ebd244d54691efd7ba96bf0dd699fd907bc6e42c09",
+      "libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+      "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+      "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+      "libcausallm.so": "c34aa784141ce3c3d8cda2d8ccfd12ed759757284ee916ee4fac7f75f6197c05",
+      "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76",
+      "libnntr_hvx_skel.so": "f3e68660aff009b218efe16ab51e2ea93ba31e66611d555d768f5a82355c08bf"
+    },
+    "lfm-m1-ring-reset-diagnostic": {
+      "libnntrainer.so": "072b5ca2700aaf10fb5b38ebd244d54691efd7ba96bf0dd699fd907bc6e42c09",
+      "libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+      "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+      "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+      "libcausallm.so": "c34aa784141ce3c3d8cda2d8ccfd12ed759757284ee916ee4fac7f75f6197c05",
+      "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76",
+      "libnntr_hvx_skel.so": "c19c64272c1edada380477012c73f74ee90ae82df9298998da1577e82868693f"
+    }
+  },
+  "diagnostic_actual_dispatch": [
+    {
+      "rows": 1024,
+      "pid": 7354,
+      "tid_set": [
+        7392
+      ],
+      "same_run_rate": "67.89",
+      "integer_rounding_interval": [
+        "108616/25",
+        "108632/25"
+      ],
+      "independent_total": 4345,
+      "raw_records": 4345,
+      "sequence": [
+        1,
+        4345
+      ],
+      "hits": 4345,
+      "fallbacks": 0,
+      "duplicates": 0,
+      "missing_or_reordered": 0,
+      "first_timestamp": "10-17 01:30:53.683",
+      "last_timestamp": "10-17 01:30:57.256",
+      "logical_clear_bytes_avoided": 142376960,
+      "ids_count": 65,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "complete_exit": true,
+      "performance_eligible": false,
+      "live_log_sha256": "d91cdbd164f234bcaa0611e94b5dd1bd1a9f0044aef20834b0b247c0ad96b173"
+    },
+    {
+      "rows": 2048,
+      "pid": 7567,
+      "tid_set": [
+        7603
+      ],
+      "same_run_rate": "68.58",
+      "integer_rounding_interval": [
+        "21944/5",
+        "109736/25"
+      ],
+      "independent_total": 4389,
+      "raw_records": 4389,
+      "sequence": [
+        1,
+        4389
+      ],
+      "hits": 4389,
+      "fallbacks": 0,
+      "duplicates": 0,
+      "missing_or_reordered": 0,
+      "first_timestamp": "10-17 01:31:09.215",
+      "last_timestamp": "10-17 01:31:12.927",
+      "logical_clear_bytes_avoided": 143818752,
+      "ids_count": 65,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "complete_exit": true,
+      "performance_eligible": false,
+      "live_log_sha256": "293cc7556130442ad3039550fe82f561d4b949fb73332bed1ee725326775e4d6"
+    }
+  ],
+  "diagnostic_tps_excluded": true,
+  "logical_clear_bytes_not_ddr_or_latency": true,
+  "frozen_objects": 63,
+  "unchanged_common_objects": 61,
+  "common_linker_setting": "-no-threads",
+  "original_threaded_link_failure_preserved": true,
+  "three_sources_and_accepted_seven_binary_runtime_restored": true,
+  "restored_original_dsp_selected_not_recompiled": true,
+  "independent_source_build_and_device_readback_reviews": true,
+  "new_tests_or_phone_runs_during_curation": false
+}

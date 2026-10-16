@@ -1,0 +1,182 @@
+[
+  {
+    "variant": "lfm-m1-ring-reset-control",
+    "tag": "continue-m1-ring-reset-0-r1",
+    "model": "model",
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_ARM": 1
+    }
+  },
+  {
+    "variant": "lfm-m1-ring-reset",
+    "tag": "continue-m1-ring-reset-1-r1",
+    "model": "model",
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_ARM": 1
+    }
+  },
+  {
+    "variant": "lfm-m1-ring-reset",
+    "tag": "continue-m1-ring-reset-1-r2",
+    "model": "model",
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_ARM": 1
+    }
+  },
+  {
+    "variant": "lfm-m1-ring-reset-control",
+    "tag": "continue-m1-ring-reset-0-r2",
+    "model": "model",
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_ARM": 1
+    }
+  },
+  {
+    "variant": "lfm-m1-ring-reset-control",
+    "tag": "continue-m1-ring-reset-0-r3",
+    "model": "model",
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_ARM": 1
+    }
+  },
+  {
+    "variant": "lfm-m1-ring-reset",
+    "tag": "continue-m1-ring-reset-1-r3",
+    "model": "model",
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_ARM": 1
+    }
+  },
+  {
+    "variant": "lfm-m1-ring-reset-control",
+    "tag": "continue-m1-ring-reset2048-0-r1",
+    "model": "model2048",
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_ARM": 1
+    }
+  },
+  {
+    "variant": "lfm-m1-ring-reset",
+    "tag": "continue-m1-ring-reset2048-1-r1",
+    "model": "model2048",
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_ARM": 1
+    }
+  },
+  {
+    "variant": "lfm-m1-ring-reset",
+    "tag": "continue-m1-ring-reset2048-1-r2",
+    "model": "model2048",
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_ARM": 1
+    }
+  },
+  {
+    "variant": "lfm-m1-ring-reset-control",
+    "tag": "continue-m1-ring-reset2048-0-r2",
+    "model": "model2048",
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_ARM": 1
+    }
+  },
+  {
+    "variant": "lfm-m1-ring-reset-control",
+    "tag": "continue-m1-ring-reset2048-0-r3",
+    "model": "model2048",
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_ARM": 1
+    }
+  },
+  {
+    "variant": "lfm-m1-ring-reset",
+    "tag": "continue-m1-ring-reset2048-1-r3",
+    "model": "model2048",
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_ARM": 1
+    }
+  }
+]

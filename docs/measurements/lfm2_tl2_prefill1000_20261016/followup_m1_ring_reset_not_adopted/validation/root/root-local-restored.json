@@ -1,0 +1,21 @@
+{
+  "decision": "not_adopted_no_decode_TPS_gain",
+  "restored_sources": {
+    "nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.c": "7751082a9a8a2f0f8655ca6031a685f58dd018a27212995221ecb21f0bec5fea",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.h": "201270bd0f936e8f168f909eaa3e9631c36da3aabdd9d6029bd73f8fe49a4b3c",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea"
+  },
+  "all_seven_local_binaries_equal_accepted_ARM_router_runtime": true,
+  "binaries": {
+    "libnntrainer.so": "072b5ca2700aaf10fb5b38ebd244d54691efd7ba96bf0dd699fd907bc6e42c09",
+    "libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+    "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+    "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+    "libcausallm.so": "c34aa784141ce3c3d8cda2d8ccfd12ed759757284ee916ee4fac7f75f6197c05",
+    "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76",
+    "libnntr_hvx_skel.so": "3baddb92d14d1d23fe9b6c6a7cacfe3a6cd4708001c110bb8b15e1b0b7276f7c"
+  },
+  "DSP_restoration": "Selected original frozen DSP3b; this is binary identity restoration, not a new full-DSP build. The controlled normal A/B pair was1ef/f3.",
+  "replaced_prior_full_rebuild_DSP_sha256": "72083514bdf2a07a3be1be4c6c9bbd627e513e3a10950e7597a8709a65ed04c8",
+  "phone_hash_verification_pending_until_unrelated_profile_finishes": true
+}

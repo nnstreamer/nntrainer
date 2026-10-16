@@ -1,0 +1,88 @@
+Independent readback of actual LFM native TL2 ring reset diagnostics
+2026-10-17. PASS for the two supplied one-process diagnostic runs.
+Read-only model/source/runtime evidence audit. No fixture execution, compilation,
+phone access, root-source edits, or performance conclusion was added here.
+
+Actual execution
+Rows  PID   same-run calls/token  total attempts  fast returns  fallback
+1024  7354        67.89                4345          4345          0
+2048  7567        68.58                4389          4389          0
+
+I parsed every line of each live log directly without importing the author's
+parser. Both files contain one memory-monitor child PID and one logging TID.
+Sequence values are exactly 1..4345 and 1..4389, in arrival order, with zero
+transport duplicates, gaps, conflicting records, malformed/truncated lines, or
+counter wrap. First/last timestamps are retained in readback/validation.json.
+The collector stderr files are empty. The post-run finite-buffer logcat dump is
+not substituted for the live collector. The frozen author's parsed JSON agrees
+with this independent raw readback and with the SHA of the actual live files.
+
+Independent count derivation
+The same run closes exactly 64 successful graph tokens and 64 served DSP queue
+calls, with bad/timeouts/stale/stop errors all zero; each process has one driver
+start and one first-token record. Both complete model executions have exit0 and
+65 exact reference IDs (one prefill token plus 64 decode iterations).
+
+The printed average gives these exact rational intervals for the integer sum:
+  67.89: (67.885*64, 67.895*64) = (4344.64, 4345.28), integer4345 only.
+  68.58: (68.575*64, 68.585*64) = (4388.80, 4389.44), integer4389 only.
+Neither endpoint is an integer, so printf's tie-rounding convention is irrelevant
+for these two observations. No previous run average or 64*38 layer assumption was
+used; resident/miss groups change the number of actual kernel calls.
+
+Source chain was checked against the exact frozen DSP snapshot and unchanged ARM
+core: hexkl_token.c resets moe_calls once per token; graph_moe_run and the
+all-resident route increment immediately before the actual MoE call. A refused
+ROWS_OUT path returns before reset and decrements the graph count. Dense calls
+are not this counter and cannot pass native LFM E64 eligibility. Token completion
+copies graph moe_calls into the response; host checks r.rc before accumulating
+it, then prints sum/e.tokens to two decimals. The LFM M1 eligibility is native
+TL2, K2048/I1536/N2048, E64, one row, at most top4 active experts, SiLU, no affine;
+its sole try_reset call is the one instrumented. The native path also requires
+the existing feed and supported arena before reaching reset. Shared loader
+warmup is M=max(512,INIT_SEQ_LEN), so it cannot add an M1 reset attempt. These are
+single-prompt processes, not a same-handle multiprompt count experiment.
+
+The diagnostic is located inside actual hexkl_dma_ring_try_reset returns.
+used1 is after software indices/tail reset and immediately before return1;
+the caller then skips its original 256*128-byte memset. It does not merely log
+an enabled environment option. The original BSS/type-zero/incomplete-tail
+fallback remains, but this model cohort exercised no fallback; existing host
+lifecycle tests provide the fallback coverage, not this device observation.
+
+The resulting avoided clear extents are 142376960B (135.78125MiB) and 143818752B
+(137.15625MiB) per run. These are logical descriptor-memory clear byte counts,
+not measured DDR traffic, exposed latency, or a TPS bound. The trace adds one
+4-byte atomic sequence and thousands of log records; neither trace timing nor
+its higher profiled decode cost is a normal performance comparison. The runs
+show successful model completion while using the fast return; they do not prove
+all possible DMA coherency/failure interleavings or repair the pre-existing
+bounded-wait/error-cleanup behavior.
+
+Runtime/source identity
+All three artifact manifests have the same six ARM-side binaries, including
+accepted ARM-router app c34aa784... and restored core072b5ca2.... Both diagnostic
+environments and the planned normal jobs keep NNTR_LFM2_ROUTER_ARM=1. C16,
+PAGE_CACHE0, grow0, preload128, prediction2/residual0.5 and existing reader counts
+are unchanged. Startup confirms608slots, 32 direct slots/two readers, four demand
+readers. Host files in root-accepted-control were rehashed against all six
+manifest hashes. The DSPs were independently rehashed against the fixed builds:
+  control    1efcd9dcde2109634be700bb778ce1ba802ea6bc69c3dec1612030edcd4ce1e4
+  candidate  f3e68660aff009b218efe16ab51e2ea93ba31e66611d555d768f5a82355c08bf
+  diagnostic c19c64272c1edada380477012c73f74ee90ae82df9298998da1577e82868693f
+This is the new controlled fixed-object pair, not original DSP3baddb92.
+
+Each variant's source patch was SHA-checked and applied only in separate /tmp
+replay directories against its declared root base80a8b754. Application sources
+are identical across all three replays. The three DSP sources then match the
+actual baseline b17d1d2f, frozen candidate sources, and diagnostic ring source
+exactly. Metadata correctly records63 frozen objects/61 common objects/common
+-no-threads, separate snapshot build, production7803996b, diagnostic9aadb311, and
+NNTR_LFM2_M1_RING_RESET_TRACE=1 only for the diagnostic variant. This avoids
+mistaking root's current build directory or previous3b artifact for the pair.
+
+The separate fixed-object independent review covers original compiler/source
+ordering, unchanged objects, repeat-link identity, imports, and macro-OFF object
+identity; those build checks were not rerun here. readback.py is a portable
+explicit-input audit and retains all inspected input hashes. Normal12 verdict
+and restoration are intentionally pending root's later measurements.

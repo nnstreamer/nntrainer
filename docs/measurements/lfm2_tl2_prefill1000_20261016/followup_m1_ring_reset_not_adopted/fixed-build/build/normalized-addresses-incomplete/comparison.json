@@ -1,0 +1,98 @@
+{
+  "hexkl_dma_ring": {
+    "unchanged_functions": 6,
+    "changed": {
+      "hexkl_dma_ring_push2d": {
+        "before_instructions": 73,
+        "candidate_instructions": 75,
+        "diff_sha256": "0fa4dac34251e1972d64a89d1b02dc6160960d7f17ebce0606222c22583346a3"
+      },
+      "hexkl_dcache_inva": {
+        "before_instructions": 11,
+        "candidate_instructions": 11,
+        "diff_sha256": "f6c2dbd8c503bca09abde88b960bd7e1ddedeb992e4e985dbb077a9ace8acc6e"
+      },
+      "hexkl_dma_ring_drain": {
+        "before_instructions": 30,
+        "candidate_instructions": 31,
+        "diff_sha256": "3e4f575856fa40a50b3afc34d027397d55bbfc57e60f9bc39fb66a51f8c6865b"
+      }
+    },
+    "added": [
+      "hexkl_dma_ring_try_reset"
+    ],
+    "removed": []
+  },
+  "hexkl_mm_u8i4_moe": {
+    "unchanged_functions": 28,
+    "changed": {
+      "moe_expand_chunk": {
+        "before_instructions": 165,
+        "candidate_instructions": 165,
+        "diff_sha256": "a12901ad37861203fbb062597555bebee95dab6696ff8355afd909c47c04a4b0"
+      },
+      "moe_m1_requant_worker": {
+        "before_instructions": 584,
+        "candidate_instructions": 584,
+        "diff_sha256": "3e86b3ad27bca848316f46433c2da8fdd4d6530b3342294c8bfc1175c86f4b6b"
+      },
+      "moe_expand_submit": {
+        "before_instructions": 191,
+        "candidate_instructions": 191,
+        "diff_sha256": "0c21b06afb950a362b0b2202e10ae234ad7aa0b970c8df3de62546a19e7952dd"
+      },
+      "hexkl_wh_affine_sums": {
+        "before_instructions": 99,
+        "candidate_instructions": 99,
+        "diff_sha256": "d5ed1fdba3a3a570b8769726088ba1ec4de91d136cfee3f94662257c200dfe88"
+      },
+      "fc_m1_worker": {
+        "before_instructions": 418,
+        "candidate_instructions": 418,
+        "diff_sha256": "6a73f18be44c1b673565c5587fa63c1b74902f3683db2191e6ccc96278b4667d"
+      },
+      "moe_tl2_gate_epilogue_worker": {
+        "before_instructions": 398,
+        "candidate_instructions": 398,
+        "diff_sha256": "9ba3e557e7a81f5cf5dcd1c6044cd3155c98e6093414351da588b121c4c65dfb"
+      },
+      "hexkl_mm_u8i4_fc_m1_run": {
+        "before_instructions": 188,
+        "candidate_instructions": 188,
+        "diff_sha256": "93cfe35418c7558895407c326ca5c44c097d808e33d46f7c5321c493f02bc207"
+      },
+      "moe_all_2bit": {
+        "before_instructions": 21,
+        "candidate_instructions": 21,
+        "diff_sha256": "88d4fde679216d08c5bd37bfb69fbbfab1499a9388469a531c02dc058e0b724c"
+      },
+      "moe_expand_unit": {
+        "before_instructions": 177,
+        "candidate_instructions": 177,
+        "diff_sha256": "96431283d40e810715bc40dcf4bcbac844d7bc7347fd3b3a9c2dfc7c7ae68ffe"
+      },
+      "moe_m1_down_worker": {
+        "before_instructions": 765,
+        "candidate_instructions": 765,
+        "diff_sha256": "39ad0b96359113f2113af617fea6f6808b5d3b1f14f68b178ed20c0c08afcbbf"
+      },
+      "hexkl_mm_u8i4_moe_layer_run": {
+        "before_instructions": 5348,
+        "candidate_instructions": 5356,
+        "diff_sha256": "a6296564b12212dfdaf7a2922548b6fe93e8971315adbcafe4e7234c2f6d12cd"
+      },
+      "moe_m1_pair_worker": {
+        "before_instructions": 512,
+        "candidate_instructions": 512,
+        "diff_sha256": "5ad3b46ff0ff465b01fbd3afbf7d30edc77aa29c1bd65fdd40b460be17bd78db"
+      },
+      "moe_all_4bit": {
+        "before_instructions": 21,
+        "candidate_instructions": 21,
+        "diff_sha256": "b6740b60e650129add03ae278dcbba60d90ecfaaff37624902ecabdb770f08a6"
+      }
+    },
+    "added": [],
+    "removed": []
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "source_sha256": {
+    "nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.c": "50c839d6e7585bc63741a104771409b69866e540d88c7fefa75f4dee1257c95e",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "48ec68ebfd9ed340fd485ab7401bfce6d2c4c18ee8833fb793eb2e1e72ccfe3f",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.h": "291655c8e9169df6f3ca759df022a569e25d86f0fd934a772a9411b612e39751"
+  },
+  "fixture_sha256": "6a09d88be3ed19183f6fad488130dffe0348214bd9768dcd2a97e798d79e2269",
+  "sanitize": true,
+  "mutants": [
+    {
+      "name": "reserved_zero",
+      "exit": -6
+    },
+    {
+      "name": "done_clear",
+      "exit": -6
+    },
+    {
+      "name": "completion_guard",
+      "exit": -6
+    },
+    {
+      "name": "type_guard",
+      "exit": -6
+    },
+    {
+      "name": "size_guard",
+      "exit": -6
+    },
+    {
+      "name": "tail_guard",
+      "exit": -6
+    },
+    {
+      "name": "whole_clear",
+      "exit": -6
+    },
+    {
+      "name": "start_state",
+      "exit": -6
+    }
+  ],
+  "caller_mutants": [
+    {
+      "name": "unguarded",
+      "exit": 1
+    },
+    {
+      "name": "unused_fast_path",
+      "exit": 1
+    }
+  ],
+  "actual_ring_source": true,
+  "caller": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller",
+  "limits": [
+    "host hardware primitives are delayed ordered emulation",
+    "no DMA cache visibility, device timing, or speedup proof",
+    "original timeout fallback is unchanged and not repaired",
+    "caller retains existing stand-in-only shift-base suppression"
+  ]
+}

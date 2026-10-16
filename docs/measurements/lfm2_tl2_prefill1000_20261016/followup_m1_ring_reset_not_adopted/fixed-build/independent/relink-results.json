@@ -1,0 +1,22 @@
+[
+  {
+    "label": "control",
+    "whole_sha256": "54ba318a02c905cc2235133fc734b1571d61a2f9b51d8663cffc5f9c5d44fdf4",
+    "repeated_same_path_link_exact": true,
+    "all_alloc_sections_equal_frozen": true,
+    "section_content_differences": [
+      ".comment"
+    ],
+    "note": "Output path differs from frozen command and is embedded in non-allocated .comment. ELF section offsets/header therefore also differ; this is not same-path linker nondeterminism."
+  },
+  {
+    "label": "candidate",
+    "whole_sha256": "e93876c9082acd621eb66b5df72c3ffb209d8d7b1bc8975cafc1210bfd8429c3",
+    "repeated_same_path_link_exact": true,
+    "all_alloc_sections_equal_frozen": true,
+    "section_content_differences": [
+      ".comment"
+    ],
+    "note": "Output path differs from frozen command and is embedded in non-allocated .comment. ELF section offsets/header therefore also differ; this is not same-path linker nondeterminism."
+  }
+]

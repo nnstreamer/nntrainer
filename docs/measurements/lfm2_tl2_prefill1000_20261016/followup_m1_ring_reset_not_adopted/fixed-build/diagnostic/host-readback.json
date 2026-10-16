@@ -1,0 +1,12 @@
+{
+  "observed_unique_attempts": 175,
+  "hits": 86,
+  "fallbacks": 89,
+  "raw_records": 175,
+  "exact_transport_duplicates": 0,
+  "full_count_independently_specified": true,
+  "device_pid": null,
+  "host_unprefixed": true,
+  "logical_descriptor_clear_bytes_avoided": 2818048,
+  "scope": "One process; actual try_reset returns only. An unspecified expected count proves a contiguous observed prefix, not an untruncated end. No later RPC-success, DMA-visibility, physical-traffic or TPS claim."
+}

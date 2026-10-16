@@ -1,0 +1,21 @@
+{
+  "diagnostic_patch_sha256": "9aadb311233191a4c3cd1013ed55fcfd64b4cc8dbbe552088c9f2d0f6ae6c188",
+  "production_patch_sha256": "7803996b40175702f5d9978d29aa8ea31df5ec26282f592fbac6b97ae3ef2a89",
+  "diagnostic_source_sha256": "ef837fe7a757aa0594422b6393c224ea5fef00a6a0d08bd1a9a7acf9cb06fb4a",
+  "diagnostic_so_sha256": "c19c64272c1edada380477012c73f74ee90ae82df9298998da1577e82868693f",
+  "diagnostic_off_object_exact": true,
+  "candidate_normal_object_sha256": "fff3afa108dc295af0d2d987529eea236f1344c610f3662edf1e000de2a58262",
+  "diagnostic_object_sha256": "b5d66fc5020c9610b1cd35c97e62ed3c44b3e51fd8b05c6b858726997f08de4a",
+  "runtime_imports_identical": true,
+  "atomic_library_imports": false,
+  "stable_link_repeat": true,
+  "arch": "v81",
+  "normal_source_and_objects_unchanged": true,
+  "host_actual_ring_cases": 175,
+  "host_sanitizers": [
+    "address",
+    "undefined"
+  ],
+  "metadata_bytes": 4,
+  "scope": "One diagnostic log per actual try_reset return; used=1 proves descriptor clear skipped. Counts attempts, not successful later MoE RPCs; no device or timing proof."
+}

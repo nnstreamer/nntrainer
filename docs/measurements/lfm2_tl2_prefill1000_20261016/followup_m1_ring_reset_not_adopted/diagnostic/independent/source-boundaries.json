@@ -1,0 +1,119 @@
+{
+  "nntrainer/tensor/htp_backend/hmx/hexkl_graph.c": {
+    "sha256": "eccc514374ff56d27f2cbd2e56f7cddc726ec9cbeb09210a6d138ec5d4c076c0",
+    "snapshot": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_graph.c",
+    "ranges": [
+      {
+        "first": 126,
+        "last": 141,
+        "text": "static int graph_moe_run(hexkl_graph *g, const hexkl_graph_env *env,\n                         const htp_graph_op *op, const uint32_t *h,\n                         const uint32_t *ids, const float *w, uint32_t n,\n                         uint32_t extra, const float *in, float *out) {\n  uint32_t cnt[HTP_GRAPH_MAX_EXPERTS] = {0}, idx[HEXKL_GRAPH_MISS_MAX] = {0};\n  uint32_t i;\n  for (i = 0; i < n; ++i) {\n    cnt[ids[i]] = 1u;\n  }\n  ++g->moe_calls;\n  return hexkl_mm_u8i4_moe_layer_run(\n    env->tbl, env->vtcm_base, env->vtcm_size, env->config_off, 1u, op->K, op->N,\n    op->N_out, op->n_experts, h, h + op->n_experts, idx, cnt, w, in, out,\n    env->pool, env->scratch, env->moe_flags | extra);\n}\n"
+      },
+      {
+        "first": 150,
+        "last": 164,
+        "text": "  uint32_t i;\n  int rc;\n  if (n == 0u) {\n    return AEE_SUCCESS;\n  }\n  rc =\n    graph_moe_run(g, env, op, h, ids, w, n, HEXKL_MOE_FLAG_ROWS_OUT, in, rows);\n  if (rc != AEE_EUNSUPPORTED) {\n    return rc;\n  }\n  --g->moe_calls; /* refused: not a call that ran */\n  rc = AEE_SUCCESS;\n  for (i = 0; rc == AEE_SUCCESS && i < n; ++i) {\n    rc = graph_moe_run(g, env, op, h, &ids[i], &w[i], 1u, 0u, in,\n                       rows + (size_t)i * op->N_out);"
+      },
+      {
+        "first": 315,
+        "last": 324,
+        "text": "  ++g->moe_calls;\n  ++g->moe_calls_1x;\n  /** the table is the handle arrays: the kernel skips an expert with no\n     rows before it reads its handle, so a NO_HANDLE there is never read */\n  return hexkl_mm_u8i4_moe_layer_run(\n    env->tbl, env->vtcm_base, env->vtcm_size, env->config_off, 1u, op->K, op->N,\n    op->N_out, op->n_experts, h, h + op->n_experts, r->row_index, r->row_count,\n    r->row_weight, in, out, env->pool, env->scratch, env->moe_flags);\n}\n"
+      }
+    ]
+  },
+  "nntrainer/tensor/htp_backend/hmx/hexkl_token.c": {
+    "sha256": "7bc99d4feff53e61c5ad5f322d7ba3bb99fc9cd0bd561365355bb5031264ae0e",
+    "snapshot": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_token.c",
+    "ranges": [
+      {
+        "first": 315,
+        "last": 331,
+        "text": "                     uint32_t spin_us, hexkl_token_stats *st, uint32_t *id) {\n  /* [plan 201 S1] the MOE ops' miss rounds go through the page */\n  tk_miss miss = {env, mbox, tok, 0u, spin_us, st, 0u, 0u};\n  hexkl_graph_env menv = *env;\n  const htp_graph_op *last;\n  uint32_t resume;\n  int rc;\n  menv.miss.post = tk_miss_post;\n  menv.miss.wait = tk_miss_wait;\n  menv.miss.ctx = &miss;\n  menv.miss.input_hint = tk_input_hint_post;\n  menv.miss.hint = tk_hint_post; /* [#282 B] posted only under predict */\n  g->route_log_n = 0u;\n  g->pred_log_n = 0u; /* [#266 S2] */\n  g->moe_calls = g->moe_calls_1x = 0u;\n  *id = 0u;\n  if (g->n_ops == 0u || tk_stretch_end(g, 0u) != g->n_ops) {"
+      }
+    ]
+  },
+  "test/htp/nntr_hvx_token.c": {
+    "sha256": "7a93bbcd6b967fd218697328a96c2567d6336e9112d6801ed37a9628ae9aca1a",
+    "snapshot": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/source/test/htp/nntr_hvx_token.c",
+    "ranges": [
+      {
+        "first": 170,
+        "last": 191,
+        "text": "  }\n  nntr_hvx_graph_env(s, &env);\n  memset(s->graph->attn_prof_calls, 0, sizeof(s->graph->attn_prof_calls));\n  memset(s->graph->attn_prof, 0, sizeof(s->graph->attn_prof));\n  rc = hexkl_token_main(s->graph, &env, t->page, tok, pos, act, act_len, logits,\n                        logits_len, t->spin_us, &t->st, &id);\n  token_publish_done(t, tok);\n  r->wall_pcyc = (uint32_t)(HAP_perf_get_pcycles() - pc0);\n  r->wall_us =\n    (uint32_t)(HAP_perf_qtimer_count_to_us(HAP_perf_get_qtimer_count()) - us0);\n  r->id = id; /* hops, wait_us, hop_us stay 0: no hop since #211 */\n  r->pcycles = (uint32_t)(t->st.pcycles - before.pcycles);\n  r->misses = t->st.misses - before.misses;\n  r->miss_us = t->st.miss_us - before.miss_us;\n  r->miss_pcyc = (uint32_t)(t->st.miss_pcyc - before.miss_pcyc);\n  r->miss_overlap_us =\n    (uint32_t)(t->st.miss_overlap_us - before.miss_overlap_us);\n  r->miss_anslat_us = (uint32_t)(t->st.miss_anslat_us - before.miss_anslat_us);\n  r->miss_rebind_us = (uint32_t)(t->st.miss_rebind_us - before.miss_rebind_us);\n  r->moe_calls = s->graph->moe_calls;\n  r->moe_calls_1x = s->graph->moe_calls_1x;\n  /* [plan 201 S1] the routed sets, for the pool */"
+      }
+    ]
+  },
+  "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": {
+    "sha256": "48ec68ebfd9ed340fd485ab7401bfce6d2c4c18ee8833fb793eb2e1e72ccfe3f",
+    "snapshot": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c",
+    "ranges": [
+      {
+        "first": 2160,
+        "last": 2169,
+        "text": "  }\n#endif\n  /** [#267 L3] one row per active expert: only the M = 1 GEMV scatter\n     below knows how; refused before anything is written. */\n  const int rows_out = (flags & HEXKL_MOE_FLAG_ROWS_OUT) != 0u;\n  if (rows_out && (M != 1u || !use_m1)) {\n    return AEE_EUNSUPPORTED;\n  }\n  hexkl_probe_us[HEXKL_PROBE_PATH] = use_m1 ? 1u : 0u;\n"
+      },
+      {
+        "first": 2196,
+        "last": 2210,
+        "text": "  const int lfm_m1_setup =\n    use_tl2 && K == 2048u && inter == 1536u && N_out == 2048u &&\n    n_experts == 64u && n_with_rows <= 4u && widest == 1u &&\n    n_tl2 == n_with_rows && !n_affine && act == HVX_GLU_SILU;\n  if (use_tl2 && (M != 1u || !m1_feed || K > 8192u || inter > 8192u ||\n                  2u * (uint64_t)feed_gu_bytes + tl2_gu_tables +\n                      n_with_rows * tl2_dn_tables >\n                    arena ||\n                  hvx_tl2_weight_bytes(K, 2u * inter) > feed_gu_bytes ||\n                  hvx_tl2_weight_bytes(inter, N_out) > feed_dn_bytes))\n    return AEE_EBADPARM;\n  /** #177: the feed's pushes split over N queues (pool lanes) when N > 1;\n     N = 1 is the ring schedule below, unchanged. */\n  moe_m1_qrun m1q;\n  m1q.n_push = 0u;"
+      },
+      {
+        "first": 2449,
+        "last": 2452,
+        "text": "  HEXKL_PROBE_T0(p0);\n  if (!lfm_m1_setup || !hexkl_dma_ring_try_reset())\n    hexkl_dma_ring_reset();\n  if (hexkl_probe_on) {"
+      }
+    ]
+  },
+  "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": {
+    "sha256": "5e75571e5433132d8c9d17691882cbddea73ebbf651e2e8e0b3b6957ac3566df",
+    "snapshot": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/htp_compute_ops.cpp",
+    "ranges": [
+      {
+        "first": 6981,
+        "last": 6988,
+        "text": "    ++q.calls;\n    if (r.rc != AEE_SUCCESS) {\n      throw std::runtime_error(\"token driver: token \" + std::to_string(tok) +\n                               \" pos \" + std::to_string(pos) +\n                               \" failed: \" + graphErr(r.rc) +\n                               \" (AEE_EEXPIRED: a miss round timed out)\");\n    }\n    if (logits) {"
+      },
+      {
+        "first": 7005,
+        "last": 7008,
+        "text": "    }\n    ++e.tokens;\n    e.misses += r.misses;\n    e.miss_us += r.miss_us;"
+      },
+      {
+        "first": 7032,
+        "last": 7034,
+        "text": "    e.moe_calls += r.moe_calls;\n    e.moe_calls_1x += r.moe_calls_1x;\n    e.token_us += us;"
+      },
+      {
+        "first": 6798,
+        "last": 6813,
+        "text": "      if (e.moe_calls != 0)\n        std::fprintf(stderr,\n                     \"[HTP] token driver: moe calls/token=%.2f \"\n                     \"(one-at-a-time %.2f)\\n\",\n                     static_cast<double>(e.moe_calls) / n,\n                     static_cast<double>(e.moe_calls_1x) / n);\n      std::fprintf(\n        stderr,\n        \"[HTP] token driver: close tokens=%llu hops/token=%.2f \"\n        \"served=%u timeouts=%u stale=%u id_checked=%llu \"\n        \"id_mismatch=%llu stop_err=0x%x\\n\",\n        (unsigned long long)e.tokens, static_cast<double>(e.hops) / n, r1[0],\n        r1[2], r1[3], (unsigned long long)e.id_checked,\n        (unsigned long long)e.id_mismatch, static_cast<unsigned>(s1));\n    }\n    e.drv1 = false;"
+      }
+    ]
+  },
+  "nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.c": {
+    "sha256": "50c839d6e7585bc63741a104771409b69866e540d88c7fefa75f4dee1257c95e",
+    "snapshot": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.c",
+    "ranges": [
+      {
+        "first": 26,
+        "last": 32,
+        "text": " *         so a call's transfers never wrap into ones still in flight. */\n#define HEXKL_DMA_RING_N 256u\n\nstatic hexkl_dma_desc2d g_ring[HEXKL_DMA_RING_N] __attribute__((aligned(128)));\nstatic uint32_t g_push, g_pop;\nstatic hexkl_dma_desc2d *g_tail;\nstatic int g_started;"
+      },
+      {
+        "first": 54,
+        "last": 69,
+        "text": "int hexkl_dma_ring_try_reset(void) {\n  const uint32_t last = (g_push - 1u) & (HEXKL_DMA_RING_N - 1u);\n  if (g_tail == NULL || g_tail != &g_ring[last] || g_tail->desc_size != 1u ||\n      g_tail->desc_type != 9u || !hexkl_dma_ring_is_done(last)) {\n    return 0;\n  }\n  g_push = 0;\n  g_pop = 0;\n  g_tail = NULL;\n  g_started = 0;\n  return 1;\n}\n\n/* One descriptor's fields, as every push of this file sets them. */\nstatic void hexkl_dma_desc_fill(hexkl_dma_desc2d *d, void *dst, const void *src,\n                                uint32_t dst_stride, uint32_t src_stride,"
+      }
+    ]
+  },
+  "Applications/CausalLM/models/gemma4/gemma4_htp_weights.cpp": {
+    "sha256": "3d9ab44b7faf8040215ea0d5c58fb64fc7552ad019772ace6210ba52c1cbcd90",
+    "revision": "80a8b754e86b7594ee7400e1ca2ef841d22f2920",
+    "ranges": [
+      {
+        "first": 470,
+        "last": 488,
+        "text": "      // and out copies (M x K, M x N_out f32) and the staging pools their\n      // size classes, so a 512-row warm-up left the first 1024-row prefill\n      // call to grow and touch them, 2.1 ms a call on average over 31\n      // (doc 57 section 9.26). The expert slots' bound is the same either way.\n      const unsigned int M = std::max(512u, INIT_SEQ_LEN), K = moe_warm.K,\n                         N_out = moe_warm.N_out;\n      const unsigned int E = static_cast<unsigned int>(moe_warm.gu_data.size());\n      const unsigned int per = 64; // one 64-row block per expert\n      std::vector<unsigned int> row_index, row_count(E, per);\n      std::vector<float> row_weight;\n      for (unsigned int e = 0; e < E; ++e) {\n        for (unsigned int r = 0; r < per; ++r) {\n          row_index.push_back((e * per + r) % M);\n          row_weight.push_back(0.0f);\n        }\n      }\n      std::vector<float> act(static_cast<size_t>(M) * K, 0.0f);\n      std::vector<float> out(static_cast<size_t>(M) * N_out, 0.0f);\n      moe_warm.ops->gemm_qs4cx_moe_layer_fp32("
+      }
+    ]
+  }
+}

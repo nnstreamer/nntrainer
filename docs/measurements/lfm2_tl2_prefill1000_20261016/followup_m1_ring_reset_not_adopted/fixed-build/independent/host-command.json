@@ -1,0 +1,20 @@
+[
+  "gcc",
+  "-std=gnu11",
+  "-O1",
+  "-g",
+  "-Wall",
+  "-Wextra",
+  "-Werror",
+  "-fsanitize=address,undefined",
+  "-fno-sanitize-recover=undefined",
+  "-fno-omit-frame-pointer",
+  "-fno-pie",
+  "-no-pie",
+  "-DNNTR_LFM2_M1_RING_RESET_TRACE=1",
+  "-I",
+  "/tmp/nntr-lfm2-ring-fixed-review-20261017/host",
+  "/tmp/nntr-lfm2-ring-fixed-review-20261017/host/fixture.c",
+  "-o",
+  "/tmp/nntr-lfm2-ring-fixed-review-20261017/host/check"
+]

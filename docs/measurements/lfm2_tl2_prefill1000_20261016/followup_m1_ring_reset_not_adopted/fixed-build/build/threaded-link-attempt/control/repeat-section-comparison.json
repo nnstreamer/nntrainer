@@ -1,0 +1,370 @@
+{
+  "first": {
+    "": {
+      "size": 0,
+      "sha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "offset": 0,
+      "addr": 0,
+      "type": 0
+    },
+    ".dynsym": {
+      "size": 7616,
+      "sha": "61e89134df628921825bfd74603c07626b8b1e5b804b6b01e988fe8b3569c49a",
+      "offset": 148,
+      "addr": 148,
+      "type": 11
+    },
+    ".dynstr": {
+      "size": 11203,
+      "sha": "f55a4a2ccfac461abfd55d788d8e0360ecab60e8d32a94b5a521dd14cf1e36ea",
+      "offset": 7764,
+      "addr": 7764,
+      "type": 3
+    },
+    ".hash": {
+      "size": 3816,
+      "sha": "451101f996f2cce0d4bf2c7f5214dfb61f6b418c214e23f0ba505eb9f39d120b",
+      "offset": 18968,
+      "addr": 18968,
+      "type": 5
+    },
+    ".rela.dyn": {
+      "size": 10992,
+      "sha": "bdc51513e6410ebea6cae0acf95d0fdfd6ad37af9fbcf897a99303808f7d711b",
+      "offset": 22784,
+      "addr": 22784,
+      "type": 4
+    },
+    ".rela.plt": {
+      "size": 4992,
+      "sha": "96e4091bf0d73a2fba767c65703fe88939ede50b26344989d4030c1feae01892",
+      "offset": 33776,
+      "addr": 33776,
+      "type": 4
+    },
+    ".init": {
+      "size": 108,
+      "sha": "eba560c19bda555538452ff59f451c6685d13952b99c6ce551993fd663b5ed1b",
+      "offset": 38784,
+      "addr": 38784,
+      "type": 1
+    },
+    ".plt": {
+      "size": 6704,
+      "sha": "d9a835e92c6693bc41930f1e90e84990e46b0d1d9158f47117907896d5b926de",
+      "offset": 38896,
+      "addr": 38896,
+      "type": 1
+    },
+    ".text": {
+      "size": 598328,
+      "sha": "17a4233da3bfbc33c3ab829a29ae08f341f741ac84409d1135171bb015e8da13",
+      "offset": 45600,
+      "addr": 45600,
+      "type": 1
+    },
+    ".fini": {
+      "size": 68,
+      "sha": "50b45ccba2e95bc0611e216669be1ce5b7be349d4c2cfef47804aa0261419cb8",
+      "offset": 643936,
+      "addr": 643936,
+      "type": 1
+    },
+    ".rodata": {
+      "size": 24623,
+      "sha": "cbb6d75cb97bd75ac405bbe2217a3cc0d9ca9e1d0c360da247b84c3c5ad6e6ee",
+      "offset": 644096,
+      "addr": 644096,
+      "type": 1
+    },
+    ".eh_frame": {
+      "size": 4,
+      "sha": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+      "offset": 668736,
+      "addr": 668736,
+      "type": 1
+    },
+    ".dynamic": {
+      "size": 152,
+      "sha": "0a46a49d75c676a5ad4176ba8de4814a72391b2da6144a27b7a54350774bfce6",
+      "offset": 671744,
+      "addr": 671744,
+      "type": 6
+    },
+    ".data.rel.ro": {
+      "size": 6280,
+      "sha": "acf89166fa29528d78660e5df6aaf73e389bbbc96ae9c205e18375b196b311c6",
+      "offset": 671896,
+      "addr": 671896,
+      "type": 1
+    },
+    ".data": {
+      "size": 80,
+      "sha": "03b936c36312284c3d9898c0f5bc163e4dd1a42525502fb3f3aa0e573f56a9d3",
+      "offset": 678176,
+      "addr": 678176,
+      "type": 1
+    },
+    ".ctors": {
+      "size": 8,
+      "sha": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+      "offset": 678256,
+      "addr": 678256,
+      "type": 1
+    },
+    ".dtors": {
+      "size": 12,
+      "sha": "69ae517a2c02b5c496aea65c0bbb163811f60c6904ba2b4f95815002e3ce2240",
+      "offset": 678264,
+      "addr": 678264,
+      "type": 1
+    },
+    ".got": {
+      "size": 216,
+      "sha": "a5645e7a3fa0866cde8842c4dab96567507c3d1a3c028b816bc63f6966367b70",
+      "offset": 678276,
+      "addr": 678276,
+      "type": 1
+    },
+    ".got.plt": {
+      "size": 1680,
+      "sha": "7dc7987e93d6e2c7a35e503343f9fcc5b7908a73b118ad30ecf40a8e867e60f2",
+      "offset": 678496,
+      "addr": 678496,
+      "type": 1
+    },
+    ".bss": {
+      "size": 304504,
+      "sha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "offset": 680176,
+      "addr": 680192,
+      "type": 8
+    },
+    ".hexagon.attributes": {
+      "size": 29,
+      "sha": "1281befe3737b970520da14f3d891954849442634f8ab756a160396e002a21f6",
+      "offset": 680176,
+      "addr": 0,
+      "type": 1879048195
+    },
+    ".comment": {
+      "size": 6755,
+      "sha": "8230f7faca430d51a2efc510c83c98f288066ddf84ec9430d449f033c17e89be",
+      "offset": 680205,
+      "addr": 0,
+      "type": 1
+    },
+    ".note.llvm.cgmdinfo": {
+      "size": 12918,
+      "sha": "82982354e7216d392f4f859ea8a514aa912f0cb56ee8512e5050c48c0d9c73a8",
+      "offset": 686960,
+      "addr": 0,
+      "type": 7
+    },
+    ".shstrtab": {
+      "size": 220,
+      "sha": "a4707e0d3683d2ce918aeea961063708f80c91660d802dbf21a2a41abdac561e",
+      "offset": 699878,
+      "addr": 0,
+      "type": 3
+    },
+    ".symtab": {
+      "size": 19920,
+      "sha": "23b252e987eb6615f636c6bef931092fc64cad430565b014c59b6d03ce397787",
+      "offset": 700100,
+      "addr": 0,
+      "type": 2
+    },
+    ".strtab": {
+      "size": 21459,
+      "sha": "e0b8ba54c1a417c4be355b225f35cb318dc7de9ae97a18ff4de4599a87893b96",
+      "offset": 720020,
+      "addr": 0,
+      "type": 3
+    }
+  },
+  "second": {
+    "": {
+      "size": 0,
+      "sha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "offset": 0,
+      "addr": 0,
+      "type": 0
+    },
+    ".dynsym": {
+      "size": 7616,
+      "sha": "61e89134df628921825bfd74603c07626b8b1e5b804b6b01e988fe8b3569c49a",
+      "offset": 148,
+      "addr": 148,
+      "type": 11
+    },
+    ".dynstr": {
+      "size": 11203,
+      "sha": "f55a4a2ccfac461abfd55d788d8e0360ecab60e8d32a94b5a521dd14cf1e36ea",
+      "offset": 7764,
+      "addr": 7764,
+      "type": 3
+    },
+    ".hash": {
+      "size": 3816,
+      "sha": "451101f996f2cce0d4bf2c7f5214dfb61f6b418c214e23f0ba505eb9f39d120b",
+      "offset": 18968,
+      "addr": 18968,
+      "type": 5
+    },
+    ".rela.dyn": {
+      "size": 10992,
+      "sha": "e8ef945b14e934cbf7a98e59c3b265f86d43db32e0e81af90bff531f63997533",
+      "offset": 22784,
+      "addr": 22784,
+      "type": 4
+    },
+    ".rela.plt": {
+      "size": 4992,
+      "sha": "0e166a5b2dc3ec38ddbd275192db595da80111b1c067021739ad44322471ab20",
+      "offset": 33776,
+      "addr": 33776,
+      "type": 4
+    },
+    ".init": {
+      "size": 108,
+      "sha": "eba560c19bda555538452ff59f451c6685d13952b99c6ce551993fd663b5ed1b",
+      "offset": 38784,
+      "addr": 38784,
+      "type": 1
+    },
+    ".plt": {
+      "size": 6704,
+      "sha": "d9a835e92c6693bc41930f1e90e84990e46b0d1d9158f47117907896d5b926de",
+      "offset": 38896,
+      "addr": 38896,
+      "type": 1
+    },
+    ".text": {
+      "size": 598328,
+      "sha": "706e0bc2e910a00f2c06f1d7f49b198ae5293520c2a285352a3cb9bf848604a6",
+      "offset": 45600,
+      "addr": 45600,
+      "type": 1
+    },
+    ".fini": {
+      "size": 68,
+      "sha": "50b45ccba2e95bc0611e216669be1ce5b7be349d4c2cfef47804aa0261419cb8",
+      "offset": 643936,
+      "addr": 643936,
+      "type": 1
+    },
+    ".rodata": {
+      "size": 24623,
+      "sha": "cbb6d75cb97bd75ac405bbe2217a3cc0d9ca9e1d0c360da247b84c3c5ad6e6ee",
+      "offset": 644096,
+      "addr": 644096,
+      "type": 1
+    },
+    ".eh_frame": {
+      "size": 4,
+      "sha": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+      "offset": 668736,
+      "addr": 668736,
+      "type": 1
+    },
+    ".dynamic": {
+      "size": 152,
+      "sha": "0a46a49d75c676a5ad4176ba8de4814a72391b2da6144a27b7a54350774bfce6",
+      "offset": 671744,
+      "addr": 671744,
+      "type": 6
+    },
+    ".data.rel.ro": {
+      "size": 6280,
+      "sha": "acf89166fa29528d78660e5df6aaf73e389bbbc96ae9c205e18375b196b311c6",
+      "offset": 671896,
+      "addr": 671896,
+      "type": 1
+    },
+    ".data": {
+      "size": 80,
+      "sha": "03b936c36312284c3d9898c0f5bc163e4dd1a42525502fb3f3aa0e573f56a9d3",
+      "offset": 678176,
+      "addr": 678176,
+      "type": 1
+    },
+    ".ctors": {
+      "size": 8,
+      "sha": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+      "offset": 678256,
+      "addr": 678256,
+      "type": 1
+    },
+    ".dtors": {
+      "size": 12,
+      "sha": "69ae517a2c02b5c496aea65c0bbb163811f60c6904ba2b4f95815002e3ce2240",
+      "offset": 678264,
+      "addr": 678264,
+      "type": 1
+    },
+    ".got": {
+      "size": 216,
+      "sha": "a5645e7a3fa0866cde8842c4dab96567507c3d1a3c028b816bc63f6966367b70",
+      "offset": 678276,
+      "addr": 678276,
+      "type": 1
+    },
+    ".got.plt": {
+      "size": 1680,
+      "sha": "7dc7987e93d6e2c7a35e503343f9fcc5b7908a73b118ad30ecf40a8e867e60f2",
+      "offset": 678496,
+      "addr": 678496,
+      "type": 1
+    },
+    ".bss": {
+      "size": 304504,
+      "sha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "offset": 680176,
+      "addr": 680192,
+      "type": 8
+    },
+    ".hexagon.attributes": {
+      "size": 29,
+      "sha": "1281befe3737b970520da14f3d891954849442634f8ab756a160396e002a21f6",
+      "offset": 680176,
+      "addr": 0,
+      "type": 1879048195
+    },
+    ".comment": {
+      "size": 6755,
+      "sha": "8230f7faca430d51a2efc510c83c98f288066ddf84ec9430d449f033c17e89be",
+      "offset": 680205,
+      "addr": 0,
+      "type": 1
+    },
+    ".note.llvm.cgmdinfo": {
+      "size": 12918,
+      "sha": "82982354e7216d392f4f859ea8a514aa912f0cb56ee8512e5050c48c0d9c73a8",
+      "offset": 686960,
+      "addr": 0,
+      "type": 7
+    },
+    ".shstrtab": {
+      "size": 220,
+      "sha": "a4707e0d3683d2ce918aeea961063708f80c91660d802dbf21a2a41abdac561e",
+      "offset": 699878,
+      "addr": 0,
+      "type": 3
+    },
+    ".symtab": {
+      "size": 19920,
+      "sha": "23b252e987eb6615f636c6bef931092fc64cad430565b014c59b6d03ce397787",
+      "offset": 700100,
+      "addr": 0,
+      "type": 2
+    },
+    ".strtab": {
+      "size": 21459,
+      "sha": "e0b8ba54c1a417c4be355b225f35cb318dc7de9ae97a18ff4de4599a87893b96",
+      "offset": 720020,
+      "addr": 0,
+      "type": 3
+    }
+  }
+}

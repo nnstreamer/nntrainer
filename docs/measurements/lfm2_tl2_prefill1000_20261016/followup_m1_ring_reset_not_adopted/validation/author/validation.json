@@ -1,0 +1,94 @@
+{
+  "source_sha256": {
+    "nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.c": "50c839d6e7585bc63741a104771409b69866e540d88c7fefa75f4dee1257c95e",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "48ec68ebfd9ed340fd485ab7401bfce6d2c4c18ee8833fb793eb2e1e72ccfe3f",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.h": "291655c8e9169df6f3ca759df022a569e25d86f0fd934a772a9411b612e39751"
+  },
+  "fixture_sha256": "6a09d88be3ed19183f6fad488130dffe0348214bd9768dcd2a97e798d79e2269",
+  "sanitize": true,
+  "mutants": [
+    {
+      "name": "reserved_zero",
+      "exit": -6
+    },
+    {
+      "name": "done_clear",
+      "exit": -6
+    },
+    {
+      "name": "completion_guard",
+      "exit": -6
+    },
+    {
+      "name": "type_guard",
+      "exit": -6
+    },
+    {
+      "name": "size_guard",
+      "exit": -6
+    },
+    {
+      "name": "tail_guard",
+      "exit": -6
+    },
+    {
+      "name": "whole_clear",
+      "exit": -6
+    },
+    {
+      "name": "start_state",
+      "exit": -6
+    }
+  ],
+  "caller_mutants": [
+    {
+      "name": "unguarded",
+      "exit": 1
+    },
+    {
+      "name": "unused_fast_path",
+      "exit": 1
+    }
+  ],
+  "actual_ring_source": true,
+  "caller": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller",
+  "limits": [
+    "host hardware primitives are delayed ordered emulation",
+    "no DMA cache visibility, device timing, or speedup proof",
+    "original timeout fallback is unchanged and not repaired",
+    "caller retains existing stand-in-only shift-base suppression"
+  ],
+  "baseline": {
+    "root_head": "ccea0d476daf43ddd5dbe201178755e6ff978dfd",
+    "sources": {
+      "nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.c": "7751082a9a8a2f0f8655ca6031a685f58dd018a27212995221ecb21f0bec5fea",
+      "nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.h": "201270bd0f936e8f168f909eaa3e9631c36da3aabdd9d6029bd73f8fe49a4b3c",
+      "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea"
+    },
+    "profile": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-conv-isolated-profile2048.log",
+    "profile_sha256": "8e4257ec7c18a6a9a73071a189543687ce28042a01e2f7bf8b1bcbab33a348e6"
+  },
+  "production_patch_sha256": "7803996b40175702f5d9978d29aa8ea31df5ec26282f592fbac6b97ae3ef2a89",
+  "tests_patch_sha256": "1e9b6b6394ed911db733ed60259aa4a727c81d7ae92182da827c37adf0707c61",
+  "ring_cases": 175,
+  "ring_fills": 5957,
+  "ring_polls": 50011639,
+  "whole_moe_cases": 31,
+  "existing_host_checks": [
+    "moe_layer_host_check",
+    "tl2_prefill_host_check",
+    "conv_block_host_check"
+  ],
+  "v81": {
+    "ring_and_moe_tu": true,
+    "moe_frame_bytes_before": 17152,
+    "moe_frame_bytes_after": 17152,
+    "try_helper_frame_bytes": 0,
+    "try_helper_code_bytes": 144,
+    "generic_reset_raw_identical": true,
+    "hardware_descriptor_words": 8,
+    "descriptor_stride": 128
+  },
+  "device_test": false,
+  "performance_claim": null
+}

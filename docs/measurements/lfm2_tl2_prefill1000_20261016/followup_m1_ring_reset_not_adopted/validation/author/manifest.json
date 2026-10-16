@@ -1,0 +1,14 @@
+{
+  "production.patch": "7803996b40175702f5d9978d29aa8ea31df5ec26282f592fbac6b97ae3ef2a89",
+  "production-hashes.json": "6425e16a2d7934ec15f371a197fe9aa6dbee3bf987e9af695a7acafbd9f80337",
+  "tests.patch": "1e9b6b6394ed911db733ed60259aa4a727c81d7ae92182da827c37adf0707c61",
+  "tests-hashes.json": "78d6f20a528d6882920f9e0b6bca2656e711f89c397645a543ec2729c1a263f2",
+  "README.txt": "935595a1bbc91122bdc28199f15924022b904ccd02343b5eddec5d9b3e4ff1d9",
+  "validation.json": "3460d0521f86a7ad81b2f2e934bc5dff88b866dee90b31bcd09c72d0e3484a89",
+  "codegen/comparison.json": "9099996f563a16d46aa55904c25de06ea5bf0d1f3bb21c31076dbac250015e94",
+  "codegen/normalized-comparison.json": "c31a9beeeba4f8372e5e78bd95e0528a566790f32e4bd63ef58cba5adbd61210",
+  "test/htp/host/lfm2_m1_ring_reset_check.c": "6a09d88be3ed19183f6fad488130dffe0348214bd9768dcd2a97e798d79e2269",
+  "test/htp/host/run_lfm2_m1_ring_reset_checks.py": "2b6ff1ed388006d817ab44aea841e086830c0d0ccb39766be776085b491b6949",
+  "candidate/test/htp/host/moe_layer_host_check.c": "03a68a75e0230dc025fb60ce7c753e5084deaa65a716d6727e8725e77e435316",
+  "candidate/test/htp/host/hvx_scalar_stubs.c": "ac6d1203dbe6cdca16f96570eb7f91b04b37d9f1911bf07e118f2023ee1f9792"
+}

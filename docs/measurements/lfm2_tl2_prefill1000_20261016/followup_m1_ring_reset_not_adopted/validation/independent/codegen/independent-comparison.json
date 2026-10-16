@@ -1,0 +1,88 @@
+{
+  "hexkl_dma_ring": {
+    "unchanged_functions": [
+      "hexkl_dma_ring_reset",
+      "hexkl_dma_ring_push2d",
+      "hexkl_dma_ring_next_idx",
+      "hexkl_dma_ring_wait",
+      "hexkl_dma_ring_drain",
+      "hexkl_dma_ring_is_done",
+      "hexkl_dcache_inva",
+      "hexkl_dma_lane_push2d",
+      "hexkl_dma_lane_wait"
+    ],
+    "changed_existing_normalized_lines_delta": {},
+    "added": [
+      "hexkl_dma_ring_try_reset"
+    ],
+    "baseline_frames": {
+      "hexkl_dma_ring_reset": 8,
+      "hexkl_dma_ring_push2d": 0,
+      "hexkl_dma_ring_drain": 0
+    },
+    "candidate_frames": {
+      "hexkl_dma_ring_reset": 8,
+      "hexkl_dma_ring_try_reset": 0,
+      "hexkl_dma_ring_push2d": 0,
+      "hexkl_dma_ring_drain": 0
+    }
+  },
+  "hexkl_mm_u8i4_moe": {
+    "unchanged_functions": [
+      "hexkl_moe_scratch_free",
+      "hexkl_moe_scratch_reserve",
+      "hexkl_moe_carve",
+      "hexkl_moe_push_weight_chunk",
+      "moe_push_native_chunk",
+      "hexkl_moe_expand_chunk",
+      "moe_expand_chunk",
+      "hexkl_moe_push_act_block",
+      "hexkl_moe_pack_bg_worker",
+      "hexkl_moe_dma_copy",
+      "moe_dma_copy",
+      "hexkl_mm_u8i4_moe_layout",
+      "moe_all_4bit",
+      "moe_all_2bit",
+      "htp_tl2_palette_magnitude",
+      "hexkl_acc_i24_usable",
+      "hexkl_acc_i24_banks",
+      "hexkl_acc_i24_prepare",
+      "moe_push_gate_up_chunks",
+      "moe_m1_q_post",
+      "moe_m1_push",
+      "hexkl_wh_affine_sums",
+      "moe_m1_pair_worker",
+      "moe_m1_q_post_after_a",
+      "moe_tl2_gate_epilogue_worker",
+      "moe_m1_wait",
+      "moe_m1_requant_worker",
+      "moe_m1_down_worker",
+      "moe_push_act_block",
+      "moe_expand_submit",
+      "moe_gu_worker",
+      "moe_dn_worker",
+      "moe_dn_unit",
+      "moe_dn_fg_worker",
+      "moe_push_weight_chunk",
+      "hexkl_mm_u8i4_fc_m1_run",
+      "fc_m1_worker",
+      "moe_expand_unit",
+      "moe_m1_q_worker",
+      "moe_dn_rows"
+    ],
+    "changed_existing_normalized_lines_delta": {
+      "hexkl_mm_u8i4_moe_layer_run": 13
+    },
+    "added": [],
+    "baseline_frames": {
+      "hexkl_mm_u8i4_moe_layer_run": 17152,
+      "moe_m1_pair_worker": 176,
+      "moe_m1_down_worker": 896
+    },
+    "candidate_frames": {
+      "hexkl_mm_u8i4_moe_layer_run": 17152,
+      "moe_m1_pair_worker": 176,
+      "moe_m1_down_worker": 896
+    }
+  }
+}

@@ -1,0 +1,3067 @@
+{
+  "decision": "not_adopted",
+  "source_base_commit": "80a8b754e86b7594ee7400e1ca2ef841d22f2920",
+  "author_source_base_commit": "ccea0d476daf43ddd5dbe201178755e6ff978dfd",
+  "fixed_build_revision": "b17d1d2fbda288c500f56072a7ad740c88f1c488",
+  "reproduction": {
+    "scope": "Basic actual-ring fixture uses archived source. Optional whole-M1 fixture needs hash-pinned repo dependencies and external Hexagon SDK/libnative."
+  },
+  "files": {
+    "README.txt": {
+      "sha256": "a7383f932ca04ba8266ed599101022618dd9f0a2d3d1d10f773c14c9c78292db",
+      "uncompressed_sha256": "a7383f932ca04ba8266ed599101022618dd9f0a2d3d1d10f773c14c9c78292db",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-archive-20261017/README.txt",
+      "stored_bytes": 10194,
+      "uncompressed_bytes": 10194
+    },
+    "artifacts/accepted-restored-runtime.json": {
+      "sha256": "5268e0c44c3e3276f38224977ea58084bcc403a01da898673dc4966656e46ff9",
+      "uncompressed_sha256": "5268e0c44c3e3276f38224977ea58084bcc403a01da898673dc4966656e46ff9",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/lfm-router-arm-1-artifacts.json",
+      "stored_bytes": 858,
+      "uncompressed_bytes": 858
+    },
+    "artifacts/lfm-m1-ring-reset-control.json": {
+      "sha256": "229ba368920585a10ab55af0ff82b0aae06a471624ba09d84b07a2ec63a3c84c",
+      "uncompressed_sha256": "229ba368920585a10ab55af0ff82b0aae06a471624ba09d84b07a2ec63a3c84c",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/lfm-m1-ring-reset-control-artifacts.json",
+      "stored_bytes": 1336,
+      "uncompressed_bytes": 1336
+    },
+    "artifacts/lfm-m1-ring-reset-control.source.patch.gz": {
+      "sha256": "bfbc3636a6dc390d2a0729fc30a6cbb227f10e0a9ce686979ec512178a5b1183",
+      "uncompressed_sha256": "cf1f99fc550bee96b6efa06d93fca15ec68063fa5cdaa0bb58e189610aa33cbf",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/lfm-m1-ring-reset-control.source.patch",
+      "stored_bytes": 4452,
+      "uncompressed_bytes": 14499
+    },
+    "artifacts/lfm-m1-ring-reset-diagnostic.json": {
+      "sha256": "42ece8ab3ecd83eab30ac4b04aa42d69f6bfe582049f48553460c724d83da520",
+      "uncompressed_sha256": "42ece8ab3ecd83eab30ac4b04aa42d69f6bfe582049f48553460c724d83da520",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/lfm-m1-ring-reset-diagnostic-artifacts.json",
+      "stored_bytes": 1497,
+      "uncompressed_bytes": 1497
+    },
+    "artifacts/lfm-m1-ring-reset-diagnostic.source.patch.gz": {
+      "sha256": "4ea4dc5345115e3fe89863dc735c721f8c036ca80c0514ac3a5d48fc93b824d2",
+      "uncompressed_sha256": "467305667fa84f4ad8c8e6b7d9e9d4591f6e78a291bcd3481f49dddec066931d",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/lfm-m1-ring-reset-diagnostic.source.patch",
+      "stored_bytes": 5633,
+      "uncompressed_bytes": 17991
+    },
+    "artifacts/lfm-m1-ring-reset.json": {
+      "sha256": "7dd9bb258a1a3cc3f900f99ec850762ed8ef176c74d23c30ca67c995a2ae8d9f",
+      "uncompressed_sha256": "7dd9bb258a1a3cc3f900f99ec850762ed8ef176c74d23c30ca67c995a2ae8d9f",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/lfm-m1-ring-reset-artifacts.json",
+      "stored_bytes": 1347,
+      "uncompressed_bytes": 1347
+    },
+    "artifacts/lfm-m1-ring-reset.source.patch.gz": {
+      "sha256": "a0e9211aa2489d4b5c6e2f0003647a0904028f8a015037b8349563fd591e610b",
+      "uncompressed_sha256": "b63a84ff4fa22e41c4331e6309c102bfe73251f1d832a7fa9129c2395722f9d3",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/lfm-m1-ring-reset.source.patch",
+      "stored_bytes": 5358,
+      "uncompressed_bytes": 17265
+    },
+    "configuration/lfm2-1024/config.json": {
+      "sha256": "f9026f89cee3a59b76640a771fbfed250057efe332fe7c5b3169073bbf3d67eb",
+      "uncompressed_sha256": "f9026f89cee3a59b76640a771fbfed250057efe332fe7c5b3169073bbf3d67eb",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/repro/models/lfm2-1024/config.json",
+      "stored_bytes": 1459,
+      "uncompressed_bytes": 1459
+    },
+    "configuration/lfm2-1024/generation_config.json": {
+      "sha256": "981772065f7dd9eaa8f7d01a0f24c04884ae7e01ba50fa96eab71a47f1275a8f",
+      "uncompressed_sha256": "981772065f7dd9eaa8f7d01a0f24c04884ae7e01ba50fa96eab71a47f1275a8f",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/repro/models/lfm2-1024/generation_config.json",
+      "stored_bytes": 176,
+      "uncompressed_bytes": 176
+    },
+    "configuration/lfm2-1024/nntr_config.json": {
+      "sha256": "25e976ccca0d49737bc9097a8212086036bbb9dd6ca999d318e6add06b95f79c",
+      "uncompressed_sha256": "25e976ccca0d49737bc9097a8212086036bbb9dd6ca999d318e6add06b95f79c",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/repro/models/lfm2-1024/nntr_config.json",
+      "stored_bytes": 6400,
+      "uncompressed_bytes": 6400
+    },
+    "configuration/lfm2-2048/config.json": {
+      "sha256": "f9026f89cee3a59b76640a771fbfed250057efe332fe7c5b3169073bbf3d67eb",
+      "uncompressed_sha256": "f9026f89cee3a59b76640a771fbfed250057efe332fe7c5b3169073bbf3d67eb",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/repro/models/lfm2-2048/config.json",
+      "stored_bytes": 1459,
+      "uncompressed_bytes": 1459
+    },
+    "configuration/lfm2-2048/generation_config.json": {
+      "sha256": "981772065f7dd9eaa8f7d01a0f24c04884ae7e01ba50fa96eab71a47f1275a8f",
+      "uncompressed_sha256": "981772065f7dd9eaa8f7d01a0f24c04884ae7e01ba50fa96eab71a47f1275a8f",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/repro/models/lfm2-2048/generation_config.json",
+      "stored_bytes": 176,
+      "uncompressed_bytes": 176
+    },
+    "configuration/lfm2-2048/nntr_config.json": {
+      "sha256": "c877d7792cf8830898f49c87b535724d26ce18d62daf5d8c185756cae49f9c71",
+      "uncompressed_sha256": "c877d7792cf8830898f49c87b535724d26ce18d62daf5d8c185756cae49f9c71",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/repro/models/lfm2-2048/nntr_config.json",
+      "stored_bytes": 12086,
+      "uncompressed_bytes": 12086
+    },
+    "diagnostic/independent/command.json": {
+      "sha256": "cda47a225d38bd07685b44adab08e4d843f361a98d93202aa2f3a0eb23055a23",
+      "uncompressed_sha256": "cda47a225d38bd07685b44adab08e4d843f361a98d93202aa2f3a0eb23055a23",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-device-review-20261017/command.json",
+      "stored_bytes": 401,
+      "uncompressed_bytes": 401
+    },
+    "diagnostic/independent/manifest.json": {
+      "sha256": "e303ac408f0d20ff50ac8221f8e66497760a88e35589e47938a8f2441dad3d09",
+      "uncompressed_sha256": "e303ac408f0d20ff50ac8221f8e66497760a88e35589e47938a8f2441dad3d09",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-device-review-20261017/manifest.json",
+      "stored_bytes": 452,
+      "uncompressed_bytes": 452
+    },
+    "diagnostic/independent/readback.py": {
+      "sha256": "3c994e53b1adf100de779345cec7aec2e82678d099076b664f12f16d539b09f0",
+      "uncompressed_sha256": "3c994e53b1adf100de779345cec7aec2e82678d099076b664f12f16d539b09f0",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-device-review-20261017/readback.py",
+      "stored_bytes": 11994,
+      "uncompressed_bytes": 11994
+    },
+    "diagnostic/independent/readback/validation.json": {
+      "sha256": "fe9829e6dd548809a2f18ef597660aad5c7fe5b7c80a578db53a19d7299781f3",
+      "uncompressed_sha256": "fe9829e6dd548809a2f18ef597660aad5c7fe5b7c80a578db53a19d7299781f3",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-device-review-20261017/readback/validation.json",
+      "stored_bytes": 10453,
+      "uncompressed_bytes": 10453
+    },
+    "diagnostic/independent/review.txt": {
+      "sha256": "3c80b3d8ee04d8ef78cea4c0aea21736f28b081b022c03725fe46a2cd415fd77",
+      "uncompressed_sha256": "3c80b3d8ee04d8ef78cea4c0aea21736f28b081b022c03725fe46a2cd415fd77",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-device-review-20261017/review.txt",
+      "stored_bytes": 5831,
+      "uncompressed_bytes": 5831
+    },
+    "diagnostic/independent/source-boundaries.json": {
+      "sha256": "bbe3000dd16b3e5a0ac74ffc56d05b44a8511b34ccf772b8b50ed3182762ab30",
+      "uncompressed_sha256": "bbe3000dd16b3e5a0ac74ffc56d05b44a8511b34ccf772b8b50ed3182762ab30",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-device-review-20261017/source-boundaries.json",
+      "stored_bytes": 11092,
+      "uncompressed_bytes": 11092
+    },
+    "diagnostic/raw/continue-m1-ring-reset-diagnostic1024.collector.stderr.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/continue-m1-ring-reset-diagnostic1024.collector.stderr",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "diagnostic/raw/continue-m1-ring-reset-diagnostic1024.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-diagnostic1024.ids",
+      "stored_bytes": 324,
+      "uncompressed_bytes": 324
+    },
+    "diagnostic/raw/continue-m1-ring-reset-diagnostic1024.json": {
+      "sha256": "f9b2be9bcf048830ede50b75b9afc4f38803cbe12cd49680042284120a423fd7",
+      "uncompressed_sha256": "f9b2be9bcf048830ede50b75b9afc4f38803cbe12cd49680042284120a423fd7",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-diagnostic1024.json",
+      "stored_bytes": 6591,
+      "uncompressed_bytes": 6591
+    },
+    "diagnostic/raw/continue-m1-ring-reset-diagnostic1024.live.logcat.txt.gz": {
+      "sha256": "f0f8389e268867c3257d304ec396b751df1a64c730c6aa5eb258dc4a25a63b96",
+      "uncompressed_sha256": "d91cdbd164f234bcaa0611e94b5dd1bd1a9f0044aef20834b0b247c0ad96b173",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/continue-m1-ring-reset-diagnostic1024.live.logcat.txt",
+      "stored_bytes": 19760,
+      "uncompressed_bytes": 442083
+    },
+    "diagnostic/raw/continue-m1-ring-reset-diagnostic1024.log.gz": {
+      "sha256": "164f66c3c1415033e3422341fd8c09cbef4485e2d7cc467830c902be02354107",
+      "uncompressed_sha256": "50aca1a224c55aa9774b43f6777f20fcbbf9bccf3bfb367221612b3e74605618",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-diagnostic1024.log",
+      "stored_bytes": 68188,
+      "uncompressed_bytes": 778127
+    },
+    "diagnostic/raw/continue-m1-ring-reset-diagnostic1024.logcat.txt.gz": {
+      "sha256": "d6e61dfbd6c5200fe8755d4ba01f1509440eba87c6fc036161e3295e4e01bf59",
+      "uncompressed_sha256": "98dc245f045310e5f2dd50f76029de6c16c5571ba7e51395071aac57603782a4",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-diagnostic1024.logcat.txt",
+      "stored_bytes": 39109,
+      "uncompressed_bytes": 868710
+    },
+    "diagnostic/raw/continue-m1-ring-reset-diagnostic1024.memory.json.gz": {
+      "sha256": "439e561091eb316ecdc5d78519f9f61cfc0142c7ad0264bf2446e8b2f00f1443",
+      "uncompressed_sha256": "d6db4cd6294f244db12a6402d623a7b1736e0f8b9c67ddecebac1cc1a9f23286",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-diagnostic1024.memory.json",
+      "stored_bytes": 11699,
+      "uncompressed_bytes": 255406
+    },
+    "diagnostic/raw/continue-m1-ring-reset-diagnostic1024.parsed.json": {
+      "sha256": "eb7190adfe4304b9ae1add5eb9263a1f2065b35e75f9a4c4056457df8cf9ec48",
+      "uncompressed_sha256": "eb7190adfe4304b9ae1add5eb9263a1f2065b35e75f9a4c4056457df8cf9ec48",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/continue-m1-ring-reset-diagnostic1024.parsed.json",
+      "stored_bytes": 1847,
+      "uncompressed_bytes": 1847
+    },
+    "diagnostic/raw/continue-m1-ring-reset-diagnostic1024.runner.log.gz": {
+      "sha256": "fcd713573bc273338756c58a5011cdc5c76525a021b570ebf05948f431575ba7",
+      "uncompressed_sha256": "d5e10ccb5a79e8b703f2b63b4721e6bcedfe935e3ee11729b4249408b4decc01",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/continue-m1-ring-reset-diagnostic1024.runner.log",
+      "stored_bytes": 726,
+      "uncompressed_bytes": 1309
+    },
+    "diagnostic/raw/continue-m1-ring-reset-diagnostic2048.collector.stderr.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/continue-m1-ring-reset-diagnostic2048.collector.stderr",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "diagnostic/raw/continue-m1-ring-reset-diagnostic2048.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-diagnostic2048.ids",
+      "stored_bytes": 326,
+      "uncompressed_bytes": 326
+    },
+    "diagnostic/raw/continue-m1-ring-reset-diagnostic2048.json": {
+      "sha256": "04732218657c6fe71c896bd33309f1f39ed8a017df7ccaecde067cf253f21ba5",
+      "uncompressed_sha256": "04732218657c6fe71c896bd33309f1f39ed8a017df7ccaecde067cf253f21ba5",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-diagnostic2048.json",
+      "stored_bytes": 6598,
+      "uncompressed_bytes": 6598
+    },
+    "diagnostic/raw/continue-m1-ring-reset-diagnostic2048.live.logcat.txt.gz": {
+      "sha256": "5594a537926518a8736ff47997852124dba29674880f66170cccc28abd4e80ae",
+      "uncompressed_sha256": "293cc7556130442ad3039550fe82f561d4b949fb73332bed1ee725326775e4d6",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/continue-m1-ring-reset-diagnostic2048.live.logcat.txt",
+      "stored_bytes": 20380,
+      "uncompressed_bytes": 446571
+    },
+    "diagnostic/raw/continue-m1-ring-reset-diagnostic2048.log.gz": {
+      "sha256": "429d317f907357d1f574b589295ad4d09e80ffdb63f4d8d4a2976f05a4fede3c",
+      "uncompressed_sha256": "06ee9bcf6759f1874a29292129cd579f32dc97f04a92b8dc8c386c4e64018b75",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-diagnostic2048.log",
+      "stored_bytes": 67926,
+      "uncompressed_bytes": 783912
+    },
+    "diagnostic/raw/continue-m1-ring-reset-diagnostic2048.logcat.txt.gz": {
+      "sha256": "9bbf707dee1aea5a973c47fe3ba8fcb85edf7a49420bd59f31046353dd722507",
+      "uncompressed_sha256": "50bbf2dd0a162d66861e4e2d287165294c375f7130f8013af6780c42a99f3fc0",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-diagnostic2048.logcat.txt",
+      "stored_bytes": 40407,
+      "uncompressed_bytes": 903241
+    },
+    "diagnostic/raw/continue-m1-ring-reset-diagnostic2048.memory.json.gz": {
+      "sha256": "76369734da7ee249f3c45fcd9bd0e0b4dd802e7850bad8470c2ae490f7303982",
+      "uncompressed_sha256": "6babf1ba6f8f062f9a825f7d297fa177e1a14d106780b6d8f02fa946715bbaa2",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-diagnostic2048.memory.json",
+      "stored_bytes": 13818,
+      "uncompressed_bytes": 306942
+    },
+    "diagnostic/raw/continue-m1-ring-reset-diagnostic2048.parsed.json": {
+      "sha256": "a278e20d910477b1b8d828b9487ed7736bab2f65c645255c3081a885f50f02b2",
+      "uncompressed_sha256": "a278e20d910477b1b8d828b9487ed7736bab2f65c645255c3081a885f50f02b2",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/continue-m1-ring-reset-diagnostic2048.parsed.json",
+      "stored_bytes": 1855,
+      "uncompressed_bytes": 1855
+    },
+    "diagnostic/raw/continue-m1-ring-reset-diagnostic2048.runner.log.gz": {
+      "sha256": "777f7bab06a4298e262950c4f666b3c6868093fac203318c54ec3633b272d7e0",
+      "uncompressed_sha256": "669cb9830a2c90486e25e19359f37465ecc5b437fc9e684d724ef28d2e14ac0f",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/continue-m1-ring-reset-diagnostic2048.runner.log",
+      "stored_bytes": 723,
+      "uncompressed_bytes": 1312
+    },
+    "fixed-build/README.txt": {
+      "sha256": "18e4bddc1b0a212b59541aaeae15dda307e091d834d63a12581868030014ec30",
+      "uncompressed_sha256": "18e4bddc1b0a212b59541aaeae15dda307e091d834d63a12581868030014ec30",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/README.txt",
+      "stored_bytes": 7364,
+      "uncompressed_bytes": 7364
+    },
+    "fixed-build/build/baseline-source-hashes.json": {
+      "sha256": "dc2e62eb4b3c903265a43967b3a09e85ba68e2a15a1c2cd179a7d48ce40545de",
+      "uncompressed_sha256": "dc2e62eb4b3c903265a43967b3a09e85ba68e2a15a1c2cd179a7d48ce40545de",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/baseline-source-hashes.json",
+      "stored_bytes": 85361,
+      "uncompressed_bytes": 85361
+    },
+    "fixed-build/build/changed-tu-function-comparison.json": {
+      "sha256": "9286f9b90125f5ceea94f7fe9aff37b56b68dd959565e135fe78a60c524dd2f7",
+      "uncompressed_sha256": "9286f9b90125f5ceea94f7fe9aff37b56b68dd959565e135fe78a60c524dd2f7",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/changed-tu-function-comparison.json",
+      "stored_bytes": 16840,
+      "uncompressed_bytes": 16840
+    },
+    "fixed-build/build/commands.json.gz": {
+      "sha256": "561d6f6c18ba72a16ce60d36bfbb828a6a19ba40c617a65e36219dc8a0b086d7",
+      "uncompressed_sha256": "162b1dadd5c7eed490ab2f7c03fa7a68cb8091825d1a19bee3e08308d62d5e98",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/commands.json",
+      "stored_bytes": 8546,
+      "uncompressed_bytes": 352620
+    },
+    "fixed-build/build/compilations.json.gz": {
+      "sha256": "d23f319c542fa2ae77a4c55cc1692e99148178d31cf99b8a3221fe3d1b68f1e7",
+      "uncompressed_sha256": "f772511e3af3b94687c518ba8bde69cff4529ed61668e3df68f73393be34b56f",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/compilations.json",
+      "stored_bytes": 41223,
+      "uncompressed_bytes": 498928
+    },
+    "fixed-build/build/frozen-object-hashes.json": {
+      "sha256": "953f9726498cdee1b6f7bbd7a604d75372889a24ead7fe27e2506586a5ce2de4",
+      "uncompressed_sha256": "953f9726498cdee1b6f7bbd7a604d75372889a24ead7fe27e2506586a5ce2de4",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/frozen-object-hashes.json",
+      "stored_bytes": 10108,
+      "uncompressed_bytes": 10108
+    },
+    "fixed-build/build/generated-hashes.json": {
+      "sha256": "fc21a4846b5b8a010170d3ee3c3279355a578b5076e18d307ff7e8c41578a57e",
+      "uncompressed_sha256": "fc21a4846b5b8a010170d3ee3c3279355a578b5076e18d307ff7e8c41578a57e",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/generated-hashes.json",
+      "stored_bytes": 295,
+      "uncompressed_bytes": 295
+    },
+    "fixed-build/build/inputs.json": {
+      "sha256": "08e82a4d56ed437fe31fbfb09e9607839859344ae820756dc99dcfc734e65146",
+      "uncompressed_sha256": "08e82a4d56ed437fe31fbfb09e9607839859344ae820756dc99dcfc734e65146",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/inputs.json",
+      "stored_bytes": 1917,
+      "uncompressed_bytes": 1917
+    },
+    "fixed-build/build/link-determinism/no-threads-0.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/link-determinism/no-threads-0.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "fixed-build/build/link-determinism/no-threads-1.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/link-determinism/no-threads-1.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "fixed-build/build/link-determinism/no-threads-2.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/link-determinism/no-threads-2.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "fixed-build/build/link-determinism/no-threads-3.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/link-determinism/no-threads-3.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "fixed-build/build/link-determinism/validation.json": {
+      "sha256": "9a620e36780088b45231bb1de62b6a47f37f677713ec142d5c1936b1c8241bc6",
+      "uncompressed_sha256": "9a620e36780088b45231bb1de62b6a47f37f677713ec142d5c1936b1c8241bc6",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/link-determinism/validation.json",
+      "stored_bytes": 7823,
+      "uncompressed_bytes": 7823
+    },
+    "fixed-build/build/link-tool-input-hashes.json": {
+      "sha256": "c2d07486a191a485f175bbde474a5ac5ed339f73d4ab6947db0e5e1112840541",
+      "uncompressed_sha256": "c2d07486a191a485f175bbde474a5ac5ed339f73d4ab6947db0e5e1112840541",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/link-tool-input-hashes.json",
+      "stored_bytes": 7376,
+      "uncompressed_bytes": 7376
+    },
+    "fixed-build/build/normalized-addresses-incomplete/comparison.json": {
+      "sha256": "53562cc9e0ad363d9135da3a442cf2914bdd34b6bd4df11734b004adc9fcd31e",
+      "uncompressed_sha256": "53562cc9e0ad363d9135da3a442cf2914bdd34b6bd4df11734b004adc9fcd31e",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/normalized-addresses-incomplete/comparison.json",
+      "stored_bytes": 3538,
+      "uncompressed_bytes": 3538
+    },
+    "fixed-build/build/normalized-functions/comparison.json": {
+      "sha256": "188cf629410f48d129445a4ac35c3cfdad77b3afcd02a7c366978c6f5e2a17f9",
+      "uncompressed_sha256": "188cf629410f48d129445a4ac35c3cfdad77b3afcd02a7c366978c6f5e2a17f9",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/normalized-functions/comparison.json",
+      "stored_bytes": 1806,
+      "uncompressed_bytes": 1806
+    },
+    "fixed-build/build/object-map.json": {
+      "sha256": "28be292d7817f5912c2a42a1f559a3fa7ab7a66abc6d19cfe7750a4fd2dfce9e",
+      "uncompressed_sha256": "28be292d7817f5912c2a42a1f559a3fa7ab7a66abc6d19cfe7750a4fd2dfce9e",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/object-map.json",
+      "stored_bytes": 18361,
+      "uncompressed_bytes": 18361
+    },
+    "fixed-build/build/production.patch.gz": {
+      "sha256": "d362cd881effbc6c4b8a015d7d91ecda612f9eb120de92735c24fb53d81ef0f3",
+      "uncompressed_sha256": "7803996b40175702f5d9978d29aa8ea31df5ec26282f592fbac6b97ae3ef2a89",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/production.patch",
+      "stored_bytes": 949,
+      "uncompressed_bytes": 2102
+    },
+    "fixed-build/build/resume-path-filter-failure/baseline-source-hashes.json": {
+      "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+      "uncompressed_sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/resume-path-filter-failure/baseline-source-hashes.json",
+      "stored_bytes": 3,
+      "uncompressed_bytes": 3
+    },
+    "fixed-build/build/resume-path-filter-failure/resume.log.gz": {
+      "sha256": "bd84c710fbe9955c5fd57374f8bf04ba2140406ae699112641ed7a6c5a084685",
+      "uncompressed_sha256": "0b67fde2b532843220844f0a1978115c6908ad519992eae0f7577ca328648e01",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/resume-path-filter-failure/resume.log",
+      "stored_bytes": 240,
+      "uncompressed_bytes": 473
+    },
+    "fixed-build/build/source-order.json": {
+      "sha256": "e13ad66c319e86b426648f60edf5ef65bd3a05181913988414132f3e887dd927",
+      "uncompressed_sha256": "e13ad66c319e86b426648f60edf5ef65bd3a05181913988414132f3e887dd927",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/source-order.json",
+      "stored_bytes": 5144,
+      "uncompressed_bytes": 5144
+    },
+    "fixed-build/build/threaded-link-attempt/build.log.gz": {
+      "sha256": "fc5fa51e6b7e288538a37d1e154010871d1a7831c1bea8d72eaecb956f2151c1",
+      "uncompressed_sha256": "50e57deefa03674214d972262b9d2c800e71010871dfe829e100fd2548d5cfa3",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/threaded-link-attempt/build.log",
+      "stored_bytes": 311,
+      "uncompressed_bytes": 814
+    },
+    "fixed-build/build/threaded-link-attempt/control/repeat-section-comparison.json": {
+      "sha256": "ec96017e12038937c338f632db2177c6c788aa1c6241e29a160bd74f848d2db7",
+      "uncompressed_sha256": "ec96017e12038937c338f632db2177c6c788aa1c6241e29a160bd74f848d2db7",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/threaded-link-attempt/control/repeat-section-comparison.json",
+      "stored_bytes": 9660,
+      "uncompressed_bytes": 9660
+    },
+    "fixed-build/build/validation.json": {
+      "sha256": "51ca594e6fb74012eb867865c95ff63f921a54c3a835b15fdf504563478d430e",
+      "uncompressed_sha256": "51ca594e6fb74012eb867865c95ff63f921a54c3a835b15fdf504563478d430e",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build/validation.json",
+      "stored_bytes": 27619,
+      "uncompressed_bytes": 27619
+    },
+    "fixed-build/build_fixed_objects.py": {
+      "sha256": "86b659496fc401c9cc14415b50978593968ef60e9cc1776ca1cc832b4771704e",
+      "uncompressed_sha256": "86b659496fc401c9cc14415b50978593968ef60e9cc1776ca1cc832b4771704e",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/build_fixed_objects.py",
+      "stored_bytes": 18811,
+      "uncompressed_bytes": 18811
+    },
+    "fixed-build/compare_functions.py": {
+      "sha256": "dd5ad3b40864dc8f03c4727253e94ae9fbd878904db19f9ee91de98e2ff39dab",
+      "uncompressed_sha256": "dd5ad3b40864dc8f03c4727253e94ae9fbd878904db19f9ee91de98e2ff39dab",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/compare_functions.py",
+      "stored_bytes": 3313,
+      "uncompressed_bytes": 3313
+    },
+    "fixed-build/diagnostic/build/commands.json": {
+      "sha256": "58a9a210d69ade19e86301df28468edc41ab659f09e1aa43c84560d19681528e",
+      "uncompressed_sha256": "58a9a210d69ade19e86301df28468edc41ab659f09e1aa43c84560d19681528e",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/diagnostic/build/commands.json",
+      "stored_bytes": 25122,
+      "uncompressed_bytes": 25122
+    },
+    "fixed-build/diagnostic/build/diagnostic.patch.gz": {
+      "sha256": "e7e121c6ebe173f57f946168bab7819431fcbd30dab8fc019f96cf26995fd1fc",
+      "uncompressed_sha256": "9aadb311233191a4c3cd1013ed55fcfd64b4cc8dbbe552088c9f2d0f6ae6c188",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/diagnostic/build/diagnostic.patch",
+      "stored_bytes": 614,
+      "uncompressed_bytes": 1170
+    },
+    "fixed-build/diagnostic/build/host-run.log.gz": {
+      "sha256": "df53b966895903d564e05636a1517c374d3991227c54b7e10b860efc79ab6c0b",
+      "uncompressed_sha256": "36405f6b6a6cdb136181b17f0dd0ae17d2eeed299a8f5a57450490b774beffb6",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/diagnostic/build/host-run.log",
+      "stored_bytes": 548,
+      "uncompressed_bytes": 5390
+    },
+    "fixed-build/diagnostic/build/host/fixture.c.gz": {
+      "sha256": "75305f5659c692bac6c7d36b400fe70f59140e5b1bff7c389e111631a6bf6428",
+      "uncompressed_sha256": "394244a1de6470a7e357f0e71f066837992f6807f9b574c8c128485a69adfbc7",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/diagnostic/build/host/fixture.c",
+      "stored_bytes": 3448,
+      "uncompressed_bytes": 10624
+    },
+    "fixed-build/diagnostic/build/ring-diagnostic.c.gz": {
+      "sha256": "d1246406ce3bfdcb319de333cb8671622b186e45fff006db38136b386c042566",
+      "uncompressed_sha256": "ef837fe7a757aa0594422b6393c224ea5fef00a6a0d08bd1a9a7acf9cb06fb4a",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/diagnostic/build/ring-diagnostic.c",
+      "stored_bytes": 2414,
+      "uncompressed_bytes": 6414
+    },
+    "fixed-build/diagnostic/build/validation.json": {
+      "sha256": "b0682c21da6ced3bfdb7f34abfa16f07ef00bc809bc3bf67b601db4394cf0dc1",
+      "uncompressed_sha256": "b0682c21da6ced3bfdb7f34abfa16f07ef00bc809bc3bf67b601db4394cf0dc1",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/diagnostic/build/validation.json",
+      "stored_bytes": 1088,
+      "uncompressed_bytes": 1088
+    },
+    "fixed-build/diagnostic/host-readback.json": {
+      "sha256": "4a2beadc961a45820123f4057df2203bf92034838956471c4004b147100d23cc",
+      "uncompressed_sha256": "4a2beadc961a45820123f4057df2203bf92034838956471c4004b147100d23cc",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/diagnostic/host-readback.json",
+      "stored_bytes": 494,
+      "uncompressed_bytes": 494
+    },
+    "fixed-build/diagnostic/initial-summary-check-failure/commands.json": {
+      "sha256": "58a9a210d69ade19e86301df28468edc41ab659f09e1aa43c84560d19681528e",
+      "uncompressed_sha256": "58a9a210d69ade19e86301df28468edc41ab659f09e1aa43c84560d19681528e",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/diagnostic/initial-summary-check-failure/commands.json",
+      "stored_bytes": 25122,
+      "uncompressed_bytes": 25122
+    },
+    "fixed-build/diagnostic/initial-summary-check-failure/compile-0.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/diagnostic/initial-summary-check-failure/compile-0.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "fixed-build/diagnostic/initial-summary-check-failure/compile-1.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/diagnostic/initial-summary-check-failure/compile-1.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "fixed-build/diagnostic/initial-summary-check-failure/elf.log.gz": {
+      "sha256": "443ff6e53b6b9922be67b0b931bd4a7d3537a5db16d80543ecd9c017d1f20ad1",
+      "uncompressed_sha256": "782899c808c9bc85b15938dc90e49e4f81ba1ffd5d4300dc69fab0fcd786254e",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/diagnostic/initial-summary-check-failure/elf.log",
+      "stored_bytes": 357,
+      "uncompressed_bytes": 950
+    },
+    "fixed-build/diagnostic/initial-summary-check-failure/host-compile.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/diagnostic/initial-summary-check-failure/host-compile.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "fixed-build/diagnostic/initial-summary-check-failure/host-run.log.gz": {
+      "sha256": "df53b966895903d564e05636a1517c374d3991227c54b7e10b860efc79ab6c0b",
+      "uncompressed_sha256": "36405f6b6a6cdb136181b17f0dd0ae17d2eeed299a8f5a57450490b774beffb6",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/diagnostic/initial-summary-check-failure/host-run.log",
+      "stored_bytes": 548,
+      "uncompressed_bytes": 5390
+    },
+    "fixed-build/diagnostic/initial-summary-check-failure/imports.log.gz": {
+      "sha256": "e6693597f908b56f91dffa109c9134047dfbb5a4ed858ae8ff7f049ce9172a89",
+      "uncompressed_sha256": "05b5e428946cb6916666824c8a61e93c53b6fd425c2f35aa8bffca580d2028fd",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/diagnostic/initial-summary-check-failure/imports.log",
+      "stored_bytes": 7563,
+      "uncompressed_bytes": 36124
+    },
+    "fixed-build/diagnostic/initial-summary-check-failure/link-1.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/diagnostic/initial-summary-check-failure/link-1.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "fixed-build/diagnostic/initial-summary-check-failure/link-2.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/diagnostic/initial-summary-check-failure/link-2.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "fixed-build/diagnostic/initial-summary-check-failure/object-imports.log.gz": {
+      "sha256": "ad7c19370245356f672dd7c6529e9cb92ea194dc71ffabef85ea27277fbb973e",
+      "uncompressed_sha256": "4fc1562b7fceed33c37068d9a6a00b5ad68da4b7f01e8cf33d5c30d0408e6641",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/diagnostic/initial-summary-check-failure/object-imports.log",
+      "stored_bytes": 86,
+      "uncompressed_bytes": 117
+    },
+    "fixed-build/diagnostic/parse.py": {
+      "sha256": "86be9a4ed9b2cdb86b3744b20c5675621aa859ae62694211d7bfafe00bb55661",
+      "uncompressed_sha256": "86be9a4ed9b2cdb86b3744b20c5675621aa859ae62694211d7bfafe00bb55661",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/diagnostic/parse.py",
+      "stored_bytes": 3587,
+      "uncompressed_bytes": 3587
+    },
+    "fixed-build/diagnostic/parser-check.json": {
+      "sha256": "c5da5f44378dac6d38c14126b11589f112a0cd74f752d251fa8ba627f72f7552",
+      "uncompressed_sha256": "c5da5f44378dac6d38c14126b11589f112a0cd74f752d251fa8ba627f72f7552",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/diagnostic/parser-check.json",
+      "stored_bytes": 55,
+      "uncompressed_bytes": 55
+    },
+    "fixed-build/diagnostic/parser_check.py": {
+      "sha256": "713b0b844058f7534724babf9f0c261c8d1ca26cfe45b3b21e3f0bcf6c773133",
+      "uncompressed_sha256": "713b0b844058f7534724babf9f0c261c8d1ca26cfe45b3b21e3f0bcf6c773133",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/diagnostic/parser_check.py",
+      "stored_bytes": 1831,
+      "uncompressed_bytes": 1831
+    },
+    "fixed-build/diagnostic/prepare.py": {
+      "sha256": "34ff5a53b21c3c9d4b09741522925927f08d48a52f01b28abe884e516258e6e7",
+      "uncompressed_sha256": "34ff5a53b21c3c9d4b09741522925927f08d48a52f01b28abe884e516258e6e7",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/diagnostic/prepare.py",
+      "stored_bytes": 8346,
+      "uncompressed_bytes": 8346
+    },
+    "fixed-build/independent/candidate/build1.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-review-20261017/candidate/build1.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "fixed-build/independent/candidate/build2.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-review-20261017/candidate/build2.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "fixed-build/independent/candidate/command.json": {
+      "sha256": "abfb0a1925086ce549f450a1c1a82cae33fa1c996a5cfa69a8ab24d9a735bb93",
+      "uncompressed_sha256": "abfb0a1925086ce549f450a1c1a82cae33fa1c996a5cfa69a8ab24d9a735bb93",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-review-20261017/candidate/command.json",
+      "stored_bytes": 7203,
+      "uncompressed_bytes": 7203
+    },
+    "fixed-build/independent/check_link.py": {
+      "sha256": "4842ed795e66a4d321dc04dcadb75e15babcd2cf09303f2aa396458383100016",
+      "uncompressed_sha256": "4842ed795e66a4d321dc04dcadb75e15babcd2cf09303f2aa396458383100016",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-review-20261017/check_link.py",
+      "stored_bytes": 1958,
+      "uncompressed_bytes": 1958
+    },
+    "fixed-build/independent/control/build.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-review-20261017/control/build.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "fixed-build/independent/control/build1.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-review-20261017/control/build1.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "fixed-build/independent/control/build2.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-review-20261017/control/build2.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "fixed-build/independent/control/command.json": {
+      "sha256": "d0366ff212317aaae3d7df978a0eacbb69cd4a4a9d9d28e2ba0eee5b25962418",
+      "uncompressed_sha256": "d0366ff212317aaae3d7df978a0eacbb69cd4a4a9d9d28e2ba0eee5b25962418",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-review-20261017/control/command.json",
+      "stored_bytes": 7199,
+      "uncompressed_bytes": 7199
+    },
+    "fixed-build/independent/diagnostic-readback.json": {
+      "sha256": "508a6fafa31932f4fd2a4091b31b44863bbe0447068651ad56e0f2f447d00d12",
+      "uncompressed_sha256": "508a6fafa31932f4fd2a4091b31b44863bbe0447068651ad56e0f2f447d00d12",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-review-20261017/diagnostic-readback.json",
+      "stored_bytes": 1506,
+      "uncompressed_bytes": 1506
+    },
+    "fixed-build/independent/fixed-input-readback.json": {
+      "sha256": "3313def389ae7c46f97f23b8adbb3e0e639d096182707ca745c4066a07085de3",
+      "uncompressed_sha256": "3313def389ae7c46f97f23b8adbb3e0e639d096182707ca745c4066a07085de3",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-review-20261017/fixed-input-readback.json",
+      "stored_bytes": 650,
+      "uncompressed_bytes": 650
+    },
+    "fixed-build/independent/host-command.json": {
+      "sha256": "0e31410cc8afb63dd9fdece2915d027d8979cf169d82ad7bdcda1a7ba4ec73a2",
+      "uncompressed_sha256": "0e31410cc8afb63dd9fdece2915d027d8979cf169d82ad7bdcda1a7ba4ec73a2",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-review-20261017/host-command.json",
+      "stored_bytes": 436,
+      "uncompressed_bytes": 436
+    },
+    "fixed-build/independent/host-readback.json": {
+      "sha256": "4a2beadc961a45820123f4057df2203bf92034838956471c4004b147100d23cc",
+      "uncompressed_sha256": "4a2beadc961a45820123f4057df2203bf92034838956471c4004b147100d23cc",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-review-20261017/host-readback.json",
+      "stored_bytes": 494,
+      "uncompressed_bytes": 494
+    },
+    "fixed-build/independent/host-run.log.gz": {
+      "sha256": "df53b966895903d564e05636a1517c374d3991227c54b7e10b860efc79ab6c0b",
+      "uncompressed_sha256": "36405f6b6a6cdb136181b17f0dd0ae17d2eeed299a8f5a57450490b774beffb6",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-review-20261017/host-run.log",
+      "stored_bytes": 548,
+      "uncompressed_bytes": 5390
+    },
+    "fixed-build/independent/manifest.json": {
+      "sha256": "37486d59bdeba259af398a083fe88ee913dbeadc77673600b63b1ed91a1c8595",
+      "uncompressed_sha256": "37486d59bdeba259af398a083fe88ee913dbeadc77673600b63b1ed91a1c8595",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-review-20261017/manifest.json",
+      "stored_bytes": 830,
+      "uncompressed_bytes": 830
+    },
+    "fixed-build/independent/parser-author-check.log.gz": {
+      "sha256": "9bc92f6e87d5c6828d13bd91830a6d0b76e0bb76a95a03fdcde2f244d3a0a609",
+      "uncompressed_sha256": "c5da5f44378dac6d38c14126b11589f112a0cd74f752d251fa8ba627f72f7552",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-ring-fixed-review-20261017/parser-author-check.log",
+      "stored_bytes": 67,
+      "uncompressed_bytes": 55
+    },
+    "fixed-build/independent/relink-results.json": {
+      "sha256": "f5017caf7a8460ee7c97e4867d2cd4b01b6e3361c65753bb02e75dd952972ff3",
+      "uncompressed_sha256": "f5017caf7a8460ee7c97e4867d2cd4b01b6e3361c65753bb02e75dd952972ff3",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-review-20261017/relink-results.json",
+      "stored_bytes": 929,
+      "uncompressed_bytes": 929
+    },
+    "fixed-build/independent/review.txt": {
+      "sha256": "e3612729fe545a6787f7c93457a33ef7d99543afa60a813cc6ff468da58c071f",
+      "uncompressed_sha256": "e3612729fe545a6787f7c93457a33ef7d99543afa60a813cc6ff468da58c071f",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-review-20261017/review.txt",
+      "stored_bytes": 6445,
+      "uncompressed_bytes": 6445
+    },
+    "fixed-build/manifest.json": {
+      "sha256": "253bb431f7ba9eaa241ce352f539044b8706277b48862a0d695d34a96c1f333b",
+      "uncompressed_sha256": "253bb431f7ba9eaa241ce352f539044b8706277b48862a0d695d34a96c1f333b",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/manifest.json",
+      "stored_bytes": 5570,
+      "uncompressed_bytes": 5570
+    },
+    "fixed-build/validation.json": {
+      "sha256": "9f4d0090fc43844c99e99aa676dad190d865430b29c21418aa8f21fcb90772fe",
+      "uncompressed_sha256": "9f4d0090fc43844c99e99aa676dad190d865430b29c21418aa8f21fcb90772fe",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-ring-fixed-objects-20261017/validation.json",
+      "stored_bytes": 3053,
+      "uncompressed_bytes": 3053
+    },
+    "raw/continue-m1-ring-reset-0-r1.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-0-r1.ids",
+      "stored_bytes": 324,
+      "uncompressed_bytes": 324
+    },
+    "raw/continue-m1-ring-reset-0-r1.json": {
+      "sha256": "5b950bb8e119c80d028888bd767997d6bdd7fa556249a7a8242a4c3a04cd6e7c",
+      "uncompressed_sha256": "5b950bb8e119c80d028888bd767997d6bdd7fa556249a7a8242a4c3a04cd6e7c",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-0-r1.json",
+      "stored_bytes": 6382,
+      "uncompressed_bytes": 6382
+    },
+    "raw/continue-m1-ring-reset-0-r1.log.gz": {
+      "sha256": "b7f6b4eb1e1f3b2483ce3091e0e79043518e2fdadd659f79e0669a688b0e421b",
+      "uncompressed_sha256": "d5d2d08055618e5a9789d6cb078c6f146aaf1fa74deeb9a67e004ee83ac1440f",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-0-r1.log",
+      "stored_bytes": 2985,
+      "uncompressed_bytes": 11310
+    },
+    "raw/continue-m1-ring-reset-0-r1.memory.json.gz": {
+      "sha256": "25393d7da3ffb7ca710ae698d4e814394e4adf48ac9c6515d1d2fe62340558ac",
+      "uncompressed_sha256": "511b4a298e74a3f539dff2b991c5c13e602d1506113361f01ec2c62cd16d08a4",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-0-r1.memory.json",
+      "stored_bytes": 11564,
+      "uncompressed_bytes": 252003
+    },
+    "raw/continue-m1-ring-reset-0-r2.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-0-r2.ids",
+      "stored_bytes": 324,
+      "uncompressed_bytes": 324
+    },
+    "raw/continue-m1-ring-reset-0-r2.json": {
+      "sha256": "6ad97ccc3c6b1e7b70f27a57719cb48a98b3080c93e7472e93b904425b636e45",
+      "uncompressed_sha256": "6ad97ccc3c6b1e7b70f27a57719cb48a98b3080c93e7472e93b904425b636e45",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-0-r2.json",
+      "stored_bytes": 6379,
+      "uncompressed_bytes": 6379
+    },
+    "raw/continue-m1-ring-reset-0-r2.log.gz": {
+      "sha256": "1e181b57b09857861ad480d8c16357c4a1f6a86cb9f9595326f5ccb43df55644",
+      "uncompressed_sha256": "d858a87790597432889c05695c5583ba090009f5624b9aaf8b3b241e97d04802",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-0-r2.log",
+      "stored_bytes": 2986,
+      "uncompressed_bytes": 11306
+    },
+    "raw/continue-m1-ring-reset-0-r2.memory.json.gz": {
+      "sha256": "33d910598916492fe227872c06ceafdd88505698b98237b4c669ec9f8b7dbe24",
+      "uncompressed_sha256": "676a3d6a15f7b859c10f1993d000a2097cc2b18e8966900a6566c181e54024f9",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-0-r2.memory.json",
+      "stored_bytes": 11509,
+      "uncompressed_bytes": 251215
+    },
+    "raw/continue-m1-ring-reset-0-r3.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-0-r3.ids",
+      "stored_bytes": 324,
+      "uncompressed_bytes": 324
+    },
+    "raw/continue-m1-ring-reset-0-r3.json": {
+      "sha256": "43c01694f23b07194d5a4da20568b3627cfe17853adebedfd26579de779ecf8d",
+      "uncompressed_sha256": "43c01694f23b07194d5a4da20568b3627cfe17853adebedfd26579de779ecf8d",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-0-r3.json",
+      "stored_bytes": 6382,
+      "uncompressed_bytes": 6382
+    },
+    "raw/continue-m1-ring-reset-0-r3.log.gz": {
+      "sha256": "b6ae0b173851bd69afa09aadd00375d2117088ab11c6b1c3c3ac3a111cd0b61e",
+      "uncompressed_sha256": "6dc22c2ec9db86d03fdd4e77ecd13d495995e42062049f15827252c5d2899226",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-0-r3.log",
+      "stored_bytes": 2983,
+      "uncompressed_bytes": 11309
+    },
+    "raw/continue-m1-ring-reset-0-r3.memory.json.gz": {
+      "sha256": "78f1b0609b05f624e2a066139df6fe7a1dc69b6c8f3a24786d5a64cfbf4efcd1",
+      "uncompressed_sha256": "593ce0c8834cbcba6f1844abcd8c2665bf4f066f22343f0165f1fc3524e7ba28",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-0-r3.memory.json",
+      "stored_bytes": 11683,
+      "uncompressed_bytes": 256239
+    },
+    "raw/continue-m1-ring-reset-1-r1.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-1-r1.ids",
+      "stored_bytes": 324,
+      "uncompressed_bytes": 324
+    },
+    "raw/continue-m1-ring-reset-1-r1.json": {
+      "sha256": "beb5179a8a69647af6bb7051270e83e1c150d7da5d7f07430d76ff3562530b88",
+      "uncompressed_sha256": "beb5179a8a69647af6bb7051270e83e1c150d7da5d7f07430d76ff3562530b88",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-1-r1.json",
+      "stored_bytes": 6334,
+      "uncompressed_bytes": 6334
+    },
+    "raw/continue-m1-ring-reset-1-r1.log.gz": {
+      "sha256": "fd586150b4e01ef55ae84eb60e9ffad7beb3c984a294b8cae627411f93ccecf3",
+      "uncompressed_sha256": "b336d2c9644e20ad197b9610675f9c6a95fbfb4485e6475ca133b35ab90405ca",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-1-r1.log",
+      "stored_bytes": 2987,
+      "uncompressed_bytes": 11310
+    },
+    "raw/continue-m1-ring-reset-1-r1.memory.json.gz": {
+      "sha256": "c41b6368b531ce00117e77fc99558f40eea5d9f3ee1fa2d66378ccab2d04bd13",
+      "uncompressed_sha256": "4d20ad566927abacb287c546ec17bb7e50e5841c05679cfdadd4be9a6b3b2716",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-1-r1.memory.json",
+      "stored_bytes": 11385,
+      "uncompressed_bytes": 248771
+    },
+    "raw/continue-m1-ring-reset-1-r2.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-1-r2.ids",
+      "stored_bytes": 324,
+      "uncompressed_bytes": 324
+    },
+    "raw/continue-m1-ring-reset-1-r2.json": {
+      "sha256": "30bf5c2f3a163de72277b12857a5edb7938f0f9516c16d1d82a979e649a5e42a",
+      "uncompressed_sha256": "30bf5c2f3a163de72277b12857a5edb7938f0f9516c16d1d82a979e649a5e42a",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-1-r2.json",
+      "stored_bytes": 6333,
+      "uncompressed_bytes": 6333
+    },
+    "raw/continue-m1-ring-reset-1-r2.log.gz": {
+      "sha256": "d8bef3116ffc29b79c90e32c3bc80ee00ec5598f7f58f0ad0220aac4df6636fb",
+      "uncompressed_sha256": "1084de3dbf2fc21e2ecaeec4e7b19ba688b2429cf01168080dd35b8d626186bc",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-1-r2.log",
+      "stored_bytes": 2992,
+      "uncompressed_bytes": 11310
+    },
+    "raw/continue-m1-ring-reset-1-r2.memory.json.gz": {
+      "sha256": "dd6e734ce5c12d3a38e89788249e26b718c1249feac3638935eccc9c24b8a038",
+      "uncompressed_sha256": "8a964956597ed97ea8b03e98538cc1c62ebe6b8d76cc31a8bd19a04ee54edecc",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-1-r2.memory.json",
+      "stored_bytes": 11444,
+      "uncompressed_bytes": 251181
+    },
+    "raw/continue-m1-ring-reset-1-r3.ids": {
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-1-r3.ids",
+      "stored_bytes": 324,
+      "uncompressed_bytes": 324
+    },
+    "raw/continue-m1-ring-reset-1-r3.json": {
+      "sha256": "0086ca4d6d5bcd6c6bbd007937e97a84d6404d65fcecaa85256000e519d04262",
+      "uncompressed_sha256": "0086ca4d6d5bcd6c6bbd007937e97a84d6404d65fcecaa85256000e519d04262",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-1-r3.json",
+      "stored_bytes": 6334,
+      "uncompressed_bytes": 6334
+    },
+    "raw/continue-m1-ring-reset-1-r3.log.gz": {
+      "sha256": "b5bb6ff9a32455f121aa3185f70f9a5f433e7181fc2b27109109466cd53b77d9",
+      "uncompressed_sha256": "4c5abb0675eb408022e6adc98fbbf33b6ca5e1e81514f65f9fc2878def04cde2",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-1-r3.log",
+      "stored_bytes": 2997,
+      "uncompressed_bytes": 11311
+    },
+    "raw/continue-m1-ring-reset-1-r3.memory.json.gz": {
+      "sha256": "c9e4444e18abab1f31e7c0ce05f7165406fa6af4fd88dc7c06711b57382e770f",
+      "uncompressed_sha256": "cee371870412b9e9f7322fc99df1e1dc313ccf74c1580016634e57b1cf6253f7",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset-1-r3.memory.json",
+      "stored_bytes": 11728,
+      "uncompressed_bytes": 257816
+    },
+    "raw/continue-m1-ring-reset2048-0-r1.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset2048-0-r1.ids",
+      "stored_bytes": 326,
+      "uncompressed_bytes": 326
+    },
+    "raw/continue-m1-ring-reset2048-0-r1.json": {
+      "sha256": "2b46bc29d17b128c586532c399775a7e8ef242082ca6b5a23da9b02134a5fec8",
+      "uncompressed_sha256": "2b46bc29d17b128c586532c399775a7e8ef242082ca6b5a23da9b02134a5fec8",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset2048-0-r1.json",
+      "stored_bytes": 6405,
+      "uncompressed_bytes": 6405
+    },
+    "raw/continue-m1-ring-reset2048-0-r1.log.gz": {
+      "sha256": "764d9b48474b3ae1e0a27d668ce2471e15b8f9a3f401b84ed72fcd222ea5b4cf",
+      "uncompressed_sha256": "6559bdb9191504676b5604eef1f23ee6016d335c64cb7b0959e73328291be091",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset2048-0-r1.log",
+      "stored_bytes": 3074,
+      "uncompressed_bytes": 17014
+    },
+    "raw/continue-m1-ring-reset2048-0-r1.memory.json.gz": {
+      "sha256": "9b805551bab4ab1b3888aef25df17daedc110ab3a606e705edda6a5df465e7a4",
+      "uncompressed_sha256": "2bbeff1fc883a3e2a98d850cc77c6779c3adbe23bebd8bcf9e7ada556f2376cf",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset2048-0-r1.memory.json",
+      "stored_bytes": 14365,
+      "uncompressed_bytes": 319405
+    },
+    "raw/continue-m1-ring-reset2048-0-r2.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset2048-0-r2.ids",
+      "stored_bytes": 326,
+      "uncompressed_bytes": 326
+    },
+    "raw/continue-m1-ring-reset2048-0-r2.json": {
+      "sha256": "269b2a9b6375a78f57c74eefd9e17d1f7dd837e7c7870587a96fcb0311881cf9",
+      "uncompressed_sha256": "269b2a9b6375a78f57c74eefd9e17d1f7dd837e7c7870587a96fcb0311881cf9",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset2048-0-r2.json",
+      "stored_bytes": 6407,
+      "uncompressed_bytes": 6407
+    },
+    "raw/continue-m1-ring-reset2048-0-r2.log.gz": {
+      "sha256": "0bde1c0c08001e2ec123f7b426937d838268e1d41e199ff8de3c87cebb7e3970",
+      "uncompressed_sha256": "947ebc5ddfb66208edd2bdf0733d9c680b6dcfdc791104455728c269bfafbb94",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset2048-0-r2.log",
+      "stored_bytes": 3066,
+      "uncompressed_bytes": 17013
+    },
+    "raw/continue-m1-ring-reset2048-0-r2.memory.json.gz": {
+      "sha256": "001685b2bbe62146876548f7ab7fb308921e50cb778a0a79053353cdebccbd7b",
+      "uncompressed_sha256": "0c320468578a7d585ec1b2d0e90f9d80e6f35eb1d79d238bc3536393fe069469",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset2048-0-r2.memory.json",
+      "stored_bytes": 14086,
+      "uncompressed_bytes": 307741
+    },
+    "raw/continue-m1-ring-reset2048-0-r3.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset2048-0-r3.ids",
+      "stored_bytes": 326,
+      "uncompressed_bytes": 326
+    },
+    "raw/continue-m1-ring-reset2048-0-r3.json": {
+      "sha256": "fa512796f4b098e69780bb16ad8be44d1c0c55ae5e2d6c8ecc4f0b2db30f96df",
+      "uncompressed_sha256": "fa512796f4b098e69780bb16ad8be44d1c0c55ae5e2d6c8ecc4f0b2db30f96df",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset2048-0-r3.json",
+      "stored_bytes": 6406,
+      "uncompressed_bytes": 6406
+    },
+    "raw/continue-m1-ring-reset2048-0-r3.log.gz": {
+      "sha256": "d54fa0129140a2b07e70913c36e3f4c09e73187728e3c664cb1d47574053a535",
+      "uncompressed_sha256": "b830d7b69bea774a4f8229003a43e560e4202be1add2a09ba4e601ace255a8c4",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset2048-0-r3.log",
+      "stored_bytes": 3072,
+      "uncompressed_bytes": 17014
+    },
+    "raw/continue-m1-ring-reset2048-0-r3.memory.json.gz": {
+      "sha256": "8acf01e6877168ea15d7e74f767a057eb6357925bb48baa41583f355f60cf964",
+      "uncompressed_sha256": "cb90b39ed03c8947d3687952cdd23361c309a0ac9d90e8e8fba644e891176b16",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset2048-0-r3.memory.json",
+      "stored_bytes": 14376,
+      "uncompressed_bytes": 320950
+    },
+    "raw/continue-m1-ring-reset2048-1-r1.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset2048-1-r1.ids",
+      "stored_bytes": 326,
+      "uncompressed_bytes": 326
+    },
+    "raw/continue-m1-ring-reset2048-1-r1.json": {
+      "sha256": "d45df5632cbfacac68bd8ccc09c49ec996ac64edc6992acede010760f2edb70a",
+      "uncompressed_sha256": "d45df5632cbfacac68bd8ccc09c49ec996ac64edc6992acede010760f2edb70a",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset2048-1-r1.json",
+      "stored_bytes": 6357,
+      "uncompressed_bytes": 6357
+    },
+    "raw/continue-m1-ring-reset2048-1-r1.log.gz": {
+      "sha256": "a54a384b5ef3f94a9fd05c957c1250ae260f70731238e9226396a18edad7d2c4",
+      "uncompressed_sha256": "d0b895f2cc3227fbeeb7ce18eee62da0d652c17d2fc7eb33124f992edad564e6",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset2048-1-r1.log",
+      "stored_bytes": 3074,
+      "uncompressed_bytes": 17013
+    },
+    "raw/continue-m1-ring-reset2048-1-r1.memory.json.gz": {
+      "sha256": "38396438f4c064d4eb6ea6d6f7bd7c805ed7d8b908914b17e084e6eae51ae6e7",
+      "uncompressed_sha256": "1c000f0666273b7205389df12ebf06dcbdaff94090ee6a28603ef4eee8f16448",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset2048-1-r1.memory.json",
+      "stored_bytes": 14334,
+      "uncompressed_bytes": 319401
+    },
+    "raw/continue-m1-ring-reset2048-1-r2.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset2048-1-r2.ids",
+      "stored_bytes": 326,
+      "uncompressed_bytes": 326
+    },
+    "raw/continue-m1-ring-reset2048-1-r2.json": {
+      "sha256": "554d5a77499beb88e9ee0624a7cf4a584f3aaff94ab5e3de5bbdac8dc4784c83",
+      "uncompressed_sha256": "554d5a77499beb88e9ee0624a7cf4a584f3aaff94ab5e3de5bbdac8dc4784c83",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset2048-1-r2.json",
+      "stored_bytes": 6357,
+      "uncompressed_bytes": 6357
+    },
+    "raw/continue-m1-ring-reset2048-1-r2.log.gz": {
+      "sha256": "6a4c8607f743010951f5c34496a186b440509ab643c7f3adff68bdf25e842fb8",
+      "uncompressed_sha256": "4096cc840401d47c2878bd279f750ed63b9ed848b4f30f896622388e61ea0e99",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset2048-1-r2.log",
+      "stored_bytes": 3067,
+      "uncompressed_bytes": 17014
+    },
+    "raw/continue-m1-ring-reset2048-1-r2.memory.json.gz": {
+      "sha256": "a0e264d65a24c21dff42b1d6970dcf83db72fc8de57cfb277d1315a4ff597e5f",
+      "uncompressed_sha256": "9cdc49e031e6065bcca32747f5ef59414f7536b3e3da08f4f63a668d58725a06",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset2048-1-r2.memory.json",
+      "stored_bytes": 14490,
+      "uncompressed_bytes": 316929
+    },
+    "raw/continue-m1-ring-reset2048-1-r3.ids": {
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset2048-1-r3.ids",
+      "stored_bytes": 326,
+      "uncompressed_bytes": 326
+    },
+    "raw/continue-m1-ring-reset2048-1-r3.json": {
+      "sha256": "20d667b05d29c7869d69373039465a3b6d5017e8f8464e2b46a419ffaa1f64bb",
+      "uncompressed_sha256": "20d667b05d29c7869d69373039465a3b6d5017e8f8464e2b46a419ffaa1f64bb",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset2048-1-r3.json",
+      "stored_bytes": 6358,
+      "uncompressed_bytes": 6358
+    },
+    "raw/continue-m1-ring-reset2048-1-r3.log.gz": {
+      "sha256": "c62335835635740b64a1a420635fd11c9569d418d10fd63f995910c2d639336b",
+      "uncompressed_sha256": "8105dcdf88f0a552ec45a26b4d920cadfabc6801186043d8a9f946c699a86de5",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset2048-1-r3.log",
+      "stored_bytes": 3062,
+      "uncompressed_bytes": 17014
+    },
+    "raw/continue-m1-ring-reset2048-1-r3.memory.json.gz": {
+      "sha256": "cd2354fb5bcc96b0ad4e0609f455dd03bce323d773ea94d5dbdb7b70d87925b8",
+      "uncompressed_sha256": "f2952015ec7ef5274165c3d43adfc28d73974fb663fe62908820355c91e1114e",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-ring-reset2048-1-r3.memory.json",
+      "stored_bytes": 14010,
+      "uncompressed_bytes": 310200
+    },
+    "reproduction/bench.py": {
+      "sha256": "1adff089388ee972a411c1467f653d24b76ef9c28079602e03595bc76da0df25",
+      "uncompressed_sha256": "1adff089388ee972a411c1467f653d24b76ef9c28079602e03595bc76da0df25",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/bench.py",
+      "stored_bytes": 9105,
+      "uncompressed_bytes": 9105
+    },
+    "reproduction/curate_ring_reset.py": {
+      "sha256": "7c14a7079a249cba565b1556ffbafd05a16943f7e79bbbbe421dcaeb2b303734",
+      "uncompressed_sha256": "7c14a7079a249cba565b1556ffbafd05a16943f7e79bbbbe421dcaeb2b303734",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-archive-20261017/curate_ring_reset.py",
+      "stored_bytes": 29457,
+      "uncompressed_bytes": 29457
+    },
+    "reproduction/device.json": {
+      "sha256": "81413d28b2a4ae5faafd855a1aefa6b0844ba45a44c9a41b3f36a43dd7d87f11",
+      "uncompressed_sha256": "81413d28b2a4ae5faafd855a1aefa6b0844ba45a44c9a41b3f36a43dd7d87f11",
+      "gzip": false,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/device.json",
+      "stored_bytes": 230,
+      "uncompressed_bytes": 230
+    },
+    "reproduction/memory_monitor.cpp.gz": {
+      "sha256": "6cd8dcdc414862cb9ff0cdff898e3a9b2e25b30938d58137b676a311d2fd679d",
+      "uncompressed_sha256": "fb92e1591fe70904b392adbfeb14a44853b03416c9ce0fe0a433232ee84660bc",
+      "gzip": true,
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/validation/memory_monitor.cpp",
+      "stored_bytes": 6144,
+      "uncompressed_bytes": 21151
+    },
+    "reproduction/original-run_matrix.py": {
+      "sha256": "73449d8cc1f9b6b2d03756fa613e7fd986f9b80735b28aecf84de9330274e050",
+      "uncompressed_sha256": "73449d8cc1f9b6b2d03756fa613e7fd986f9b80735b28aecf84de9330274e050",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/run_matrix.py",
+      "stored_bytes": 1065,
+      "uncompressed_bytes": 1065
+    },
+    "reproduction/original-summarize_pair.py": {
+      "sha256": "e0404228e565eb14cfb76a9e3425d5ed633a33e18e0878eb52746f7a6237550b",
+      "uncompressed_sha256": "e0404228e565eb14cfb76a9e3425d5ed633a33e18e0878eb52746f7a6237550b",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/summarize_pair.py",
+      "stored_bytes": 3363,
+      "uncompressed_bytes": 3363
+    },
+    "reproduction/repo-dependencies.json": {
+      "sha256": "43f2a99278ea118639419032563c497b3c9caa85e1bc285eb91b2a9a4e48e140",
+      "uncompressed_sha256": "43f2a99278ea118639419032563c497b3c9caa85e1bc285eb91b2a9a4e48e140",
+      "gzip": false,
+      "source": "generated",
+      "stored_bytes": 46873,
+      "uncompressed_bytes": 46873
+    },
+    "reproduction/reproduce_host.py": {
+      "sha256": "b4410a102362c9e3fb20e740d56bc6bae5651e717622a2e519e7282baa531e66",
+      "uncompressed_sha256": "b4410a102362c9e3fb20e740d56bc6bae5651e717622a2e519e7282baa531e66",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-archive-20261017/reproduce_host.py",
+      "stored_bytes": 3088,
+      "uncompressed_bytes": 3088
+    },
+    "reproduction/verify_archive.py": {
+      "sha256": "e97d941ca4ed27009bf87aa367f3b10186713a1e82b69a597d1d64a4b6cdcb05",
+      "uncompressed_sha256": "e97d941ca4ed27009bf87aa367f3b10186713a1e82b69a597d1d64a4b6cdcb05",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-archive-20261017/verify_archive.py",
+      "stored_bytes": 1528,
+      "uncompressed_bytes": 1528
+    },
+    "summary.json": {
+      "sha256": "ebacd146b8f0e0602f8e0ae51ac55ffa66607e47eb8f1a7ca76b50966c10daf0",
+      "uncompressed_sha256": "ebacd146b8f0e0602f8e0ae51ac55ffa66607e47eb8f1a7ca76b50966c10daf0",
+      "gzip": false,
+      "source": "generated",
+      "stored_bytes": 6761,
+      "uncompressed_bytes": 6761
+    },
+    "validation/archive-checks.json": {
+      "sha256": "a92c5e3d6c337c3aa217fd3955a9121b717ad25ac57a21455413b4423df9ba82",
+      "uncompressed_sha256": "a92c5e3d6c337c3aa217fd3955a9121b717ad25ac57a21455413b4423df9ba82",
+      "gzip": false,
+      "source": "generated",
+      "stored_bytes": 8083,
+      "uncompressed_bytes": 8083
+    },
+    "validation/author/README.txt": {
+      "sha256": "935595a1bbc91122bdc28199f15924022b904ccd02343b5eddec5d9b3e4ff1d9",
+      "uncompressed_sha256": "935595a1bbc91122bdc28199f15924022b904ccd02343b5eddec5d9b3e4ff1d9",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/README.txt",
+      "stored_bytes": 8123,
+      "uncompressed_bytes": 8123
+    },
+    "validation/author/baseline.json": {
+      "sha256": "633e38d400ea1ecc4c85346c2cbadc4dbcfc0262d02669e0dfca85a16c52a3e8",
+      "uncompressed_sha256": "633e38d400ea1ecc4c85346c2cbadc4dbcfc0262d02669e0dfca85a16c52a3e8",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/baseline.json",
+      "stored_bytes": 709,
+      "uncompressed_bytes": 709
+    },
+    "validation/author/baseline/nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.c.gz": {
+      "sha256": "cd024da76de25d86f50d42656cfea011f31533d7779a0ba59126e74c178893e7",
+      "uncompressed_sha256": "7751082a9a8a2f0f8655ca6031a685f58dd018a27212995221ecb21f0bec5fea",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/baseline/nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.c",
+      "stored_bytes": 1988,
+      "uncompressed_bytes": 5275
+    },
+    "validation/author/baseline/nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.h.gz": {
+      "sha256": "03fffef828206ac77fdb79335a896163a775e07d8784e1dbdf4340e267563a73",
+      "uncompressed_sha256": "201270bd0f936e8f168f909eaa3e9631c36da3aabdd9d6029bd73f8fe49a4b3c",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/baseline/nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.h",
+      "stored_bytes": 2631,
+      "uncompressed_bytes": 6533
+    },
+    "validation/author/baseline/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c.gz": {
+      "sha256": "455f4c3075b65dd73e9511fdf312a1c3f2dbbc94dd9b4dcadfef32c487b8b788",
+      "uncompressed_sha256": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/baseline/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c",
+      "stored_bytes": 49521,
+      "uncompressed_bytes": 177965
+    },
+    "validation/author/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.c.gz": {
+      "sha256": "c6392d8495226d0798b0e71208e5c0ae544f19b42b0affbf522c46d29bd3da96",
+      "uncompressed_sha256": "50c839d6e7585bc63741a104771409b69866e540d88c7fefa75f4dee1257c95e",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.c",
+      "stored_bytes": 2243,
+      "uncompressed_bytes": 5957
+    },
+    "validation/author/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.h.gz": {
+      "sha256": "26ef47263c141e8a86ba1018409d0592b2dda653b886fbb42c28f14abcea2528",
+      "uncompressed_sha256": "291655c8e9169df6f3ca759df022a569e25d86f0fd934a772a9411b612e39751",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.h",
+      "stored_bytes": 2788,
+      "uncompressed_bytes": 6949
+    },
+    "validation/author/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c.gz": {
+      "sha256": "be1d0fde0ed60d0b1e005727e385550db04c5c7687c71b2375bfef3486e34860",
+      "uncompressed_sha256": "48ec68ebfd9ed340fd485ab7401bfce6d2c4c18ee8833fb793eb2e1e72ccfe3f",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c",
+      "stored_bytes": 49532,
+      "uncompressed_bytes": 178019
+    },
+    "validation/author/candidate/test/htp/host/hvx_scalar_stubs.c.gz": {
+      "sha256": "8623864d0ab76c38135578ebd56c79392ea1569ca40b03500e80bf755e81b619",
+      "uncompressed_sha256": "ac6d1203dbe6cdca16f96570eb7f91b04b37d9f1911bf07e118f2023ee1f9792",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/candidate/test/htp/host/hvx_scalar_stubs.c",
+      "stored_bytes": 6178,
+      "uncompressed_bytes": 20948
+    },
+    "validation/author/candidate/test/htp/host/moe_layer_host_check.c.gz": {
+      "sha256": "66b91ec9f52c71c8ed9d9f7ac0df1ede72b60a52f85503d23b2906c5774076c5",
+      "uncompressed_sha256": "03a68a75e0230dc025fb60ce7c753e5084deaa65a716d6727e8725e77e435316",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/candidate/test/htp/host/moe_layer_host_check.c",
+      "stored_bytes": 28843,
+      "uncompressed_bytes": 103264
+    },
+    "validation/author/checks/existing-suite/conv_block_host_check-build.log.gz": {
+      "sha256": "df118874297800d6966dc922c43df72c618005a25d48bf279906e732405985f7",
+      "uncompressed_sha256": "d346c387117270f19bad0e8a89e4569275eefd60773539936b079c6447f26e29",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/existing-suite/conv_block_host_check-build.log",
+      "stored_bytes": 425,
+      "uncompressed_bytes": 915
+    },
+    "validation/author/checks/existing-suite/conv_block_host_check-command.json": {
+      "sha256": "5c0f30483ca54e3acb6f003cc519451498bb9ab97f1e348368c9d78be81f8041",
+      "uncompressed_sha256": "5c0f30483ca54e3acb6f003cc519451498bb9ab97f1e348368c9d78be81f8041",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/existing-suite/conv_block_host_check-command.json",
+      "stored_bytes": 1955,
+      "uncompressed_bytes": 1955
+    },
+    "validation/author/checks/existing-suite/conv_block_host_check-run.log.gz": {
+      "sha256": "e0c7b193a5e2e5819e0fd9ddf50fecbef6077b2a720001e22c7087a0afb1b6aa",
+      "uncompressed_sha256": "ec0384d820b1ae2342d053906be6a985b1d30359dcbbb3afa46906eee011379b",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/existing-suite/conv_block_host_check-run.log",
+      "stored_bytes": 368,
+      "uncompressed_bytes": 645
+    },
+    "validation/author/checks/existing-suite/moe_layer_host_check-build.log.gz": {
+      "sha256": "502ef0918684a9dfc470ffe567001a2af08413b44c48c56c09bdfdc6e3e7de50",
+      "uncompressed_sha256": "54396c1980bb0afb4dfad3994d9a4e7e3990404a6f7cca82f49b2c2f1abbcd1c",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/existing-suite/moe_layer_host_check-build.log",
+      "stored_bytes": 493,
+      "uncompressed_bytes": 3011
+    },
+    "validation/author/checks/existing-suite/moe_layer_host_check-command.json": {
+      "sha256": "844a95996bf11028cbd9887d8c7ba552af8e942091cdd53804f779ae439cfc32",
+      "uncompressed_sha256": "844a95996bf11028cbd9887d8c7ba552af8e942091cdd53804f779ae439cfc32",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/existing-suite/moe_layer_host_check-command.json",
+      "stored_bytes": 1730,
+      "uncompressed_bytes": 1730
+    },
+    "validation/author/checks/existing-suite/moe_layer_host_check-run.log.gz": {
+      "sha256": "1793a7a2e65e306c713ac075932b05e36529aaa715087c82ae5dc1d700725a9a",
+      "uncompressed_sha256": "71b1679d24ce154c7090d6c462c9dd20e52a9bcd8459f468b6046bae4e2ce969",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/existing-suite/moe_layer_host_check-run.log",
+      "stored_bytes": 5522,
+      "uncompressed_bytes": 124839
+    },
+    "validation/author/checks/existing-suite/tl2_prefill_host_check-build.log.gz": {
+      "sha256": "1daaf832ef857c37b6c6363c476a33bd5e83c2c650c862a321c7fa923a078cb8",
+      "uncompressed_sha256": "f61eb1d766956c6d447de18af9ce1eb87727eab5834b27e7feedbf4c9cb224c4",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/existing-suite/tl2_prefill_host_check-build.log",
+      "stored_bytes": 514,
+      "uncompressed_bytes": 3145
+    },
+    "validation/author/checks/existing-suite/tl2_prefill_host_check-command.json": {
+      "sha256": "57dd6c70ced670c8e023f79e08591f357299e8b5bd951c9db8fc7c99d720b0aa",
+      "uncompressed_sha256": "57dd6c70ced670c8e023f79e08591f357299e8b5bd951c9db8fc7c99d720b0aa",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/existing-suite/tl2_prefill_host_check-command.json",
+      "stored_bytes": 1734,
+      "uncompressed_bytes": 1734
+    },
+    "validation/author/checks/existing-suite/tl2_prefill_host_check-run.log.gz": {
+      "sha256": "ec86360efc3098f12a12595361ec6dd5301bf4cd78fdcc6ab9e8768d7dcb4dd8",
+      "uncompressed_sha256": "9ccf83f7580f1da3fa8c827449a8d85c07b6f54a5808200550cc56ccea22fe16",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/existing-suite/tl2_prefill_host_check-run.log",
+      "stored_bytes": 427,
+      "uncompressed_bytes": 7318
+    },
+    "validation/author/checks/final-integrated/build-completion_guard.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/build-completion_guard.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/build-done_clear.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/build-done_clear.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/build-reserved_zero.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/build-reserved_zero.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/build-ring.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/build-ring.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/build-size_guard.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/build-size_guard.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/build-start_state.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/build-start_state.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/build-tail_guard.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/build-tail_guard.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/build-type_guard.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/build-type_guard.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/build-whole_clear.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/build-whole_clear.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller-mutant-unguarded.log.gz": {
+      "sha256": "a5d5c8d1916dbf0b59dabdc30695d31ff9196a33cdbb3713a3647700056f47a4",
+      "uncompressed_sha256": "3984236599e544343c9077256d55207067039649989ea283310dd278674f6f22",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller-mutant-unguarded.log",
+      "stored_bytes": 118,
+      "uncompressed_bytes": 119
+    },
+    "validation/author/checks/final-integrated/caller-mutant-unguarded/build-candidate.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller-mutant-unguarded/build-candidate.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller-mutant-unguarded/build-hexkl_dma_trace.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller-mutant-unguarded/build-hexkl_dma_trace.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller-mutant-unguarded/build-hvx_expand_i2i4.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller-mutant-unguarded/build-hvx_expand_i2i4.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller-mutant-unguarded/build-hvx_gemv_u8tl2.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller-mutant-unguarded/build-hvx_gemv_u8tl2.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller-mutant-unguarded/build-hvx_quant_u8.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller-mutant-unguarded/build-hvx_quant_u8.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller-mutant-unguarded/build-hvx_scalar.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller-mutant-unguarded/build-hvx_scalar.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller-mutant-unguarded/build-reference.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller-mutant-unguarded/build-reference.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller-mutant-unguarded/build-ring_m1_caller.log.gz": {
+      "sha256": "2f941ef9919d8539d421ec0438270e75ccd1a318112342fc5583a3d670dc5c13",
+      "uncompressed_sha256": "fc1bf96a972d3f987b37ab418b79e584865b2fb3ebc83fa69b4528cabfcf8f00",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller-mutant-unguarded/build-ring_m1_caller.log",
+      "stored_bytes": 524,
+      "uncompressed_bytes": 3154
+    },
+    "validation/author/checks/final-integrated/caller-mutant-unguarded/check.log.gz": {
+      "sha256": "94637aa732bba6759d76bf0625fc3450cf23b7aa7d86e2c7f98cf73f814dac60",
+      "uncompressed_sha256": "dc6ef7866a3f480a28813564d4105a05966715b49a1f159b9fc2199396bed088",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller-mutant-unguarded/check.log",
+      "stored_bytes": 300,
+      "uncompressed_bytes": 1894
+    },
+    "validation/author/checks/final-integrated/caller-mutant-unguarded/commands.json": {
+      "sha256": "510617452b9603d2443e8489bdab30ffa9ff3cb8695cb3c677e7ba8c992a048d",
+      "uncompressed_sha256": "510617452b9603d2443e8489bdab30ffa9ff3cb8695cb3c677e7ba8c992a048d",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller-mutant-unguarded/commands.json",
+      "stored_bytes": 14387,
+      "uncompressed_bytes": 14387
+    },
+    "validation/author/checks/final-integrated/caller-mutant-unguarded/link.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller-mutant-unguarded/link.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller-mutant-unused_fast_path.log.gz": {
+      "sha256": "5e96af8b243366bd321f99ed9591c4b9766f5978e3a39539dd2351c52e45509c",
+      "uncompressed_sha256": "7dd29b67592121422b80f3626d8cdcd2019b5e0f21ef6f860ed95df37dc39152",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller-mutant-unused_fast_path.log",
+      "stored_bytes": 123,
+      "uncompressed_bytes": 126
+    },
+    "validation/author/checks/final-integrated/caller-mutant-unused_fast_path/build-candidate.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller-mutant-unused_fast_path/build-candidate.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller-mutant-unused_fast_path/build-hexkl_dma_trace.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller-mutant-unused_fast_path/build-hexkl_dma_trace.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller-mutant-unused_fast_path/build-hvx_expand_i2i4.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller-mutant-unused_fast_path/build-hvx_expand_i2i4.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller-mutant-unused_fast_path/build-hvx_gemv_u8tl2.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller-mutant-unused_fast_path/build-hvx_gemv_u8tl2.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller-mutant-unused_fast_path/build-hvx_quant_u8.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller-mutant-unused_fast_path/build-hvx_quant_u8.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller-mutant-unused_fast_path/build-hvx_scalar.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller-mutant-unused_fast_path/build-hvx_scalar.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller-mutant-unused_fast_path/build-reference.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller-mutant-unused_fast_path/build-reference.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller-mutant-unused_fast_path/build-ring_m1_caller.log.gz": {
+      "sha256": "2f941ef9919d8539d421ec0438270e75ccd1a318112342fc5583a3d670dc5c13",
+      "uncompressed_sha256": "fc1bf96a972d3f987b37ab418b79e584865b2fb3ebc83fa69b4528cabfcf8f00",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller-mutant-unused_fast_path/build-ring_m1_caller.log",
+      "stored_bytes": 524,
+      "uncompressed_bytes": 3154
+    },
+    "validation/author/checks/final-integrated/caller-mutant-unused_fast_path/check.log.gz": {
+      "sha256": "7f67c852c7545d2292b5d0aad77e07e7db440824fa2580f9f9c89c1af3adaa33",
+      "uncompressed_sha256": "9eeb29823b2ad15fae6b56053993dd17a3503087cd03b8d9cb5aa99fd0848092",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller-mutant-unused_fast_path/check.log",
+      "stored_bytes": 175,
+      "uncompressed_bytes": 198
+    },
+    "validation/author/checks/final-integrated/caller-mutant-unused_fast_path/commands.json": {
+      "sha256": "e123ad68b7af47f44aac6598da30d7e3e7c475d526b3ad47ccc052ee2a68e1ef",
+      "uncompressed_sha256": "e123ad68b7af47f44aac6598da30d7e3e7c475d526b3ad47ccc052ee2a68e1ef",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller-mutant-unused_fast_path/commands.json",
+      "stored_bytes": 14541,
+      "uncompressed_bytes": 14541
+    },
+    "validation/author/checks/final-integrated/caller-mutant-unused_fast_path/link.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller-mutant-unused_fast_path/link.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller.log.gz": {
+      "sha256": "d7904c5653247480831cb7873fb3d94195a52a17684c3fea1172c0bb875b1a65",
+      "uncompressed_sha256": "9d49c546bbf981db5b35eaa91109d16ec08a967e4e5e8ba5ee8f065197570786",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller.log",
+      "stored_bytes": 276,
+      "uncompressed_bytes": 3344
+    },
+    "validation/author/checks/final-integrated/caller/build-candidate.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller/build-candidate.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller/build-hexkl_dma_trace.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller/build-hexkl_dma_trace.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller/build-hvx_expand_i2i4.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller/build-hvx_expand_i2i4.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller/build-hvx_gemv_u8tl2.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller/build-hvx_gemv_u8tl2.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller/build-hvx_quant_u8.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller/build-hvx_quant_u8.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller/build-hvx_scalar.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller/build-hvx_scalar.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller/build-reference.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller/build-reference.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller/build-ring_m1_caller.log.gz": {
+      "sha256": "2f941ef9919d8539d421ec0438270e75ccd1a318112342fc5583a3d670dc5c13",
+      "uncompressed_sha256": "fc1bf96a972d3f987b37ab418b79e584865b2fb3ebc83fa69b4528cabfcf8f00",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller/build-ring_m1_caller.log",
+      "stored_bytes": 524,
+      "uncompressed_bytes": 3154
+    },
+    "validation/author/checks/final-integrated/caller/check.log.gz": {
+      "sha256": "d7904c5653247480831cb7873fb3d94195a52a17684c3fea1172c0bb875b1a65",
+      "uncompressed_sha256": "9d49c546bbf981db5b35eaa91109d16ec08a967e4e5e8ba5ee8f065197570786",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller/check.log",
+      "stored_bytes": 276,
+      "uncompressed_bytes": 3344
+    },
+    "validation/author/checks/final-integrated/caller/commands.json": {
+      "sha256": "2972caa98c75929141e6c1ee491ae62fc68265b124ac4ac2d13e32ae3c645d91",
+      "uncompressed_sha256": "2972caa98c75929141e6c1ee491ae62fc68265b124ac4ac2d13e32ae3c645d91",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller/commands.json",
+      "stored_bytes": 14013,
+      "uncompressed_bytes": 14013
+    },
+    "validation/author/checks/final-integrated/caller/link.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller/link.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/checks/final-integrated/caller/source-hashes.json": {
+      "sha256": "1f47056c8c86c6b29700355b626fb512ad134d83c2cd360ecdb23279841c8a10",
+      "uncompressed_sha256": "1f47056c8c86c6b29700355b626fb512ad134d83c2cd360ecdb23279841c8a10",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/caller/source-hashes.json",
+      "stored_bytes": 169,
+      "uncompressed_bytes": 169
+    },
+    "validation/author/checks/final-integrated/commands.json": {
+      "sha256": "88e4011e2a2a1bea6e1a168d49cf82ea2969f7d847bbb5ba02e465eb6d904d72",
+      "uncompressed_sha256": "88e4011e2a2a1bea6e1a168d49cf82ea2969f7d847bbb5ba02e465eb6d904d72",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/commands.json",
+      "stored_bytes": 8133,
+      "uncompressed_bytes": 8133
+    },
+    "validation/author/checks/final-integrated/mutant-completion_guard.log.gz": {
+      "sha256": "b59b609859fcad20d6ee1b5ea2bd9c735ba1d16e2f35f4afc622b504e7f9bed0",
+      "uncompressed_sha256": "3d69e8acd311bf6884ba1ed02ceef11df142774efe85282e79ec5c73d824bb8f",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/mutant-completion_guard.log",
+      "stored_bytes": 167,
+      "uncompressed_bytes": 188
+    },
+    "validation/author/checks/final-integrated/mutant-done_clear.log.gz": {
+      "sha256": "0b1ff88b4ea48a76f6b6e54631f383a61175dddf3236efbc5da6da2313bbb777",
+      "uncompressed_sha256": "58b894b335ac6ad6abba58cc977356087add768c8511c9cbd50b76a2338257ee",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/mutant-done_clear.log",
+      "stored_bytes": 160,
+      "uncompressed_bytes": 195
+    },
+    "validation/author/checks/final-integrated/mutant-reserved_zero.log.gz": {
+      "sha256": "67e68b1069347a8e9043a3e1220333a8fac6f280baceff2c50b6ac22d1bb9259",
+      "uncompressed_sha256": "edf522aefb0a18162d60aa750552da41190865e06b0d7de0668c427584b43ea1",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/mutant-reserved_zero.log",
+      "stored_bytes": 163,
+      "uncompressed_bytes": 198
+    },
+    "validation/author/checks/final-integrated/mutant-size_guard.log.gz": {
+      "sha256": "f9fd33ba22bdd199a10a09a7fb0c57f5b44782436aa1d8dec28a8b80ad54addc",
+      "uncompressed_sha256": "ebca87a7d345d952634b2db1d7c69c8d9ba3ae8c64239d63959abe222b03a263",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/mutant-size_guard.log",
+      "stored_bytes": 164,
+      "uncompressed_bytes": 182
+    },
+    "validation/author/checks/final-integrated/mutant-start_state.log.gz": {
+      "sha256": "9dfc9960d5d7603cd1a5840a5d74982b0d0a62fa167cdfada2b25917480325cd",
+      "uncompressed_sha256": "4633dbc89134a8abef5e8bb1f7355e507017358eadc6926014522bc0c039bb6e",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/mutant-start_state.log",
+      "stored_bytes": 171,
+      "uncompressed_bytes": 196
+    },
+    "validation/author/checks/final-integrated/mutant-tail_guard.log.gz": {
+      "sha256": "30fd4df2aa9085badac3ddbd4480b33e3bd4e00f48124a843e5c94c67d0a165d",
+      "uncompressed_sha256": "d35e6133bf3fb32c688afb12c353544351c1cf5a5c3fde46544cfc42261b0e7b",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/mutant-tail_guard.log",
+      "stored_bytes": 163,
+      "uncompressed_bytes": 182
+    },
+    "validation/author/checks/final-integrated/mutant-type_guard.log.gz": {
+      "sha256": "91e8ecd71dd6ce9a1cbd7d363c2fcfc967d2370edb01b23b8cd1d2b031099ccd",
+      "uncompressed_sha256": "59e305d9d994626a1952eb7bdea5f01241bb79f4278429ed9a1885bdf6407f29",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/mutant-type_guard.log",
+      "stored_bytes": 163,
+      "uncompressed_bytes": 182
+    },
+    "validation/author/checks/final-integrated/mutant-whole_clear.log.gz": {
+      "sha256": "77e2aed3751946c2216a972d7c5285e6849ef1299f07ff3c83c2e7ef50290cd2",
+      "uncompressed_sha256": "161cf7b7e43431029bb3a17a747d000f1bad033d9bb36bede82b3c4ba102b197",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/mutant-whole_clear.log",
+      "stored_bytes": 170,
+      "uncompressed_bytes": 190
+    },
+    "validation/author/checks/final-integrated/ring.log.gz": {
+      "sha256": "df5d749cf289579cc8746996e7e77f285a1e85d6c990c6e4b405b6acda02f7ac",
+      "uncompressed_sha256": "f9c500c9026f0ea699589c757a79a51fbd53eef6e270a74babf092903ca04121",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/ring.log",
+      "stored_bytes": 89,
+      "uncompressed_bytes": 73
+    },
+    "validation/author/checks/final-integrated/validation.json": {
+      "sha256": "5e26f9bc078ffc0ff7c4fcf0f3a4a4c49b96dbb271211244f8e78abf67ff7c42",
+      "uncompressed_sha256": "5e26f9bc078ffc0ff7c4fcf0f3a4a4c49b96dbb271211244f8e78abf67ff7c42",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/checks/final-integrated/validation.json",
+      "stored_bytes": 1542,
+      "uncompressed_bytes": 1542
+    },
+    "validation/author/codegen/baseline-hexkl_dma_ring-command.json": {
+      "sha256": "7fa198d728a584f7dce5121897ca7f45910d4634352271bfbc6c246a20b7e85f",
+      "uncompressed_sha256": "7fa198d728a584f7dce5121897ca7f45910d4634352271bfbc6c246a20b7e85f",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/baseline-hexkl_dma_ring-command.json",
+      "stored_bytes": 1550,
+      "uncompressed_bytes": 1550
+    },
+    "validation/author/codegen/baseline-hexkl_dma_ring-object-command.json": {
+      "sha256": "cce350bbed1f70fa651a9d52475895753c5ed60e4cf9da362382b454981c8c9b",
+      "uncompressed_sha256": "cce350bbed1f70fa651a9d52475895753c5ed60e4cf9da362382b454981c8c9b",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/baseline-hexkl_dma_ring-object-command.json",
+      "stored_bytes": 1550,
+      "uncompressed_bytes": 1550
+    },
+    "validation/author/codegen/baseline-hexkl_dma_ring-object.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/baseline-hexkl_dma_ring-object.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/codegen/baseline-hexkl_dma_ring.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/baseline-hexkl_dma_ring.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/codegen/baseline-hexkl_dma_ring.s.gz": {
+      "sha256": "fc033a613d8b8233488f65644c5bb90679d151950a3535fb1c745dfee6de4282",
+      "uncompressed_sha256": "191c4c582e6eb7e83287889cf32ca2e83637615b2926664e0af78c308c445e53",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/baseline-hexkl_dma_ring.s",
+      "stored_bytes": 2586,
+      "uncompressed_bytes": 16931
+    },
+    "validation/author/codegen/baseline-hexkl_dma_ring.su.gz": {
+      "sha256": "44c5b12709fbff1835ac1d574c1b31581563c4edb72807f22a10d0a89049e7fa",
+      "uncompressed_sha256": "ad2bf6ce05564dbea689ae7e9fc1246aa27ee9b3607875a25e1d3a09d7b932fa",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/baseline-hexkl_dma_ring.su",
+      "stored_bytes": 208,
+      "uncompressed_bytes": 1179
+    },
+    "validation/author/codegen/baseline-hexkl_dma_ring_drain.normalized.s.gz": {
+      "sha256": "5ba05cc4b27936e1dbfa172290ac75e43fa4dff79d13ba8841d2aafea8d45557",
+      "uncompressed_sha256": "28d7221de1893f9e8575a8b79f2d33012e80eb6f04e282dc5da857677bcec101",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/baseline-hexkl_dma_ring_drain.normalized.s",
+      "stored_bytes": 331,
+      "uncompressed_bytes": 709
+    },
+    "validation/author/codegen/baseline-hexkl_dma_ring_push2d.normalized.s.gz": {
+      "sha256": "c93141df6a40b79674cdfbf6da7c1c6812ca0cf516860da1ca32da26ed55afcd",
+      "uncompressed_sha256": "5392462e883617da1fadedfb913097ea0e42ca1655f7191b7f1acfaac673ad17",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/baseline-hexkl_dma_ring_push2d.normalized.s",
+      "stored_bytes": 608,
+      "uncompressed_bytes": 1582
+    },
+    "validation/author/codegen/baseline-hexkl_mm_u8i4_moe-command.json": {
+      "sha256": "12c3f6ad75a2a1474f23bdfcef8502792fe0a73138b2b14ddc8dc3554048dfcd",
+      "uncompressed_sha256": "12c3f6ad75a2a1474f23bdfcef8502792fe0a73138b2b14ddc8dc3554048dfcd",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/baseline-hexkl_mm_u8i4_moe-command.json",
+      "stored_bytes": 1556,
+      "uncompressed_bytes": 1556
+    },
+    "validation/author/codegen/baseline-hexkl_mm_u8i4_moe-object-command.json": {
+      "sha256": "9bd3b1b65c9cd5f600801c48954162b558e0454d1c2bc49dcbffae81bda1bf2d",
+      "uncompressed_sha256": "9bd3b1b65c9cd5f600801c48954162b558e0454d1c2bc49dcbffae81bda1bf2d",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/baseline-hexkl_mm_u8i4_moe-object-command.json",
+      "stored_bytes": 1556,
+      "uncompressed_bytes": 1556
+    },
+    "validation/author/codegen/baseline-hexkl_mm_u8i4_moe-object.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/baseline-hexkl_mm_u8i4_moe-object.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/codegen/baseline-hexkl_mm_u8i4_moe.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/baseline-hexkl_mm_u8i4_moe.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/codegen/baseline-hexkl_mm_u8i4_moe.su.gz": {
+      "sha256": "676f216967ef6df238677ad9c186de428fee4b37c5ea2f4328dddcb0dba9f825",
+      "uncompressed_sha256": "e5a0da7031f84102199a9a921c3fdc8712f5b859859d9576bc231bc5a2a2ee4d",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/baseline-hexkl_mm_u8i4_moe.su",
+      "stored_bytes": 673,
+      "uncompressed_bytes": 5389
+    },
+    "validation/author/codegen/baseline-moe_push_gate_up_chunks.normalized.s.gz": {
+      "sha256": "cc216ffac0de61376963d9746e2c55a1d37737ab7900b1aaa5013829aaead8da",
+      "uncompressed_sha256": "748019080f00d3a1dbef73bab0537e6161c33f7a69bae066b52bd0c10e362985",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/baseline-moe_push_gate_up_chunks.normalized.s",
+      "stored_bytes": 1659,
+      "uncompressed_bytes": 9092
+    },
+    "validation/author/codegen/baseline-moe_push_weight_chunk.normalized.s.gz": {
+      "sha256": "868771293a31d0e72083d23cb26a49566207f1ec5d415356a953f4847b1a651d",
+      "uncompressed_sha256": "c05d6caf9879ebe9e96871b494449c7b94a953c4f884b0676d4239e67b39b69b",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/baseline-moe_push_weight_chunk.normalized.s",
+      "stored_bytes": 539,
+      "uncompressed_bytes": 1289
+    },
+    "validation/author/codegen/candidate-hexkl_dma_ring-command.json": {
+      "sha256": "967714f0428d7eff03c469aa73df02d385e9fc8cd8e11ee7e908995df66d5ca7",
+      "uncompressed_sha256": "967714f0428d7eff03c469aa73df02d385e9fc8cd8e11ee7e908995df66d5ca7",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/candidate-hexkl_dma_ring-command.json",
+      "stored_bytes": 1553,
+      "uncompressed_bytes": 1553
+    },
+    "validation/author/codegen/candidate-hexkl_dma_ring-object-command.json": {
+      "sha256": "c3449aef881c137703d28a9b58e83514ec2bece4621a8e857e9b3b7ec84a111e",
+      "uncompressed_sha256": "c3449aef881c137703d28a9b58e83514ec2bece4621a8e857e9b3b7ec84a111e",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/candidate-hexkl_dma_ring-object-command.json",
+      "stored_bytes": 1553,
+      "uncompressed_bytes": 1553
+    },
+    "validation/author/codegen/candidate-hexkl_dma_ring-object.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/candidate-hexkl_dma_ring-object.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/codegen/candidate-hexkl_dma_ring.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/candidate-hexkl_dma_ring.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/codegen/candidate-hexkl_dma_ring.s.gz": {
+      "sha256": "cf24816a40589c87e428a7a4c01a530d143643c5e98f905939224cd109670401",
+      "uncompressed_sha256": "860c85b431741e4612fa65367ae02da21a059cbba01b2703acee539bdfbecfa3",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/candidate-hexkl_dma_ring.s",
+      "stored_bytes": 2795,
+      "uncompressed_bytes": 18461
+    },
+    "validation/author/codegen/candidate-hexkl_dma_ring.su.gz": {
+      "sha256": "179620c7871710daa0d51d76314ecdadb35bfa2c1b744abe3791d851aacaa1f0",
+      "uncompressed_sha256": "ed07ed41247a9fd5f6aefe7213276aa99c6c852b85b6519ae61d4505fc6e6bd1",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/candidate-hexkl_dma_ring.su",
+      "stored_bytes": 216,
+      "uncompressed_bytes": 1323
+    },
+    "validation/author/codegen/candidate-hexkl_dma_ring_drain.normalized.s.gz": {
+      "sha256": "5ba05cc4b27936e1dbfa172290ac75e43fa4dff79d13ba8841d2aafea8d45557",
+      "uncompressed_sha256": "28d7221de1893f9e8575a8b79f2d33012e80eb6f04e282dc5da857677bcec101",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/candidate-hexkl_dma_ring_drain.normalized.s",
+      "stored_bytes": 331,
+      "uncompressed_bytes": 709
+    },
+    "validation/author/codegen/candidate-hexkl_dma_ring_push2d.normalized.s.gz": {
+      "sha256": "c93141df6a40b79674cdfbf6da7c1c6812ca0cf516860da1ca32da26ed55afcd",
+      "uncompressed_sha256": "5392462e883617da1fadedfb913097ea0e42ca1655f7191b7f1acfaac673ad17",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/candidate-hexkl_dma_ring_push2d.normalized.s",
+      "stored_bytes": 608,
+      "uncompressed_bytes": 1582
+    },
+    "validation/author/codegen/candidate-hexkl_mm_u8i4_moe-command.json": {
+      "sha256": "2a327ac66dd73e789b59e83b5a382da8ee00950e6e1b1f27ef60c4fbb8ba0950",
+      "uncompressed_sha256": "2a327ac66dd73e789b59e83b5a382da8ee00950e6e1b1f27ef60c4fbb8ba0950",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/candidate-hexkl_mm_u8i4_moe-command.json",
+      "stored_bytes": 1559,
+      "uncompressed_bytes": 1559
+    },
+    "validation/author/codegen/candidate-hexkl_mm_u8i4_moe-object-command.json": {
+      "sha256": "e8e83010bfa91a09c898d46197bcdd6a790c6156f27542ff12d66bf6c6ae5a05",
+      "uncompressed_sha256": "e8e83010bfa91a09c898d46197bcdd6a790c6156f27542ff12d66bf6c6ae5a05",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/candidate-hexkl_mm_u8i4_moe-object-command.json",
+      "stored_bytes": 1559,
+      "uncompressed_bytes": 1559
+    },
+    "validation/author/codegen/candidate-hexkl_mm_u8i4_moe-object.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/candidate-hexkl_mm_u8i4_moe-object.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/codegen/candidate-hexkl_mm_u8i4_moe.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/candidate-hexkl_mm_u8i4_moe.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/codegen/candidate-hexkl_mm_u8i4_moe.su.gz": {
+      "sha256": "e0f1e8c5905b8207b0b823b1a21506541c7fe2e4b3218cacc657f5090af1d799",
+      "uncompressed_sha256": "d492174d1b4e9cdd98416d08185f37509239dcdedc8edeaa53e94178e59ab105",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/candidate-hexkl_mm_u8i4_moe.su",
+      "stored_bytes": 673,
+      "uncompressed_bytes": 5425
+    },
+    "validation/author/codegen/candidate-moe_push_gate_up_chunks.normalized.s.gz": {
+      "sha256": "cc216ffac0de61376963d9746e2c55a1d37737ab7900b1aaa5013829aaead8da",
+      "uncompressed_sha256": "748019080f00d3a1dbef73bab0537e6161c33f7a69bae066b52bd0c10e362985",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/candidate-moe_push_gate_up_chunks.normalized.s",
+      "stored_bytes": 1659,
+      "uncompressed_bytes": 9092
+    },
+    "validation/author/codegen/candidate-moe_push_weight_chunk.normalized.s.gz": {
+      "sha256": "868771293a31d0e72083d23cb26a49566207f1ec5d415356a953f4847b1a651d",
+      "uncompressed_sha256": "c05d6caf9879ebe9e96871b494449c7b94a953c4f884b0676d4239e67b39b69b",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/candidate-moe_push_weight_chunk.normalized.s",
+      "stored_bytes": 539,
+      "uncompressed_bytes": 1289
+    },
+    "validation/author/codegen/comparison.json": {
+      "sha256": "9099996f563a16d46aa55904c25de06ea5bf0d1f3bb21c31076dbac250015e94",
+      "uncompressed_sha256": "9099996f563a16d46aa55904c25de06ea5bf0d1f3bb21c31076dbac250015e94",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/comparison.json",
+      "stored_bytes": 3241,
+      "uncompressed_bytes": 3241
+    },
+    "validation/author/codegen/layout-check.c.gz": {
+      "sha256": "41bc45e7e500b427e7663881c015802edd9039f4603f34a9096d4a45050ed18f",
+      "uncompressed_sha256": "49577cbc04e84f157f7d68febe2fde08f8d6db9455cbdea95ef1a04de84561ef",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/layout-check.c",
+      "stored_bytes": 235,
+      "uncompressed_bytes": 469
+    },
+    "validation/author/codegen/layout-check.su.gz": {
+      "sha256": "53f6ddff882fa4a76919dd31445ea2d4673e4571018ef59e7c5577f6a3c01144",
+      "uncompressed_sha256": "fcb5496df245412a1735f664a8ca36e130e116f61ee15f9477a0d261f0f0c954",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/layout-check.su",
+      "stored_bytes": 98,
+      "uncompressed_bytes": 90
+    },
+    "validation/author/codegen/layout-command.json": {
+      "sha256": "4acd5763a78fa70ad832a1822e2b81535f18b8229831855565a62d868c413cff",
+      "uncompressed_sha256": "4acd5763a78fa70ad832a1822e2b81535f18b8229831855565a62d868c413cff",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/layout-command.json",
+      "stored_bytes": 1504,
+      "uncompressed_bytes": 1504
+    },
+    "validation/author/codegen/layout.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/layout.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/author/codegen/normalized-comparison.json": {
+      "sha256": "c31a9beeeba4f8372e5e78bd95e0528a566790f32e4bd63ef58cba5adbd61210",
+      "uncompressed_sha256": "c31a9beeeba4f8372e5e78bd95e0528a566790f32e4bd63ef58cba5adbd61210",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/codegen/normalized-comparison.json",
+      "stored_bytes": 1475,
+      "uncompressed_bytes": 1475
+    },
+    "validation/author/history/pre-host-integration/README.txt": {
+      "sha256": "ccb2c1363649e2574387450073b2ec195a10f232361e05825493090fefd18cc7",
+      "uncompressed_sha256": "ccb2c1363649e2574387450073b2ec195a10f232361e05825493090fefd18cc7",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/history/pre-host-integration/README.txt",
+      "stored_bytes": 7548,
+      "uncompressed_bytes": 7548
+    },
+    "validation/author/history/pre-host-integration/manifest.json": {
+      "sha256": "d74eba0237238c509cfb3f2f0e79a799ca84ccfd9cc27c71e3d3eb5fe0744fdd",
+      "uncompressed_sha256": "d74eba0237238c509cfb3f2f0e79a799ca84ccfd9cc27c71e3d3eb5fe0744fdd",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/history/pre-host-integration/manifest.json",
+      "stored_bytes": 886,
+      "uncompressed_bytes": 886
+    },
+    "validation/author/history/pre-host-integration/tests.patch.gz": {
+      "sha256": "63405a4b28520eecd9476673d596a75da3d0540ca57bb754a98206d142ac435b",
+      "uncompressed_sha256": "de3b844966572b3e4c5baa2e2695300d7d1272c6ec460c7b3996ae2614c938e2",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/history/pre-host-integration/tests.patch",
+      "stored_bytes": 6242,
+      "uncompressed_bytes": 20698
+    },
+    "validation/author/history/pre-host-integration/validation.json": {
+      "sha256": "dab54751df85bf89ae800b2feefcf7dfe988d1bd877c5d6251c58b3267f933a4",
+      "uncompressed_sha256": "dab54751df85bf89ae800b2feefcf7dfe988d1bd877c5d6251c58b3267f933a4",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/history/pre-host-integration/validation.json",
+      "stored_bytes": 2913,
+      "uncompressed_bytes": 2913
+    },
+    "validation/author/manifest.json": {
+      "sha256": "7fad647db00f921e0902feee421b43c7b2d60b3defe9651e08c323bba5e4902f",
+      "uncompressed_sha256": "7fad647db00f921e0902feee421b43c7b2d60b3defe9651e08c323bba5e4902f",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/manifest.json",
+      "stored_bytes": 1213,
+      "uncompressed_bytes": 1213
+    },
+    "validation/author/production-hashes.json": {
+      "sha256": "6425e16a2d7934ec15f371a197fe9aa6dbee3bf987e9af695a7acafbd9f80337",
+      "uncompressed_sha256": "6425e16a2d7934ec15f371a197fe9aa6dbee3bf987e9af695a7acafbd9f80337",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/production-hashes.json",
+      "stored_bytes": 492,
+      "uncompressed_bytes": 492
+    },
+    "validation/author/production.patch.gz": {
+      "sha256": "d362cd881effbc6c4b8a015d7d91ecda612f9eb120de92735c24fb53d81ef0f3",
+      "uncompressed_sha256": "7803996b40175702f5d9978d29aa8ea31df5ec26282f592fbac6b97ae3ef2a89",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/production.patch",
+      "stored_bytes": 949,
+      "uncompressed_bytes": 2102
+    },
+    "validation/author/test/htp/host/lfm2_m1_ring_reset_check.c.gz": {
+      "sha256": "6ffa3dc0610f3ed228fc938684756376b3fe7cb5794da6879fbf47e300a7571c",
+      "uncompressed_sha256": "6a09d88be3ed19183f6fad488130dffe0348214bd9768dcd2a97e798d79e2269",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/test/htp/host/lfm2_m1_ring_reset_check.c",
+      "stored_bytes": 3288,
+      "uncompressed_bytes": 10055
+    },
+    "validation/author/test/htp/host/run_lfm2_m1_ring_reset_checks.py": {
+      "sha256": "2b6ff1ed388006d817ab44aea841e086830c0d0ccb39766be776085b491b6949",
+      "uncompressed_sha256": "2b6ff1ed388006d817ab44aea841e086830c0d0ccb39766be776085b491b6949",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/test/htp/host/run_lfm2_m1_ring_reset_checks.py",
+      "stored_bytes": 10388,
+      "uncompressed_bytes": 10388
+    },
+    "validation/author/tests-hashes.json": {
+      "sha256": "78d6f20a528d6882920f9e0b6bca2656e711f89c397645a543ec2729c1a263f2",
+      "uncompressed_sha256": "78d6f20a528d6882920f9e0b6bca2656e711f89c397645a543ec2729c1a263f2",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/tests-hashes.json",
+      "stored_bytes": 558,
+      "uncompressed_bytes": 558
+    },
+    "validation/author/tests.patch.gz": {
+      "sha256": "4de0552f3f53066ada621f92a589c90912f7f1b004726389c1b7163a19b291d6",
+      "uncompressed_sha256": "1e9b6b6394ed911db733ed60259aa4a727c81d7ae92182da827c37adf0707c61",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/tests.patch",
+      "stored_bytes": 6616,
+      "uncompressed_bytes": 22302
+    },
+    "validation/author/validation.json": {
+      "sha256": "3460d0521f86a7ad81b2f2e934bc5dff88b866dee90b31bcd09c72d0e3484a89",
+      "uncompressed_sha256": "3460d0521f86a7ad81b2f2e934bc5dff88b866dee90b31bcd09c72d0e3484a89",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/validation.json",
+      "stored_bytes": 3030,
+      "uncompressed_bytes": 3030
+    },
+    "validation/independent/codegen/baseline-hexkl_dma_ring.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/codegen/baseline-hexkl_dma_ring.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/codegen/baseline-hexkl_dma_ring.object-build.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/codegen/baseline-hexkl_dma_ring.object-build.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/codegen/baseline-hexkl_dma_ring.s.gz": {
+      "sha256": "fc033a613d8b8233488f65644c5bb90679d151950a3535fb1c745dfee6de4282",
+      "uncompressed_sha256": "191c4c582e6eb7e83287889cf32ca2e83637615b2926664e0af78c308c445e53",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/codegen/baseline-hexkl_dma_ring.s",
+      "stored_bytes": 2586,
+      "uncompressed_bytes": 16931
+    },
+    "validation/independent/codegen/baseline-hexkl_dma_ring.su.gz": {
+      "sha256": "a2fc61e3fb97e88a60cc543a165c77ba2441daee70afc3947cdfd3aaea2154ab",
+      "uncompressed_sha256": "2b3e21eec432f3eaf019864d02ea816c20fe67c9cc63c13bbc6fda150e50573a",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/codegen/baseline-hexkl_dma_ring.su",
+      "stored_bytes": 217,
+      "uncompressed_bytes": 1305
+    },
+    "validation/independent/codegen/baseline-hexkl_mm_u8i4_moe.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/codegen/baseline-hexkl_mm_u8i4_moe.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/codegen/baseline-hexkl_mm_u8i4_moe.object-build.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/codegen/baseline-hexkl_mm_u8i4_moe.object-build.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/codegen/baseline-hexkl_mm_u8i4_moe.su.gz": {
+      "sha256": "c2d971f3a1f54676892132523151afcd5db3d2f4d7f6f276460270caa8a51bf3",
+      "uncompressed_sha256": "1c18a013b5626853559988ec05da450f655b0939216cdc5b6391ee5d5240b824",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/codegen/baseline-hexkl_mm_u8i4_moe.su",
+      "stored_bytes": 688,
+      "uncompressed_bytes": 5893
+    },
+    "validation/independent/codegen/candidate-hexkl_dma_ring.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/codegen/candidate-hexkl_dma_ring.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/codegen/candidate-hexkl_dma_ring.object-build.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/codegen/candidate-hexkl_dma_ring.object-build.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/codegen/candidate-hexkl_dma_ring.s.gz": {
+      "sha256": "cf24816a40589c87e428a7a4c01a530d143643c5e98f905939224cd109670401",
+      "uncompressed_sha256": "860c85b431741e4612fa65367ae02da21a059cbba01b2703acee539bdfbecfa3",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/codegen/candidate-hexkl_dma_ring.s",
+      "stored_bytes": 2795,
+      "uncompressed_bytes": 18461
+    },
+    "validation/independent/codegen/candidate-hexkl_dma_ring.su.gz": {
+      "sha256": "b5668ab39d795ada91b504e55fb83ef52ac6471218d60e80fb5981cea38f418c",
+      "uncompressed_sha256": "25a9f10560ad5ec507b8e599e97c6c462e56b5971e9575d2a6461ee2a1393340",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/codegen/candidate-hexkl_dma_ring.su",
+      "stored_bytes": 227,
+      "uncompressed_bytes": 1463
+    },
+    "validation/independent/codegen/candidate-hexkl_mm_u8i4_moe.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/codegen/candidate-hexkl_mm_u8i4_moe.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/codegen/candidate-hexkl_mm_u8i4_moe.object-build.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/codegen/candidate-hexkl_mm_u8i4_moe.object-build.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/codegen/candidate-hexkl_mm_u8i4_moe.su.gz": {
+      "sha256": "68e17713d0689f22baa86a6df104b5657b4ac8595b86b48d1f06c8d6d4b2f79c",
+      "uncompressed_sha256": "4f30716d6b9718fa630e1251278a81eec993a6b750ee3e98736b0491e10ccc54",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/codegen/candidate-hexkl_mm_u8i4_moe.su",
+      "stored_bytes": 687,
+      "uncompressed_bytes": 5929
+    },
+    "validation/independent/codegen/commands.json": {
+      "sha256": "21389615ae6677e46ebe8b9e8e48b9872ab4e482190fd319ac2ed948d85cf274",
+      "uncompressed_sha256": "21389615ae6677e46ebe8b9e8e48b9872ab4e482190fd319ac2ed948d85cf274",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/codegen/commands.json",
+      "stored_bytes": 8308,
+      "uncompressed_bytes": 8308
+    },
+    "validation/independent/codegen/independent-comparison.json": {
+      "sha256": "fc307deca2d9b3935acb757aa845b86d0b7cbf826b1a61d1f98db655be0d151c",
+      "uncompressed_sha256": "fc307deca2d9b3935acb757aa845b86d0b7cbf826b1a61d1f98db655be0d151c",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/codegen/independent-comparison.json",
+      "stored_bytes": 2330,
+      "uncompressed_bytes": 2330
+    },
+    "validation/independent/codegen/layout-check.c.gz": {
+      "sha256": "41bc45e7e500b427e7663881c015802edd9039f4603f34a9096d4a45050ed18f",
+      "uncompressed_sha256": "49577cbc04e84f157f7d68febe2fde08f8d6db9455cbdea95ef1a04de84561ef",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/codegen/layout-check.c",
+      "stored_bytes": 235,
+      "uncompressed_bytes": 469
+    },
+    "validation/independent/codegen/layout-check.su.gz": {
+      "sha256": "8c339f513f85f1fb030963a9771d161bec840b03b1fcb53697360df634b6db7c",
+      "uncompressed_sha256": "80b4d812ee544c0a45841f11e7ed5eb38f83a8773b2e40a58975e523153c61a1",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/codegen/layout-check.su",
+      "stored_bytes": 64,
+      "uncompressed_bytes": 52
+    },
+    "validation/independent/codegen/layout.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/codegen/layout.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/codegen/object-commands.json": {
+      "sha256": "9e2ff4ac925342113c2ecdf8ba03674d6b88f4bd4a7bcad5f58d8965f4931764",
+      "uncompressed_sha256": "9e2ff4ac925342113c2ecdf8ba03674d6b88f4bd4a7bcad5f58d8965f4931764",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/codegen/object-commands.json",
+      "stored_bytes": 6693,
+      "uncompressed_bytes": 6693
+    },
+    "validation/independent/codegen/object-sizes.json": {
+      "sha256": "fe69e2c33fbd413c968b371b4b68daaf959ecb99ea84a83e9ea6ece1cbd5c382",
+      "uncompressed_sha256": "fe69e2c33fbd413c968b371b4b68daaf959ecb99ea84a83e9ea6ece1cbd5c382",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/codegen/object-sizes.json",
+      "stored_bytes": 3366,
+      "uncompressed_bytes": 3366
+    },
+    "validation/independent/existing-suite-fixed/build.log.gz": {
+      "sha256": "68401ec400090d315ea511fbd25b7b88dcccf64e4603719f948d05f2d1866eab",
+      "uncompressed_sha256": "a4dfa75adb818f9aa4e657ee2125bf9beac4b1e4619ba5f46060951dd028641b",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/existing-suite-fixed/build.log",
+      "stored_bytes": 501,
+      "uncompressed_bytes": 3116
+    },
+    "validation/independent/existing-suite-fixed/command.json": {
+      "sha256": "617ab27c22f4131f032bd786fc08a9d4136aadaa323d2989e51b286215916232",
+      "uncompressed_sha256": "617ab27c22f4131f032bd786fc08a9d4136aadaa323d2989e51b286215916232",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/existing-suite-fixed/command.json",
+      "stored_bytes": 1781,
+      "uncompressed_bytes": 1781
+    },
+    "validation/independent/existing-suite-fixed/run.log.gz": {
+      "sha256": "1793a7a2e65e306c713ac075932b05e36529aaa715087c82ae5dc1d700725a9a",
+      "uncompressed_sha256": "71b1679d24ce154c7090d6c462c9dd20e52a9bcd8459f468b6046bae4e2ce969",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/existing-suite-fixed/run.log",
+      "stored_bytes": 5522,
+      "uncompressed_bytes": 124839
+    },
+    "validation/independent/existing-suite/build.log.gz": {
+      "sha256": "cb423c1e8b99118c086f921a8498406357ac5d72fd32cd9157c0e0e926c185ce",
+      "uncompressed_sha256": "d43ad3500eaf6ac4fb32d06b68275dad7def6f8680b0d43c6948ea396adce82b",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/existing-suite/build.log",
+      "stored_bytes": 578,
+      "uncompressed_bytes": 3304
+    },
+    "validation/independent/existing-suite/command.json": {
+      "sha256": "22fd0f37581833256eb7a246f9466548dee0a289592cd0c2e4ed9b603d7efeb6",
+      "uncompressed_sha256": "22fd0f37581833256eb7a246f9466548dee0a289592cd0c2e4ed9b603d7efeb6",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/existing-suite/command.json",
+      "stored_bytes": 1544,
+      "uncompressed_bytes": 1544
+    },
+    "validation/independent/final-hashes.json": {
+      "sha256": "3e7ea9c7d28b5ad50a3362bfd80f1feb1ae3b71675f69d92c11afdffe5f5ed32",
+      "uncompressed_sha256": "3e7ea9c7d28b5ad50a3362bfd80f1feb1ae3b71675f69d92c11afdffe5f5ed32",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/final-hashes.json",
+      "stored_bytes": 1957,
+      "uncompressed_bytes": 1957
+    },
+    "validation/independent/independent-final/build-completion_guard.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/build-completion_guard.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/build-done_clear.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/build-done_clear.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/build-reserved_zero.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/build-reserved_zero.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/build-ring.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/build-ring.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/build-size_guard.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/build-size_guard.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/build-start_state.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/build-start_state.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/build-tail_guard.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/build-tail_guard.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/build-type_guard.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/build-type_guard.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/build-whole_clear.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/build-whole_clear.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller-mutant-unguarded.log.gz": {
+      "sha256": "2628860b5f0f1ab7e795b6818803a69adfe66a83703fc50e68937ff05a8d9a7d",
+      "uncompressed_sha256": "6308d7461f5c45e3389249e2e342b4b4e434341d58bec632d567231372be6713",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller-mutant-unguarded.log",
+      "stored_bytes": 122,
+      "uncompressed_bytes": 120
+    },
+    "validation/independent/independent-final/caller-mutant-unguarded/build-candidate.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller-mutant-unguarded/build-candidate.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller-mutant-unguarded/build-hexkl_dma_trace.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller-mutant-unguarded/build-hexkl_dma_trace.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller-mutant-unguarded/build-hvx_expand_i2i4.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller-mutant-unguarded/build-hvx_expand_i2i4.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller-mutant-unguarded/build-hvx_gemv_u8tl2.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller-mutant-unguarded/build-hvx_gemv_u8tl2.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller-mutant-unguarded/build-hvx_quant_u8.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller-mutant-unguarded/build-hvx_quant_u8.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller-mutant-unguarded/build-hvx_scalar.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller-mutant-unguarded/build-hvx_scalar.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller-mutant-unguarded/build-reference.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller-mutant-unguarded/build-reference.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller-mutant-unguarded/build-ring_m1_caller.log.gz": {
+      "sha256": "9d05156f93c84f226e2f0ec7ba0d795699eba28e12c80c55401b2e8013ad270d",
+      "uncompressed_sha256": "5fa0c6e7aa0d24cfd2663c3add0489456629d6287b2dd670a904ca76526b51e7",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller-mutant-unguarded/build-ring_m1_caller.log",
+      "stored_bytes": 526,
+      "uncompressed_bytes": 3162
+    },
+    "validation/independent/independent-final/caller-mutant-unguarded/check.log.gz": {
+      "sha256": "0e46f3f0391032919cd8642aa6a9e602eb41ed49dcf92ea216fedf8a961789f1",
+      "uncompressed_sha256": "d56dae0d5f573e1cf38c98173c9f7ceaf52149dda64cc795a75d7ca1cbb66647",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller-mutant-unguarded/check.log",
+      "stored_bytes": 301,
+      "uncompressed_bytes": 1895
+    },
+    "validation/independent/independent-final/caller-mutant-unguarded/commands.json": {
+      "sha256": "f524a38df2c30868116d87b5d68e67c6472878660825e22f0a8bb1373c792c4c",
+      "uncompressed_sha256": "f524a38df2c30868116d87b5d68e67c6472878660825e22f0a8bb1373c792c4c",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller-mutant-unguarded/commands.json",
+      "stored_bytes": 14410,
+      "uncompressed_bytes": 14410
+    },
+    "validation/independent/independent-final/caller-mutant-unguarded/link.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller-mutant-unguarded/link.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller-mutant-unused_fast_path.log.gz": {
+      "sha256": "58714ea0bacdb798bb2d6b7ab435449f38ff2b53d5c054631a810508e54c16fd",
+      "uncompressed_sha256": "3c0b4f017ac89cda577b162a760f63d2961111106bf068411c1f5a18b41d10f4",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller-mutant-unused_fast_path.log",
+      "stored_bytes": 128,
+      "uncompressed_bytes": 127
+    },
+    "validation/independent/independent-final/caller-mutant-unused_fast_path/build-candidate.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller-mutant-unused_fast_path/build-candidate.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller-mutant-unused_fast_path/build-hexkl_dma_trace.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller-mutant-unused_fast_path/build-hexkl_dma_trace.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller-mutant-unused_fast_path/build-hvx_expand_i2i4.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller-mutant-unused_fast_path/build-hvx_expand_i2i4.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller-mutant-unused_fast_path/build-hvx_gemv_u8tl2.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller-mutant-unused_fast_path/build-hvx_gemv_u8tl2.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller-mutant-unused_fast_path/build-hvx_quant_u8.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller-mutant-unused_fast_path/build-hvx_quant_u8.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller-mutant-unused_fast_path/build-hvx_scalar.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller-mutant-unused_fast_path/build-hvx_scalar.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller-mutant-unused_fast_path/build-reference.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller-mutant-unused_fast_path/build-reference.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller-mutant-unused_fast_path/build-ring_m1_caller.log.gz": {
+      "sha256": "9d05156f93c84f226e2f0ec7ba0d795699eba28e12c80c55401b2e8013ad270d",
+      "uncompressed_sha256": "5fa0c6e7aa0d24cfd2663c3add0489456629d6287b2dd670a904ca76526b51e7",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller-mutant-unused_fast_path/build-ring_m1_caller.log",
+      "stored_bytes": 526,
+      "uncompressed_bytes": 3162
+    },
+    "validation/independent/independent-final/caller-mutant-unused_fast_path/check.log.gz": {
+      "sha256": "542e0c619f84a8c7f3b2bec8d50636b8e71d40d9b238c8e318ad430f3a64f2c6",
+      "uncompressed_sha256": "5a655b2b6f82b388281f5270c624574b4f413966f79d7a2ff28eb2664f2bd1a4",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller-mutant-unused_fast_path/check.log",
+      "stored_bytes": 177,
+      "uncompressed_bytes": 199
+    },
+    "validation/independent/independent-final/caller-mutant-unused_fast_path/commands.json": {
+      "sha256": "742e2da0fadd663692fc17dc297b2312a3c55ce6a362a9b04a37847ad502386e",
+      "uncompressed_sha256": "742e2da0fadd663692fc17dc297b2312a3c55ce6a362a9b04a37847ad502386e",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller-mutant-unused_fast_path/commands.json",
+      "stored_bytes": 14564,
+      "uncompressed_bytes": 14564
+    },
+    "validation/independent/independent-final/caller-mutant-unused_fast_path/link.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller-mutant-unused_fast_path/link.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller.log.gz": {
+      "sha256": "d7904c5653247480831cb7873fb3d94195a52a17684c3fea1172c0bb875b1a65",
+      "uncompressed_sha256": "9d49c546bbf981db5b35eaa91109d16ec08a967e4e5e8ba5ee8f065197570786",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller.log",
+      "stored_bytes": 276,
+      "uncompressed_bytes": 3344
+    },
+    "validation/independent/independent-final/caller/build-candidate.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller/build-candidate.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller/build-hexkl_dma_trace.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller/build-hexkl_dma_trace.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller/build-hvx_expand_i2i4.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller/build-hvx_expand_i2i4.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller/build-hvx_gemv_u8tl2.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller/build-hvx_gemv_u8tl2.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller/build-hvx_quant_u8.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller/build-hvx_quant_u8.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller/build-hvx_scalar.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller/build-hvx_scalar.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller/build-reference.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller/build-reference.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller/build-ring_m1_caller.log.gz": {
+      "sha256": "9d05156f93c84f226e2f0ec7ba0d795699eba28e12c80c55401b2e8013ad270d",
+      "uncompressed_sha256": "5fa0c6e7aa0d24cfd2663c3add0489456629d6287b2dd670a904ca76526b51e7",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller/build-ring_m1_caller.log",
+      "stored_bytes": 526,
+      "uncompressed_bytes": 3162
+    },
+    "validation/independent/independent-final/caller/check.log.gz": {
+      "sha256": "d7904c5653247480831cb7873fb3d94195a52a17684c3fea1172c0bb875b1a65",
+      "uncompressed_sha256": "9d49c546bbf981db5b35eaa91109d16ec08a967e4e5e8ba5ee8f065197570786",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller/check.log",
+      "stored_bytes": 276,
+      "uncompressed_bytes": 3344
+    },
+    "validation/independent/independent-final/caller/commands.json": {
+      "sha256": "171eac228a6512cd41965c957892c99b1db216ccb9679113704fcf27283a2605",
+      "uncompressed_sha256": "171eac228a6512cd41965c957892c99b1db216ccb9679113704fcf27283a2605",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller/commands.json",
+      "stored_bytes": 14036,
+      "uncompressed_bytes": 14036
+    },
+    "validation/independent/independent-final/caller/link.log.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller/link.log",
+      "stored_bytes": 20,
+      "uncompressed_bytes": 0
+    },
+    "validation/independent/independent-final/caller/source-hashes.json": {
+      "sha256": "1f47056c8c86c6b29700355b626fb512ad134d83c2cd360ecdb23279841c8a10",
+      "uncompressed_sha256": "1f47056c8c86c6b29700355b626fb512ad134d83c2cd360ecdb23279841c8a10",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/caller/source-hashes.json",
+      "stored_bytes": 169,
+      "uncompressed_bytes": 169
+    },
+    "validation/independent/independent-final/commands.json": {
+      "sha256": "0ccd3ebdc9aa0172dc78cbb2ad2622a0c41f7b54b27f4cd8065dedc392f028ac",
+      "uncompressed_sha256": "0ccd3ebdc9aa0172dc78cbb2ad2622a0c41f7b54b27f4cd8065dedc392f028ac",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/commands.json",
+      "stored_bytes": 8346,
+      "uncompressed_bytes": 8346
+    },
+    "validation/independent/independent-final/mutant-completion_guard.log.gz": {
+      "sha256": "bfe603b05835a6a8375e8feee6fe8115cfd8f59b5600e9c1c0e0d78dfc38fdbc",
+      "uncompressed_sha256": "537cc4ef7a90c75eb7537ff4904ab13ccb76f17166f273ebafb3ed5038d80fb8",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/mutant-completion_guard.log",
+      "stored_bytes": 177,
+      "uncompressed_bytes": 201
+    },
+    "validation/independent/independent-final/mutant-done_clear.log.gz": {
+      "sha256": "e6f9335bf012e20d097c251cbf065a354d3f390ed6e0fa44820c16e1c46b0d0e",
+      "uncompressed_sha256": "1bd1c93d89c37484b1bf90eb872228c023eb4eaeb59393de1b9303dd15f7ec53",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/mutant-done_clear.log",
+      "stored_bytes": 169,
+      "uncompressed_bytes": 208
+    },
+    "validation/independent/independent-final/mutant-reserved_zero.log.gz": {
+      "sha256": "09102aacd1c4cf80fa9c95d85eebe824e916ed2bffd1646b7c5ddefd17d0d11f",
+      "uncompressed_sha256": "62e150b54394959f21a3c3a0e06ac1e8a0fa4b477aba3580c1ce1d3734201ca2",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/mutant-reserved_zero.log",
+      "stored_bytes": 171,
+      "uncompressed_bytes": 211
+    },
+    "validation/independent/independent-final/mutant-size_guard.log.gz": {
+      "sha256": "dde070008750e21fe7482a9a93255177bae4cc234cb4357eafe9f12df9ad13a7",
+      "uncompressed_sha256": "d6c14a1a5ae31d11683590afecd2e06d7fa6e92c578eaf34ad1f32062ca69cee",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/mutant-size_guard.log",
+      "stored_bytes": 173,
+      "uncompressed_bytes": 195
+    },
+    "validation/independent/independent-final/mutant-start_state.log.gz": {
+      "sha256": "8c4008ffc0983f36a349b7e34e77a36ae0d9e3b60a606ca3b968da57c23e704e",
+      "uncompressed_sha256": "9a81f957e9817273e7fc341e59a1953aee65e5c3d2e2192ab3239bb70db3267e",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/mutant-start_state.log",
+      "stored_bytes": 180,
+      "uncompressed_bytes": 209
+    },
+    "validation/independent/independent-final/mutant-tail_guard.log.gz": {
+      "sha256": "cf21b5f71282218fe3c0dc939ba41fa74145e81c094591cefade7a37de4a82af",
+      "uncompressed_sha256": "e739a901da7f8fa99c266227c9604924e4bcd5caa046a7c42146188b5e65c6b6",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/mutant-tail_guard.log",
+      "stored_bytes": 173,
+      "uncompressed_bytes": 195
+    },
+    "validation/independent/independent-final/mutant-type_guard.log.gz": {
+      "sha256": "67fb61430c58da86dc353811f9879d5ea77504f9957c72e5388bfd984478517a",
+      "uncompressed_sha256": "82dcd2799023081c922ac6e742b8ce44645bb196eed6901cacfbe0a6f6f5af59",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/mutant-type_guard.log",
+      "stored_bytes": 173,
+      "uncompressed_bytes": 195
+    },
+    "validation/independent/independent-final/mutant-whole_clear.log.gz": {
+      "sha256": "4b04b9e403a1ffc7e547338c62336d60b8afa75bd9e20dfd87e4f97924f41900",
+      "uncompressed_sha256": "e5e7686c4e4533273b2ee621f7e62c151f41cb84e6115c5ae976cbf8316c8fb0",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/mutant-whole_clear.log",
+      "stored_bytes": 178,
+      "uncompressed_bytes": 203
+    },
+    "validation/independent/independent-final/ring.log.gz": {
+      "sha256": "df5d749cf289579cc8746996e7e77f285a1e85d6c990c6e4b405b6acda02f7ac",
+      "uncompressed_sha256": "f9c500c9026f0ea699589c757a79a51fbd53eef6e270a74babf092903ca04121",
+      "gzip": true,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/ring.log",
+      "stored_bytes": 89,
+      "uncompressed_bytes": 73
+    },
+    "validation/independent/independent-final/validation.json": {
+      "sha256": "0af58597be13649e6bfddfee2d105c7e9e1963c93ba22108b48b8c6d6e5ab96f",
+      "uncompressed_sha256": "0af58597be13649e6bfddfee2d105c7e9e1963c93ba22108b48b8c6d6e5ab96f",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/independent-final/validation.json",
+      "stored_bytes": 1543,
+      "uncompressed_bytes": 1543
+    },
+    "validation/independent/manifest.json": {
+      "sha256": "685f37f466551ccb9b81b64e82b58ff8def8cf65bef8f93c34122495a6fb4aee",
+      "uncompressed_sha256": "685f37f466551ccb9b81b64e82b58ff8def8cf65bef8f93c34122495a6fb4aee",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/manifest.json",
+      "stored_bytes": 3808,
+      "uncompressed_bytes": 3808
+    },
+    "validation/independent/review.txt": {
+      "sha256": "39f314b7ec1fb60a2e8efa53c738beaefa2d94f3ad3f4e48ea04d596bce8361e",
+      "uncompressed_sha256": "39f314b7ec1fb60a2e8efa53c738beaefa2d94f3ad3f4e48ea04d596bce8361e",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/review.txt",
+      "stored_bytes": 6204,
+      "uncompressed_bytes": 6204
+    },
+    "validation/independent/validation.json": {
+      "sha256": "e0d06a1906cbf81ab7fc849afc430c955c92a5ad8d48ada27e3a40a9f71dc641",
+      "uncompressed_sha256": "e0d06a1906cbf81ab7fc849afc430c955c92a5ad8d48ada27e3a40a9f71dc641",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-review-20261017/validation.json",
+      "stored_bytes": 8488,
+      "uncompressed_bytes": 8488
+    },
+    "validation/omitted-artifacts.json": {
+      "sha256": "5c45bff6b237a5956dcd033e740fd9bba513f50fd8fe171566b1b135568f7010",
+      "uncompressed_sha256": "5c45bff6b237a5956dcd033e740fd9bba513f50fd8fe171566b1b135568f7010",
+      "gzip": false,
+      "source": "generated",
+      "stored_bytes": 4133,
+      "uncompressed_bytes": 4133
+    },
+    "validation/root-restoration.json": {
+      "sha256": "dcdef1b671840a65b78851d58ac675aac1fb5b92a72d9a351c567d0796fe16a7",
+      "uncompressed_sha256": "dcdef1b671840a65b78851d58ac675aac1fb5b92a72d9a351c567d0796fe16a7",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/root-normal-restored.json",
+      "stored_bytes": 2202,
+      "uncompressed_bytes": 2202
+    },
+    "validation/root/root-accepted-control.json": {
+      "sha256": "b0f8e2ac50927e72b3708b65607c9c147ac36fe8fde293764082e387013d5464",
+      "uncompressed_sha256": "b0f8e2ac50927e72b3708b65607c9c147ac36fe8fde293764082e387013d5464",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/root-accepted-control.json",
+      "stored_bytes": 629,
+      "uncompressed_bytes": 629
+    },
+    "validation/root/root-local-restored.json": {
+      "sha256": "73ba71ba72a67dc9d84a6c00312bcb3a666eab8bca6eca424f5333e29d1c1a17",
+      "uncompressed_sha256": "73ba71ba72a67dc9d84a6c00312bcb3a666eab8bca6eca424f5333e29d1c1a17",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/root-local-restored.json",
+      "stored_bytes": 1536,
+      "uncompressed_bytes": 1536
+    },
+    "validation/root/root-normal-jobs.json": {
+      "sha256": "8738bcfb4906d881c94c9ebe06165d2a6e02ab513f2613d1c9385ad9a1ebf719",
+      "uncompressed_sha256": "8738bcfb4906d881c94c9ebe06165d2a6e02ab513f2613d1c9385ad9a1ebf719",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/root-normal-jobs.json",
+      "stored_bytes": 5259,
+      "uncompressed_bytes": 5259
+    },
+    "validation/root/root-normal-summary.json": {
+      "sha256": "a27dfbac9e83a0f001cf30a861c77477d11ad78f27f568480aff99674da3d9ef",
+      "uncompressed_sha256": "a27dfbac9e83a0f001cf30a861c77477d11ad78f27f568480aff99674da3d9ef",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/root-normal-summary.json",
+      "stored_bytes": 6637,
+      "uncompressed_bytes": 6637
+    },
+    "validation/root/root-run-diagnostic.py": {
+      "sha256": "dd659322c12a0b0f69cfc18f62feaa3576f0f58c845daaf3a7f5f8eb84c66fac",
+      "uncompressed_sha256": "dd659322c12a0b0f69cfc18f62feaa3576f0f58c845daaf3a7f5f8eb84c66fac",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/root-run-diagnostic.py",
+      "stored_bytes": 4073,
+      "uncompressed_bytes": 4073
+    },
+    "validation/root/root-runtime-identity.json": {
+      "sha256": "35deb441da9bfac71910048a0dad03f4c3f3d0d8d40bd154ade93ce4e3b2aaf3",
+      "uncompressed_sha256": "35deb441da9bfac71910048a0dad03f4c3f3d0d8d40bd154ade93ce4e3b2aaf3",
+      "gzip": false,
+      "source": "/tmp/nntr-lfm2-m1-ring-reset-20261017/root-runtime-identity.json",
+      "stored_bytes": 1025,
+      "uncompressed_bytes": 1025
+    }
+  }
+}

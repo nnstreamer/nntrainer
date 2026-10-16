@@ -1,0 +1,26 @@
+{
+  "hexkl_dma_ring": {
+    "hexkl_dma_ring_push2d": {
+      "instruction_packets_equal": true,
+      "normalization": "Remove comments, alignment directives, function-end labels; normalize only compiler function indices in local branch labels. Preserve instructions and packet braces.",
+      "sha256": "5392462e883617da1fadedfb913097ea0e42ca1655f7191b7f1acfaac673ad17"
+    },
+    "hexkl_dma_ring_drain": {
+      "instruction_packets_equal": true,
+      "normalization": "Remove comments, alignment directives, function-end labels; normalize only compiler function indices in local branch labels. Preserve instructions and packet braces.",
+      "sha256": "28d7221de1893f9e8575a8b79f2d33012e80eb6f04e282dc5da857677bcec101"
+    }
+  },
+  "hexkl_mm_u8i4_moe": {
+    "moe_push_weight_chunk": {
+      "instruction_packets_equal": true,
+      "normalization": "Remove comments, alignment directives, function-end labels; normalize only compiler function indices in local branch labels. Preserve instructions and packet braces.",
+      "sha256": "c05d6caf9879ebe9e96871b494449c7b94a953c4f884b0676d4239e67b39b69b"
+    },
+    "moe_push_gate_up_chunks": {
+      "instruction_packets_equal": true,
+      "normalization": "Remove comments, alignment directives, function-end labels; normalize only compiler function indices in local branch labels. Preserve instructions and packet braces.",
+      "sha256": "748019080f00d3a1dbef73bab0537e6161c33f7a69bae066b52bd0c10e362985"
+    }
+  }
+}

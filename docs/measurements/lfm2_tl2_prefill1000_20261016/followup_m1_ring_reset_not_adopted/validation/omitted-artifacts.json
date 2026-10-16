@@ -1,0 +1,102 @@
+{
+  "validation/author/codegen/baseline-hexkl_dma_ring.o": {
+    "sha256": "96ece1d9e517f28a72737aeab7ff7e6e3e1bdca8ebc2d1e7d41bfeddb3a3258c",
+    "bytes": 2676
+  },
+  "validation/author/codegen/baseline-hexkl_mm_u8i4_moe.o": {
+    "sha256": "487a17f390396ea0a9c234ce402fe7424d051221fc0ca517943cff0cba502f8e",
+    "bytes": 63444
+  },
+  "validation/author/codegen/baseline-hexkl_mm_u8i4_moe.s": {
+    "sha256": "1f872ffb8571915dc5e6e077aa8ba355d663c33b68576fc051dcf46dc5e2c5f7",
+    "bytes": 634771
+  },
+  "validation/author/codegen/candidate-hexkl_dma_ring.o": {
+    "sha256": "fff3afa108dc295af0d2d987529eea236f1344c610f3662edf1e000de2a58262",
+    "bytes": 3092
+  },
+  "validation/author/codegen/candidate-hexkl_mm_u8i4_moe.o": {
+    "sha256": "4951fcbb807fbb56614b02ffdd2556fc549fb9c02ca148d44b3d3802cce23fb5",
+    "bytes": 63496
+  },
+  "validation/author/codegen/candidate-hexkl_mm_u8i4_moe.s": {
+    "sha256": "62dd426cf3e025d3faffc9f45523fdded2656e35ecf045bc9cd73c3688eb8960",
+    "bytes": 635121
+  },
+  "validation/author/codegen/layout-check.o": {
+    "sha256": "4c271e4bf158fb6d06dbde0a2964fd3d4a29208503ff3dcaf62009a191776be6",
+    "bytes": 624
+  },
+  "validation/independent/codegen/baseline-hexkl_dma_ring.o": {
+    "sha256": "96ece1d9e517f28a72737aeab7ff7e6e3e1bdca8ebc2d1e7d41bfeddb3a3258c",
+    "bytes": 2676
+  },
+  "validation/independent/codegen/baseline-hexkl_mm_u8i4_moe.o": {
+    "sha256": "487a17f390396ea0a9c234ce402fe7424d051221fc0ca517943cff0cba502f8e",
+    "bytes": 63444
+  },
+  "validation/independent/codegen/baseline-hexkl_mm_u8i4_moe.s": {
+    "sha256": "1f872ffb8571915dc5e6e077aa8ba355d663c33b68576fc051dcf46dc5e2c5f7",
+    "bytes": 634771
+  },
+  "validation/independent/codegen/candidate-hexkl_dma_ring.o": {
+    "sha256": "fff3afa108dc295af0d2d987529eea236f1344c610f3662edf1e000de2a58262",
+    "bytes": 3092
+  },
+  "validation/independent/codegen/candidate-hexkl_mm_u8i4_moe.o": {
+    "sha256": "4951fcbb807fbb56614b02ffdd2556fc549fb9c02ca148d44b3d3802cce23fb5",
+    "bytes": 63496
+  },
+  "validation/independent/codegen/candidate-hexkl_mm_u8i4_moe.s": {
+    "sha256": "62dd426cf3e025d3faffc9f45523fdded2656e35ecf045bc9cd73c3688eb8960",
+    "bytes": 635121
+  },
+  "validation/independent/codegen/layout-check.o": {
+    "sha256": "4c271e4bf158fb6d06dbde0a2964fd3d4a29208503ff3dcaf62009a191776be6",
+    "bytes": 624
+  },
+  "fixed-build/build/control/libnntr_hvx_skel.so": {
+    "sha256": "1efcd9dcde2109634be700bb778ce1ba802ea6bc69c3dec1612030edcd4ce1e4",
+    "bytes": 742544
+  },
+  "fixed-build/build/control/repeat.so": {
+    "sha256": "1efcd9dcde2109634be700bb778ce1ba802ea6bc69c3dec1612030edcd4ce1e4",
+    "bytes": 742544
+  },
+  "fixed-build/build/candidate/libnntr_hvx_skel.so": {
+    "sha256": "f3e68660aff009b218efe16ab51e2ea93ba31e66611d555d768f5a82355c08bf",
+    "bytes": 742576
+  },
+  "fixed-build/build/candidate/repeat.so": {
+    "sha256": "f3e68660aff009b218efe16ab51e2ea93ba31e66611d555d768f5a82355c08bf",
+    "bytes": 742576
+  },
+  "fixed-build/build/threaded-link-attempt/control/libnntr_hvx_skel.so": {
+    "sha256": "a19d86bcc635e5f0892c878d0da7d009b2cc11af4ceb093ad0fe0fda2c6bf450",
+    "bytes": 742544
+  },
+  "fixed-build/build/threaded-link-attempt/control/repeat.so": {
+    "sha256": "1044a086816a451f98cecbe608832e524138c71971cc812f51dd04b2a1c67d28",
+    "bytes": 742544
+  },
+  "fixed-build/diagnostic/build/libnntr_hvx_skel.so": {
+    "sha256": "c19c64272c1edada380477012c73f74ee90ae82df9298998da1577e82868693f",
+    "bytes": 742768
+  },
+  "fixed-build/diagnostic/build/ring-0.o": {
+    "sha256": "fff3afa108dc295af0d2d987529eea236f1344c610f3662edf1e000de2a58262",
+    "bytes": 3092
+  },
+  "fixed-build/diagnostic/build/ring-1.o": {
+    "sha256": "b5d66fc5020c9610b1cd35c97e62ed3c44b3e51fd8b05c6b858726997f08de4a",
+    "bytes": 4264
+  },
+  "fixed-build/build/objects/candidate/23-hexkl_dma_ring.o": {
+    "sha256": "fff3afa108dc295af0d2d987529eea236f1344c610f3662edf1e000de2a58262",
+    "bytes": 3092
+  },
+  "fixed-build/build/objects/candidate/18-hexkl_mm_u8i4_moe.o": {
+    "sha256": "4951fcbb807fbb56614b02ffdd2556fc549fb9c02ca148d44b3d3802cce23fb5",
+    "bytes": 63496
+  }
+}
