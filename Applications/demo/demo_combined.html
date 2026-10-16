@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Quick.AI · On-device Personalization</title>
-    <link rel="stylesheet" href="demo.css?v=20261016c" />
-    <script src="device_demo.js?v=20261016c" defer></script>
+    <link rel="stylesheet" href="demo.css?v=20261016d" />
+    <script src="device_demo.js?v=20261016d" defer></script>
   </head>
   <body data-layout="1">
     <aside id="mirrorPane">
@@ -142,6 +142,8 @@
               aria-label="AFTER 표시 방식"
             ></div>
             <div id="predictionResults" class="prediction-results"></div>
+            <!-- 사용 빈도 기준 추천: 임시로 숨김. 다시 쓰려면 이 주석을 풀고
+                 device_demo.js의 SHOW_FREQUENCY를 true로 바꾸세요.
             <div class="frequency-row">
               <div class="frequency-shell">
                 <div class="frequency-screen">
@@ -151,6 +153,7 @@
               </div>
               <div class="frequency-spacer"></div>
             </div>
+            -->
             <p id="targetNote" class="target-note"></p>
           </div>
           <aside class="story-panel" aria-labelledby="userStoryTitle">

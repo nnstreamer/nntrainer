@@ -33,6 +33,8 @@
     "기타",
     "미사용",
   ];
+  // 사용 빈도 기준 추천 (temporarily hidden; see the comment in demo_combined.html).
+  const SHOW_FREQUENCY = false;
   let device = null,
     icons = {},
     token,
@@ -309,8 +311,10 @@
     frame.src = "assets/galaxy_s26_ultra_white.png";
     frame.alt = "";
     shell.append(frame);
-    col.append(shell, element("p", "result-heading " + label,
-      label === "before" ? "BEFORE · 학습 전" : "AFTER · 개인화 학습 후"));
+    const heading = element("p", "result-heading " + label);
+    heading.append(element("strong", "", label === "before" ? "학습 전" : "개인화 학습 후"),
+      element("span", "", label === "before" ? "BEFORE" : "AFTER"));
+    col.append(shell, heading);
     return col;
   }
   function renderPreferences(u, sc) {
@@ -360,7 +364,9 @@
 
     const checks = element("dl", "expect-checks");
     const freq = u.frequency_baseline.top4.map(row => row.index);
-    for (const [name, top] of [["BEFORE", sc.before && top4(sc.before)], ["빈도 추천", freq], ["AFTER", sc.after && top4(sc.after)]]) {
+    const rows = [["BEFORE", sc.before && top4(sc.before)], ["빈도 추천", freq], ["AFTER", sc.after && top4(sc.after)]]
+      .filter(([name]) => SHOW_FREQUENCY || name !== "빈도 추천");
+    for (const [name, top] of rows) {
       const hit = top ? expected.filter(i => top.includes(i)).length : null;
       const value = element("dd", hit == null ? "pending" : hit === expected.length ? "hit" : "miss",
         hit == null ? "대기" : `${hit === expected.length ? "✓" : "✗"} ${hit}/${expected.length}`);
@@ -492,7 +498,7 @@
       return index ? [element("span", "recent-arrow", "›"), item] : [item];
     }));
     const frequency = u.frequency_baseline;
-    $("frequencyApps").replaceChildren(...Array.from({length: 4}, (_, rank) => {
+    if (SHOW_FREQUENCY) $("frequencyApps").replaceChildren(...Array.from({length: 4}, (_, rank) => {
       const row = frequency.top4[rank];
       if (!row) return element("div", "dock-empty");
       const item = dockItem(row.index, pct(row.share), sc);
