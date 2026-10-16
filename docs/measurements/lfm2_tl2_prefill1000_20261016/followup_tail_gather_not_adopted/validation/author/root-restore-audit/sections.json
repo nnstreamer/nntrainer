@@ -1,0 +1,46 @@
+{
+  "control": {
+    ".text": {
+      "returncode": 0,
+      "sha256": "5144fe7127ac139568075c0c9c8e45b6763692863614de8c553b145b17efc0db",
+      "size": 598360
+    },
+    ".rodata": {
+      "returncode": 0,
+      "sha256": "2d38926da8b6bbb5e76518ccc546dfd92e4fb199f2ef1a72bdbda854bf457553",
+      "size": 24623
+    },
+    ".data": {
+      "returncode": 0,
+      "sha256": "03b936c36312284c3d9898c0f5bc163e4dd1a42525502fb3f3aa0e573f56a9d3",
+      "size": 80
+    },
+    ".dynstr": {
+      "returncode": 0,
+      "sha256": "f55a4a2ccfac461abfd55d788d8e0360ecab60e8d32a94b5a521dd14cf1e36ea",
+      "size": 11203
+    }
+  },
+  "rebuilt": {
+    ".text": {
+      "returncode": 0,
+      "sha256": "48901c6f16dc53deb5fa74ebd49759a66b5416c9566c95d904dbfd9d6b81e48c",
+      "size": 598328
+    },
+    ".rodata": {
+      "returncode": 0,
+      "sha256": "cbb6d75cb97bd75ac405bbe2217a3cc0d9ca9e1d0c360da247b84c3c5ad6e6ee",
+      "size": 24623
+    },
+    ".data": {
+      "returncode": 0,
+      "sha256": "03b936c36312284c3d9898c0f5bc163e4dd1a42525502fb3f3aa0e573f56a9d3",
+      "size": 80
+    },
+    ".dynstr": {
+      "returncode": 0,
+      "sha256": "f55a4a2ccfac461abfd55d788d8e0360ecab60e8d32a94b5a521dd14cf1e36ea",
+      "size": 11203
+    }
+  }
+}

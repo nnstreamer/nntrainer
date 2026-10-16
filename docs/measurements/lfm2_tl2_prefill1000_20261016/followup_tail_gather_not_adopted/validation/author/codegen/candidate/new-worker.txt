@@ -1,0 +1,29 @@
+{
+r3 = memw(r2+#28)
+}
+{
+r4 = memub(r3+r1<<#0)
+if (cmp.eq(r4.new,#0)) jump:nt .LBB_2
+}
+{
+r3 = asl(r1,#4)
+r6 = r1
+r5 = r2
+r0 = memw(r2+#4)
+}
+{
+r2 = r3
+r3 = memw(r5+#8)
+}
+{
+r3 = addasl(r4,r6,#4)
+r1 = r3
+r4 = memw(r5+#24)
+r5 = memw(r5+#20)
+}
+{
+jump hvx_gather_u8_ah_rows
+}
+{
+jumpr r31
+}

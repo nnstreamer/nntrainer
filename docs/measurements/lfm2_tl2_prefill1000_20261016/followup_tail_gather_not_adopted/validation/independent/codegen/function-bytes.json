@@ -1,0 +1,27 @@
+{
+  "baseline": {
+    "hexkl_moe_pack_bg_worker": {
+      "bytes": 124,
+      "sha256": "400925ef73e0a9e9c1947d5ca22eb5543287abb73f04898bbd2d8df50efa2d70"
+    },
+    "hexkl_mm_u8i4_moe_layer_run": {
+      "bytes": 21392,
+      "sha256": "455eec36f122b9f6b8a7c8a7366476650f97d04c22c00565ce9c611690b4eeec"
+    }
+  },
+  "candidate": {
+    "hexkl_moe_pack_bg_worker": {
+      "bytes": 124,
+      "sha256": "400925ef73e0a9e9c1947d5ca22eb5543287abb73f04898bbd2d8df50efa2d70"
+    },
+    "hexkl_mm_u8i4_moe_layer_run": {
+      "bytes": 21840,
+      "sha256": "6f53d10d8034b7380fbde4ce84fc347e7199cf87e5e6af3b8800d821663f4b54"
+    },
+    "moe_lfm_pack_bg_worker": {
+      "bytes": 48,
+      "sha256": "397f985fa0eb9a8d1303fea0a27e0bfc4b9ea7ca4a29019da8abc512fedea8ab"
+    }
+  },
+  "generic_worker_exact": true
+}

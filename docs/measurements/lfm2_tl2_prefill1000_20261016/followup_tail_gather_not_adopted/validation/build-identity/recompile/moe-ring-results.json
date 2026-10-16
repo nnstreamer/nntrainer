@@ -1,0 +1,38 @@
+[
+  {
+    "name": "moe",
+    "repeat": 0,
+    "source_sha256": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea",
+    "object_sha256": "487a17f390396ea0a9c234ce402fe7424d051221fc0ca517943cff0cba502f8e"
+  },
+  {
+    "name": "moe",
+    "repeat": 1,
+    "source_sha256": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea",
+    "object_sha256": "487a17f390396ea0a9c234ce402fe7424d051221fc0ca517943cff0cba502f8e"
+  },
+  {
+    "name": "moe",
+    "repeat": 2,
+    "source_sha256": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea",
+    "object_sha256": "487a17f390396ea0a9c234ce402fe7424d051221fc0ca517943cff0cba502f8e"
+  },
+  {
+    "name": "ring",
+    "repeat": 0,
+    "source_sha256": "7751082a9a8a2f0f8655ca6031a685f58dd018a27212995221ecb21f0bec5fea",
+    "object_sha256": "96ece1d9e517f28a72737aeab7ff7e6e3e1bdca8ebc2d1e7d41bfeddb3a3258c"
+  },
+  {
+    "name": "ring",
+    "repeat": 1,
+    "source_sha256": "7751082a9a8a2f0f8655ca6031a685f58dd018a27212995221ecb21f0bec5fea",
+    "object_sha256": "96ece1d9e517f28a72737aeab7ff7e6e3e1bdca8ebc2d1e7d41bfeddb3a3258c"
+  },
+  {
+    "name": "ring",
+    "repeat": 2,
+    "source_sha256": "7751082a9a8a2f0f8655ca6031a685f58dd018a27212995221ecb21f0bec5fea",
+    "object_sha256": "96ece1d9e517f28a72737aeab7ff7e6e3e1bdca8ebc2d1e7d41bfeddb3a3258c"
+  }
+]

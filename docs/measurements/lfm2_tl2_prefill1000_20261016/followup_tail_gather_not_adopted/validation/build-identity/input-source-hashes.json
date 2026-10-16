@@ -1,0 +1,42 @@
+{
+  "base": "f7b16e48ca01a650160d823141e86e67c7993a7c",
+  "source": {
+    "test/htp/build.sh": {
+      "sha256": "5d7b80853a2dbc8f8a31b0610ed316bbcaaa016f3ddcac2252b4c70fda4b4d76",
+      "same_as_base": true,
+      "base_sha256": "5d7b80853a2dbc8f8a31b0610ed316bbcaaa016f3ddcac2252b4c70fda4b4d76"
+    },
+    "test/htp/nntr_hvx_attn_m1_probe.c": {
+      "sha256": "8a20b35c131cb910e456b50eb2ed8d59077e7b71b394cb71140bd061e0d56295",
+      "same_as_base": true,
+      "base_sha256": "8a20b35c131cb910e456b50eb2ed8d59077e7b71b394cb71140bd061e0d56295"
+    },
+    "nntrainer/tensor/htp_backend/hvx/hvx_softmax_q.c": {
+      "sha256": "f34bdf1a47249918b4db656dc98dff03f1e895d81ecc20e17d5911953483c329",
+      "same_as_base": true,
+      "base_sha256": "f34bdf1a47249918b4db656dc98dff03f1e895d81ecc20e17d5911953483c329"
+    },
+    "nntrainer/tensor/htp_backend/hvx/hvx_attn_m1_f32.c": {
+      "sha256": "79899f18e22a6971707bf386ba0312a80814d84a796966955e40c9ce372b0d7c",
+      "same_as_base": true,
+      "base_sha256": "79899f18e22a6971707bf386ba0312a80814d84a796966955e40c9ce372b0d7c"
+    },
+    "nntrainer/tensor/htp_backend/hvx/hvx_router_rows_f32.c": {
+      "sha256": "5e97b4c3170abf4c752856f54f035b9181144b3d9ea18b8eb1b4b367be73f119",
+      "same_as_base": true,
+      "base_sha256": "5e97b4c3170abf4c752856f54f035b9181144b3d9ea18b8eb1b4b367be73f119"
+    },
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": {
+      "sha256": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea",
+      "same_as_base": true,
+      "base_sha256": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea"
+    },
+    "nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.c": {
+      "sha256": "7751082a9a8a2f0f8655ca6031a685f58dd018a27212995221ecb21f0bec5fea",
+      "same_as_base": true,
+      "base_sha256": "7751082a9a8a2f0f8655ca6031a685f58dd018a27212995221ecb21f0bec5fea"
+    }
+  },
+  "compiler_path": "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/hexagon-clang",
+  "compiler_sha256": "e9117b76564e0c1d2cff53858201da5f88c47eabc8432f084f88f86c447221be"
+}

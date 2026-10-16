@@ -1,0 +1,137 @@
+{
+  "sources": {
+    "/tmp/nntr-lfm2-m-tail-gather-20261016/codegen/baseline/hexkl_mm_u8i4_moe.s": "1f872ffb8571915dc5e6e077aa8ba355d663c33b68576fc051dcf46dc5e2c5f7",
+    "/tmp/nntr-lfm2-m-tail-gather-20261016/codegen/candidate/hexkl_mm_u8i4_moe.s": "143437e8e02d6c34c6efea8e68f6ad149b474fd292bb1e424649bbed758747b5"
+  },
+  "generic_worker_identical": true,
+  "changed_existing_functions": [
+    "hexkl_mm_u8i4_moe_layer_run"
+  ],
+  "stats": {
+    "hexkl_moe_pack_bg_worker": {
+      "baseline": {
+        "packets": 13,
+        "lines": 59,
+        "sp_fp_mem_ops": 2,
+        "vector_stack_ops": 0
+      },
+      "candidate": {
+        "packets": 13,
+        "lines": 59,
+        "sp_fp_mem_ops": 2,
+        "vector_stack_ops": 0
+      }
+    },
+    "hexkl_mm_u8i4_moe_layer_run": {
+      "baseline": {
+        "packets": 2376,
+        "lines": 9655,
+        "sp_fp_mem_ops": 1655,
+        "vector_stack_ops": 0
+      },
+      "candidate": {
+        "packets": 2406,
+        "lines": 9821,
+        "sp_fp_mem_ops": 1673,
+        "vector_stack_ops": 0
+      }
+    },
+    "moe_lfm_pack_bg_worker": {
+      "candidate": {
+        "packets": 7,
+        "lines": 29,
+        "sp_fp_mem_ops": 0,
+        "vector_stack_ops": 0
+      }
+    }
+  },
+  "stack": {
+    "baseline": {
+      "hexkl_moe_scratch_free": 16,
+      "hexkl_moe_scratch_reserve": 16,
+      "hexkl_moe_carve": 0,
+      "hexkl_moe_push_weight_chunk": 64,
+      "moe_push_native_chunk": 136,
+      "hexkl_moe_expand_chunk": 16,
+      "moe_expand_chunk": 256,
+      "hexkl_moe_push_act_block": 40,
+      "hexkl_moe_pack_bg_worker": 8,
+      "hexkl_moe_dma_copy": 56,
+      "moe_dma_copy": 80,
+      "hexkl_mm_u8i4_moe_layout": 40,
+      "hexkl_mm_u8i4_moe_layer_run": 17152,
+      "moe_all_4bit": 0,
+      "moe_all_2bit": 0,
+      "htp_tl2_palette_magnitude": 0,
+      "hexkl_acc_i24_usable": 0,
+      "hexkl_acc_i24_banks": 0,
+      "hexkl_acc_i24_prepare": 0,
+      "moe_push_gate_up_chunks": 168,
+      "moe_m1_q_post": 8,
+      "moe_m1_push": 48,
+      "hexkl_wh_affine_sums": 128,
+      "moe_m1_pair_worker": 176,
+      "moe_m1_q_post_after_a": 64,
+      "moe_tl2_gate_epilogue_worker": 640,
+      "moe_m1_wait": 8,
+      "moe_m1_requant_worker": 896,
+      "moe_m1_down_worker": 896,
+      "moe_push_act_block": 48,
+      "moe_expand_submit": 32,
+      "moe_gu_worker": 24,
+      "moe_dn_worker": 80,
+      "moe_dn_unit": 24,
+      "moe_dn_fg_worker": 32,
+      "moe_push_weight_chunk": 56,
+      "hexkl_mm_u8i4_fc_m1_run": 656,
+      "fc_m1_worker": 896,
+      "moe_expand_unit": 2816,
+      "moe_m1_q_worker": 72,
+      "moe_dn_rows": 64
+    },
+    "candidate": {
+      "hexkl_moe_scratch_free": 16,
+      "hexkl_moe_scratch_reserve": 16,
+      "hexkl_moe_carve": 0,
+      "hexkl_moe_push_weight_chunk": 64,
+      "moe_push_native_chunk": 136,
+      "hexkl_moe_expand_chunk": 16,
+      "moe_expand_chunk": 256,
+      "hexkl_moe_push_act_block": 40,
+      "hexkl_moe_pack_bg_worker": 8,
+      "hexkl_moe_dma_copy": 56,
+      "moe_dma_copy": 80,
+      "hexkl_mm_u8i4_moe_layout": 40,
+      "hexkl_mm_u8i4_moe_layer_run": 17152,
+      "moe_all_4bit": 0,
+      "moe_all_2bit": 0,
+      "htp_tl2_palette_magnitude": 0,
+      "hexkl_acc_i24_usable": 0,
+      "hexkl_acc_i24_banks": 0,
+      "hexkl_acc_i24_prepare": 0,
+      "moe_push_gate_up_chunks": 168,
+      "moe_m1_q_post": 8,
+      "moe_m1_push": 48,
+      "hexkl_wh_affine_sums": 128,
+      "moe_m1_pair_worker": 176,
+      "moe_m1_q_post_after_a": 64,
+      "moe_tl2_gate_epilogue_worker": 640,
+      "moe_m1_wait": 8,
+      "moe_m1_requant_worker": 896,
+      "moe_m1_down_worker": 896,
+      "moe_lfm_pack_bg_worker": 0,
+      "moe_push_act_block": 48,
+      "moe_expand_submit": 32,
+      "moe_gu_worker": 24,
+      "moe_dn_worker": 80,
+      "moe_dn_unit": 24,
+      "moe_dn_fg_worker": 32,
+      "moe_push_weight_chunk": 56,
+      "hexkl_mm_u8i4_fc_m1_run": 656,
+      "fc_m1_worker": 896,
+      "moe_expand_unit": 2816,
+      "moe_m1_q_worker": 72,
+      "moe_dn_rows": 64
+    }
+  }
+}

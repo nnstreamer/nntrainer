@@ -1,0 +1,27 @@
+{
+  "baseline": {
+    "hexkl_moe_pack_bg_worker": {
+      "size": 124,
+      "sha256": "400925ef73e0a9e9c1947d5ca22eb5543287abb73f04898bbd2d8df50efa2d70"
+    },
+    "hexkl_mm_u8i4_moe_layer_run": {
+      "size": 21392,
+      "sha256": "f21c42b8061a2cd916018ee61706922ae87f13529c6e4e95e342e88783b7db0e"
+    }
+  },
+  "candidate": {
+    "hexkl_moe_pack_bg_worker": {
+      "size": 124,
+      "sha256": "400925ef73e0a9e9c1947d5ca22eb5543287abb73f04898bbd2d8df50efa2d70"
+    },
+    "moe_lfm_pack_bg_worker": {
+      "size": 48,
+      "sha256": "2105383710a44b3853094e625f0193b7aced654ff44abc60025fb539d7a51270"
+    },
+    "hexkl_mm_u8i4_moe_layer_run": {
+      "size": 21840,
+      "sha256": "a8a86356ee85e681b188356bc2a440b42b7690a973cf35ec7a68815c724179d0"
+    }
+  },
+  "generic_exact": true
+}

@@ -1,0 +1,5 @@
+{
+  "base_head": "ccea0d476daf43ddd5dbe201178755e6ff978dfd",
+  "file": "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c",
+  "baseline_sha256": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea"
+}

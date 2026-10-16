@@ -1,0 +1,78 @@
+{
+  "probe0.o": {
+    "probe_lane": {
+      "control": true,
+      "rebuilt": false,
+      "candidate": false
+    }
+  },
+  "probe1.o": {
+    "probe_lane": {
+      "control": false,
+      "rebuilt": false,
+      "candidate": false
+    }
+  },
+  "probe2.o": {
+    "probe_lane": {
+      "control": false,
+      "rebuilt": true,
+      "candidate": false
+    }
+  },
+  "probe3.o": {
+    "probe_lane": {
+      "control": false,
+      "rebuilt": false,
+      "candidate": true
+    }
+  },
+  "softmax0.o": {
+    "hvx_softmax_q": {
+      "control": false,
+      "rebuilt": true,
+      "candidate": true
+    },
+    "hvx_softmax_q16_part_max": {
+      "control": true,
+      "rebuilt": true,
+      "candidate": true
+    }
+  },
+  "softmax1.o": {
+    "hvx_softmax_q": {
+      "control": true,
+      "rebuilt": false,
+      "candidate": false
+    },
+    "hvx_softmax_q16_part_max": {
+      "control": true,
+      "rebuilt": true,
+      "candidate": true
+    }
+  },
+  "softmax2.o": {
+    "hvx_softmax_q": {
+      "control": true,
+      "rebuilt": false,
+      "candidate": false
+    },
+    "hvx_softmax_q16_part_max": {
+      "control": true,
+      "rebuilt": true,
+      "candidate": true
+    }
+  },
+  "softmax3.o": {
+    "hvx_softmax_q": {
+      "control": true,
+      "rebuilt": false,
+      "candidate": false
+    },
+    "hvx_softmax_q16_part_max": {
+      "control": true,
+      "rebuilt": true,
+      "candidate": true
+    }
+  }
+}

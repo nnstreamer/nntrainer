@@ -1,0 +1,275 @@
+{
+  "status": "observed_same_input_compiler_variability",
+  "normal_tail_comparison_confounded": true,
+  "performance_attribution": null,
+  "verdict": "not_adopted",
+  "elf_sha256": {
+    "control": "3baddb92d14d1d23fe9b6c6a7cacfe3a6cd4708001c110bb8b15e1b0b7276f7c",
+    "candidate": "79ff958a00b6717b655310a344d31156f04d0ae7c8853a0cce3f83b6e06dc3e3",
+    "rebuilt": "72083514bdf2a07a3be1be4c6c9bbd627e513e3a10950e7597a8709a65ed04c8"
+  },
+  "source_inputs": {
+    "base": "f7b16e48ca01a650160d823141e86e67c7993a7c",
+    "source": {
+      "test/htp/build.sh": {
+        "sha256": "5d7b80853a2dbc8f8a31b0610ed316bbcaaa016f3ddcac2252b4c70fda4b4d76",
+        "same_as_base": true,
+        "base_sha256": "5d7b80853a2dbc8f8a31b0610ed316bbcaaa016f3ddcac2252b4c70fda4b4d76"
+      },
+      "test/htp/nntr_hvx_attn_m1_probe.c": {
+        "sha256": "8a20b35c131cb910e456b50eb2ed8d59077e7b71b394cb71140bd061e0d56295",
+        "same_as_base": true,
+        "base_sha256": "8a20b35c131cb910e456b50eb2ed8d59077e7b71b394cb71140bd061e0d56295"
+      },
+      "nntrainer/tensor/htp_backend/hvx/hvx_softmax_q.c": {
+        "sha256": "f34bdf1a47249918b4db656dc98dff03f1e895d81ecc20e17d5911953483c329",
+        "same_as_base": true,
+        "base_sha256": "f34bdf1a47249918b4db656dc98dff03f1e895d81ecc20e17d5911953483c329"
+      },
+      "nntrainer/tensor/htp_backend/hvx/hvx_attn_m1_f32.c": {
+        "sha256": "79899f18e22a6971707bf386ba0312a80814d84a796966955e40c9ce372b0d7c",
+        "same_as_base": true,
+        "base_sha256": "79899f18e22a6971707bf386ba0312a80814d84a796966955e40c9ce372b0d7c"
+      },
+      "nntrainer/tensor/htp_backend/hvx/hvx_router_rows_f32.c": {
+        "sha256": "5e97b4c3170abf4c752856f54f035b9181144b3d9ea18b8eb1b4b367be73f119",
+        "same_as_base": true,
+        "base_sha256": "5e97b4c3170abf4c752856f54f035b9181144b3d9ea18b8eb1b4b367be73f119"
+      },
+      "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": {
+        "sha256": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea",
+        "same_as_base": true,
+        "base_sha256": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea"
+      },
+      "nntrainer/tensor/htp_backend/hmx/hexkl_dma_ring.c": {
+        "sha256": "7751082a9a8a2f0f8655ca6031a685f58dd018a27212995221ecb21f0bec5fea",
+        "same_as_base": true,
+        "base_sha256": "7751082a9a8a2f0f8655ca6031a685f58dd018a27212995221ecb21f0bec5fea"
+      }
+    },
+    "compiler_path": "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/hexagon-clang",
+    "compiler_sha256": "e9117b76564e0c1d2cff53858201da5f88c47eabc8432f084f88f86c447221be"
+  },
+  "recompile": [
+    {
+      "name": "probe",
+      "repeat": 0,
+      "sha256": "1e5e21280a9300cf1f1ab5c4d690407b4d22be58a49c7685c947ac1b7e16af80",
+      "sizes": {
+        "probe_lane": 5320
+      }
+    },
+    {
+      "name": "probe",
+      "repeat": 1,
+      "sha256": "ff29758944f7c85639960a8d9acc1a41712908ada5361fee9bd584e31784bfb1",
+      "sizes": {
+        "probe_lane": 5256
+      }
+    },
+    {
+      "name": "probe",
+      "repeat": 2,
+      "sha256": "d6d41d26ffaeff82b8162b2125bbb712e5e88f62848e8b20866590e9eced08f2",
+      "sizes": {
+        "probe_lane": 5288
+      }
+    },
+    {
+      "name": "probe",
+      "repeat": 3,
+      "sha256": "8ddd6154268139f9eb624101345110e426a4981ae623ef22d25242c0daeb484f",
+      "sizes": {
+        "probe_lane": 5288
+      }
+    },
+    {
+      "name": "softmax",
+      "repeat": 0,
+      "sha256": "07dc88870f605091f192ad2b7ea54ed8b4cab4c3c09b927d0887b9d961d21bdf",
+      "sizes": {
+        "hvx_softmax_q": 4152,
+        "hvx_softmax_q16_part_max": 1220
+      }
+    },
+    {
+      "name": "softmax",
+      "repeat": 1,
+      "sha256": "b23b20a0c2420a180622bc0a657bdd63bdbe048418d581273c93a63ba3681c6a",
+      "sizes": {
+        "hvx_softmax_q": 4156,
+        "hvx_softmax_q16_part_max": 1216
+      }
+    },
+    {
+      "name": "softmax",
+      "repeat": 2,
+      "sha256": "b23b20a0c2420a180622bc0a657bdd63bdbe048418d581273c93a63ba3681c6a",
+      "sizes": {
+        "hvx_softmax_q": 4156,
+        "hvx_softmax_q16_part_max": 1216
+      }
+    },
+    {
+      "name": "softmax",
+      "repeat": 3,
+      "sha256": "b23b20a0c2420a180622bc0a657bdd63bdbe048418d581273c93a63ba3681c6a",
+      "sizes": {
+        "hvx_softmax_q": 4156,
+        "hvx_softmax_q16_part_max": 1216
+      }
+    }
+  ],
+  "moe_ring_bounded_recompile": [
+    {
+      "name": "moe",
+      "repeat": 0,
+      "source_sha256": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea",
+      "object_sha256": "487a17f390396ea0a9c234ce402fe7424d051221fc0ca517943cff0cba502f8e"
+    },
+    {
+      "name": "moe",
+      "repeat": 1,
+      "source_sha256": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea",
+      "object_sha256": "487a17f390396ea0a9c234ce402fe7424d051221fc0ca517943cff0cba502f8e"
+    },
+    {
+      "name": "moe",
+      "repeat": 2,
+      "source_sha256": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea",
+      "object_sha256": "487a17f390396ea0a9c234ce402fe7424d051221fc0ca517943cff0cba502f8e"
+    },
+    {
+      "name": "ring",
+      "repeat": 0,
+      "source_sha256": "7751082a9a8a2f0f8655ca6031a685f58dd018a27212995221ecb21f0bec5fea",
+      "object_sha256": "96ece1d9e517f28a72737aeab7ff7e6e3e1bdca8ebc2d1e7d41bfeddb3a3258c"
+    },
+    {
+      "name": "ring",
+      "repeat": 1,
+      "source_sha256": "7751082a9a8a2f0f8655ca6031a685f58dd018a27212995221ecb21f0bec5fea",
+      "object_sha256": "96ece1d9e517f28a72737aeab7ff7e6e3e1bdca8ebc2d1e7d41bfeddb3a3258c"
+    },
+    {
+      "name": "ring",
+      "repeat": 2,
+      "source_sha256": "7751082a9a8a2f0f8655ca6031a685f58dd018a27212995221ecb21f0bec5fea",
+      "object_sha256": "96ece1d9e517f28a72737aeab7ff7e6e3e1bdca8ebc2d1e7d41bfeddb3a3258c"
+    }
+  ],
+  "screen": {
+    "rebuilt": {
+      "same_screen_count": 1111,
+      "changed_screen": [
+        {
+          "symbol": "_fini",
+          "control_count": 15,
+          "other_count": 15
+        },
+        {
+          "symbol": "append_head_q8_vector",
+          "control_count": 254,
+          "other_count": 254
+        },
+        {
+          "symbol": "head_pipeline_scores",
+          "control_count": 395,
+          "other_count": 395
+        },
+        {
+          "symbol": "hvx_softmax_q",
+          "control_count": 992,
+          "other_count": 991
+        },
+        {
+          "symbol": "probe_lane",
+          "control_count": 1261,
+          "other_count": 1265
+        },
+        {
+          "symbol": "rows_block_4x3",
+          "control_count": 285,
+          "other_count": 285
+        },
+        {
+          "symbol": "rows_block_4x4",
+          "control_count": 187,
+          "other_count": 187
+        }
+      ]
+    },
+    "candidate": {
+      "same_screen_count": 1107,
+      "changed_screen": [
+        {
+          "symbol": "_fini",
+          "control_count": 15,
+          "other_count": 15
+        },
+        {
+          "symbol": "_init",
+          "control_count": 24,
+          "other_count": 24
+        },
+        {
+          "symbol": "append_head_q8_vector",
+          "control_count": 254,
+          "other_count": 254
+        },
+        {
+          "symbol": "head_pipeline_scores",
+          "control_count": 395,
+          "other_count": 395
+        },
+        {
+          "symbol": "hexkl_mm_u8i4_moe_layer_run",
+          "control_count": 4876,
+          "other_count": 4978
+        },
+        {
+          "symbol": "hvx_softmax_q",
+          "control_count": 992,
+          "other_count": 991
+        },
+        {
+          "symbol": "moe_expand_submit",
+          "control_count": 185,
+          "other_count": 185
+        },
+        {
+          "symbol": "moe_lfm_pack_bg_worker",
+          "control_count": null,
+          "other_count": 12
+        },
+        {
+          "symbol": "probe_lane",
+          "control_count": 1261,
+          "other_count": 1273
+        },
+        {
+          "symbol": "rows_block_4x3",
+          "control_count": 285,
+          "other_count": 285
+        },
+        {
+          "symbol": "rows_block_4x4",
+          "control_count": 187,
+          "other_count": 187
+        },
+        {
+          "symbol": "run_p1",
+          "control_count": 1945,
+          "other_count": 1945
+        }
+      ]
+    }
+  },
+  "limits": [
+    "Screened normalized disassembly is not semantic equivalence",
+    "No measured causal effect of unrelated codegen differences",
+    "Three identical baseline MoE/ring compiles do not prove general determinism",
+    "Audit ELF rewrite happened after mismatch; originals recovered and no model ran rewritten binaries"
+  ],
+  "review_sha256": "7ef5f17d796fda5c77ed420ff61eb439952f89c334bcd3ec5b5daa81b6c9240f"
+}

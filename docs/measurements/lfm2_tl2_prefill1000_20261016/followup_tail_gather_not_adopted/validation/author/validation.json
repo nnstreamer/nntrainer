@@ -1,0 +1,82 @@
+{
+  "status": "author_checks_pass_no_device_performance_claim",
+  "base": {
+    "base_head": "ccea0d476daf43ddd5dbe201178755e6ff978dfd",
+    "file": "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c",
+    "baseline_sha256": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea"
+  },
+  "source_hashes": {
+    "candidate/test/htp/host/lfm_tail_gather_check.c": "1a9e4b19ee721f7cced93ba7219f0f786284857c2bf408528d0792d79807e339",
+    "candidate/test/htp/host/lfm_tail_gather_tu_check.c": "221a5873be95b1bcac9db3fe966e21d92562756291ed7d30756035d20a25feb0",
+    "candidate/test/htp/host/lfm_tail_readout_check.c": "fe203dbb86ac7a24b57daa71d1ca47276c28de6bb54b94d1069ae1a89a3d229c",
+    "candidate/test/htp/host/run_lfm_tail_gather_checks.py": "6d59e37f0d1341d4a622342106871b77821f7bd915e8f7ab4909627d885836f1",
+    "candidate/test/htp/host/run_lfm_tail_gather_mutants.py": "5ce1c56a169bf1a1552b6bb82dc0e3f6c328794e2a88a05ccc49b2bfebe0d639",
+    "candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "725b006d02ebfedd442279e54691c499ad1ebc7270959bf6dafa4b2c6f33e3ba",
+    "production.patch": "4008a7108a632d218fbb081fb16eb06a884db4a9c70bc4da1dbf45a3aadf7824",
+    "tests.patch": "75e264f53c041bc9ce91a1b9417ed7fcd04667a97d4660b2de5c03654fef147a"
+  },
+  "checks": {
+    "helper": "PASS",
+    "helper_cases": 198,
+    "guard_cases": 16,
+    "readout": "PASS",
+    "readout_cases": 512,
+    "source_sha256": "725b006d02ebfedd442279e54691c499ad1ebc7270959bf6dafa4b2c6f33e3ba",
+    "sanitizers": true,
+    "limits": "libnative HVX; no physical DMA/HMX or TPS proof",
+    "whole_tu": "PASS",
+    "whole_cases": 21,
+    "whole_limits": "Actual kernel, gather, pthread pool; immediate DMA/scalar HMX and math stand-ins; compact i24 Hexagon-only branch is a source/codegen proof; shift-base UBSan disabled only in scalar stand-in TU (existing swiglu_det_exp negative exponent shift)"
+  },
+  "mutants": {
+    "killed": 7,
+    "total": 7,
+    "path": "mutants-final/results.json"
+  },
+  "codegen": {
+    "path": "codegen/summary.json",
+    "object_path": "codegen/object-summary.json",
+    "generic_worker_124_bytes_exact": true,
+    "generic_worker_frame_bytes": 8,
+    "new_worker_frame_bytes": 0,
+    "main_frame_bytes_before_after": [
+      17152,
+      17152
+    ],
+    "main_static_packets_before_after": [
+      2376,
+      2406
+    ],
+    "main_bytes_before_after": [
+      21392,
+      21840
+    ],
+    "new_worker_bytes": 48,
+    "new_vector_spills": 0
+  },
+  "observed_1024_route": {
+    "experts": 2283,
+    "row4_groups_omitted": 3721,
+    "gather_rows_saved": 14884,
+    "logical_stores_saved_bytes": 30482432,
+    "logical_vector_loads_saved_bytes": 121929728,
+    "saved_gather_rows_fraction": 0.08548520492556515
+  },
+  "capacity_changes": {
+    "scratch": 0,
+    "vtcm": 0,
+    "heap_allocations": 0,
+    "ctx_struct": 0,
+    "persistent_cache": 0,
+    "global_state": 0,
+    "queue_units": 0
+  },
+  "limits": [
+    "No device use, root changes, commit, push, or TPS evidence.",
+    "Full kernel tests use immediate DMA and scalar HMX/quant/math stand-ins; actual HVX gather and actual pthread worker pool are used.",
+    "Actual i24 GU/DN epilogue tests separately prove unused accumulator-row isolation; physical HMX convert/cache-coherence still needs device validation.",
+    "Only scalar stand-in TU disables UBSan shift-base due existing swiglu_det_exp signed negative shift; production and actual native helper TUs retain ASan+UBSan.",
+    "Gemma/generic worker object code is unchanged; shared kernel entry/metadata code changes, so no full Gemma object/performance identity claim.",
+    "Byte savings are logical HVX memory operation counts, not measured DRAM bytes or exposed wall time."
+  ]
+}

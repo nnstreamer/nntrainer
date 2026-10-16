@@ -1,0 +1,10 @@
+{
+  "candidate/test/htp/host/lfm_tail_gather_check.c": "1a9e4b19ee721f7cced93ba7219f0f786284857c2bf408528d0792d79807e339",
+  "candidate/test/htp/host/lfm_tail_gather_tu_check.c": "221a5873be95b1bcac9db3fe966e21d92562756291ed7d30756035d20a25feb0",
+  "candidate/test/htp/host/lfm_tail_readout_check.c": "fe203dbb86ac7a24b57daa71d1ca47276c28de6bb54b94d1069ae1a89a3d229c",
+  "candidate/test/htp/host/run_lfm_tail_gather_checks.py": "6d59e37f0d1341d4a622342106871b77821f7bd915e8f7ab4909627d885836f1",
+  "candidate/test/htp/host/run_lfm_tail_gather_mutants.py": "5ce1c56a169bf1a1552b6bb82dc0e3f6c328794e2a88a05ccc49b2bfebe0d639",
+  "candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "725b006d02ebfedd442279e54691c499ad1ebc7270959bf6dafa4b2c6f33e3ba",
+  "production.patch": "4008a7108a632d218fbb081fb16eb06a884db4a9c70bc4da1dbf45a3aadf7824",
+  "tests.patch": "75e264f53c041bc9ce91a1b9417ed7fcd04667a97d4660b2de5c03654fef147a"
+}

@@ -1,0 +1,5 @@
+QuIC LLVM Hexagon Clang version 19.0.04
+Target: hexagon
+Thread model: posix
+InstalledDir: /local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin
+Build config: +assertions

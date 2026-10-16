@@ -1,0 +1,107 @@
+{
+  "rebuilt": {
+    "same_screen_count": 1111,
+    "changed_screen": [
+      {
+        "symbol": "_fini",
+        "control_count": 15,
+        "other_count": 15
+      },
+      {
+        "symbol": "append_head_q8_vector",
+        "control_count": 254,
+        "other_count": 254
+      },
+      {
+        "symbol": "head_pipeline_scores",
+        "control_count": 395,
+        "other_count": 395
+      },
+      {
+        "symbol": "hvx_softmax_q",
+        "control_count": 992,
+        "other_count": 991
+      },
+      {
+        "symbol": "probe_lane",
+        "control_count": 1261,
+        "other_count": 1265
+      },
+      {
+        "symbol": "rows_block_4x3",
+        "control_count": 285,
+        "other_count": 285
+      },
+      {
+        "symbol": "rows_block_4x4",
+        "control_count": 187,
+        "other_count": 187
+      }
+    ]
+  },
+  "candidate": {
+    "same_screen_count": 1107,
+    "changed_screen": [
+      {
+        "symbol": "_fini",
+        "control_count": 15,
+        "other_count": 15
+      },
+      {
+        "symbol": "_init",
+        "control_count": 24,
+        "other_count": 24
+      },
+      {
+        "symbol": "append_head_q8_vector",
+        "control_count": 254,
+        "other_count": 254
+      },
+      {
+        "symbol": "head_pipeline_scores",
+        "control_count": 395,
+        "other_count": 395
+      },
+      {
+        "symbol": "hexkl_mm_u8i4_moe_layer_run",
+        "control_count": 4876,
+        "other_count": 4978
+      },
+      {
+        "symbol": "hvx_softmax_q",
+        "control_count": 992,
+        "other_count": 991
+      },
+      {
+        "symbol": "moe_expand_submit",
+        "control_count": 185,
+        "other_count": 185
+      },
+      {
+        "symbol": "moe_lfm_pack_bg_worker",
+        "control_count": null,
+        "other_count": 12
+      },
+      {
+        "symbol": "probe_lane",
+        "control_count": 1261,
+        "other_count": 1273
+      },
+      {
+        "symbol": "rows_block_4x3",
+        "control_count": 285,
+        "other_count": 285
+      },
+      {
+        "symbol": "rows_block_4x4",
+        "control_count": 187,
+        "other_count": 187
+      },
+      {
+        "symbol": "run_p1",
+        "control_count": 1945,
+        "other_count": 1945
+      }
+    ]
+  }
+}

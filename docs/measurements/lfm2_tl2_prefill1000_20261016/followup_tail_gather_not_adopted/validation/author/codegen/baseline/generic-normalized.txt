@@ -1,0 +1,59 @@
+{
+r3 = r1
+allocframe(#8)
+}
+{
+r4 = memw(r2+#28)
+if (cmp.eq(r4.new,#0)) jump:nt .LBB_3
+}
+{
+r4 = memb(r4+r1<<#0)
+if (cmp.eq(r4.new,#0)) jump:nt .LBB_3
+}
+{
+r31:30 = dealloc_return(r30):raw
+}
+{
+r4 = asl(r3,#4)
+r5 = #16
+r0 = memw(r2+#4)
+if (cmp.eq(r0.new,#0)) jump:nt .LBB_5
+}
+{
+r6 = r2
+r1 = memw(r2+#8)
+}
+{
+r3 = addasl(r5,r3,#4)
+r2 = r4
+r4 = memw(r6+#24)
+r5 = memw(r6+#20)
+}
+{
+jump hvx_gather_u8_ah_rows
+r31:30 = deallocframe(r30):raw
+}
+{
+r6 = asl(r3,#4)
+r7 = #16
+r1 = memw(r2+#8)
+r8 = memw(r2+#16)
+}
+{
+r3 = addasl(r7,r3,#4)
+r0 = memw(r2+#0)
+r4 = memw(r2+#24)
+}
+{
+r5 = memw(r2+#12)
+r2 = memw(r2+#20)
+}
+{
+call hvx_quant_pack_u8_ah_rows
+r2 = r6
+memw(r29+#4) = r2
+memw(r29+#0) = r8
+}
+{
+r31:30 = dealloc_return(r30):raw
+}

@@ -1,0 +1,224 @@
+{
+  "control": "lfm-tail-gather-control",
+  "candidate": "lfm-tail-gather-candidate",
+  "runs": [
+    {
+      "tag": "continue-tail-gather-0-r1",
+      "variant": "lfm-tail-gather-control",
+      "prefill_tokens": 1024,
+      "prefill_tps": 832.52,
+      "decode_tps": 17.704,
+      "full_run_sampled_peak_kib": 2733568.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 1
+    },
+    {
+      "tag": "continue-tail-gather-1-r1",
+      "variant": "lfm-tail-gather-candidate",
+      "prefill_tokens": 1024,
+      "prefill_tps": 821.171,
+      "decode_tps": 17.5103,
+      "full_run_sampled_peak_kib": 2731000.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 1
+    },
+    {
+      "tag": "continue-tail-gather-1-r2",
+      "variant": "lfm-tail-gather-candidate",
+      "prefill_tokens": 1024,
+      "prefill_tps": 846.981,
+      "decode_tps": 17.704,
+      "full_run_sampled_peak_kib": 2732168.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 2
+    },
+    {
+      "tag": "continue-tail-gather-0-r2",
+      "variant": "lfm-tail-gather-control",
+      "prefill_tokens": 1024,
+      "prefill_tps": 846.281,
+      "decode_tps": 17.5391,
+      "full_run_sampled_peak_kib": 2732124.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 2
+    },
+    {
+      "tag": "continue-tail-gather-0-r3",
+      "variant": "lfm-tail-gather-control",
+      "prefill_tokens": 1024,
+      "prefill_tps": 825.806,
+      "decode_tps": 17.4768,
+      "full_run_sampled_peak_kib": 2734164.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 3
+    },
+    {
+      "tag": "continue-tail-gather-1-r3",
+      "variant": "lfm-tail-gather-candidate",
+      "prefill_tokens": 1024,
+      "prefill_tps": 851.913,
+      "decode_tps": 17.6503,
+      "full_run_sampled_peak_kib": 2733872.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 3
+    },
+    {
+      "tag": "continue-tail-gather2048-0-r1",
+      "variant": "lfm-tail-gather-control",
+      "prefill_tokens": 2048,
+      "prefill_tps": 841.413,
+      "decode_tps": 16.6363,
+      "full_run_sampled_peak_kib": 3036576.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 1
+    },
+    {
+      "tag": "continue-tail-gather2048-1-r1",
+      "variant": "lfm-tail-gather-candidate",
+      "prefill_tokens": 2048,
+      "prefill_tps": 831.506,
+      "decode_tps": 16.6018,
+      "full_run_sampled_peak_kib": 3034920.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 1
+    },
+    {
+      "tag": "continue-tail-gather2048-1-r2",
+      "variant": "lfm-tail-gather-candidate",
+      "prefill_tokens": 2048,
+      "prefill_tps": 785.879,
+      "decode_tps": 16.7891,
+      "full_run_sampled_peak_kib": 3035552.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 2
+    },
+    {
+      "tag": "continue-tail-gather2048-0-r2",
+      "variant": "lfm-tail-gather-control",
+      "prefill_tokens": 2048,
+      "prefill_tps": 803.768,
+      "decode_tps": 16.7803,
+      "full_run_sampled_peak_kib": 3034528.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 2
+    },
+    {
+      "tag": "continue-tail-gather2048-0-r3",
+      "variant": "lfm-tail-gather-control",
+      "prefill_tokens": 2048,
+      "prefill_tps": 820.184,
+      "decode_tps": 16.5546,
+      "full_run_sampled_peak_kib": 3034408.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 3
+    },
+    {
+      "tag": "continue-tail-gather2048-1-r3",
+      "variant": "lfm-tail-gather-candidate",
+      "prefill_tokens": 2048,
+      "prefill_tps": 830.832,
+      "decode_tps": 16.4906,
+      "full_run_sampled_peak_kib": 3036740.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 3
+    }
+  ],
+  "summary": [
+    {
+      "tokens": 1024,
+      "prefill_tps": {
+        "control": [
+          832.52,
+          846.281,
+          825.806
+        ],
+        "candidate": [
+          821.171,
+          846.981,
+          851.913
+        ],
+        "median_control": 832.52,
+        "median_candidate": 846.981,
+        "median_pct": 1.7370153269591126,
+        "pairs_faster": 2,
+        "paired_deltas_pct": [
+          -1.3632104934415912,
+          0.08271484294224418,
+          3.1613962601385825
+        ]
+      },
+      "decode_tps": {
+        "control": [
+          17.704,
+          17.5391,
+          17.4768
+        ],
+        "candidate": [
+          17.5103,
+          17.704,
+          17.6503
+        ],
+        "median_control": 17.5391,
+        "median_candidate": 17.6503,
+        "median_pct": 0.6340120074576294,
+        "pairs_faster": 2,
+        "paired_deltas_pct": [
+          -1.094103027564386,
+          0.940185072210098,
+          0.9927446672159723
+        ]
+      },
+      "control_max_peak_kib": 2734164.0,
+      "candidate_max_peak_kib": 2733872.0
+    },
+    {
+      "tokens": 2048,
+      "prefill_tps": {
+        "control": [
+          841.413,
+          803.768,
+          820.184
+        ],
+        "candidate": [
+          831.506,
+          785.879,
+          830.832
+        ],
+        "median_control": 820.184,
+        "median_candidate": 830.832,
+        "median_pct": 1.2982452717926751,
+        "pairs_faster": 1,
+        "paired_deltas_pct": [
+          -1.177424166253671,
+          -2.225642225119684,
+          1.2982452717926751
+        ]
+      },
+      "decode_tps": {
+        "control": [
+          16.6363,
+          16.7803,
+          16.5546
+        ],
+        "candidate": [
+          16.6018,
+          16.7891,
+          16.4906
+        ],
+        "median_control": 16.6363,
+        "median_candidate": 16.6018,
+        "median_pct": -0.2073778424288908,
+        "pairs_faster": 1,
+        "paired_deltas_pct": [
+          -0.2073778424288908,
+          0.052442447393685754,
+          -0.3865994950044138
+        ]
+      },
+      "control_max_peak_kib": 3036576.0,
+      "candidate_max_peak_kib": 3036740.0
+    }
+  ],
+  "all_checks_pass": true,
+  "memory_scope": "Sampled whole child lifetime RssAnon + deduplicated fdinfo allocation sizes. Not total device physical memory; unreported DSP/driver/VTCM and between-sample spikes excluded."
+}

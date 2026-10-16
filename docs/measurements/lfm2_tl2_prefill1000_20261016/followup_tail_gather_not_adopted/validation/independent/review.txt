@@ -1,0 +1,80 @@
+Independent native LFM prefill tail-gather review, 2026-10-17
+
+Verdict: no correctness/build blocker found for root-only device parity/A-B.
+No root source, phone, commit or push was touched. No TPS claim is made.
+Frozen patch4008a7108a632d218fbb081fb16eb06a884db4a9c70bc4da1dbf45a3aadf7824
+and source725b006d02ebfedd442279e54691c499ad1ebc7270959bf6dafa4b2c6f33e3ba
+were copied to frozen/. All five test-file hashes and both patch hashes were
+checked against the author's source-hashes.json before running them.
+
+Source/lifetime proof
+- Only !use_m1, M>1, K2048/inter1536/N2048, 1<=n_experts<=64,
+  n_with_rows>0, all active native TL2, no affine offsets, SiLU can select
+  the private worker. The public generic worker's nonzero-means-skip
+  contract is unchanged. Compact E1/63/64 is accepted; E0/65 and mixed/
+  affine/Gemma geometry/GeGLU/M1 are excluded by the actual condition.
+- n_experts is the compact RPC table length; requiring64 would miss most
+  real calls. The frozen guard correctly accepts the compact range.
+- !use_m1 allocates act_u8 plus its existing +/-96-byte vector-load guards;
+  the private worker never encounters the generic float-pack fallback.
+  Quantization, source maps, scales and zero points are untouched.
+- Each unique expert slot starts on64 rows. end=d+round_up(row_count,4)
+  is within its already64-padded allocation. Unit starts are16-aligned;
+  min(16,end-first) is exactly0/4/8/12/16. Actual gather writes one128-byte
+  vector per four rows/K tile. Different units write disjoint groups, so
+  reverse work order/stealing does not create overlap or partial-vector races.
+- Shared slots require identical count and full row-index slice. They reuse
+  the previous slot_of and metadata, while per-expert routing weights remain
+  separate in scatter. Reused metadata is initialized for every unique slot
+  range before submission; padding units use0 in the private encoding.
+- The full64-row AH tile is still transferred/read by HMX. Dead values may
+  differ, as was already allowed for entirely skipped16-row units. They do
+  not participate in reductions across rows. GU jb->m_count=blk.m_blk and DN
+  c->m_count=pblk.m_blk restrict the consumers to valid rows. Requant handles
+  only valid rows and its existing rounded4 padding. UInt8/signed-int4 dot
+  bounds are safe for arbitrary byte contents at these K values; no new
+  i24 saturation/overflow is introduced by a dead row.
+- No context, arena, scratch capacity, allocation, cache, queue unit, reader,
+  pool, wait ordering or DMA/HMX geometry changes. Same pack_job, pack_done,
+  stack pack context and last_job lifecycle. Existing foreground and last
+  background joins plus expansion joins are retained on error out. There is
+  no early return after new work is submitted that bypasses existing cleanup.
+
+Independent executions in this review directory
+1. san/: actual HVX gather198 cases and16 source-extracted guard cases PASS.
+   Rows0..65, arbitrary byte/maps, slots0/64,1/8 pthread lanes, reversed unit
+   order, exact valid bytes, untouched gap canaries and generic skip values.
+2. san/: actual SDK/libnative i24 GU and DN epilogues512 cases PASS. m1..64,
+   lanes1/8 and6144/8192 tile strides; dead accumulator rows differ while
+   complete output and scatter-seen bytes remain identical.
+3. san/: both actual production MoE TUs and actual pthread pool,21 cases PASS
+   (5 complete GU/DN computations and16 first-HMX failure injections).
+   Native compact E1/63/64, shared slots with unequal expert routing weights,
+   mixed int4 fallback, E65 fallback, second64-row block, and M1024/2048
+   error cases. Equal return codes, valid FP32 bytes, scratch capacity and
+   redzones; all gather work retired before output/scratch were released.
+4. mutants/: all7 mutants rejected for intended runtime assertions:
+   floor4/restore16 metadata, offset4, generic skip change, E65/mixed guards,
+   and wrong whole-TU dispatch. The last executes actual kernel dispatch;
+   remaining cases execute actual extracted metadata/guard/worker bodies.
+5. codegen/: independent complete before/after v81 TU asm AND object compile
+   with -O3 -Wall -Werror PASS. Main frame17152->17152B, existing generic
+   worker8B, new worker0B. Generic worker124 object bytes/SHA400925ef... are
+   identical in our own pair. New worker48B; main21392->21840B. The private
+   worker tail-calls the unchanged gather primitive. This is pre-link object
+   evidence, not full runtime binary identity. See function-bytes.json.
+
+Limits
+The whole-TU check uses immediate DMA and scalar HMX/quant/math stand-ins;
+only gather and pthread worker pool are actual implementations. The i24
+consumers are tested separately with actual HVX instructions via libnative.
+Physical HMX conversion, cache visibility, device scheduling, output IDs,
+peak memory and throughput still require root's model runs. ASan/UBSan are
+active; only the pre-existing scalar stand-in TU suppresses shift-base for
+its signed-negative exponent shift. No production/actual-HVX TU suppression.
+
+The generic worker is identical, but the common entry/metadata body grows.
+This does not establish identical Gemma performance or a net speedup. The
+removed row-group stores/loads are logical instruction work, not measured
+DRAM bytes or serial latency; unchanged full HMX/DMA work can dominate and
+new scalar metadata overhead may offset the saving.

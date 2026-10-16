@@ -1,0 +1,139 @@
+{
+  "verdict": "no_blocker_for_device_validation",
+  "source_sha256": "725b006d02ebfedd442279e54691c499ad1ebc7270959bf6dafa4b2c6f33e3ba",
+  "production_patch_sha256": "4008a7108a632d218fbb081fb16eb06a884db4a9c70bc4da1dbf45a3aadf7824",
+  "tests_patch_sha256": "75e264f53c041bc9ce91a1b9417ed7fcd04667a97d4660b2de5c03654fef147a",
+  "independent_checks": {
+    "helper": "PASS",
+    "helper_cases": 198,
+    "guard_cases": 16,
+    "readout": "PASS",
+    "readout_cases": 512,
+    "source_sha256": "725b006d02ebfedd442279e54691c499ad1ebc7270959bf6dafa4b2c6f33e3ba",
+    "sanitizers": true,
+    "limits": "libnative HVX; no physical DMA/HMX or TPS proof",
+    "whole_tu": "PASS",
+    "whole_cases": 21,
+    "whole_limits": "Actual kernel, gather, pthread pool; immediate DMA/scalar HMX and math stand-ins; compact i24 Hexagon-only branch is a source/codegen proof; shift-base UBSan disabled only in scalar stand-in TU (existing swiglu_det_exp negative exponent shift)"
+  },
+  "independent_mutants": {
+    "source_sha256": "725b006d02ebfedd442279e54691c499ad1ebc7270959bf6dafa4b2c6f33e3ba",
+    "checks_sha256": "2320410474bd07611ad03e7253750e9a84078e6d4ef0327e64178dea0100ca09",
+    "results": [
+      {
+        "name": "floor4",
+        "returncode": -6,
+        "killed": true,
+        "whole_tu": false,
+        "mutated_source_sha256": "8d86096c145b6613c059eb6715396f1d7e60a35647e2cbec83b01a711c409e3d",
+        "evidence": "check: /tmp/nntr-lfm2-m-tail-gather-review-20261017/frozen/candidate/test/htp/host/lfm_tail_gather_check.c:91: check_rows: Assertion `newmeta[u] == count' failed."
+      },
+      {
+        "name": "restore16",
+        "returncode": -6,
+        "killed": true,
+        "whole_tu": false,
+        "mutated_source_sha256": "513afe653787f56f1de5b06cec1d1998810256e534c01c5e51c7e557554607d8",
+        "evidence": "check: /tmp/nntr-lfm2-m-tail-gather-review-20261017/frozen/candidate/test/htp/host/lfm_tail_gather_check.c:91: check_rows: Assertion `newmeta[u] == count' failed."
+      },
+      {
+        "name": "offset4",
+        "returncode": -6,
+        "killed": true,
+        "whole_tu": false,
+        "mutated_source_sha256": "2bfa6e7ff192858fd984cc16d50a58eecde822b3b4c52f3546fa31f2b5bbcdf2",
+        "evidence": "check: /tmp/nntr-lfm2-m-tail-gather-review-20261017/frozen/candidate/test/htp/host/lfm_tail_gather_check.c:122: check_rows: Assertion `!memcmp(cand.act_ah + off, ref.act_ah + off, 32u)' failed."
+      },
+      {
+        "name": "generic_skip",
+        "returncode": -6,
+        "killed": true,
+        "whole_tu": false,
+        "mutated_source_sha256": "b50a015bff30d115e54fabccb6387762fd536fbd56b511c2b942587a56eff8a7",
+        "evidence": "check: /tmp/nntr-lfm2-m-tail-gather-review-20261017/frozen/candidate/test/htp/host/lfm_tail_gather_check.c:142: check_rows: Assertion `!gather_calls && !gather_rows' failed."
+      },
+      {
+        "name": "expert65",
+        "returncode": -6,
+        "killed": true,
+        "whole_tu": false,
+        "mutated_source_sha256": "d25143ff76a86aebef9dfb5e4b3346dc1f6131991008dcef51cc2185308b74ee",
+        "evidence": "check: /tmp/nntr-lfm2-m-tail-gather-review-20261017/frozen/candidate/test/htp/host/lfm_tail_gather_check.c:158: check_guards: Assertion `!actual_guard(x)' failed."
+      },
+      {
+        "name": "mixed_guard",
+        "returncode": -6,
+        "killed": true,
+        "whole_tu": false,
+        "mutated_source_sha256": "479d5ce24aa4bc1f0a9c1387a0df531c3c1dbb5b7ef1f5cf0914b266de4fe832",
+        "evidence": "check: /tmp/nntr-lfm2-m-tail-gather-review-20261017/frozen/candidate/test/htp/host/lfm_tail_gather_check.c:158: check_guards: Assertion `!actual_guard(x)' failed."
+      },
+      {
+        "name": "wrong_dispatch",
+        "returncode": -6,
+        "killed": true,
+        "whole_tu": true,
+        "mutated_source_sha256": "8b3bd1e40f35dc5cd4a7c4cbcabcf388ec5997ecc19dc1b9d272f2f7c151ac22",
+        "evidence": "check: /tmp/nntr-lfm2-m-tail-gather-review-20261017/frozen/candidate/test/htp/host/lfm_tail_gather_tu_check.c:139: check: Assertion `gather_rows == gathered' failed."
+      }
+    ]
+  },
+  "independent_v81": [
+    {
+      "source": "baseline",
+      "kind": "asm",
+      "status": "PASS"
+    },
+    {
+      "source": "baseline",
+      "kind": "object",
+      "status": "PASS"
+    },
+    {
+      "source": "candidate",
+      "kind": "asm",
+      "status": "PASS"
+    },
+    {
+      "source": "candidate",
+      "kind": "object",
+      "status": "PASS"
+    }
+  ],
+  "function_bytes": {
+    "baseline": {
+      "hexkl_moe_pack_bg_worker": {
+        "bytes": 124,
+        "sha256": "400925ef73e0a9e9c1947d5ca22eb5543287abb73f04898bbd2d8df50efa2d70"
+      },
+      "hexkl_mm_u8i4_moe_layer_run": {
+        "bytes": 21392,
+        "sha256": "455eec36f122b9f6b8a7c8a7366476650f97d04c22c00565ce9c611690b4eeec"
+      }
+    },
+    "candidate": {
+      "hexkl_moe_pack_bg_worker": {
+        "bytes": 124,
+        "sha256": "400925ef73e0a9e9c1947d5ca22eb5543287abb73f04898bbd2d8df50efa2d70"
+      },
+      "hexkl_mm_u8i4_moe_layer_run": {
+        "bytes": 21840,
+        "sha256": "6f53d10d8034b7380fbde4ce84fc347e7199cf87e5e6af3b8800d821663f4b54"
+      },
+      "moe_lfm_pack_bg_worker": {
+        "bytes": 48,
+        "sha256": "397f985fa0eb9a8d1303fea0a27e0bfc4b9ea7ca4a29019da8abc512fedea8ab"
+      }
+    },
+    "generic_worker_exact": true
+  },
+  "stack_bytes": {
+    "main_before": 17152,
+    "main_after": 17152,
+    "generic_worker": 8,
+    "new_worker": 0
+  },
+  "phone_used": false,
+  "root_modified": false,
+  "performance_claim": null
+}

@@ -1,0 +1,118 @@
+                  U HAP_perf_qtimer_count_to_us
+                  U _GLOBAL_OFFSET_TABLE_
+                  U __hexagon_udivdi3
+                  U __hexagon_udivsi3
+                  U __hexagon_umodsi3
+0000a89c 00000688 t fc_m1_worker
+                  U free
+00000480 00000800 b g_fc_m1_desc
+00000080 00000400 b g_m1q_desc
+00000000 00000004 b g_moe_src_bypass
+00006b20 00000088 t hexkl_acc_i24_banks
+00006ba8 000000c0 t hexkl_acc_i24_prepare
+00006a94 0000008c t hexkl_acc_i24_usable
+                  U hexkl_acc_layout_get
+                  U hexkl_dma_lane_push2d
+                  U hexkl_dma_lane_wait
+                  U hexkl_dma_ring_drain
+                  U hexkl_dma_ring_next_idx
+                  U hexkl_dma_ring_push2d
+                  U hexkl_dma_ring_reset
+                  U hexkl_dma_ring_wait
+                  U hexkl_dma_trace_finish
+                  U hexkl_dma_trace_push
+                  U hexkl_dma_trace_reset
+                  U hexkl_dma_trace_sample
+                  U hexkl_dma_trace_wait_begin
+                  U hexkl_dma_trace_wait_end
+                  U hexkl_micro_hmx_acc_clear_int32
+                  U hexkl_micro_hmx_acc_read_int32
+                  U hexkl_micro_hmx_mm_u8i4
+0000a5ac 000002f0 T hexkl_mm_u8i4_fc_m1_run
+00001410 00005550 T hexkl_mm_u8i4_moe_layer_run
+000012d0 00000140 T hexkl_mm_u8i4_moe_layout
+00000100 00000020 T hexkl_moe_carve
+00000f58 00000168 T hexkl_moe_dma_copy
+00000b80 0000002c T hexkl_moe_expand_chunk
+00000edc 0000007c T hexkl_moe_pack_bg_worker
+00000e40 0000009c T hexkl_moe_push_act_block
+00000120 00000260 T hexkl_moe_push_weight_chunk
+00000000 0000004c T hexkl_moe_scratch_free
+0000004c 0000009c T hexkl_moe_scratch_reserve
+                  U hexkl_probe_on
+                  U hexkl_probe_us
+                  U hexkl_weight_tl2_refresh_pair
+00007464 0000018c t hexkl_wh_affine_sums
+00006a08 0000008c t htp_tl2_palette_magnitude
+                  U hvx_dequant_acc_3tiles_m1_f32
+                  U hvx_dequant_acc_4tiles_m1_f32
+                  U hvx_dequant_acc_tile_to_f32
+                  U hvx_dequant_acc_tiles_scatter_rows_affine_f32
+                  U hvx_dequant_acc_tiles_scatter_rows_f32
+                  U hvx_dequant_i24_tiles_scatter_rows_f32
+                  U hvx_dequant_swiglu_acc_tiles_to_f32
+                  U hvx_dq_swiglu_affine
+                  U hvx_dq_swiglu_i24
+                  U hvx_dq_swiglu_worker
+                  U hvx_expand_i2i4
+                  U hvx_expand_i2i4_rows
+                  U hvx_expand_i2i4_table
+                  U hvx_gather_u8_ah_rows
+                  U hvx_gemm_u8i2_wh_col
+                  U hvx_gemm_u8i2_wh_col_nopf
+                  U hvx_gemm_u8i2_wh_cols2_nopf
+                  U hvx_gemm_u8i2_wh_prefetch
+                  U hvx_gemm_u8i4_wh_col
+                  U hvx_gemm_u8i4_wh_col_nopf
+                  U hvx_gemm_u8i4_wh_prefetch
+                  U hvx_gemv_u8i4_wh_3col_nopf
+                  U hvx_gemv_u8i4_wh_4col_nopf
+                  U hvx_gemv_u8i4_wh_col_aligned_nopf
+                  U hvx_gemv_u8tl2_panel
+                  U hvx_quant_pack_u8_ah_m1_repeat
+                  U hvx_quant_pack_u8_ah_rows
+                  U hvx_quant_rows_u8_params
+                  U hvx_quant_rows_u8_params_rm
+                  U hvx_rmsnorm_rows_f32
+                  U hvx_scale_add_rows_f32
+                  U hvx_tl2_expand_wh96
+                  U hvx_tl2_expand_wh96_disjoint
+                  U hvx_tl2_k_splits
+                  U hvx_tl2_prepare
+                  U hvx_tl2_table_bytes
+                  U hvx_tl2_weight_bytes
+                  U hvx_worker_pool_run
+                  U hvx_worker_pool_submit
+                  U hvx_worker_pool_submit_bg
+                  U hvx_worker_pool_wait
+                  U hvx_worker_pool_wait_bg
+                  U hvx_worker_pool_workers
+                  U malloc
+                  U memcmp
+                  U memcpy
+                  U memset
+000069b4 00000054 t moe_all_2bit
+00006960 00000054 t moe_all_4bit
+000010c0 00000210 t moe_dma_copy
+0000a424 000000c4 t moe_dn_fg_worker
+0000b300 0000021c t moe_dn_rows
+0000a370 000000b4 t moe_dn_unit
+0000a1c4 000001ac t moe_dn_worker
+00000bac 00000294 t moe_expand_chunk
+00009de0 00000304 t moe_expand_submit
+0000af24 000002c4 t moe_expand_unit
+0000a0e4 000000e0 t moe_gu_worker
+00009ce0 00000030 t moe_lfm_pack_bg_worker
+000090ec 00000bf0 t moe_m1_down_worker
+000075f0 00000800 t moe_m1_pair_worker
+00007344 00000120 t moe_m1_push
+00007260 000000e4 t moe_m1_q_post
+00007df0 0000034c t moe_m1_q_post_after_a
+0000b1e8 00000118 t moe_m1_q_worker
+000087cc 00000920 t moe_m1_requant_worker
+00008774 00000058 t moe_m1_wait
+00009d10 000000d0 t moe_push_act_block
+00006c68 000005f8 t moe_push_gate_up_chunks
+00000380 000007f0 t moe_push_native_chunk
+0000a4e8 000000c4 t moe_push_weight_chunk
+0000813c 00000638 t moe_tl2_gate_epilogue_worker

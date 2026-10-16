@@ -1,0 +1,70 @@
+[
+  {
+    "name": "probe",
+    "repeat": 0,
+    "sha256": "1e5e21280a9300cf1f1ab5c4d690407b4d22be58a49c7685c947ac1b7e16af80",
+    "sizes": {
+      "probe_lane": 5320
+    }
+  },
+  {
+    "name": "probe",
+    "repeat": 1,
+    "sha256": "ff29758944f7c85639960a8d9acc1a41712908ada5361fee9bd584e31784bfb1",
+    "sizes": {
+      "probe_lane": 5256
+    }
+  },
+  {
+    "name": "probe",
+    "repeat": 2,
+    "sha256": "d6d41d26ffaeff82b8162b2125bbb712e5e88f62848e8b20866590e9eced08f2",
+    "sizes": {
+      "probe_lane": 5288
+    }
+  },
+  {
+    "name": "probe",
+    "repeat": 3,
+    "sha256": "8ddd6154268139f9eb624101345110e426a4981ae623ef22d25242c0daeb484f",
+    "sizes": {
+      "probe_lane": 5288
+    }
+  },
+  {
+    "name": "softmax",
+    "repeat": 0,
+    "sha256": "07dc88870f605091f192ad2b7ea54ed8b4cab4c3c09b927d0887b9d961d21bdf",
+    "sizes": {
+      "hvx_softmax_q": 4152,
+      "hvx_softmax_q16_part_max": 1220
+    }
+  },
+  {
+    "name": "softmax",
+    "repeat": 1,
+    "sha256": "b23b20a0c2420a180622bc0a657bdd63bdbe048418d581273c93a63ba3681c6a",
+    "sizes": {
+      "hvx_softmax_q": 4156,
+      "hvx_softmax_q16_part_max": 1216
+    }
+  },
+  {
+    "name": "softmax",
+    "repeat": 2,
+    "sha256": "b23b20a0c2420a180622bc0a657bdd63bdbe048418d581273c93a63ba3681c6a",
+    "sizes": {
+      "hvx_softmax_q": 4156,
+      "hvx_softmax_q16_part_max": 1216
+    }
+  },
+  {
+    "name": "softmax",
+    "repeat": 3,
+    "sha256": "b23b20a0c2420a180622bc0a657bdd63bdbe048418d581273c93a63ba3681c6a",
+    "sizes": {
+      "hvx_softmax_q": 4156,
+      "hvx_softmax_q16_part_max": 1216
+    }
+  }
+]

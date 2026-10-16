@@ -1,0 +1,21 @@
+{
+  "reason": "Hexagon llvm-objcopy --dump-section without explicit output rewrote input files; detected by deployment comparison before any model run. Original deployment binaries recovered and hashes verified. Initial baseline/rebuilt text-size discrepancy predates this audit side effect and remains under investigation.",
+  "files": [
+    {
+      "name": "control",
+      "original_sha256": "3baddb92d14d1d23fe9b6c6a7cacfe3a6cd4708001c110bb8b15e1b0b7276f7c",
+      "rewritten_sha256": "8f890205963305469691e8b622bb0206aad530570942dba181ebb46e252df1d3",
+      "original_bytes": 738992,
+      "rewritten_bytes": 737056,
+      "recovered_from_variant": "lfm-tail-gather-control"
+    },
+    {
+      "name": "rebuilt",
+      "original_sha256": "72083514bdf2a07a3be1be4c6c9bbd627e513e3a10950e7597a8709a65ed04c8",
+      "rewritten_sha256": "8359ec29e4d95e838dc0c6926d54263a67c140921fa15351da2e4e4f891efb25",
+      "original_bytes": 738992,
+      "rewritten_bytes": 737148,
+      "recovered_from_variant": "lfm-tail-gather-reverted"
+    }
+  ]
+}

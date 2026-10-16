@@ -1,0 +1,41 @@
+[
+  {
+    "symbol": "hvx_softmax_q",
+    "control": {
+      "address": 584680,
+      "size": 4156,
+      "type": "T"
+    },
+    "rebuilt": {
+      "address": 584648,
+      "size": 4152,
+      "type": "T"
+    }
+  },
+  {
+    "symbol": "hvx_softmax_q16_part_max",
+    "control": {
+      "address": 588836,
+      "size": 1216,
+      "type": "T"
+    },
+    "rebuilt": {
+      "address": 588800,
+      "size": 1220,
+      "type": "T"
+    }
+  },
+  {
+    "symbol": "probe_lane",
+    "control": {
+      "address": 163560,
+      "size": 5320,
+      "type": "t"
+    },
+    "rebuilt": {
+      "address": 163560,
+      "size": 5288,
+      "type": "t"
+    }
+  }
+]

@@ -1,0 +1,22 @@
+[
+  {
+    "source": "baseline",
+    "kind": "asm",
+    "status": "PASS"
+  },
+  {
+    "source": "baseline",
+    "kind": "object",
+    "status": "PASS"
+  },
+  {
+    "source": "candidate",
+    "kind": "asm",
+    "status": "PASS"
+  },
+  {
+    "source": "candidate",
+    "kind": "object",
+    "status": "PASS"
+  }
+]
