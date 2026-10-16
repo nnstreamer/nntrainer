@@ -187,7 +187,89 @@ static void cancellableFailures_n() {
   }
 }
 
+/** Only unread queued work moves to demand; no buffer is borrowed. */
+static void queuedDemandHandoff_p() {
+  int keys[3]{};
+  auto active = std::make_shared<std::array<unsigned, 1024>>();
+  auto queued = std::make_shared<std::array<unsigned, 1024>>();
+  queued->fill(99);
+  std::promise<void> entered, release;
+  auto started = entered.get_future();
+  auto allowed = release.get_future().share();
+  Queue q({{active}, {queued}}, 1, [&](Buffer &b) {
+    if (b.value == 1) {
+      entered.set_value();
+      allowed.wait();
+    }
+    b.data->fill(b.value);
+    return true;
+  });
+  assert(q.submit(keys, 1, [](Buffer &b) { b.value = 1; }));
+  checkpoint(started);
+  assert(q.submit(keys + 1, 1, [](Buffer &b) { b.value = 2; }));
+  assert(q.claim(keys, true)); // Already Reading: keep the ordinary claim.
+  assert(!q.claim(keys + 1, true));
+  assert(!q.claim(keys + 1, true)); // No second removal of the queued index.
+  assert(!q.take(keys + 1, [](Buffer &) { assert(false); }));
+  assert(!q.takeClaimed(keys + 1, [](Buffer &) { assert(false); }));
+  // The tombstone rejects a late predictor until the miss batch expires.
+  assert(!q.submit(keys + 1, 1, [](Buffer &) { assert(false); }));
+  assert(!q.submit(keys + 2, 2, [](Buffer &) { assert(false); }));
+  for (unsigned value : *queued)
+    assert(value == 99);
+  q.expireBefore(2);
+  assert(!q.submit(keys + 1, 1, [](Buffer &) { assert(false); }));
+  assert(q.submit(keys + 2, 2, [&](Buffer &b) {
+    assert(b.data == queued);
+    b.value = 3;
+  }));
+  release.set_value();
+  completed(q, 2);
+  assert(q.takeClaimed(keys, [](Buffer &b) {
+    for (unsigned value : *b.data)
+      assert(value == 1);
+  }));
+  assert(q.claim(keys + 2, true)); // Ready is also consumed normally.
+  assert(q.takeClaimed(keys + 2, [](Buffer &b) {
+    for (unsigned value : *b.data)
+      assert(value == 3);
+  }));
+  const auto stats = q.stats();
+  assert(stats.handed_off == 1 && stats.discarded == 1 && stats.joined == 1 &&
+         stats.completed == 2 && stats.used == 2 && stats.failed == 0);
+}
+
+/** An error before demand dispatch can drain a removed queued key safely. */
+static void abandonedHandoffDrain_p() {
+  int keys[2]{};
+  auto a = std::make_shared<std::array<unsigned, 1024>>();
+  auto b = std::make_shared<std::array<unsigned, 1024>>();
+  std::promise<void> entered, release;
+  auto started = entered.get_future();
+  auto allowed = release.get_future().share();
+  Queue q({{a}, {b}}, 1, [&](Buffer &buffer) {
+    if (buffer.value == 1) {
+      entered.set_value();
+      allowed.wait();
+    }
+    return true;
+  });
+  assert(q.submit(keys, 1, [](Buffer &buffer) { buffer.value = 1; }));
+  checkpoint(started);
+  assert(q.submit(keys + 1, 1, [](Buffer &buffer) { buffer.value = 2; }));
+  assert(!q.claim(keys + 1, true));
+  release.set_value();
+  q.drain();
+  assert(q.stats().completed == 1 && q.stats().handed_off == 1 &&
+         q.stats().discarded == 2);
+  assert(q.submit(keys + 1, 2, [](Buffer &buffer) { buffer.value = 3; }));
+  completed(q, 2);
+  assert(q.take(keys + 1, [](Buffer &) {}));
+}
+
 int main() {
+  queuedDemandHandoff_p();
+  abandonedHandoffDrain_p();
   cooperativeCancellation_p();
   claimedCancellationGuard_p();
   lateCompletion_n();

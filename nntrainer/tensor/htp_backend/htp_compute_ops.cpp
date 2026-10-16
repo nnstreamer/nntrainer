@@ -3925,9 +3925,17 @@ public:
         // becomes a spare with no DSP handles. S1 rebinds that pair in its
         // existing miss answer, after evicting its former graph entry.
         const char *join = std::getenv("NNTR_MOE_PREFETCH_JOIN");
+        static const bool handoff = [] {
+          const char *v = std::getenv("NNTR_LFM2_DECODE_DEMAND_HANDOFF");
+          return v && std::strcmp(v, "1") == 0;
+        }();
         for (auto &st : p.pending) {
           if (!join || std::strcmp(join, "0") != 0)
-            st.prefetch_claimed = pool_prefetch_->claim(st.d.key_gu);
+            st.prefetch_claimed = pool_prefetch_->claim(
+              st.d.key_gu, handoff && weightPageCachePolicy() == 0 &&
+                             st.d.w_bits == HTP_TL2_WEIGHT_BITS &&
+                             st.d.K == 2048u && st.d.inter == 1536u &&
+                             st.d.N_out == 2048u);
           else
             pool_prefetch_->take(st.d.key_gu, [&st](StagedExpert &ready) {
               adoptPrefetch(st, ready);
@@ -8439,12 +8447,12 @@ private:
         stderr,
         "[HTP-PREFETCH] submitted=%llu completed=%llu used=%llu late=%llu "
         "discarded=%llu failed=%llu full=%llu joined=%llu cancelled=%llu "
-        "registration_rpc=0\n",
+        "handed_off=%llu registration_rpc=0\n",
         (unsigned long long)s.submitted, (unsigned long long)s.completed,
         (unsigned long long)s.used, (unsigned long long)s.late,
         (unsigned long long)s.discarded, (unsigned long long)s.failed,
         (unsigned long long)s.full, (unsigned long long)s.joined,
-        (unsigned long long)s.cancelled);
+        (unsigned long long)s.cancelled, (unsigned long long)s.handed_off);
     });
   }
 

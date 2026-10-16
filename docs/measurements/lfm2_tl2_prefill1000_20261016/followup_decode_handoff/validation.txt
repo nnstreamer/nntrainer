@@ -1,0 +1,53 @@
+Base: bf10e0e04
+Worktree: nntrainer-lfm2-demand-handoff-20261016
+Patch: lfm2-queued-demand-handoff.patch
+Opt-in: NNTR_LFM2_DECODE_DEMAND_HANDOFF=1 (default off).
+Keep NNTR_MOE_PREFETCH_JOIN unset/1; JOIN=0 intentionally bypasses claims.
+Guard: native TL2 K2048/inter1536/N2048 and NNTR_HTP_PAGE_CACHE=0.
+
+Mechanism:
+- The queue mutex arbitrates a worker starting against the actual demand claim.
+- Queued work is removed before any speculative I/O. claim returns false, so
+  the existing readMisses path fills the demand slot already staged by policy.
+- A HandedOff tombstone reserves the key until the current batch's existing
+  expireBefore call. This prevents late same-epoch predictor resubmission.
+- Expiry frees only the unused spare. No payload pointer leaves the queue.
+- Reading and Ready keep the existing claim/join/adopt behavior.
+- An exception before demand dispatch is cleaned by the existing queue drain.
+- Demand errors continue through the existing read pool and poolAnswer path;
+  failed payloads cannot be adopted or returned as successful model weights.
+
+Fixed resources:
+C16/shared608, preload128, PAGE0, GROW0 and 32 speculative spares unchanged.
+No new read threads, payload cache, DMA buffers, VTCM or per-reader scratch.
+The existing four-reader demand pool reads more real misses concurrently with
+up to two existing speculative readers. Initial use of existing TLS scratch can
+move earlier, so root should retain the normal full-process peak measurement.
+One uint64_t counter is added to each generic prefetch queue Stats object;
+HandedOff uses the existing state field. The counter prints at shutdown only.
+
+Counters:
+handed_off: queued callbacks omitted in favor of regular demand reads.
+These are counted in late, and in discarded on expiry, but NOT joined,
+completed, cancelled or used. No I/O volume should be inferred from discarded.
+Existing completed/used/cancelled and actual demand-pair counters still provide
+the read-volume estimate. Future measurements must compare actual IDs, total
+misses, handed_off, exposed wait, TPS and peak under the same fixed settings.
+The previous logs did not separate Queued from Reading, so no defensible
+speedup estimate or 25 TPS claim is made before the device A/B.
+
+Validation performed:
+- Existing and new expert_prefetch_check with -O2 -Wall -Wextra -Werror: PASS.
+- expert_prefetch_check with ASan+UBSan: PASS.
+- tl2_pair_read_check + production WeightFileReader/native pack/unpack with
+  ASan+UBSan: PASS for both LFM2 and Gemma4 geometries.
+- Checks retain in-flight/claimed cancellation and zero-copy adoption tests,
+  add removal/duplicate prevention/ready retention/abandoned-demand drain,
+  and execute real queued-handoff demand reads while speculation is held.
+- EOF and EBADF throw through the existing four-reader demand pool, join all
+  work, never register/adopt a failed load, and allow subsequent reuse.
+- Native code/tails remain exact; mmap/mincore reports no populated page cache.
+- clang-format14 on all changed lines; git diff --check PASS.
+- Candidate applies cleanly on bf10e0e04, all host-validated sources confirmed
+  byte-identical between the implementation and final bf10 worktrees.
+- No root worktree edits, device runs, Android build or DSP changes by agent.

@@ -407,6 +407,75 @@ static void eofIsNeverAdopted(Fixture &f) {
   assert(q.take(&key, [&](Buffer &b) { f.check(b); }));
 }
 
+/** Queued demand can finish while the speculative reader is still occupied.
+ * The existing demand slot owns the payload, including EOF/error cleanup. */
+static void queuedDemandRead(Fixture &f, unsigned failure) {
+  int keys[3]{};
+  Gate gate;
+  auto spare = f.payload();
+  const unsigned before = f.calls;
+  Queue q(
+    {{f.payload()}, {spare}}, 1,
+    [&](Buffer &b, const Queue::CancelCheck &) { return f.run(b, gate); });
+  assert(q.submit(keys, 40, [&](Buffer &b) {
+    b.offset = f.offsets[0];
+    b.gated = true;
+  }));
+  checkpoint(gate.entered_event);
+  const uint64_t offset = failure == 1 ? f.file.size() - 16 : f.offsets[1];
+  assert(q.submit(keys + 1, 40, [&](Buffer &b) { b.offset = offset; }));
+  assert(!q.claim(keys + 1, true));
+  assert(!q.submit(keys + 1, 40, [](Buffer &) { assert(false); }));
+  q.expireBefore(41);
+  Buffer demand{f.payload(), offset, false, 0, 42};
+  const auto retired = demand.payload;
+  nntrainer::HtpExpertReadPool pool(4);
+  std::atomic<unsigned> joined{0};
+  bool failed = false, registered = false;
+  try {
+    pool.run(4, [&](size_t job) {
+      ++joined;
+      if (job != 0)
+        return;
+      if (failure == 2) {
+        unsigned char byte = 0;
+        const nntrainer::WeightReadSlice part{&byte, 1};
+        demand.rc = nntrainer::weightPreadScatter(-1, &part, 1, offset);
+        assert(demand.rc == EBADF);
+      } else {
+        f.read(demand);
+      }
+      if (demand.rc)
+        throw std::runtime_error("demand read failure");
+    });
+    registered = true;
+  } catch (const std::runtime_error &) {
+    failed = true;
+  }
+  assert(joined == 4 && failed == (failure != 0) && registered == !failure);
+  assert(demand.payload == retired && demand.handle == 42);
+  assert(!q.takeClaimed(keys + 1, [](Buffer &) { assert(false); }));
+  assert(q.stats().completed == 0 && q.stats().handed_off == 1);
+  for (const auto &part : spare->parts)
+    for (auto byte : part)
+      assert(byte == 0xA5); // The removed guess performed no I/O.
+  gate.allow_io.set_value();
+  checkpoint(gate.read_event);
+  gate.allow_return.set_value();
+  completed(q, 1);
+  assert(f.calls == before + (failure == 2 ? 1u : 2u));
+  assert(q.submit(keys + 2, 41, [&](Buffer &b) {
+    b.offset = f.offsets[1];
+    b.gated = false;
+  }));
+  completed(q, 2);
+  assert(q.take(keys + 2, [&](Buffer &b) { f.check(b); }));
+  pool.run(1, [&](size_t) {
+    Buffer retry{f.payload(), f.offsets[1]};
+    assert(f.read(retry) == 0);
+  });
+}
+
 } // namespace
 
 int main(int argc, char **argv) {
@@ -421,6 +490,8 @@ int main(int argc, char **argv) {
       claimedReadSurvivesExpiry(f);
       queuedExpiryAndGenerationReuse(f);
       eofIsNeverAdopted(f);
+      for (unsigned failure = 0; failure < 3; ++failure)
+        queuedDemandRead(f, failure);
     }
     printf("TL2 PAIR K%u/I%u/N%u: native/scatter/EOF, batch join, "
            "retired/claimed ownership, epoch reuse/adopt, no page cache PASS\n",
