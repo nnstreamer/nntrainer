@@ -2143,6 +2143,13 @@ int hexkl_mm_u8i4_moe_layer_run(
   const size_t tl2_gu_tables = hvx_tl2_table_bytes(K);
   const size_t tl2_dn_tables = hvx_tl2_table_bytes(inter);
   const uint32_t use_tl2 = use_m1 && n_tl2 != 0u;
+  /* Only row zero is consumed by the native LFM M1 workers. Keep the
+   * scratch layout, but leave HMX-only padding and the unused rows_out
+   * accumulator untouched. Repeated rows and mixed formats keep their setup. */
+  const int lfm_m1_setup =
+    use_tl2 && K == 2048u && inter == 1536u && N_out == 2048u &&
+    n_experts == 64u && n_with_rows <= 4u && widest == 1u &&
+    n_tl2 == n_with_rows && !n_affine && act == HVX_GLU_SILU;
   if (use_tl2 && (M != 1u || !m1_feed || K > 8192u || inter > 8192u ||
                   2u * (uint64_t)feed_gu_bytes + tl2_gu_tables +
                       n_with_rows * tl2_dn_tables >
@@ -2416,7 +2423,8 @@ int hexkl_mm_u8i4_moe_layer_run(
      wrote are cleared at the end. The clear was 11.5 MB a 1024-row call,
      written and then read back by every row's first add. */
   if (use_m1 || n_active == 0u) {
-    memset(out_c, 0, sizeof(float) * (size_t)M * N_out);
+    if (!lfm_m1_setup || !rows_out)
+      memset(out_c, 0, sizeof(float) * (size_t)M * N_out);
   } else {
     memset(seen, 0, sz_seen);
   }
@@ -2480,10 +2488,10 @@ int hexkl_mm_u8i4_moe_layer_run(
   /** The scan is per source row and independent of where a row ends up, so
      it still runs once over M rows. */
   HEXKL_PROBE_T0(p0);
-  hvx_quant_rows_u8_params_rm(act_direct ? act_f32 : act_c, M, m_pad, K,
-                              scale_all, zp_all, use_tl2 ? act_ah : act_u8,
-                              act_direct ? pre_gamma : NULL, scratch->pre_eps,
-                              pre_rows, gu0_async ? NULL : pool);
+  hvx_quant_rows_u8_params_rm(
+    act_direct ? act_f32 : act_c, M, lfm_m1_setup ? 1u : m_pad, K, scale_all,
+    zp_all, use_tl2 ? act_ah : act_u8, act_direct ? pre_gamma : NULL,
+    scratch->pre_eps, pre_rows, gu0_async ? NULL : pool);
 
   /** Slot order: every active expert's rows, each expert padded up to a
      whole 64-row block. Padding slots repeat row 0 -- their accumulator
@@ -2498,6 +2506,12 @@ int hexkl_mm_u8i4_moe_layer_run(
       const uint32_t *rows_e = row_index + base_of[i];
       const uint32_t padded =
         ROUND_UP_U32(row_count[e], HEXKL_HMX_INT8_BLOCK_N_ROW);
+      if (lfm_m1_setup) {
+        slot_scale[d] = scale_all[0];
+        slot_zp[d] = zp_all[0];
+        d += padded;
+        continue;
+      }
       /** The pack units past the expert's last row hold padding only and
          are not packed: at a 1024-row prefill 128 experts' 4096 rows pad
          to ~12,700 slots, and packing the padding was two thirds of the

@@ -1,0 +1,12 @@
+{
+  "production.patch": "b76600a42b1a86ae200719e3aa27b3629c6469430721ac38c8f297ed9adeaa2b",
+  "tests.patch": "7f0c7b1a309492cd124eb7bcf030399e795bd330da3f8bc2e3e7baac43247f42",
+  "before/hexkl_mm_u8i4_moe.c": "5b10b86181c3b6cb307c518d7aa84a035b55d03d671cf20d9e1f2d66e053a151",
+  "candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "edf6cca45db3c1ca61201439b10adff94c31871ff43a0fa30e2a44947cbd55d2",
+  "candidate/test/htp/host/lfm2_m1_setup_check.c": "4805a8cb4711617c0234e99931f0c7134250e5960e87021be5fedbcdc5b811c7",
+  "candidate/test/htp/host/lfm2_m1_setup_check.py": "f140ed70ad5de5776ff5a4694987a693d19fab2b73e2fa56ae0f189e5422d78c",
+  "candidate/test/htp/host/lfm2_m1_setup_check.txt": "3921e5b5aee468252abce91b7b966f8c712066747d09d43718b83b74ac479838",
+  "checks/moe-before-v81.o": "0a8b94ee4202b2a97110d0608f5f4ad4ef636cb9dc3892673e977e84e3d1f1d8",
+  "checks/moe-v81.o": "1a3ab09cb5115cfc1a294dfe576e62566dea52d883dcf32e0e76129e6202ab7b",
+  "report.txt": "4b30cf7206435d637b13235f1e3c1af834f75e204257bd11dd6de4a2323d7689"
+}

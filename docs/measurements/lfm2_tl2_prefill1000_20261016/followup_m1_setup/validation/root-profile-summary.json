@@ -1,0 +1,22 @@
+[
+  {
+    "variant": 0,
+    "lines": [
+      "[HTP] graph per-kind us/token: RMSNORM=652 FC=6365 CONV1D_GATE=329 QK_NORM=187 ROPE=46 ATTN_M1=1870 ADD=138 ROUTER_TOPK=1549 MOE=41444(net of miss wait 9613) DENSE_FFN=1446 LM_HEAD=1325 | ops/wall=0.9956 compute_mhz=2113",
+      "[HTP] token driver: round us: notice=0 pre=20 read=1072 answer=1091 (arm total) | dsp overlap=126 wait=989 anslat=23 rebind=19",
+      "[HTP] token driver: moe calls/token=67.89 (one-at-a-time 123.84)"
+    ],
+    "moe_us_per_token": 41444,
+    "net_moe_us_per_token": 9613
+  },
+  {
+    "variant": 1,
+    "lines": [
+      "[HTP] graph per-kind us/token: RMSNORM=647 FC=6392 CONV1D_GATE=329 QK_NORM=182 ROPE=50 ATTN_M1=1857 ADD=137 ROUTER_TOPK=1547 MOE=40129(net of miss wait 9606) DENSE_FFN=1429 LM_HEAD=1322 | ops/wall=0.9956 compute_mhz=2112",
+      "[HTP] token driver: round us: notice=0 pre=19 read=1031 answer=1050 (arm total) | dsp overlap=126 wait=949 anslat=24 rebind=19",
+      "[HTP] token driver: moe calls/token=67.89 (one-at-a-time 123.84)"
+    ],
+    "moe_us_per_token": 40129,
+    "net_moe_us_per_token": 9606
+  }
+]

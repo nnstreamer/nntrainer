@@ -1,0 +1,46 @@
+[
+  {
+    "variant": "router-handoff-remapped",
+    "tag": "continue-m1-setup-profile0",
+    "model": "model",
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+    },
+    "profile": true
+  },
+  {
+    "variant": "m1-dead-setup",
+    "tag": "continue-m1-setup-profile1",
+    "model": "model",
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+    },
+    "profile": true
+  },
+  {
+    "variant": "m1-dead-setup",
+    "tag": "continue-m1-setup-2048",
+    "model": "model2048",
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+    }
+  }
+]

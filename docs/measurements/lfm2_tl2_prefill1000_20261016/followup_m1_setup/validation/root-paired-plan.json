@@ -1,0 +1,5 @@
+{
+  "design": "A1 B1 B2 A2 A3 B3; both variants HANDOFF=1; same binaries except DSP; normal unprofiled; fixed cache and memory sampling",
+  "prebuild_pilot": "continue-m1-setup-0-r1",
+  "pilot_note": "Earlier control run retained separately; balanced comparison restarted after build and validation gap, before viewing any candidate result."
+}

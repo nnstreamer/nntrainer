@@ -1,0 +1,86 @@
+Independent review: native LFM M1 dead setup
+
+Verdict
+No unresolved code, lifetime, arithmetic or integration blocker found in
+production patch b76600a42b1a86ae200719e3aa27b3629c6469430721ac38c8f297ed9adeaa2b.
+Ready for the parent's isolated device correctness/performance test. This
+review makes no TPS/latency or memory-peak claim from host/emulator execution.
+
+Scope and exact artifacts
+Base 03d652fc0; candidate SHA
+edf6cca45db3c1ca61201439b10adff94c31871ff43a0fa30e2a44947cbd55d2.
+Read-only integrated root at committed handoff HEAD 83b3235830 has kernel SHA
+dcd1f6500e0a3bb191ac37601dca16c6170d9c55fe6e8903de52aa78b3ede161.
+Its entire uncommitted kernel diff is the same three guarded setup changes.
+All hashes, commands and observed logs are indexed by validation.json.
+
+Ownership and branch proof
+- use_tl2 inherits use_m1, nonzero n_with_rows and M==1. The new guard further
+  requires 2048/1536/2048, 64 experts, 1..4 active native-TL2 pairs, widest==1,
+  no affine offsets, and SwiGLU. Validated row_index entries must therefore
+  all be zero. Gemma, prefill, mixed QS2/TL2, affine, repeated expert rows and
+  non-M1 fallback execute the original setup. No ABI or platform API changes.
+- The carve layout, reserved need, n_slots capacity, 64-slot per-expert stride,
+  per-expert scratch and VTCM layout are unchanged. M1 disables shared slots,
+  so d==slot_of[i] and advancing by padded=64 still initializes each consumer's
+  unique row-zero scale/zp. There is no new cache, buffer, persistent state or
+  generation/lifetime protocol.
+- All-native GU constructs one dense activation LUT and skips AH packing.
+  slot_row and pack_skip are never read on this path. The generic HMX pack
+  consumers are after the M1 return. GU epilogues use m_count=1, and the actual
+  hvx_dequant_i32.c scalar parameter reads select scale/zp[0] only. DN uses its
+  separate per-expert requant scale/zp. Quantizer m_pad=1 changes only padding
+  defaults; m_valid=1, row-zero computation and dense activation bytes remain.
+- rows_out writes each output directly after its required y memset, preserving
+  the exact 0 + weight*result arithmetic and order. It then jumps to common
+  cleanup before out_c is read/copied. Ordinary accumulation still clears
+  out_c; ordinary zero-expert output still clears/copies zeros. Zero-expert
+  rows_out still returns the existing EUNSUPPORTED before any writes.
+- GU(0) asynchronous DMA only targets the existing VTCM weight slab. Quant is
+  inline with NULL pool while that worker owns the pool, then the same join
+  occurs. No submit/join, timeout drain, scratch growth or reuse order changes.
+  Common exit does not read skipped metadata. The existing pre_gamma M1 path
+  normalizes the row before quantization and is included in the checks.
+- Integrated router handoff excludes use_m1. Its input-prefix carve therefore
+  cannot change this candidate's M1 offsets; the combined diff was inspected.
+
+Independent executions
+1. Actual baseline and candidate whole MoE C translation units, with an
+   observation-only hook inserted at the identical QUANT completion anchor:
+   31 ASan/UBSan-halt cases PASS. Actual quantizer uses SDK libnative. Covered
+   1..4 experts, both output modes, 1/8 lanes and 1/4 queues, pending GU job,
+   negative/unequal route weights, zero/tie/tiny/random inputs, E32/GeGLU/Gemma
+   shape fallbacks, invalid row, timeout with drain, both zero-expert modes.
+   Scratch is reused without refill through qualified4 -> E32 fallback ->
+   qualified1 -> qualified4 normal output -> pre_gamma. Skipped bytes equal
+   pre-call snapshots, then are ASan poisoned for all consumers. FP32 output,
+   scales and zero-points match bit for bit; output canaries are unchanged.
+2. Additional actual hvx_dequant_i32.c on SDK libnative, ASan/UBSan: 96 cases
+   PASS (M1, 1/3/48 tile pairs, 1..8 worker slices, four scales). Poisoned
+   scale/zp[1..63], unused accumulator rows and output rows remain untouched;
+   output bytes equal unpoisoned baseline. A deliberately added scale[1] read
+   is rejected by ASan use-after-poison. This supplements, rather than hides,
+   the whole-kernel fixture's scalar epilogue limitation.
+3. Author-run mutations read_padding, missing_row_zero and fallback_clear
+   were independently inspected: each has its required assertion/ASan error.
+   These three executions were not independently repeated. Parent reports
+   full integrated v81 DSP build and clang-format14 PASS.
+
+Sanitizer and evidence limits
+Existing scalar swiglu_det.h:152 shifts a negative signed exponent. The
+whole-kernel runner suppresses only shift-base in the scalar stand-in TU;
+all checks remain on for both production MoE TUs and the actual quantizer.
+The original baseline diagnostic is retained at the author's
+checks/san/known-shift.log. The independent real HVX epilogue uses neither
+that scalar routine nor this suppression. SDK libnative does not reproduce
+real DSP cache coherence, asynchronous overlap, clock or thermal behavior.
+Full-model IDs, repeated prompt state and actual speed remain parent's
+required device gates. No Gemma device rerun or memory/cache increase is
+needed to validate this narrowly guarded LFM-only candidate.
+
+Reproduction
+Run the command array in validation.json:whole_kernel.command, or replay
+whole-kernel/commands.json. For the additional real epilogue, replay
+native-epilogue/commands.json, then native-epilogue/mutant-commands.json;
+its final mutant command must fail with use-after-poison. All build products
+and source-generation hooks stay in this /tmp directory.

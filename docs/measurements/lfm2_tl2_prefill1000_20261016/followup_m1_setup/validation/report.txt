@@ -1,0 +1,72 @@
+Native LFM M1 dead setup candidate — final source/host validation
+
+Base: 03d652fc0b8e7785385d08bafd0ca51845b5bdb6.
+Production changes: only hmx/hexkl_mm_u8i4_moe.c, four local hunks.
+No new API, public knob, allocation, persistent state, descriptor, DMA,
+thread, reader, cache slot or kernel call. Heap carve sizes, strides and
+VTCM layout are unchanged. v81 layer function stack is 17152 bytes on both
+before and candidate (-O3 -Wall -Werror); compile logs and commands are in
+checks/v81-{before-,}command.json and checks/v81-{before-,}compile.log.
+
+Eligibility requires native M1, K=2048/inter=1536/N=2048, E=64, 1..4 active
+experts, widest=1, all active experts native TL2, no affine offsets and SiLU.
+The existing use_tl2 check implies M=1 and validates feed/arena constraints
+before any setup; row indices are already validated. GeLU, other shapes,
+prefill, mixed formats, affine and repeated-row paths retain the old setup.
+Zero-expert ordinary output still clears; zero-expert rows_out still returns
+EUNSUPPORTED without writes. No changes to final expert ordering or math.
+
+Eligible calls initialize only scale_all/zp_all row zero (m_pad argument 1)
+and each used expert slot's scale/zp zero. The allocations and 64-row strides
+remain unchanged. Native workers consume no slot_row/pack_skip/padded params.
+Only when rows_out is active is the separate unused out_c clear omitted.
+Per-expert y zero and hvx_scale_add_rows_f32 are unchanged, preserving the
+actual 0 + weighted result and FP32 operation order. Output-copy and pool/error
+drains are unchanged.
+
+Validation:
+- Optimized host before/candidate whole-TU check: 31 cases PASS.
+- ASan+UBSan whole-TU check: same 31 PASS, no diagnostic errors.
+- Three mutants were rejected for the intended reasons: read-padding
+  use-after-poison; missing-row-zero output parity assertion; fallback-clear
+  untouched/zero assertion. Logs under checks/san/mutant-*.log.
+- Production HVX quantizer via SDK libnative, real TL2 scalar LUT/GEMV.
+- E32/GeLU/Gemma shape fallbacks; 1..4 experts and rows_out on/off; failed
+  row and DMA timeout; real scratch reuse without refilling; pre_gamma.
+- The observer snapshots unused storage before every call, checks unchanged
+  bytes, then ASan-poisons that storage for the remaining actual MoE call.
+- Both v81 TUs compile with -mv81 -mhvx -mhvx-length=128B -mhmx -O3 -Werror.
+- Independent reviewer rebuilt and passed the same 31-case suite, plus 96
+  actual HVX epilogue cases through libnative with poisoned unused rows and
+  an ASan padding-read mutant. See /tmp/nntr-lfm2-m1-dead-setup-review-20261016/
+  review.txt and validation.json. No correctness blocker was found.
+
+Fixture limitations and resolved diagnostics:
+The pool/DMA and epilogue stand-ins cannot measure real overlap or instruction
+timing. They do exercise the actual source's pointer/layout/lifetime decisions.
+A prior development run enabled a 4-bit-only scoreboard to inject timeout,
+which printed FEED live-slab messages because native TL2 has no column-read
+callbacks. This was removed before final logs. The fixture now injects a lane
+wait error independently and explicitly models a NULL pool's inline behavior,
+preserving GU(0)'s pending status. These were test-harness issues, not changes
+to candidate code. Final host and sanitizer logs contain no FEED diagnostics.
+The initial UBSan run found existing scalar swiglu_det_exp's signed negative
+shift in swiglu_det.h:152, reached from the reference TU. Its stack is retained
+in checks/san/known-shift.log. Only the scalar stand-in TU disables shift-base;
+all production TU and quantizer sanitizer instrumentation remains enabled,
+with fatal UBSan. No production fix is bundled for that unrelated behavior.
+
+Performance scope:
+The earlier 64-token profile records 4345 MoE calls and 3972 rows_out calls.
+At most the latter avoid 508416 bytes/token of unused out_c stores. Slot
+padding avoids about 115520 bytes/token and scale_all padding another
+34216.875 bytes/token at those counts. These are source-store counts, not
+DRAM traffic or elapsed time, and exclude no LUT/quant arithmetic. There is
+no isolated measurement supporting a millisecond or TPS prediction. Actual
+phone A/B and exact generated IDs are required before adopting this candidate.
+Root alone performs device validation; this agent made no phone/root edits.
+
+Frozen production patch/source and portable tests hashes are in hashes.json.
+Minimal host reproduction and sanitizer exception are documented in
+candidate/test/htp/host/lfm2_m1_setup_check.txt. The test patch contains only
+that document, the C fixture and Python runner, and does not change CI defaults.

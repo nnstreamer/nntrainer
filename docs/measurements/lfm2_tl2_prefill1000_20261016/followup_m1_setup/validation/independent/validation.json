@@ -1,0 +1,96 @@
+{
+  "result": "No code/lifetime blocker found for isolated device A/B; performance and actual DSP full-model FP32 parity remain device gates.",
+  "source_hashes": {
+    "production_patch": {
+      "path": "/tmp/nntr-lfm2-m1-dead-setup-20261016/production.patch",
+      "sha256": "b76600a42b1a86ae200719e3aa27b3629c6469430721ac38c8f297ed9adeaa2b"
+    },
+    "candidate": {
+      "path": "/tmp/nntr-lfm2-m1-dead-setup-20261016/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c",
+      "sha256": "edf6cca45db3c1ca61201439b10adff94c31871ff43a0fa30e2a44947cbd55d2"
+    },
+    "baseline": {
+      "path": "/tmp/nntr-lfm2-m1-dead-setup-20261016/before/hexkl_mm_u8i4_moe.c",
+      "sha256": "5b10b86181c3b6cb307c518d7aa84a035b55d03d671cf20d9e1f2d66e053a151"
+    },
+    "fixture": {
+      "path": "/tmp/nntr-lfm2-m1-dead-setup-20261016/candidate/test/htp/host/lfm2_m1_setup_check.c",
+      "sha256": "4805a8cb4711617c0234e99931f0c7134250e5960e87021be5fedbcdc5b811c7"
+    },
+    "runner": {
+      "path": "/tmp/nntr-lfm2-m1-dead-setup-20261016/candidate/test/htp/host/lfm2_m1_setup_check.py",
+      "sha256": "f140ed70ad5de5776ff5a4694987a693d19fab2b73e2fa56ae0f189e5422d78c"
+    },
+    "integrated_root_read_only": {
+      "path": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c",
+      "sha256": "dcd1f6500e0a3bb191ac37601dca16c6170d9c55fe6e8903de52aa78b3ede161"
+    },
+    "real_epilogue": {
+      "path": "/tmp/nntr-lfm2-m1-dead-setup-20261016/candidate/nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.c",
+      "sha256": "2c4fed50f3e84cdd53124a15405eb563694c6e3c739271b354f21ffc1708b3b6"
+    },
+    "real_quantizer": {
+      "path": "/tmp/nntr-lfm2-m1-dead-setup-20261016/candidate/nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c",
+      "sha256": "f0544c1cb13422e63d72526f54cd9dab7ce5f1db4e611f714c31bfde8b857813"
+    }
+  },
+  "whole_kernel": {
+    "execution": "independent rebuild and run",
+    "cases": 31,
+    "result": "PASS",
+    "asan": true,
+    "ubsan_halt": true,
+    "sanitizer_limit": "shift-base excluded only from existing scalar epilogue stand-in (baseline swiglu_det.h:152 negative left shift); both production MoE TUs and real libnative quantizer fully instrumented",
+    "command": [
+      "python3",
+      "/tmp/nntr-lfm2-m1-dead-setup-20261016/candidate/test/htp/host/lfm2_m1_setup_check.py",
+      "--repo",
+      "/tmp/nntr-lfm2-m1-dead-setup-20261016/candidate",
+      "--reference",
+      "/tmp/nntr-lfm2-m1-dead-setup-20261016/before/hexkl_mm_u8i4_moe.c",
+      "--output",
+      "/tmp/nntr-lfm2-m1-dead-setup-review-20261016/whole-kernel",
+      "--hexagon-tools",
+      "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04",
+      "--sanitize"
+    ],
+    "logs": "/tmp/nntr-lfm2-m1-dead-setup-review-20261016/whole-kernel",
+    "limits": "DMA/pool scheduling and GEMV/epilogue host stand-ins do not prove DSP cache visibility or cycle timing."
+  },
+  "actual_hvx_epilogue": {
+    "actual_source": "/tmp/nntr-lfm2-m1-dead-setup-20261016/candidate/nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.c",
+    "source_sha256": "2c4fed50f3e84cdd53124a15405eb563694c6e3c739271b354f21ffc1708b3b6",
+    "cases": 96,
+    "asan_ubsan": "PASS",
+    "runtime": "Qualcomm SDK libnative; actual production dequant C source",
+    "mutant": {
+      "name": "read_scale_row1",
+      "result": "ASan use-after-poison",
+      "returncode": 1
+    },
+    "limits": "DSP cache/async DMA and machine cycle timing are not simulated."
+  },
+  "author_mutants": {
+    "read_padding": {
+      "log": "/tmp/nntr-lfm2-m1-dead-setup-20261016/checks/san/mutant-read_padding.log",
+      "marker": "use-after-poison",
+      "execution": "author-run, independently inspected"
+    },
+    "missing_row_zero": {
+      "log": "/tmp/nntr-lfm2-m1-dead-setup-20261016/checks/san/mutant-missing_row_zero.log",
+      "marker": "Assertion",
+      "execution": "author-run, independently inspected"
+    },
+    "fallback_clear": {
+      "log": "/tmp/nntr-lfm2-m1-dead-setup-20261016/checks/san/mutant-fallback_clear.log",
+      "marker": "Assertion",
+      "execution": "author-run, independently inspected"
+    }
+  },
+  "integration": {
+    "root_head": "83b3235830771ed2313135393efb48d7efaf549b",
+    "read_only_diff": "Identical 3 setup changes applied over committed router handoff; the handoff excludes use_m1 and does not change the relevant M1 layout",
+    "root_full_dsp_build": "PASS reported by parent; not independently repeated"
+  },
+  "side_effects": "Only this /tmp review directory was created/modified. No root/candidate source, phone state, git history or cache setting changed."
+}

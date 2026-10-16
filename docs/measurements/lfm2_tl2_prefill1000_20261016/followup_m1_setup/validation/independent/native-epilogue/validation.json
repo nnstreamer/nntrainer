@@ -1,0 +1,13 @@
+{
+  "actual_source": "/tmp/nntr-lfm2-m1-dead-setup-20261016/candidate/nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.c",
+  "source_sha256": "2c4fed50f3e84cdd53124a15405eb563694c6e3c739271b354f21ffc1708b3b6",
+  "cases": 96,
+  "asan_ubsan": "PASS",
+  "runtime": "Qualcomm SDK libnative; actual production dequant C source",
+  "mutant": {
+    "name": "read_scale_row1",
+    "result": "ASan use-after-poison",
+    "returncode": 1
+  },
+  "limits": "DSP cache/async DMA and machine cycle timing are not simulated."
+}

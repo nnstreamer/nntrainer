@@ -1,0 +1,86 @@
+[
+  {
+    "variant": "router-handoff-remapped",
+    "tag": "continue-m1-setup-0-r1",
+    "model": "model",
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+    }
+  },
+  {
+    "variant": "m1-dead-setup",
+    "tag": "continue-m1-setup-1-r1",
+    "model": "model",
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+    }
+  },
+  {
+    "variant": "m1-dead-setup",
+    "tag": "continue-m1-setup-1-r2",
+    "model": "model",
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+    }
+  },
+  {
+    "variant": "router-handoff-remapped",
+    "tag": "continue-m1-setup-0-r2",
+    "model": "model",
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+    }
+  },
+  {
+    "variant": "router-handoff-remapped",
+    "tag": "continue-m1-setup-0-r3",
+    "model": "model",
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+    }
+  },
+  {
+    "variant": "m1-dead-setup",
+    "tag": "continue-m1-setup-1-r3",
+    "model": "model",
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1
+    }
+  }
+]

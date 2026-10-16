@@ -1,0 +1,33 @@
+{
+  "base": "03d652fc0b8e7785385d08bafd0ca51845b5bdb6",
+  "production_patch_sha256": "b76600a42b1a86ae200719e3aa27b3629c6469430721ac38c8f297ed9adeaa2b",
+  "tests_patch_sha256": "7f0c7b1a309492cd124eb7bcf030399e795bd330da3f8bc2e3e7baac43247f42",
+  "source_sha256": "edf6cca45db3c1ca61201439b10adff94c31871ff43a0fa30e2a44947cbd55d2",
+  "normal": {
+    "cases": 31,
+    "result": "PASS",
+    "log": "checks/host/check.log"
+  },
+  "asan_ubsan": {
+    "cases": 31,
+    "result": "PASS",
+    "log": "checks/san/check.log",
+    "ubsan_halt": true,
+    "exception": "Only hvx_scalar.c omits shift-base for existing swiglu_det.h:152 signed exponent construction; actual MoE TUs and quantizer retain full instrumentation."
+  },
+  "mutants": {
+    "read_padding": "use-after-poison",
+    "missing_row_zero": "output byte parity assertion",
+    "fallback_clear": "unused/zero storage assertion"
+  },
+  "v81_compile": {
+    "before": "PASS",
+    "candidate": "PASS",
+    "flags": "-mv81 -mhvx -mhvx-length=128B -mhmx -G0 -O3 -fPIC -Wall -Werror -fstack-usage",
+    "layer_stack_bytes_before": 17152,
+    "layer_stack_bytes_after": 17152
+  },
+  "independent_review": "/tmp/nntr-lfm2-m1-dead-setup-review-20261016/validation.json",
+  "production_memory": "No layout/allocation/stride changes; only unused writes removed.",
+  "performance": "Unmeasured by this agent. Root alone performs full-model A/B; no TPS claim."
+}
