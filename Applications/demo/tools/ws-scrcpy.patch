@@ -17,6 +17,49 @@ index 0967ef4..5822f3d 100644
 +  "USE_WEBCODECS": true,
 +  "USE_QVH_SERVER": false
 +}
+diff --git a/src/app/googDevice/client/StreamClientScrcpy.ts b/src/app/googDevice/client/StreamClientScrcpy.ts
+index ba13d4b..20de19c 100644
+--- a/src/app/googDevice/client/StreamClientScrcpy.ts
++++ b/src/app/googDevice/client/StreamClientScrcpy.ts
+@@ -242,7 +242,10 @@ export class StreamClientScrcpy
+             const videoSize: Size = screenInfo.videoSize;
+             const onlyOneClient = this.clientsCount === 0;
+             const smallerThenCurrent = bounds && (bounds.width < videoSize.width || bounds.height < videoSize.height);
+-            if (onlyOneClient || smallerThenCurrent) {
++            // A joining fit-to-screen client asks for its own size even when
++            // another client is attached; otherwise a stream once negotiated at
++            // a tiny size (e.g. a hidden iframe) stays tiny for everyone.
++            if (onlyOneClient || smallerThenCurrent || this.fitToScreen) {
+                 min = currentSettings;
+             }
+             const minBounds = currentSettings.bounds?.intersect(min.bounds);
+@@ -433,8 +436,11 @@ export class StreamClientScrcpy
+             return;
+         }
+         const body = document.body;
+-        const width = (body.clientWidth - this.controlButtons.clientWidth) & ~15;
+-        const height = body.clientHeight & ~15;
++        // Encode at device pixels, not CSS pixels, so HiDPI screens are not
++        // upscaling a low-resolution stream (scrcpy caps it at the display size).
++        const scale = Math.min(window.devicePixelRatio || 1, 3);
++        const width = Math.floor((body.clientWidth - this.controlButtons.clientWidth) * scale) & ~15;
++        const height = Math.floor(body.clientHeight * scale) & ~15;
+         return new Size(width, height);
+     }
+ 
+diff --git a/src/app/player/MsePlayer.ts b/src/app/player/MsePlayer.ts
+index 3f645ed..830340f 100644
+--- a/src/app/player/MsePlayer.ts
++++ b/src/app/player/MsePlayer.ts
+@@ -21,7 +21,7 @@ export class MsePlayer extends BasePlayer {
+     public static readonly playerCodeName = 'mse';
+     public static readonly preferredVideoSettings: VideoSettings = new VideoSettings({
+         lockedVideoOrientation: -1,
+-        bitrate: 7340032,
++        bitrate: 16777216,
+         maxFps: 60,
+         iFrameInterval: 10,
+         bounds: new Size(720, 720),
 diff --git a/src/server/services/HttpServer.ts b/src/server/services/HttpServer.ts
 index f941dfc..3f07c04 100644
 --- a/src/server/services/HttpServer.ts
