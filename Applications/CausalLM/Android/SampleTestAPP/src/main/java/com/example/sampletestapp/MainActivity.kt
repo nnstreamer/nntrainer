@@ -317,6 +317,10 @@ class MainActivity : AppCompatActivity() {
     /** Per user: whether inference applies the saved LoRA, and whether one is saved. */
     private val demoLoraEnabled = BooleanArray(DEMO_USERS.size)
     private val demoAdapterSavedAt = LongArray(DEMO_USERS.size)
+    /** Per user: saved adapters, newest first (id, saved time, final loss, epochs), and the loaded one. */
+    private data class SavedLora(val id: String, val savedAt: Long, val finalLoss: Double, val epochs: Int)
+    private val demoAdapterHistory = MutableList(DEMO_USERS.size) { emptyList<SavedLora>() }
+    private val demoAdapterId = MutableList(DEMO_USERS.size) { "" }
     private var webDemoBridge: DeviceDemoBridge? = null
     /** What the last full rebuild showed; progress-only state updates
      *  refresh the chart/status in place so scrolling is not interrupted. */
@@ -428,6 +432,12 @@ class MainActivity : AppCompatActivity() {
             val row = users.getJSONObject(u)
             demoAdapterSavedAt[u] = if (row.has("adapter_path")) row.optLong("adapter_saved_at_ms") else 0L
             demoLoraEnabled[u] = row.optBoolean("lora_enabled") && row.has("adapter_path")
+            demoAdapterId[u] = row.optString("adapter_id")
+            val history = row.optJSONArray("adapter_history") ?: org.json.JSONArray()
+            demoAdapterHistory[u] = (0 until history.length()).map { i ->
+                val h = history.getJSONObject(i)
+                SavedLora(h.getString("id"), h.optLong("saved_at_ms"), h.optDouble("final_loss"), h.optInt("epochs"))
+            }
             val scenarios = users.getJSONObject(u).getJSONArray("scenarios")
             for (s in DEMO_USERS[u].scenarios.indices) {
                 val row = scenarios.getJSONObject(s)
@@ -465,7 +475,7 @@ class MainActivity : AppCompatActivity() {
         // result boxes and the status lines; rebuild the view tree only when
         // the layout changes.
         val key = listOf(demoRunning, trainRunning, demoUser, demoLoraEnabled.toList(), demoAdapterSavedAt.toList(),
-            epochs.length()).toString()
+            epochs.length(), demoAdapterId.toList(), demoAdapterHistory.toList()).toString()
         if (key == demoUiKey && lossChartView != null) {
             lossChartView?.setData(trainLossPoints, trainEpochBoundaries)
             trainStatusView?.text = trainStatusText
@@ -1185,14 +1195,14 @@ class MainActivity : AppCompatActivity() {
         card.addView(demoActionButton(t, if (loraOn) "Weights 초기화" else "LoRA 로드",
                 if (loraOn) "lora_off" else "lora_on", enabled = loraOn || savedAt > 0L, tonal = true),
             LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
-        val saved = if (savedAt > 0L) "저장된 LoRA " + java.text.SimpleDateFormat("MM/dd HH:mm",
-            java.util.Locale.KOREA).format(java.util.Date(savedAt)) else "저장된 LoRA 없음"
+        val saved = if (savedAt > 0L) "불러온 LoRA ${savedTime(savedAt)}" else "저장된 LoRA 없음"
         card.addView(TextView(this).apply {
             text = "현재: ${if (loraOn) "LoRA 적용 → 추론 결과 AFTER" else "기본 모델 (LoRA 미적용) → 추론 결과 BEFORE"}\n" +
-                "$saved · 학습: Settings 적용 · seed $DEMO_SEED 고정 · 학습 시 덮어씀"
+                "$saved · 학습: Settings 적용 · seed $DEMO_SEED 고정 · 학습할 때마다 새로 저장"
             textSize = 11f; setTextColor(t.onSurfaceVar)
             setPadding(dp(4), dp(6), dp(4), dp(8))
         })
+        buildSavedLoraList(t)?.let { card.addView(it); spacer(card, 8) }
         // One result row per scenario: situation line over a BEFORE|AFTER pair.
         val du = DEMO_USERS[demoUser]
         val resultViews = mutableListOf<Pair<TextView, TextView>>()
@@ -1231,6 +1241,42 @@ class MainActivity : AppCompatActivity() {
         card.addView(demoStatusView)
         demoResultViews = resultViews
         return card
+    }
+
+    private fun savedTime(ms: Long) =
+        java.text.SimpleDateFormat("MM/dd HH:mm", java.util.Locale.KOREA).format(java.util.Date(ms))
+
+    /** The user's saved adapters (newest first); tapping one loads it and its loss chart. */
+    private fun buildSavedLoraList(t: M3Tokens): View? {
+        val history = demoAdapterHistory[demoUser]
+        if (history.isEmpty()) return null
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = solid(t.surfaceContainer, 10)
+            setPadding(dp(10), dp(8), dp(10), dp(8))
+        }
+        box.addView(TextView(this).apply {
+            text = "저장된 LoRA · 최근 ${history.size}개 (최대 $HISTORY_LIMIT) · 눌러서 불러오기"
+            textSize = 11f; setTextColor(t.onSurfaceVar)
+        })
+        history.forEach { entry ->
+            val current = entry.id == demoAdapterId[demoUser]
+            val loss = if (entry.finalLoss.isFinite()) "loss %.4f".format(entry.finalLoss) else "loss —"
+            spacer(box, 4)
+            box.addView(TextView(this).apply {
+                text = "${if (current) "●" else "○"}  ${savedTime(entry.savedAt)}  ·  ${entry.epochs} epoch  ·  $loss" +
+                    if (current) "  ·  불러옴" else ""
+                textSize = 12f
+                typeface = if (current) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+                setTextColor(if (current) t.onPrimary else t.onSurface)
+                background = if (current) solid(t.primary, 8) else strokedSolid(t.secondaryContainer, 8, t.outline, 1)
+                setPadding(dp(10), dp(7), dp(10), dp(7))
+                isEnabled = !current && !demoRunning && !trainRunning
+                alpha = if (isEnabled || current) 1f else 0.5f
+                setOnClickListener { onDemoCommand("lora_select", entry.id) }
+            }, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+        }
+        return box
     }
 
     /** One result box: a small monospace BEFORE/AFTER decision readout. */
@@ -2878,7 +2924,7 @@ class MainActivity : AppCompatActivity() {
     /* ───── Train handler ───── */
 
     /** TEST actions never fall back to a loop that trains every user. */
-    private fun onDemoCommand(action: String) {
+    private fun onDemoCommand(action: String, adapterId: String? = null) {
         val bridge = webDemoBridge
         if (bridge == null) {
             demoStatus = "모델 파일 접근 권한을 허용한 뒤 다시 실행하세요"
@@ -2890,7 +2936,8 @@ class MainActivity : AppCompatActivity() {
         try {
             bridge.command(org.json.JSONObject().put("action", action)
                 .put("user", DEMO_USERS[demoUser].id)
-                .put("request_id", java.util.UUID.randomUUID().toString()))
+                .put("request_id", java.util.UUID.randomUUID().toString())
+                .apply { if (adapterId != null) put("adapter_id", adapterId) })
         } catch (error: Exception) {
             demoStatus = "요청 실패: ${error.message}"
             rebuildUi()

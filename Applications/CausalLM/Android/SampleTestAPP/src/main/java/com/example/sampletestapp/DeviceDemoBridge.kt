@@ -18,6 +18,9 @@ import java.util.concurrent.Executor
 
 /** Structured, local ADB transport for the existing native decision/training APIs.
  * No network permission, prompt rewriting, or reference predictions are involved. */
+/** Saved adapters kept per user (newest first). */
+internal const val HISTORY_LIMIT = 5
+
 class DeviceDemoBridge(
     private val context: Context,
     private val executor: Executor,
@@ -83,28 +86,64 @@ class DeviceDemoBridge(
                 }))
         }))
 
-    init { users.indices.forEach(::restoreAdapter); publish() }
+    init { users.indices.forEach { migrateLegacyAdapter(it); restoreAdapter(it) }; publish() }
     /** Trained adapters live next to the dataset so they survive app restarts
-     *  and reinstalls; only a successful training run overwrites them. */
+     *  and reinstalls. Each successful run is kept in its own history folder
+     *  with its loss chart; the newest [HISTORY_LIMIT] are kept and
+     *  `current.txt` names the one inference loads. */
     private fun adapterDirectory(u: Int) = File(File(users[u].data).parentFile!!.parentFile, "adapters/${users[u].id}")
-    private fun restoreAdapter(u: Int) {
-        val meta = File(adapterDirectory(u), "adapter.json")
-        val saved = try { JSONObject(meta.readText()) } catch (_: Exception) { null }
-        val adapter = saved?.let { File(adapterDirectory(u), it.optString("adapter_file")) }
+    private fun historyDirectory(u: Int) = File(adapterDirectory(u), "history")
+    private fun currentFile(u: Int) = File(adapterDirectory(u), "current.txt")
+    private fun readMeta(dir: File) = try { JSONObject(File(dir, "adapter.json").readText()) } catch (_: Exception) { null }
+    /** The single-slot layout of earlier builds becomes the first history entry. */
+    private fun migrateLegacyAdapter(u: Int) {
+        val root = adapterDirectory(u)
+        val legacy = readMeta(root) ?: return
+        val target = File(historyDirectory(u), legacy.optLong("saved_at_ms").toString()).apply { mkdirs() }
+        for (name in listOf("lora_adapter_q4.bin", "lora_adapter.bin", "adapter.json"))
+            File(root, name).takeIf { it.isFile }?.let { check(it.renameTo(File(target, name))) { "Cannot migrate ${it.path}" } }
+        currentFile(u).writeText(target.name)
+    }
+    /** Newest first; entries whose metadata cannot be read are skipped. */
+    private fun history(u: Int): List<Pair<File, JSONObject>> =
+        (historyDirectory(u).listFiles { f -> f.isDirectory && f.name.matches(Regex("\\d{1,19}")) } ?: emptyArray())
+            .mapNotNull { dir -> readMeta(dir)?.let { dir to it } }
+            .sortedByDescending { it.second.optLong("saved_at_ms") }
+    private fun historySummary(u: Int, entries: List<Pair<File, JSONObject>>) = JSONArray(entries.map { (dir, meta) ->
+        val epochs = meta.optJSONArray("epochs") ?: JSONArray()
+        val last = if (epochs.length() > 0) epochs.getJSONObject(epochs.length() - 1) else null
+        JSONObject().put("id", dir.name).put("saved_at_ms", meta.optLong("saved_at_ms"))
+            .put("epochs", epochs.length()).put("iterations", meta.optJSONArray("iterations")?.length() ?: 0)
+            .put("final_loss", last?.optDouble("train_loss") ?: JSONObject.NULL)
+            .put("seed", meta.optJSONObject("train_config")?.opt("seed") ?: JSONObject.NULL)
+    })
+    /** Load one saved adapter (default: the current one) with its chart. */
+    private fun restoreAdapter(u: Int, id: String? = null): Boolean {
+        val entries = history(u)
+        val wanted = id ?: currentFile(u).takeIf { it.isFile }?.readText()?.trim()
+        val (dir, saved) = entries.firstOrNull { it.first.name == wanted } ?: entries.firstOrNull() ?: (null to null)
+        val adapter = if (dir != null && saved != null) File(dir, saved.optString("adapter_file")) else null
         synchronized(lock) {
+            user(u).put("adapter_history", historySummary(u, entries))
             if (saved == null || adapter == null || !adapter.isFile || digest(adapter) != saved.optString("adapter_sha256")) {
-                user(u).put("lora_enabled", false); return
+                user(u).put("lora_enabled", false)
+                for (key in listOf("adapter_id", "adapter_path", "adapter_sha256", "adapter_saved_at_ms")) user(u).remove(key)
+                return false
             }
-            user(u).put("adapter_path", adapter.path).put("adapter_sha256", saved.getString("adapter_sha256"))
+            user(u).put("adapter_id", dir!!.name).put("adapter_path", adapter.path)
+                .put("adapter_sha256", saved.getString("adapter_sha256"))
                 .put("adapter_saved_at_ms", saved.getLong("saved_at_ms"))
                 .put("train_config", saved.getJSONObject("train_config"))
                 .put("epochs", saved.optJSONArray("epochs") ?: JSONArray())
                 .put("iterations", saved.optJSONArray("iterations") ?: JSONArray())
                 .put("status", "trained").put("lora_enabled", true)
         }
+        currentFile(u).writeText(dir!!.name)
+        return true
     }
     private fun persistAdapter(u: Int) {
-        val dir = adapterDirectory(u).apply { mkdirs() }
+        val now = System.currentTimeMillis()
+        val dir = File(historyDirectory(u), now.toString()).apply { mkdirs() }
         val trained = synchronized(lock) { File(user(u).getString("adapter_path")) }
         // Keep the fp32 master next to the q4 adapter the app loads.
         val masters = trained.path.removeSuffix("_q4.bin").let { if (it == trained.path) emptyList() else listOf(File("$it.bin")) }
@@ -117,9 +156,9 @@ class DeviceDemoBridge(
         for ((temporary, target) in copies) check(temporary.renameTo(target)) { "Cannot save adapter: ${target.path}" }
         val adapter = copies.first().second
         val sha = digest(adapter)!!
-        val now = System.currentTimeMillis()
         val meta = synchronized(lock) {
             user(u).put("adapter_path", adapter.path).put("adapter_sha256", sha).put("adapter_saved_at_ms", now)
+                .put("adapter_id", dir.name)
             JSONObject().put("adapter_file", adapter.name).put("adapter_sha256", sha).put("saved_at_ms", now)
                 .put("train_config", user(u).getJSONObject("train_config"))
                 .put("epochs", user(u).getJSONArray("epochs")).put("iterations", user(u).getJSONArray("iterations"))
@@ -127,6 +166,10 @@ class DeviceDemoBridge(
         val temporary = File(dir, "adapter.json.tmp")
         temporary.writeText(meta.toString())
         check(temporary.renameTo(File(dir, "adapter.json"))) { "Cannot save adapter metadata" }
+        currentFile(u).writeText(dir.name)
+        val entries = history(u)
+        entries.drop(HISTORY_LIMIT).forEach { it.first.deleteRecursively() }
+        synchronized(lock) { user(u).put("adapter_history", historySummary(u, entries.take(HISTORY_LIMIT))) }
     }
     private fun digest(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
     private fun digest(file: File): String? = if (file.isFile) digest(file.readBytes()) else null
@@ -160,7 +203,8 @@ class DeviceDemoBridge(
     }
     fun command(request: JSONObject) {
         val action = request.getString("action")
-        require(action in setOf("status", "select", "before", "train", "after", "run_user", "run_all", "lora_on", "lora_off", "stop")) { "Unknown command" }
+        require(action in setOf("status", "select", "before", "train", "after", "run_user", "run_all", "lora_on", "lora_off",
+            "lora_select", "stop")) { "Unknown command" }
         val index = users.indexOfFirst { it.id == request.optString("user", "u03") }
         require(index in users.indices) { "Unknown user" }
         val requestId = request.getString("request_id")
@@ -173,6 +217,22 @@ class DeviceDemoBridge(
         if (busy || appBusy()) {
             synchronized(lock) { state.put("rejected_request_id", requestId) }
             publish("실행 중입니다. 완료 후 다시 요청하세요."); return
+        }
+        if (action == "lora_select") {
+            val id = request.optString("adapter_id")
+            require(id.matches(Regex("\\d{1,19}"))) { "Invalid adapter ID" }
+            val label = users[index].label
+            if (!restoreAdapter(index, id) || synchronized(lock) { user(index).optString("adapter_id") } != id) {
+                synchronized(lock) { state.put("rejected_request_id", requestId) }
+                publish("사용자 $label: 선택한 LoRA를 불러올 수 없습니다"); return
+            }
+            synchronized(lock) {
+                // AFTER results belonged to the previously loaded adapter.
+                for (s in users[index].scenarios.indices) scenario(index, s).remove("after")
+                state.put("ack_request_id", requestId).put("selected_user", users[index].id)
+            }
+            publish("사용자 $label LoRA ${savedLabel(id.toLong())} 로드 · 학습 차트 복원 · 추론 실행 시 적용")
+            return
         }
         if (action == "lora_on" || action == "lora_off") {
             val enable = action == "lora_on"
@@ -226,6 +286,7 @@ class DeviceDemoBridge(
         }
     }
     private fun checkStop() = check(!stop) { "Stopped" }
+    private fun savedLabel(ms: Long) = java.text.SimpleDateFormat("MM/dd HH:mm", java.util.Locale.KOREA).format(java.util.Date(ms))
     private fun parameters(u: Int, output: String): JSONObject {
         val definition = users[u]
         val params = JSONObject(commandConfigs[u].toString())
