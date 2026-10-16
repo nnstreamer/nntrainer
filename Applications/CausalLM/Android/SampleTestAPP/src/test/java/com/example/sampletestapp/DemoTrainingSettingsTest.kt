@@ -11,7 +11,7 @@ class DemoTrainingSettingsTest {
         "hybrid_trunk" to "/model/gpu", "task" to "decision", "objective" to "soft",
         "epochs" to 1, "batch_size" to 4, "lr" to 2e-4, "seq_len" to 208,
         "lora_rank" to 8, "lora_alpha" to 16, "lora_last_n" to 4,
-        "lora_qat" to true, "lora_weight_q4" to true, "seed" to 42,
+        "lora_qat" to true, "lora_weight_q4" to true, "seed" to DEMO_SEED,
     )
 
     private fun settings() = DemoTrainingSettings(mapOf("u02" to defaults("u02"), "u03" to defaults("u03")))
@@ -86,8 +86,8 @@ class DemoTrainingSettingsTest {
         for (user in listOf("u02", "u03")) {
             assertEquals(2, run.getValue(user)["epochs"])
             assertEquals("decision", run.getValue(user)["task"])
-            assertEquals(42, run.getValue(user)["seed"])
-            assertEquals(42, settings.load(user)["seed"])
+            assertEquals(DEMO_SEED, run.getValue(user)["seed"])
+            assertEquals(DEMO_SEED, settings.load(user)["seed"])
         }
     }
 }

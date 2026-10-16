@@ -288,7 +288,7 @@ class MainActivity : AppCompatActivity() {
     private var trainSavedPath: String = ""
     private var trainSavedQ4Path: String = ""
     private var trainResumePath: String = ""
-    private val trainSeed: String = "42"
+    private val trainSeed: String = DEMO_SEED.toString()
     private var trainRunning: Boolean = false
     private var trainLog: String = ""
     private var trainSettingsExpanded: Boolean = false
@@ -308,7 +308,7 @@ class MainActivity : AppCompatActivity() {
     private var demoUser: Int = 0
     private var demoRunning: Boolean = false
     private var demoStatus: String =
-        "학습 실행 · 추론 실행 · LoRA 로드/초기화 · seed 42 고정"
+        "학습 실행 · 추론 실행 · LoRA 로드/초기화 · seed $DEMO_SEED 고정"
     /** Per user, per scenario: the BEFORE / AFTER decision readouts. */
     private val demoBefore: List<MutableList<String?>> =
         DEMO_USERS.map { MutableList(it.scenarios.size) { null } }
@@ -1189,7 +1189,7 @@ class MainActivity : AppCompatActivity() {
             java.util.Locale.KOREA).format(java.util.Date(savedAt)) else "저장된 LoRA 없음"
         card.addView(TextView(this).apply {
             text = "현재: ${if (loraOn) "LoRA 적용 → 추론 결과 AFTER" else "기본 모델 (LoRA 미적용) → 추론 결과 BEFORE"}\n" +
-                "$saved · 학습: Settings 적용 · seed 42 고정 · 학습 시 덮어씀"
+                "$saved · 학습: Settings 적용 · seed $DEMO_SEED 고정 · 학습 시 덮어씀"
             textSize = 11f; setTextColor(t.onSurfaceVar)
             setPadding(dp(4), dp(6), dp(4), dp(8))
         })
@@ -2983,7 +2983,7 @@ class MainActivity : AppCompatActivity() {
             .put("max_samples", trainMaxSamples.trim().toIntOrNull() ?: 0)
             .put("clip_grad", trainClipGrad.trim().toDoubleOrNull() ?: 1.0)
             .put("train_norms", trainNorms).put("lora_qat", trainQatEnabled)
-            .put("lora_weight_q4", trainWeightQ4).put("seed", 42)
+            .put("lora_weight_q4", trainWeightQ4).put("seed", DEMO_SEED)
             .put("patience", trainPatience.trim().toIntOrNull() ?: 0)
         if (trainTask == "decision") params.put("objective", trainObjective)
         if (trainValidDataPath.isNotBlank()) params.put("valid_data", trainValidDataPath.trim()).put("validate", true)

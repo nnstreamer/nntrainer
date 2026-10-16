@@ -48,7 +48,7 @@ class DeviceDemoBridge(
     private var commandConfigs = emptyList<JSONObject>()
     private val state = JSONObject().put("schema", 1).put("session_id", session)
         .put("controls_version", 3).put("run_user_mode", "inference_only")
-        .put("run_all_mode", "train_and_infer_each_user").put("training_seed", 42)
+        .put("run_all_mode", "train_and_infer_each_user").put("training_seed", DEMO_SEED)
         .put("selected_user", users.first().id)
         .put("source", "android_native").put("pid", Process.myPid())
         .put("dataset_id", ObservedDemoCatalog.DATASET_ID).put("input_schema", ObservedDemoCatalog.INPUT_SCHEMA)
@@ -192,7 +192,7 @@ class DeviceDemoBridge(
         }
         if (state.optString("request_id") == requestId) { publish(); return }
         val settings = trainingSettings(action)
-        commandConfigs = users.map { definition -> JSONObject(settings.getValue(definition.id)).put("seed", 42) }
+        commandConfigs = users.map { definition -> JSONObject(settings.getValue(definition.id)).put("seed", DEMO_SEED) }
         busy = true; stop = false
         synchronized(lock) {
             state.put("request_id", requestId).put("ack_request_id", requestId).put("command", action)
@@ -232,7 +232,7 @@ class DeviceDemoBridge(
         check(digest(File(params.getString("data_path"))) == definition.metadata.getString("data_sha256")) { "Training dataset hash mismatch" }
         check(digest(File(params.getString("valid_data"))) == definition.metadata.getString("valid_sha256")) { "Validation dataset hash mismatch" }
         require(params.getInt("epochs") > 0 && params.getInt("batch_size") > 0) { "Epochs and batch size must be positive" }
-        params.put("output_path", output).put("seed", 42)
+        params.put("output_path", output)
         return params
     }
     private fun load(params: JSONObject, adapter: String?): Long {

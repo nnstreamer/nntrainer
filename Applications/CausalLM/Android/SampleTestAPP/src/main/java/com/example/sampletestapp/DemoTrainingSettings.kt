@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 package com.example.sampletestapp
 
+/** Shuffle seed of every demo training run (fixed so runs are reproducible). */
+internal const val DEMO_SEED = 1
+
 /** Editable per-user drafts and immutable command snapshots of flat training parameters. */
 internal class DemoTrainingSettings(initial: Map<String, Map<String, Any>>) {
     private val drafts = initial.mapValues { fixedSeed(it.value) }.toMutableMap()
@@ -34,7 +37,7 @@ internal class DemoTrainingSettings(initial: Map<String, Map<String, Any>>) {
         return drafts.mapValues { it.value.toMap() }
     }
 
-    private fun fixedSeed(settings: Map<String, Any>) = settings.toMutableMap().apply { put("seed", 42) }.toMap()
+    private fun fixedSeed(settings: Map<String, Any>) = settings.toMutableMap().apply { put("seed", DEMO_SEED) }.toMap()
 
     private companion object {
         val USER_FIELDS = setOf("data_path", "valid_data", "validate", "output_path", "lora_path")
