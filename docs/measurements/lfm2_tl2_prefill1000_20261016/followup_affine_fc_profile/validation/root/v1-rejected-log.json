@@ -1,0 +1,9 @@
+{
+  "tag": "continue-affine-fc-trace-r1",
+  "inference_and_ids_pass": true,
+  "complete_memory_peak": true,
+  "trace_records": 180,
+  "diagnostic_valid": false,
+  "reason": "FARF output truncates v1 verbose records near 256 payload bytes; missing fields. Strict parser rejects. No phase estimates or normal TPS claim.",
+  "next": "Shorten or split versioned diagnostic record, validate full bounded formatting and repeat under new tag/variant."
+}

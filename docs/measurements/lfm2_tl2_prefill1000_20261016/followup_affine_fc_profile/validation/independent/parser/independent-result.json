@@ -1,0 +1,40 @@
+{
+  "topology_actual_TU_cases": 22,
+  "successful_actual_records_parsed": 20,
+  "actual_error_records_rejected": 2,
+  "actual_shape_records_replicated_to_expected_cohort": true,
+  "author_parser_checks_independently_rerun": 19,
+  "additional_parser_rejections": [
+    "only-main-no-warmup",
+    "repeat-tag",
+    "timer-sum-overlap",
+    "wrong-version",
+    "negative-ticks",
+    "width-order",
+    "warmup-replaced-with-main",
+    "unknown-shape",
+    "wrong-calibration",
+    "success-no-body"
+  ],
+  "main": {
+    "calls": 80,
+    "reads": 148480,
+    "joins": 4880,
+    "brackets": 153840,
+    "qtimer_reads_including_calibration": 312800,
+    "body_ms": 11789.520833333334,
+    "pack_ms": 0.05,
+    "sums_ms": 0.058333333333333334,
+    "read_ms": 232.0,
+    "join_ms": 8.133333333333333,
+    "drain_ms": 0.475,
+    "other_foreground_ms": 11548.804166666667,
+    "empty_pair_mean_ns": 52.083333333333336,
+    "empty_interval_times_brackets_ms_NOT_overhead_correction": 8.0125
+  },
+  "limits": [
+    "Cohort replication tests parser aggregation; not a device completeness claim",
+    "Primitive calls use no-op wrappers and virtual ticks; not arithmetic/performance evidence"
+  ],
+  "parser_sha256": "40328452fafa9c62f05c33025b2a0aab1c4fba75480e022eb240bf55028bdb16"
+}

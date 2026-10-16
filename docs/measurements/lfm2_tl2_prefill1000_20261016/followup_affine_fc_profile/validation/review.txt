@@ -1,0 +1,68 @@
+LFM2 prefill live-path audit, frozen 2026-10-16
+
+Scope and provenance
+- Source commit: 8288e3ba3dff986e0c72f37c8db4f3adec4c628c.
+- Exact evidence: docs/measurements/lfm2_tl2_prefill1000_20261016/continue-m1-setup-profile1.{log,logcat.txt,json}.
+- Profile SHA256: 568dbf72a39f4d030cf43ffd2104aad3b918caa47d4ac6a8c4ba3b645bbebdbb.
+- source-manifest.json freezes 16 source files and all three evidence hashes; frozen-source/ contains those committed bytes. All16 equaled the corresponding working files when captured. No root source or device was modified.
+- This is the exact LFM2-24BA2B native TL2 expert / affine int4 FC model, 1024 prompt +64 decode, C16, preload128, PAGE0/GROW0 and router-input-handoff1. Counts below are not claims about other shapes/models/runs.
+- Profile run: prefill1220ms=839.344TPS, decode3651ms=17.5294TPS, peak2731576KiB,65 IDs exact. Instrumented run is not a normal performance comparison.
+
+What actually ran during the prompt
+Select only LAYERPROF records M=1024:314 records, sum1212.989944ms.
+ 38 sparse_moe       622.286042ms
+ 10 attention        237.170678ms
+ 30 conv             192.974794ms
+ 10 qkv               36.743648ms
+ 40 operator_add      24.968798ms
+ 10 attention_out     23.749429ms
+ 40 ffn_add           23.444423ms
+  2 dense ffn         23.374479ms
+ 30 conv_norm         21.821768ms
+ Remaining embedding, output, views and inputs:6.455885ms.
+The complete ordered records and group sums are in profile-map.json. The7.010056ms difference from whole-prefill1220ms is outside the layer brackets. Each bracket includes model_graph.flushCacheExcept and node.forward (nntrainer/models/neuralnet.cpp), so these are serial wall intervals, not isolated arithmetic timings.
+
+The cumulative HTP call buckets include load warmups. They cannot be reported as pure prompt FC time:
+- FC K2048/N6144:60 calls,33088rows,89.9ms =30*1024 prompt +1*512 and29*64 load warmups.
+- FC K2048/N2048:90 calls,44160rows,71.6ms =40*1024 prompt +50*64 warmups.
+- FC K2048/N512:20 calls,1280rows,4.3ms: all warmups.
+- FC K2048/N3072:10 calls,10240rows,28.6ms: grouped QKV prompt calls.
+- FP32 router K2048/N64:38 calls,38912rows,117.0ms: all prompt.
+- MoE K2048/N2048:39 calls,39936rows,385.9ms:38 prompt +1 load warmup M1024.
+- Dense FFN:3 calls,2560rows,27.8ms:2 prompt +1 warmup M512.
+Logcat confirms the FC warmup shapes and the separate MoE1024/dense512 warmups, but does not provide individual warmup RPC durations. Do not subtract counts proportionally to estimate time.89.9+71.6+28.6=190.1ms is only an upper bound on main projection host RPC time from these aggregate buckets, NOT an i24 saving estimate.
+
+Live affine projection route, with original frozen-source line references
+- lfm2_htp_moe_causallm.cpp:100-189 constructs10 attention blocks (grouped QKV and output FC) plus30 conv blocks, two dense FFNs,38 MoEs, and separate plain residual adds.
+- conv_block_layer.cpp:275-282 only uses the old fused HTP conv entry if BOTH weights are Q4_0. Current weights are QS4CX_WH_AFFINE; that branch does not execute.
+- conv_block_layer.cpp:318-427 uses retained affine input projection, CPU gate_pre, CPU lfmConvPostGatePrefill (already fused conv+postgate with fixed FP32 order), state update and affine output projection. Therefore optimizing old hexkl_conv_block.c for this profile would optimize an unexecuted path.
+- htp_compute_ops.cpp:invokeLayer/invokeFc stage the FP32 inputs and invoke ordinary or norm_ld FC. fcSliceCols at K2048 divides the N6144 input projection into3 handles of2048 columns. QKV shares one activation across2048/512/512 handles. Single-handle N2048 is used for conv_out and attention_out.
+- test/htp/nntr_hvx_mm_u8i4.c:layer/norm_ld -> layer_norm_impl -> hexkl_mm_u8i4_layer_run.
+- hexkl_mm_u8i4_dma.c:674 is the live generic FC entry. It quantizes/normalizes/packs shared activation ONCE across handles, prefetches initial weight before quantization, double-buffers weights and accumulator banks, then calls vendor int32 accumulator read at1002. The affine row-major epilogue is fc_affine_worker -> hvx_dq_tiles_rows_affine. Existing32-tile banks and8KiB tile stride are part of the live consumer contract.
+
+Exact prompt tile derivation
+Every output tile is64rows*32columns. M1024 gives16 row blocks.
+-30 conv_in:30*16*(6144/32)=92160 tiles.
+-30 conv_out:30*16*(2048/32)=30720 tiles.
+-10 grouped QKV:10*16*((2048+512+512)/32)=15360 tiles.
+-10 attention_out:10*16*(2048/32)=10240 tiles.
+Total80 calls and148480 accumulator reads. By output width: N6144=30 calls/92160 tiles; N2048=40 calls/40960 tiles; N3072=10 calls/15360 tiles.
+These80 calls must be observed in the diagnostic before treating the derivation as a measured execution count. The aggregate profile + exact graph/source establish the expectation; they do not expose per-call readout timing.
+
+Prioritized candidates, not yet production implementations
+1. Measure generic affine FC readout before considering an i24 consumer.
+The signed-int4 raw K2048 u8 dot lies in[-4177920,3655680], inside signed24. Existing hexkl_acc_i24 supports three planes with3KiB config in otherwise unused VTCM; it still requires runtime base0/row_stride32 and non-overlapping free-space guards. The current row-major affine consumer is int32-only. Existing i24 GLU/scatter consumers are not drop-in substitutes. A correct port would reconstruct int32, then preserve the current integer affine correction BEFORE float conversion, followed by the existing zero-point/scale/bias order and per-row post callbacks. Raw affine-corrected sums must never be truncated to24bits.
+At148480 tiles, one fewer2KiB convert plane corresponds to304087040bytes=290MiB of convert output. This is an exact internal byte-count difference, not measured DRAM traffic, elapsed time, or speedup. The current readout may synchronize prior HMX work; its entire measured duration cannot be removed. No safe absolute saving or TPS estimate is available yet. No i24 port has been implemented.
+2. Lower-priority affine input-sum fusion, also unimplemented.
+The generic FC already fuses min/max (and optional pre-norm) with AH packing. It then rereads the packed u8 activation with a separate affine_sums worker-pool job (dma.c:909-912; hexkl_wh_affine_sums). The quantizer already has each final packed vector in a register (hvx_quant_u8.c:quant_pack_group4). Exact integer sums could potentially be accumulated there into the EXISTING per-call affine_sums array, avoiding80 extra pool jobs and80*1024*2048=160MiB of VTCM reads for this prompt. This needs measurement of sums_t and v81 register/spill analysis; a new global common-quant slow path is not justified. No new buffer/cache is proposed, and no time or TPS saving is claimed.
+
+Other costs and exclusions
+- CPU plain residual adds sum48.413221ms, conv_norm21.821768ms. Qualified residual_add already calls one ele_add_fp32 with disjoint buffers; no duplicate copy+add was found. Existing projection+residual fused API also normalizes, so it cannot replace LFM's plain add without a new exact consumer.
+- MoE layer622.286ms minus router117.0ms and cumulative MoE385.9ms leaves at least roughly119.4ms outside those RPC buckets. This residual includes host normalization/routing, staging/registration, waits and framework work; it is NOT an isolated CPU compute measurement. The MoE RPC bucket also includes warmup, and displayed values are rounded.
+- Current expert staging:2304 reads, exposed wait15.0ms, register2.0ms,2275ready (~99%), reader3.09ms/expert. Do not generalize to storage hardware maximum or assign cumulative load registration292.2ms to the prompt.
+- No usable per-phase attention counters appeared in this PROFILE1 log. Its237.171ms layer total does not justify allocating that time among QK/PV/softmax.
+- Keep PROFILE1. PROFILE2 changes materialization/host-normalization routes and is unsuitable for this normal-path phase estimate.
+- No proposals for rejected panel2, partial-ready, bounded barrier, router spill, or cache-policy variants. No reader/cache/preload/page-cache changes.
+
+Diagnostic next step
+See diagnostic/README.txt and diagnostic.patch. It instruments only this generic FC entry with local counters under a compile-time flag. It does not implement i24 or sum fusion, alter math/output/order, touch the shared probe enable/global counters, or modify any MoE/dense kernel. The tested Gemma4 hidden width2816 is excluded by K2048 and the additional affine/handle geometry guard. Root alone decides when to build/run after the noalias sequence. Device exit0,65 exact IDs, complete strict-parser cohort and unchanged settings are mandatory before interpreting the phase data.

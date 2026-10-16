@@ -1,0 +1,28 @@
+{
+  "base_commit": "8288e3ba3dff986e0c72f37c8db4f3adec4c628c",
+  "files": {
+    "diagnostic.patch": "391e30db92b2d4a53569edc616bece7214315b82fd4d34ac2d6ee49426667d03",
+    "candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.c": "968aeb6d22d523179873343b4bcba36bbfd067665092e7d574afd7d1c25103ce",
+    "parse_affine_fc.py": "40328452fafa9c62f05c33025b2a0aab1c4fba75480e022eb240bf55028bdb16",
+    "parser_check.py": "2e979ec823674b3211d36c8c0a99529094f0fff06bb46fa9b0894c6a486697c0",
+    "guard_check.c": "2df38d848f93c4e92dee28bdafdbae967a3661a3ebf81d6306ff0490f2b4b3eb",
+    "run_guard.py": "56aff69e785a24bd5bcfba51808477d4b2981bb4949369f0d7d1022509e962d0",
+    "run_host_check.py": "d591c31c275aae8bd6b43417fd20dcd867267eef2dcf74dd8ec8789227a3ddc3",
+    "README.txt": "8ae08d6ca6c88e135b51397181f9e47ef357aabeff032c5f06f883c91863c97b"
+  },
+  "checks": {
+    "v81_before_disabled_enabled": "PASS -O3 -Wall -Werror",
+    "disabled_text_exact": true,
+    "stack_bytes": {
+      "baseline": 656,
+      "disabled": 656,
+      "enabled": 792
+    },
+    "heap_vtcm_bytes_added": 0,
+    "parser": "PASS valid180 cohort and19 rejected mutants",
+    "actual_helper": "PASS25 guards ASan/UBSan leak detection on, global probe/table/options unchanged",
+    "existing_whole_fc": "PASS before/enabled ASan/UBSan output exact after test-only3-array cleanup; excluded K64 guard",
+    "independent_review": "/tmp/nntr-lfm2-affine-fc-trace-review-20261016/review.txt; blocker none; actual TU22cases plus parser29 invalid cases and2 actual errors",
+    "device": "not run by agent"
+  }
+}

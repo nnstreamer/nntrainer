@@ -1,0 +1,120 @@
+{
+  "verdict": "PASS diagnostic v2 format and phase integrity; not normal throughput evidence",
+  "patch_sha256": "d09b1ce6beb56321796c9bb8ecc8f4cbb1b82bd67fded37e3890b7e597d21639",
+  "source_sha256": "605b4a6d60c35d3c6868b981942e242acff273fb5fcae95187e1b9cefdd3eec3",
+  "parser_sha256": "bb16bf4b7e495b84afbfe5d7c4de27d920bc6b65b7c20912944aa4471add60f2",
+  "format_pair_tests": {
+    "pass": true,
+    "actual_success_pairs": 20,
+    "actual_error_pairs_rejected": 2,
+    "cohort_records": 180,
+    "cohort_packets": 360,
+    "reorderings_accepted": 3,
+    "invalid_cases_rejected": [
+      "missing_G",
+      "missing_T",
+      "duplicate_G",
+      "duplicate_T",
+      "duplicate_pair",
+      "T_wrong_id",
+      "T_colliding_id",
+      "legacy_mixed",
+      "bad_signed_rc",
+      "phase_overflow",
+      "integer_overflow",
+      "repeated_tag",
+      "unknown_field",
+      "bad_terminal",
+      "wrong_clock",
+      "partial_tag",
+      "unicode_tail",
+      "N_mismatch"
+    ],
+    "all_prefix_truncations_rejected": 138,
+    "actual_C_max_formatted_chars": [
+      188,
+      167
+    ],
+    "payload_limit": 192,
+    "observed_transport_limit": 228,
+    "source_sha256": "605b4a6d60c35d3c6868b981942e242acff273fb5fcae95187e1b9cefdd3eec3",
+    "parser_sha256": "bb16bf4b7e495b84afbfe5d7c4de27d920bc6b65b7c20912944aa4471add60f2",
+    "note": "Actual shape pairs renumbered/replicated to synthetic expected cohort; not a real device run"
+  },
+  "compile": {
+    "compile_PASS": true,
+    "disabled_text_exact": true,
+    "frames": {
+      "disabled": "/tmp/nntr-lfm2-prefill-live-audit-20261016/diagnostic-v2/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.c:768:hexkl_mm_u8i4_layer_run\t656\tstatic",
+      "enabled": "/tmp/nntr-lfm2-prefill-live-audit-20261016/diagnostic-v2/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.c:768:hexkl_mm_u8i4_layer_run\t792\tstatic"
+    }
+  },
+  "actual_device_logs": {
+    "r1": {
+      "source_log": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-affine-fc-trace-v2-r1.affine.logcat.txt",
+      "sha256": "1f5894cba9fbf0b63022dbeebe6af750cc27b6183c86b7cd2a0433c7d33fa0b8",
+      "packets_by_kind": {
+        "G": 180,
+        "T": 180
+      },
+      "max_payload": 88,
+      "all_terminal": true
+    },
+    "r2": {
+      "source_log": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-affine-fc-trace-v2-r2.affine.logcat.txt",
+      "sha256": "dbe6f2606a57cb406d92c6d4a2b9bd6128a234466bb94a0549921837ca538e7c",
+      "packets_by_kind": {
+        "G": 180,
+        "T": 180
+      },
+      "max_payload": 88,
+      "all_terminal": true
+    }
+  },
+  "phases_ms": {
+    "r1": {
+      "calls": 80,
+      "reads": 148480,
+      "joins": 4880,
+      "brackets": 153840,
+      "qtimer_reads_including_calibration": 312800,
+      "body_ms": 136.13838541666667,
+      "pack_ms": 34.40901041666667,
+      "sums_ms": 0.9394791666666666,
+      "read_ms": 27.51385416666667,
+      "join_ms": 9.363854166666666,
+      "drain_ms": 3.3875,
+      "other_foreground_ms": 60.5246875,
+      "empty_pair_mean_ns": 1.3224283854166667,
+      "empty_interval_times_brackets_ms_NOT_overhead_correction": 0.20803385416666667
+    },
+    "r2": {
+      "calls": 80,
+      "reads": 148480,
+      "joins": 4880,
+      "brackets": 153840,
+      "qtimer_reads_including_calibration": 312800,
+      "body_ms": 135.75973958333333,
+      "pack_ms": 33.91640625,
+      "sums_ms": 0.9274479166666667,
+      "read_ms": 27.476354166666667,
+      "join_ms": 9.405729166666667,
+      "drain_ms": 3.5874479166666666,
+      "other_foreground_ms": 60.446354166666666,
+      "empty_pair_mean_ns": 1.4444986979166667,
+      "empty_interval_times_brackets_ms_NOT_overhead_correction": 0.22018229166666667
+    }
+  },
+  "read_interval_zero_cost_loose_ceiling_ms": [
+    27.51385416666667,
+    27.476354166666667
+  ],
+  "bandwidth_only_25percent_conditional_scale_ms": [
+    6.878463541666667,
+    6.869088541666667
+  ],
+  "performance_claim": null,
+  "v1_status": "invalid truncated records; excluded",
+  "root_or_device_edits": false,
+  "next_work": "separate bounded LFM FC fast-issue loop, no i24 port"
+}

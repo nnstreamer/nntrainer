@@ -1,0 +1,74 @@
+{
+  "base_commit": "8288e3ba3dff986e0c72f37c8db4f3adec4c628c",
+  "sources": {
+    "Applications/CausalLM/models/lfm2_moe/lfm2_htp_moe_causallm.cpp": {
+      "sha256": "157292d8e8c8095dda287c8c53eebb1b4001326cb515559bdf45a4cf50274bf9",
+      "equals_working_file": true
+    },
+    "Applications/CausalLM/layers/conv_block_layer.cpp": {
+      "sha256": "bc019abdbf0cadb48e0aaa4ecc3898bc9b0a37e11f28c306d9762f766292869a",
+      "equals_working_file": true
+    },
+    "Applications/CausalLM/layers/residual_add.cpp": {
+      "sha256": "1f18d57c729c1ca5ae2091dc49b4a37b247361b4e9ea3159c76b8dee94bfd5c6",
+      "equals_working_file": true
+    },
+    "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp": {
+      "sha256": "4ed12667f11b5886648c18faf367ce1a1022b9baf81274f76045d028dd9dd5ec",
+      "equals_working_file": true
+    },
+    "nntrainer/models/neuralnet.cpp": {
+      "sha256": "b3f69282ef0354ecfa2d86e16ecd8758c8cd18ca56553a3ba28ed7a90c62e345",
+      "equals_working_file": true
+    },
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": {
+      "sha256": "5e75571e5433132d8c9d17691882cbddea73ebbf651e2e8e0b3b6957ac3566df",
+      "equals_working_file": true
+    },
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.c": {
+      "sha256": "15b2b5cd54fddbbe16311ebc27fbb3b453dfaaa743440fa5621e6549ee1969f7",
+      "equals_working_file": true
+    },
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.h": {
+      "sha256": "e2c64934fd6307e575818ca0fda2e4c9b6af537072c03141baf2067f39fd60cd",
+      "equals_working_file": true
+    },
+    "nntrainer/tensor/htp_backend/hmx/hexkl_acc_i24.h": {
+      "sha256": "10945885349ac5c296e46f77a46e1a7e392435a7c6bd19bfb26d2d844b83ae67",
+      "equals_working_file": true
+    },
+    "nntrainer/tensor/htp_backend/hmx/hexkl_wh_affine.h": {
+      "sha256": "759fe9bc509ea2beb3a5b3880be5d5640a30d2fcbf9d5163d5807f2a9e620a03",
+      "equals_working_file": true
+    },
+    "nntrainer/tensor/htp_backend/hmx/hexkl_probe.h": {
+      "sha256": "6fa3d1b5ec010c3222ee2539b8419c1eae7857fc1c8e569ab3de38e6dfc40c73",
+      "equals_working_file": true
+    },
+    "nntrainer/tensor/htp_backend/hvx/hvx_dequant_i32.c": {
+      "sha256": "2c4fed50f3e84cdd53124a15405eb563694c6e3c739271b354f21ffc1708b3b6",
+      "equals_working_file": true
+    },
+    "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c": {
+      "sha256": "f0544c1cb13422e63d72526f54cd9dab7ce5f1db4e611f714c31bfde8b857813",
+      "equals_working_file": true
+    },
+    "nntrainer/tensor/htp_backend/htp_tl2_opts.h": {
+      "sha256": "db52b9524de2db0ec6ba141afb59233b6c0079193658d65978456a3b550b49ac",
+      "equals_working_file": true
+    },
+    "test/htp/nntr_hvx_mm_u8i4.c": {
+      "sha256": "a3aa39e7bd1335354ab98cec12ff7f082d1242b6175bd4547a32dfb1dc5682ad",
+      "equals_working_file": true
+    },
+    "test/htp/acc_i24_probe.h": {
+      "sha256": "741f9b1cfd6ff8bd3f91a1886231890cd944ddcedda774b0afb8a771db904657",
+      "equals_working_file": true
+    }
+  },
+  "evidence": {
+    "continue-m1-setup-profile1.log": "568dbf72a39f4d030cf43ffd2104aad3b918caa47d4ac6a8c4ba3b645bbebdbb",
+    "continue-m1-setup-profile1.logcat.txt": "ef9fc85a6e41b276162e70c392afdd4d2eb3c05b3e4bbc622e3cd9fa9f8d3d07",
+    "continue-m1-setup-profile1.json": "19b357ea54de46f30c752651d81be960800ee48efed6971eb13df807feb4bbb1"
+  }
+}

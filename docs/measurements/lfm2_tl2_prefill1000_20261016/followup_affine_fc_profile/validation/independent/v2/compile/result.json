@@ -1,0 +1,8 @@
+{
+  "compile_PASS": true,
+  "disabled_text_exact": true,
+  "frames": {
+    "disabled": "/tmp/nntr-lfm2-prefill-live-audit-20261016/diagnostic-v2/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.c:768:hexkl_mm_u8i4_layer_run\t656\tstatic",
+    "enabled": "/tmp/nntr-lfm2-prefill-live-audit-20261016/diagnostic-v2/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.c:768:hexkl_mm_u8i4_layer_run\t792\tstatic"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "valid_main": {
+    "calls": 80,
+    "reads": 148480,
+    "joins": 4880,
+    "brackets": 153840,
+    "qtimer_reads_including_calibration": 312800,
+    "body_ms": 208.33333333333334,
+    "pack_ms": 4.166666666666667,
+    "sums_ms": 2.0833333333333335,
+    "read_ms": 83.33333333333333,
+    "join_ms": 2.0833333333333335,
+    "drain_ms": 3.3333333333333335,
+    "other_foreground_ms": 113.33333333333334,
+    "empty_pair_mean_ns": 104.16666666666667,
+    "empty_interval_times_brackets_ms_NOT_overhead_correction": 16.025
+  },
+  "rejected_mutants": [
+    "M",
+    "bank_tiles",
+    "body_t",
+    "brackets",
+    "duplicate",
+    "duplicate_key",
+    "empty",
+    "hz",
+    "joins",
+    "malformed",
+    "malformed_tag",
+    "missing",
+    "pipeline",
+    "rc",
+    "reads",
+    "stride",
+    "truncated",
+    "unknown",
+    "widths"
+  ]
+}

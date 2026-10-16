@@ -1,0 +1,27 @@
+Independent phase interpretation, exact1024-row LFM model,2026-10-16
+
+Only complete v2 device traces are used. V1 is invalid and excluded.
+E=docs/measurements/lfm2_tl2_prefill1000_20261016
+Raw E/continue-affine-fc-trace-v2-r{1,2}.affine.logcat.txt, same-tag JSON.
+Both independently parsed with final parser bb16bf4b...:180 unique calls/360 complete packets, main80calls/148480readouts/4880joins/153840timing brackets. Payload maximum88bytes. Both exit0 and65IDs exactly match b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e. C16,preload128,PAGE0,GROW0 and other flags match the retained configuration. Full sampled process peak2733084/2734584KiB. These are diagnostic runs, not performance A/B claims.
+
+Main prompt foreground totals (ms), run1 / run2:
+ body              136.138385 /135.759740
+ pack               34.409010 / 33.916406
+ affine sums         0.939479 /  0.927448
+ accumulator read   27.513854 / 27.476354
+ exposed pool join   9.363854 /  9.405729
+ exposed DMA drain   3.387500 /  3.587448
+ other foreground   60.524688 / 60.446354
+Warmup100calls are excluded from every number above. Body includes final frees but excludes validation/allocations, calibration and print calls. Total profile prefill was1204/1201ms. The body is only the selected generic affine FC implementation; it does not include host RPC/staging, router, MoE/dense kernels or attention kernels.
+
+What can be inferred
+1. Affine-sum fusion is low priority. Even replacing the entire measured sums job with zero elapsed time has only0.939/0.927ms of exposed scope here, less than0.08% of total prompt time. Actual fused sums still need integer work and may increase register pressure. This evidence does not justify a broad quantizer change for a meaningful TPS target.
+2. Generic FC readout has roughly27.5ms of measured foreground scope. It includes synchronization with preceding HMX work, vendor conversion and reconstruction, as well as instrumentation. It is not all removable. Three-vs-four convert planes does NOT justify taking one quarter of this number as a prediction.
+3. If an eventual readout/consumer change hypothetically eliminated BOTH all read intervals and all exposed pool joins, with every other interval unchanged, their observed foreground envelope is36.877708/36.882083ms (about3.1% of prompt time). This is an intentionally overoptimistic diagnostic deletion bound, not a validated bound for a redesigned overlapping pipeline or an expected i24 gain. HMX completion and required conversion/dequant arithmetic remain necessary; moving worker work may simply move exposure into another interval. A safe i24 port still needs a new affine row-major consumer/layout contract and full parity proof. No port is implemented or recommended solely from this number.
+4. pack34ms also includes dynamic parameter scan and optional norm, while initial weight DMA progresses. Removing pack work can expose additional DMA waiting, so pack is not a free34ms saving. The separate sums measurement is the only phase directly associated with the identified redundant activation reread.
+5. Other foreground60.5ms contains HMX clear/issue loops, per-batch setup and loop/control overhead, timer bookkeeping and final frees. It is NOT an isolated HMX array-time measurement. The next bounded fast-issue candidate can use this as a scope check, but packet/codegen evidence and normal device A/B are required to identify a real saving.
+6. A hypothetical deletion of the entire measured generic FC body would leave about1067.862/1065.240ms of these1204/1201ms prompts; even that unrealistic bound remains above1024ms required for1000TPS. This concerns only this exact profile and scope, not hardware capability or a limit on all other optimizations.
+
+Instrumentation limits
+Main312800 raw qtimer reads remain exactly as v1. The32-pair empty-clock samples averaged1.322/1.444ns per interval across the calls; the per-call interval-times-brackets scale reference totals0.208/0.220ms. Many individual52ns-resolution intervals are zero. These values do NOT capture both clock calls, branch/counter/stack/register effects or altered overlap and were not subtracted. The read budget is not a normal-binary readout cost estimate. Two FARF calls occur after measured body/calibration, but their extra inter-layer logging can affect the whole prompt schedule. Both diagnostic runs agree closely on phase allocation; normal-binary comparison remains necessary for any optimization.

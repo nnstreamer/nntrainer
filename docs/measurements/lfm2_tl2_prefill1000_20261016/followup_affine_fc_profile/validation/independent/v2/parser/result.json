@@ -1,0 +1,38 @@
+{
+  "pass": true,
+  "actual_success_pairs": 20,
+  "actual_error_pairs_rejected": 2,
+  "cohort_records": 180,
+  "cohort_packets": 360,
+  "reorderings_accepted": 3,
+  "invalid_cases_rejected": [
+    "missing_G",
+    "missing_T",
+    "duplicate_G",
+    "duplicate_T",
+    "duplicate_pair",
+    "T_wrong_id",
+    "T_colliding_id",
+    "legacy_mixed",
+    "bad_signed_rc",
+    "phase_overflow",
+    "integer_overflow",
+    "repeated_tag",
+    "unknown_field",
+    "bad_terminal",
+    "wrong_clock",
+    "partial_tag",
+    "unicode_tail",
+    "N_mismatch"
+  ],
+  "all_prefix_truncations_rejected": 138,
+  "actual_C_max_formatted_chars": [
+    188,
+    167
+  ],
+  "payload_limit": 192,
+  "observed_transport_limit": 228,
+  "source_sha256": "605b4a6d60c35d3c6868b981942e242acff273fb5fcae95187e1b9cefdd3eec3",
+  "parser_sha256": "bb16bf4b7e495b84afbfe5d7c4de27d920bc6b65b7c20912944aa4471add60f2",
+  "note": "Actual shape pairs renumbered/replicated to synthetic expected cohort; not a real device run"
+}

@@ -1,0 +1,93 @@
+{
+  "verdict": "Superseded: v1 device records truncated; unusable diagnostic format",
+  "patch_sha256": "391e30db92b2d4a53569edc616bece7214315b82fd4d34ac2d6ee49426667d03",
+  "source_sha256": "968aeb6d22d523179873343b4bcba36bbfd067665092e7d574afd7d1c25103ce",
+  "parser_sha256": "40328452fafa9c62f05c33025b2a0aab1c4fba75480e022eb240bf55028bdb16",
+  "independent_v81": {
+    "all_v81_compiles": "PASS",
+    "disabled_text_exact": true,
+    "frame_bytes": {
+      "before": 656,
+      "disabled": 656,
+      "enabled": 792
+    },
+    "note": "stack record values inspected from corresponding .su"
+  },
+  "independent_topology_and_parser": {
+    "topology_actual_TU_cases": 22,
+    "successful_actual_records_parsed": 20,
+    "actual_error_records_rejected": 2,
+    "actual_shape_records_replicated_to_expected_cohort": true,
+    "author_parser_checks_independently_rerun": 19,
+    "additional_parser_rejections": [
+      "only-main-no-warmup",
+      "repeat-tag",
+      "timer-sum-overlap",
+      "wrong-version",
+      "negative-ticks",
+      "width-order",
+      "warmup-replaced-with-main",
+      "unknown-shape",
+      "wrong-calibration",
+      "success-no-body"
+    ],
+    "main": {
+      "calls": 80,
+      "reads": 148480,
+      "joins": 4880,
+      "brackets": 153840,
+      "qtimer_reads_including_calibration": 312800,
+      "body_ms": 11789.520833333334,
+      "pack_ms": 0.05,
+      "sums_ms": 0.058333333333333334,
+      "read_ms": 232.0,
+      "join_ms": 8.133333333333333,
+      "drain_ms": 0.475,
+      "other_foreground_ms": 11548.804166666667,
+      "empty_pair_mean_ns": 52.083333333333336,
+      "empty_interval_times_brackets_ms_NOT_overhead_correction": 8.0125
+    },
+    "limits": [
+      "Cohort replication tests parser aggregation; not a device completeness claim",
+      "Primitive calls use no-op wrappers and virtual ticks; not arithmetic/performance evidence"
+    ],
+    "parser_sha256": "40328452fafa9c62f05c33025b2a0aab1c4fba75480e022eb240bf55028bdb16"
+  },
+  "expected_main": {
+    "calls": 80,
+    "accumulator_tiles": 148480,
+    "joins": 4880,
+    "brackets": 153840,
+    "qtimer_reads_including_calibration": 312800
+  },
+  "expected_warmup_calls": 100,
+  "phase_intervals": "disjoint foreground brackets; worker and DMA service times must not be summed",
+  "memory": {
+    "new_heap_bytes": 0,
+    "new_vtcm_bytes": 0,
+    "new_persistent_cache_bytes": 0,
+    "diagnostic_function_stack_delta": 136,
+    "normal_off_text_identical": true
+  },
+  "no_device_or_root_edits": true,
+  "performance_claim": null,
+  "pending": "Root device phase data, exit status and exact generation IDs",
+  "artifacts": [
+    "review.txt",
+    "compile/result.json",
+    "compile/*-command.json",
+    "topology/topology.c",
+    "topology/command.json",
+    "topology/run.log",
+    "parser/independent-result.json",
+    "parser/actual-cohort-summary.json"
+  ],
+  "runtime_format": {
+    "status": "INVALID",
+    "records": 180,
+    "max_tag_and_payload_chars": 228,
+    "root_log": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-affine-fc-trace-r1.affine.logcat.txt",
+    "sha256": "13ec4017e53c5d9052a9c9eebb4bfa6c1245fd28996f7103c1a1c5e58965bced",
+    "phase_conclusions_allowed": false
+  }
+}

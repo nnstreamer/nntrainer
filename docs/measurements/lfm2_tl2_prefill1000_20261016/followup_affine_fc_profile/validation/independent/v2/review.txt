@@ -1,0 +1,92 @@
+Independent FC diagnostic v2 review and actual device-log validation
+
+Verdict: V2 is valid for phase diagnosis. No unresolved source/format/parser
+blocker found. V1 is invalid because real FARF truncates its final fields;
+no v1 phase or TPS conclusion is used. No root tree or phone was modified.
+
+Frozen full diagnostic-v2.patch:
+d09b1ce6beb56321796c9bb8ecc8f4cbb1b82bd67fded37e3890b7e597d21639
+Frozen generic FC C source:
+605b4a6d60c35d3c6868b981942e242acff273fb5fcae95187e1b9cefdd3eec3
+
+Transport bound and pairing
+V2 changes only serialization: two FARF records keyed by the already captured
+64-bit start tick. Geometry is G, raw phase timing is T. Both end in an explicit
+! marker; ticks/ID are hexadecimal and geometry/counts are decimal. Actual
+extracted C formatter run with full uint32/int32/uint64 limits produced188
+and167 characters, below parser's192 and observed transport limit228.
+This leaves40/61 characters relative to the observed trace payload ceiling.
+No new timers, mutable global ID sequence, allocation or cache is introduced.
+
+Parser pairs by full ID rather than adjacency. It accepts reordered/interleaved
+G/T records but rejects duplicate IDs/parts, orphans, missing counterparts,
+malformed tags/fields, out-of-range integers, bad terminal markers, v1 data,
+nonzero rc/fallback geometry and invalid phase sums. Exactly180 unique pairs
+and360 complete records plus the expected warmup/main shape distribution are
+required. An ID collision is rejected rather than combined ambiguously.
+A deliberately balanced exchange of two intact IDs is not cryptographically
+detectable; normal transport is assumed to preserve the payload bytes. This
+is not an integrity checksum or a substitute for generation/exit-status checks.
+
+Independent tests executed
+- Actual frozen whole generic FC TU under ASan/UBSan with no-op arithmetic
+  primitives and a virtual monotonic clock:22 cases PASS again, including
+  quant and accumulator-read errors. Timer placement/counts unchanged.
+- Actual extracted C formatter at maximum widths: G188/T167 chars PASS.
+-20 successful actual emitted pairs parse;2 actual error pairs reject.
+- Actual shape pairs renumbered/replicated into180-pair cohort for aggregation
+  only. All counts match; reverse, all-T-first and random order also match.
+-18 independent invalid pairing/format/cohort cases and138 every-prefix
+  truncations rejected. These are independent tests, not author results.
+- v81 O3/Werror off and on compiled independently. Off .text equals original;
+  frame656B off,792B on (+136B diagnostic stack, no heap/VTCM/cache allocation).
+
+Actual root device logs independently parsed
+Both continue-affine-fc-trace-v2-r1/r2.affine.logcat.txt pass the frozen strict
+parser:180 G+180 T packets, complete ! markers, maximum actual payload88 chars.
+Both main cohorts have80 calls,148480 reads,4880 joins,153840 brackets and
+312800 raw timer reads including calibration. Warmups remain separate.
+Root reports exit0,65 exact dumped IDs,C16/directIO and complete peak capture;
+those device actions were performed by root, not this reviewer.
+
+Main FC foreground phases (ms), run1/run2
+body:136.138/135.760
+pack:34.409/33.916
+activation sums:0.939/0.927
+accumulator read:27.514/27.476
+exposed dequant join:9.364/9.406
+exposed DMA drain:3.388/3.587
+unattributed foreground:60.525/60.446
+Empty-interval-times-brackets scale:0.208/0.220ms, NOT automatically subtracted.
+
+Interpretation and conservative bounds
+The raw body excludes early validation/allocation and both final logs. The
+five measured intervals do not overlap on the foreground thread. Background
+DQ/DMA service time is already hidden in other work and cannot be summed in.
+The60.5ms remainder includes required HMX issue/compute, ordinary loop work,
+submits and instrumentation. It is not all removable overhead.
+
+For an accumulator-read-only change,27.5ms is a loose impossible-zero-cost
+ceiling under otherwise unchanged timing, not an i24 prediction. It includes
+HMX completion waits and timer cost. Under a narrower bandwidth-proportional
+assumption, replacing4-byte stores by3-byte stores gives an optimistic25%
+of the storage part, at most about6.9ms from this read bracket before any
+conversion/extra scheduling cost; storage's actual share is unmeasured.
+This arithmetic is a conditional opportunity scale, not a measured saving.
+An i24 change may move cost into the9.4ms exposed join, so read+join must be
+assessed together. There is no i24 implementation in this work.
+
+The separate fast-issue investigation targets provable per-kt control work,
+not this entire60.5ms remainder. In actual baseline v81 assembly, alignment
+mask arithmetic is already outside the kt loop; predicate/branch, descriptor
+setup and two stack reloads remain inside. For main1024,148480 output tiles
+*64 kt =9502720 issue steps. A candidate needs actual codegen/packet-address
+parity before timing; no speed claim follows from this count.
+
+Artifacts
+format/max.c and format/run.log: actual formatter maximum-length proof.
+topology/: actual-TU virtual-time source, build command and22-case log.
+parser/result.json: independent pairing/truncation results and hashes.
+compile/: independent v81 commands, logs, stack files and off-text equality.
+device-log-validation/r1.json,r2.json: independent actual log summaries,
+complete log paths and SHA256. validation.json indexes final status/hashes.

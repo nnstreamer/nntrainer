@@ -1,0 +1,115 @@
+SUPERSEDED FOR DEVICE DIAGNOSTIC USE: v1 FARF payload truncates.
+Root device r1 produced180 tagged records but maximum tag+payload length228
+characters, with final fields missing. Strict parser rejects the log. No phase
+or normal-TPS conclusion may be drawn. The original review below verified
+source timers/guards but did not bound the actual FARF transport payload;
+that gap is being addressed in v2. Original source/static evidence is retained.
+
+Independent read-only review: compile-time LFM affine FC diagnostic
+
+Verdict: No unresolved blocker for diagnostic use. This patch is not a
+production optimization and cannot by itself establish a TPS improvement.
+Root/device trees were not modified by this reviewer.
+
+Frozen diagnostic.patch SHA256:
+391e30db92b2d4a53569edc616bece7214315b82fd4d34ac2d6ee49426667d03
+Source: /tmp/nntr-lfm2-prefill-live-audit-20261016/diagnostic/candidate/
+        nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.c
+
+Guard and storage
+The trace is compile-time opt-in only. Local stack counters are enabled after
+normal argument, handle and allocation checks, for M>1/K2048, all affine
+int4/non-TL2 handles and explicit LFM widths: one512/2048 or three2048 each
+(conv), or2048+512+512 (QKV). Prepacked, u16 and accumulate paths are excluded.
+The bounds of the three-width array follow nh in {1,3}; handle accesses are
+already validated by the unchanged caller. Global probe enable/counters are
+not newly set/reset by this code. Existing generic probe behavior remains.
+No reader/cache/heap/VTCM allocation is added. The independently compiled
+v81 diagnostic function frame is792B vs656B (+136B stack); normal off remains
+656B and the entire compiled .text is byte-identical to the original TU.
+
+Intervals and critical-path meaning
+The five buckets occupy disjoint intervals on the calling thread for the
+accepted pipelined path. A single phase timestamp is safe because the trace
+has no enabled nested T0. It does not aggregate worker-side wall time.
+- pack: dynamic scan/optional pre-norm/AH packing, or supplied-param pack.
+  Handle0 weight DMA is already running and overlaps this interval.
+- sums: synchronous worker-pool run for affine activation sums, including
+  dispatch/join. It is not the aggregate time of all workers.
+- read: each vendor accumulator-read call. This can include completion of
+  preceding HMX work. It is NOT exclusively the cost of int32 output stores.
+- join: each foreground wait for the previous dequant job, including the
+  final wait/error cleanup. It includes empty waits. Hidden dequant work
+  overlaps HMX/read intervals and must not be added again.
+- drain: initial weight drain plus every handle-end weight drain. The first
+  draft omitted handle-end drains; this was fixed before frozen391e30db.
+  It measures exposed wait, not total transfer service time or bytes/time.
+body starts after validation/layout lookup/heap allocation and before the
+first weight push, includes final frees, and ends before calibration/logging.
+It is therefore not full RPC/layer latency. Other foreground includes HMX
+issue/clear, address arithmetic, submits, push/setup and timer bookkeeping.
+It cannot be labeled pure HMX compute. The sum of five phases may be
+subtracted from body, but worker or DMA service durations must not be added
+to these intervals.
+
+Overhead and use of the result
+There are148480 accumulator reads in the1024-row model cohort, so read
+brackets alone use296960 qtimer calls. The main cohort has153840 total
+brackets and312800 total timer reads including32 empty pairs per FC call.
+The per-tile tracing changes code scheduling and consumes time while HMX,
+workers and DMA run. The average empty-pair interval is a scale reference,
+not an exact cost of two timer calls plus counter update. Parser correctly
+does not subtract it. Calibration and FARF logging occur outside body but
+can perturb subsequent overlap and full-model timing. Trace TPS is not a
+production result. Existing global probes should remain off where possible
+to avoid additional nested instrumentation; the new code never turns them on.
+
+Independent validation executed
+1. Full v81 O3/Wall/Werror before, macro-off and macro-on compilation PASS.
+   Entire before/off .text bytes identical. Corresponding stack records
+   confirm656/656/792B. Commands/logs are under compile/.
+2. Actual frozen generic FC whole TU, ASan+UBSan nonrecovering, linked to
+   no-op primitive wrappers and a deterministic monotonic raw clock:22 cases
+   PASS. M2/64/65/512/1024 crossed withN512/2048/3072/6144, supplied parameter
+   branch alternation, quant failure and33rd accumulator-read failure.
+   Exact expected pack/sum/read/join/drain ticks, read/join/drain counts,
+   calibration count, body containment and total timer-read counts checked.
+   Error cases validate logged counters and existing cleanup control flow;
+   they do not prove real DMA completion behavior. No numeric or performance
+   claim comes from this virtual-time harness. Source+command+log are in
+   topology/; production C itself was not rewritten for this check.
+3. Author parser's19 invalid-record/cohort tests independently rerun PASS.
+   All20 successful records emitted by the actual-TU topology check parse;
+   both actual error records reject. Actual shape records were replicated
+   into the expected180-record cohort to test aggregation: main80 calls,
+   148480 reads,4880 joins,153840 brackets,312800 timer reads all match.
+   Ten additional malformed/cohort/phase overlap inputs reject. Replication
+   is a parser test, not evidence of device-log completeness.
+
+Parser scope
+parse_affine_fc.py is deliberately strict for exactly one1024-row model run.
+It requires all expected80 main +100 warmup records, fixed32-tile/stride32
+pipelined layout and rc0. It rejects malformed/duplicate keys/tags, unknown
+fields, missing/extra records, wrong geometry, non-main unexpected M, bad
+read/join/bracket counts, wrong clock/version, fallback and overlapping phase
+sums. Warmups M64/M512 are separate groups; they are not performance totals.
+A1024 log without loading warmups, a2048 row-chunked run, or a changed VTCM
+layout is unsupported and should fail rather than silently approximate.
+Count checks cannot identify a balanced lost+duplicated same-shape record;
+complete log capture and exit status/IDs remain external root gates. Errors
+before trace_begin are likewise outside this parser's visibility. No claim
+of a fully successful run follows solely from these diagnostic lines.
+
+Conservative opportunity bound pending real phase data
+For a hypothetical accumulator-read-only replacement, the existing measured
+read interval is the largest foreground amount that interval can possibly
+remove if everything else stays unchanged. It is a loose counterfactual
+ceiling, not a predicted gain: it includes indispensable HMX completion and
+timer overhead. i24 may save a fraction of storage traffic while adding
+unpack/conversion work, and changing HMX/DQ overlap can move cost into join.
+The same-stage exposed join is the only separately observed DQ wait; hidden
+worker service time adds no independent foreground budget. Compare jointly
+read+join before/after in a later actual candidate and validate normal-model
+performance. Pack/sums/drain are separately visible candidates with their
+own exact-arithmetic and overlap constraints; no implementation is proposed
+or authorized by this diagnostic review.

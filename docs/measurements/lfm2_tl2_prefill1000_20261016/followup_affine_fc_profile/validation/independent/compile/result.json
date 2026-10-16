@@ -1,0 +1,10 @@
+{
+  "all_v81_compiles": "PASS",
+  "disabled_text_exact": true,
+  "frame_bytes": {
+    "before": 656,
+    "disabled": 656,
+    "enabled": 792
+  },
+  "note": "stack record values inspected from corresponding .su"
+}

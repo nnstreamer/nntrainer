@@ -1,0 +1,42 @@
+{
+  "status": "diagnostic-only; no math/timer/guard changes vs v1; v1 rejected",
+  "files": {
+    "diagnostic-v2.patch": "d09b1ce6beb56321796c9bb8ecc8f4cbb1b82bd67fded37e3890b7e597d21639",
+    "v2-over-v1.patch": "8448e3305a5c4fc61ac12ddc2a4688d5c69f236e18252e458df17bdef9931555",
+    "candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.c": "605b4a6d60c35d3c6868b981942e242acff273fb5fcae95187e1b9cefdd3eec3",
+    "parse_affine_fc.py": "bb16bf4b7e495b84afbfe5d7c4de27d920bc6b65b7c20912944aa4471add60f2",
+    "parser_check.py": "59b1a088da591890594071e822ed88ec39fe68ce977126077e4601056de73016",
+    "guard_check.c": "abc97937bfd2dd494686e542e222d60b13cfeda4842b4abbe176097920852645",
+    "run_guard.py": "d905717afa312f8ccf2f5341e1e019af8fba2bb4870660409a2f64948ecf088f",
+    "README.txt": "4ad175ed61b240fbf54f63b442adaab9342226184caa19ecd9a6c311df15eb8f",
+    "measured-bounds.txt": "7f2ef04bded6be3ff5f5ac2d16d543f6f39ee2a0c280db2a0c5e2987ffbc3a8b"
+  },
+  "evidence": {
+    "continue-affine-fc-trace-v2-r1.affine.logcat.txt": "1f5894cba9fbf0b63022dbeebe6af750cc27b6183c86b7cd2a0433c7d33fa0b8",
+    "continue-affine-fc-trace-v2-r1.json": "821862d630f8ec755aa8a044f44099fa8cdea3cbb3f3c4e733e07004f0be87e6",
+    "continue-affine-fc-trace-v2-r2.affine.logcat.txt": "dbe6f2606a57cb406d92c6d4a2b9bd6128a234466bb94a0549921837ca538e7c",
+    "continue-affine-fc-trace-v2-r2.json": "a34d7ecd69db29589c82b1ced7bc726dc9ba9eba53b11c4a503e334f1eff0da6"
+  },
+  "validation": {
+    "v81_enabled_disabled": "PASS -O3 -Wall -Werror",
+    "off_text_exact": true,
+    "stack_normal_disabled_enabled_bytes": [
+      656,
+      656,
+      792
+    ],
+    "actual_helper_guard_cases": 25,
+    "full_printable_type_payload_bound_bytes": {
+      "geometry": 188,
+      "timing": 167
+    },
+    "prefix_reserve_bytes": 64,
+    "parser_invalid_mutants": 43,
+    "parser_all_prefix_truncations": 170,
+    "independent_review": "/tmp/nntr-lfm2-affine-fc-trace-review-20261016/v2/review.txt",
+    "device_complete_runs": 2,
+    "device_max_payload_bytes": 88,
+    "cache_reader_preload_or_allocation_increase": false
+  },
+  "base_file_matches_root_normal7b3db6d": true
+}

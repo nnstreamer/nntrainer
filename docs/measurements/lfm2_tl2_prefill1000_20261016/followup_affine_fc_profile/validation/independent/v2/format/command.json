@@ -1,0 +1,11 @@
+[
+  "gcc",
+  "-std=c99",
+  "-O2",
+  "-Wall",
+  "-Wextra",
+  "-Werror",
+  "/tmp/nntr-lfm2-affine-fc-trace-review-20261016/v2/format/max.c",
+  "-o",
+  "/tmp/nntr-lfm2-affine-fc-trace-review-20261016/v2/format/max"
+]

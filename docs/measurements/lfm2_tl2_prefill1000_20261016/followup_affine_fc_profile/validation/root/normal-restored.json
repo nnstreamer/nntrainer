@@ -1,0 +1,6 @@
+{
+  "base": "7b3db6d189fa8086fa0daaa19e61eaca78a5c87c",
+  "production_diff_empty": true,
+  "dsp_sha256": "b30be327d815af865452bb6f4a18c1d80c785a4c6abbdc0c1f06840345219273",
+  "method": "Restored exact frozen normal DSP after reversing diagnostic patch; trace binaries remain separately versioned on device."
+}
