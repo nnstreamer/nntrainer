@@ -18,6 +18,10 @@ DEVICE = os.environ.get("NNTR_BENCH_DEVICE_ROOT", SETTINGS.get("device_root"))
 if not SERIAL or not DEVICE:
     raise SystemExit("Set ANDROID_SERIAL and NNTR_BENCH_DEVICE_ROOT (or a local device.json)")
 ADB = ["adb", "-s", SERIAL]
+INFERENCE_PROCESSES = "nntr_causallm nntrainer_causallm"
+DEVICE_CHECKS = ("gemma4_prefill_device_check repeat_prompt_check "
+                 "lfm2_snapshot_check lfm2_prefill_replay "
+                 "lfm2_conv_postgate_check lfm2_conv_ion_read_check")
 
 
 def shell(command):
@@ -42,7 +46,7 @@ def main():
     idle_since = None
     deadline = time.monotonic() + 600
     while time.monotonic() < deadline:
-        busy = shell("pidof nntr_causallm nntrainer_causallm gemma4_prefill_device_check repeat_prompt_check || true").strip()
+        busy = shell(f"pidof {INFERENCE_PROCESSES} {DEVICE_CHECKS} || true").strip()
         if busy:
             idle_since = None
         elif idle_since is None:
@@ -92,9 +96,11 @@ def main():
     process = subprocess.Popen(ADB + ["shell", command], stdout=log, stderr=subprocess.STDOUT)
     observed = []
     while process.poll() is None:
-        pids = shell("pidof nntr_causallm nntrainer_causallm || true").split()
-        if len(pids) > 1:
-            observed.append({"elapsed_s": time.monotonic() - start, "pids": pids})
+        pids = shell(f"pidof {INFERENCE_PROCESSES} || true").split()
+        checks = shell(f"pidof {DEVICE_CHECKS} || true").split()
+        if len(pids) > 1 or checks:
+            observed.append({"elapsed_s": time.monotonic() - start,
+                             "pids": pids, "device_check_pids": checks})
         if time.monotonic() - start > 170:
             process.kill()
             break
@@ -118,6 +124,7 @@ def main():
                   command=command, environment=environment, returncode=process.returncode,
                   concurrent_processes=observed, thermal_before=before, thermal_after=after,
                   wall_seconds=time.monotonic()-start, unix_time=time.time(),
+                  device_logcat_start=timestamp,
                   moe_cache_experts=config["moe_cache_experts"],
                   model_config_sha256=hashlib.sha256(config_text.encode()).hexdigest())
     if peak:

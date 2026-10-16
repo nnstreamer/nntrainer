@@ -1,0 +1,37 @@
+[
+  {
+    "tag": "postpush-attnfinal-model2048-1-r2",
+    "variant": "attn-qprep-dn4",
+    "model": "model2048",
+    "profile": false,
+    "command": "cd /data/local/tmp/nntr_lfm2_prefill1000_20261016 && env LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/attn-qprep-dn4 ADSP_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/attn-qprep-dn4 NNTR_NUM_THREADS=8 NNTR_HTP_PAGE_CACHE=0 NNTR_LOAD_PREFETCH=0 NNTR_MOE_CACHE_GROW=0 NNTR_MOE_PRELOAD_EXPERTS=128 NNTR_GENERATED_IDS=/data/local/tmp/nntr_lfm2_prefill1000_20261016/postpush-attnfinal-model2048-1-r2.ids NNTR_INIT_TRACE=1 NNTR_HTP_PREDICT=2 NNTR_MOE_PREFETCH_RESIDUAL=0.5 NNTR_HTP_TL2_STABLE_SLOTS=1 NNTR_LFM2_PREFILL_EARLY=1 NNTR_LFM2_DECODE_PAIR_READ=1 NNTR_LFM2_DECODE_DEMAND_HANDOFF=1 timeout 150 /data/local/tmp/nntr_lfm2_prefill1000_20261016/fixture-support/memory_monitor --output /data/local/tmp/nntr_lfm2_prefill1000_20261016/postpush-attnfinal-model2048-1-r2.memory.json --period-ms 20 -- /data/local/tmp/nntr_lfm2_prefill1000_20261016/attn-qprep-dn4/nntr_causallm /data/local/tmp/nntr_lfm2_prefill1000_20261016/model2048",
+    "environment": {
+      "LD_LIBRARY_PATH": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/attn-qprep-dn4",
+      "ADSP_LIBRARY_PATH": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/attn-qprep-dn4",
+      "NNTR_NUM_THREADS": "8",
+      "NNTR_HTP_PAGE_CACHE": "0",
+      "NNTR_LOAD_PREFETCH": "0",
+      "NNTR_MOE_CACHE_GROW": "0",
+      "NNTR_MOE_PRELOAD_EXPERTS": "128",
+      "NNTR_GENERATED_IDS": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/postpush-attnfinal-model2048-1-r2.ids",
+      "NNTR_INIT_TRACE": "1",
+      "NNTR_HTP_PREDICT": "2",
+      "NNTR_MOE_PREFETCH_RESIDUAL": "0.5",
+      "NNTR_HTP_TL2_STABLE_SLOTS": "1",
+      "NNTR_LFM2_PREFILL_EARLY": "1",
+      "NNTR_LFM2_DECODE_PAIR_READ": "1",
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": "1"
+    },
+    "returncode": 1,
+    "concurrent_processes": [],
+    "wall_seconds": 1.0604026839719154,
+    "unix_time": 1792138393.670155,
+    "moe_cache_experts": 16,
+    "model_config_sha256": "c877d7792cf8830898f49c87b535724d26ce18d62daf5d8c185756cae49f9c71",
+    "ids_match_reference": false,
+    "valid": false,
+    "instrumented": false,
+    "performance_comparison_eligible": false,
+    "exclusion_reason": "Stable arena registration returned AEE_ENOMEMORY (0x80000402) while another lfm2_snapshot_check was using the DSP. Model generation never began. Retained and rerun as -retry1 after adding this process to idle/concurrency checks."
+  }
+]

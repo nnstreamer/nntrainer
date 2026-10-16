@@ -1,0 +1,18 @@
+{
+  "calls": 10,
+  "sum": {
+    "qprep": 24704,
+    "dma": 1916,
+    "qk": 23115,
+    "dequant": 44061,
+    "softmax": 15450,
+    "pquant": 21176,
+    "pv": 6933,
+    "oupd": 6616,
+    "store": 2942,
+    "blocks": 1600,
+    "total": 150131,
+    "kcycles": 317067
+  },
+  "time_unit": "microseconds except blocks and kcycles"
+}

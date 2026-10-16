@@ -1,0 +1,15 @@
+{
+  "base_commit": "e58b8f8dc37d3eecc8b082757e1ac004e21126dd",
+  "files": {
+    "Applications/CausalLM/layers/conv_block_layer.cpp": "d3bc34493196e0fc5bff059ce98b880aa087ec9a4df1b99e7449799dc502e4dd",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c": "67a1cc02396fd4115d5d243b3563fa1260402e06bf96739e3dbe3260c2de6d52",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "5b10b86181c3b6cb307c518d7aa84a035b55d03d671cf20d9e1f2d66e053a151",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "9335c0ab80a038a35156e87d9e6eda71deac51a95c564e45427ef98c9756282c",
+    "test/htp/nntr_hvx_attn_q.c": "f0824e113b5b5ac72846e56faadaede273afa90375aa01b82bb27e8e7453c410",
+    "test/htp/host/attn_qprep_native_check.c": "3dd8d898a77c8c2af356f179beef088502396c8d4fd2820be5b778aec9a4c996",
+    "test/htp/host/tl2_dn_dequant_check.c": "242d63d85663d9af2c19517dc8a52de4099ba0e56e4b2dd522916ce9bfcdd7eb",
+    "tools/lfm2_attn_qprep_check.py": "5e3413f25a1adb7940b399a53588fb6e7556c12d2dd0dde2057ed8d4e95dba4d",
+    "tools/lfm2_conv_postgate_check.cpp": "bfe6fbda99445211b05e2e4bd48e20c9de683a6961556dbf2062d30c242baaff"
+  },
+  "implementation_commit": "c2bf2b8ee3768e17865f03993761c43442acc492"
+}

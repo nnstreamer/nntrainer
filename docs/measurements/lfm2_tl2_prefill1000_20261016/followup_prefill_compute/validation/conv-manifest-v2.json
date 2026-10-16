@@ -1,0 +1,63 @@
+{
+  "base_source_commit": "bf10e0e049c3bbd640a31acc3741a57f3813e4be",
+  "candidate": "LFM-only ARM conv/post-gate v2",
+  "checks": {
+    "clang_format14": "PASS",
+    "aarch64_ndk_build": "PASS",
+    "device": "PASS: 12 finite/special bit-exact cases, input/state-source unchanged, small/decode/Gemma/alias/null guards",
+    "header_precision_scope": "PASS: baseline vs precise-header-only assembly identical excluding .file",
+    "existing_function_code": "PASS: 279 of 280 existing text sections byte-identical, only expected incremental_forwarding changed",
+    "android_x86_64_clang_full_tu_syntax": "PASS",
+    "linux_x86_64_gcc_full_tu_syntax": "PASS",
+    "windows_full_build": "not run",
+    "aarch64_gcc_execution": "not run"
+  },
+  "files": {
+    "conv-postgate-v2.patch": "6aecf640ed43cf0cd36c1254cbff92cfdf86ffb2c3b38205aab4be1052710801",
+    "lfm2_conv_postgate_check_v2": "4e9763cd4486afedcef3c36ecd6b441dd4ad397ec635203fb56a7c3540a8104e",
+    "build-command-v2.json": "e0666eaa454bdfadf6d5eac9d660b2f74a64f0f445bbb9679d932965a61243c0",
+    "checker-build-v2.log": "e1321a6f7c83664eee382ebe6a4ce4bae623665598ec9b5d634767496b318a87",
+    "candidate-row-asm-v2.txt": "5b56dc685f73b0f01603919a83805f728dc91749dfc9bf2273e81694a4079725",
+    "candidate/Applications/CausalLM/layers/conv_block_layer.cpp": "d3bc34493196e0fc5bff059ce98b880aa087ec9a4df1b99e7449799dc502e4dd",
+    "candidate/tools/lfm2_conv_postgate_check.cpp": "bfe6fbda99445211b05e2e4bd48e20c9de683a6961556dbf2062d30c242baaff",
+    "device-v2.log": "e5efc27dc8b9e4f04a3511bd1c5d1baa366d02fe8b0cd81d49bcd72f7ecdaf22",
+    "pragma-audit/commands.json": "cce09e860fe0054d747b57a3f2d5284beb85cb221988cc20831126482c0789e3",
+    "pragma-audit/object-commands.json": "a5ebeabb94867e5640fbad1b450bcf2aa5d43185605c0b0eb8eea039c6993756",
+    "pragma-audit/object-section-comparison.json": "664db83ab00cf71c4ea818bceea12f626f25872d8ec8517bdd57c823949d728b",
+    "pragma-audit/header-only-assembly.diff": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+    "pragma-audit/portable-full-tu-commands.json": "ccd2fe47e62f9cca166f46812cf06bc8023cdf3554a2fc5311dd51210696860b",
+    "pragma-audit/android-x86-clang.log": "f029d7e128053af79f3b47ebeef9e4fb4b1529626d80a04226a43c6b3064768c",
+    "pragma-audit/linux-x86-gcc.log": "34fd8ad897ca4378cb9de50b21bd6441d1b6634a781cf83e5f3be35a404dc6bf"
+  },
+  "arithmetic": "Per row/channel vector: FMUL(cur,w0), FMLA(w1,prev1-or-zero), FMLA(w2,prev2-or-zero), FMUL(result,post-gate). No zero-history operation removed.",
+  "isolated_microbench": {
+    "threads": 8,
+    "alternating_repeats": 31,
+    "scope": "Existing core conv+existing app post-gate versus candidate conv+post-gate; excludes pre-gate/state-copy/projections",
+    "M1024": {
+      "old_us": 821.511,
+      "new_us": 317.604,
+      "old_range_us": [
+        752.761,
+        4095.052
+      ],
+      "new_range_us": [
+        266.094,
+        517.552
+      ]
+    },
+    "M2048": {
+      "old_us": 1849.739,
+      "new_us": 975.625,
+      "old_range_us": [
+        1810.938,
+        1950.989
+      ],
+      "new_range_us": [
+        918.073,
+        1098.23
+      ]
+    },
+    "fullmodel": "pending root A/B; isolated result is not a full model speedup"
+  }
+}

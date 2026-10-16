@@ -1,0 +1,22 @@
+# Independent attention safety review, 2026-10-16
+
+Reviewed the uncommitted diff against e58b8f8dc in `nntrainer-lfm2-tl2-prefill1000` for `hexkl_attn_q.c`, `htp_compute_ops.cpp`, and `test/htp/nntr_hvx_attn_q.c`. No production files or device were modified. No new correctness blocker found.
+
+## Evidence
+
+- `qprep.log`: actual root Q-prep function with production quantizers and Hexagon libnative, ASan/UBSan: 360 byte-exact cases; missing-zero-init and wrong-kind mutations correctly fail assertions.
+- `store.log`: actual new store functions and real worker pool versus HEAD serial store, Hexagon libnative, ASan/UBSan: 120 cases. NULL, zero, 1, 3 and 7 worker pools; 128/1024/2048 query rows; br=96 padded last block; unaligned outputs and padded output strides; signed zeros; fixed-Q8/Q4/other-shape/window/softcap fallbacks. Per-float atomic write counters prove each valid output is written once and stride padding remains untouched. Source O and output redzones preserved.
+- `stats.log`: actual RPC-entry function extracted unchanged, with deterministic append/kernel/timer stubs, ASan/UBSan: 54 cases covering stats lengths -1,0,7,8,9,19,20,21,32; decode and prefill; append and kernel errors. Bounds/canaries, original slots, exact detail mapping, zero decode details, and unchanged error-output buffers pass. This isolates marshalling-side logic; the kernels and RPC transport are not exercised by this fixture. Scratch allocation deliberately fails to retain the established fallback path.
+- `hexagon-compile.log`: complete actual attention source compiles for v81/HVX128/HMX/O3/Wall/Werror. `attention.su`: store_worker static frame 40 B, phase_qprep 512 B, top prefill 1408 B. Existing worker stack is 32 KiB. No new variable-length stack arrays. These are per-function compiler frames, not a measured total call-chain high-water mark.
+
+## Safety reasoning
+
+Optional detail is requested only by trace mode. Existing lengths >=8 remain valid, 8..19 write only the original eight slots, >=20 writes exactly twelve further slots [8..19]. The 96-byte prefill_stats struct is zeroed before either decode or prefill; decode details remain zero. The 20-slot host array adds 48 stack bytes. Error paths return before stats writes. Existing clients requesting eight slots remain compatible; a new trace-enabled client should use the matching new DSP skeleton for meaningful detail fields.
+
+Store partitions use uint64 arithmetic and disjoint [lo,hi) row ranges. The row-to-query/head mapping is injective for each KV head and skips padding before reading l or dividing. Each 64-dimension head stores two nonoverlapping 128-byte vectors. The existing last pquant job has synchronously joined before PV and store. hvx_worker_pool_run first waits for an old job and waits for all workers with release/acquire completion before returning; the stack store_ctx remains alive throughout. Output scalar reciprocal and vector multiply order are unchanged.
+
+Q-prep retains the separate quantizer's default scale=1 and zp=0 for real and padded zero rows; its guard confines the new helper to full, dynamic-Q8 LFM geometry. The helper dispatches four-row groups without changing arithmetic. Fixed-Q8 Gemma and other shapes follow their original branches. No new weight storage, expert-cache capacity, or persistent scratch was introduced by this diff.
+
+## Narrow limitations
+
+The host checks do not emulate HMX, QuRT scheduling on device, cache coherency, or FastRPC marshalling. Parent's matched DSP build and 21 exact device replays provide device evidence separately. This audit does not assert bit parity for arbitrary NaN/Inf model tensors, nor bidirectional optional-detail compatibility with an older DSP skeleton. IDL's existing comment still lists only the original eight stats; documenting the twelve optional slots would improve the diagnostic contract, but is not a correctness blocker.
