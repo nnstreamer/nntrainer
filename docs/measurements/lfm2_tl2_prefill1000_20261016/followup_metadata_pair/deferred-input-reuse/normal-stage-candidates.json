@@ -1,0 +1,80 @@
+{
+  "source_commit": "a35e9bfeb4b623bc0230d34f716b9cdd2a93192f",
+  "source": "/tmp/nntr-lfm2-moe-stage-trace-20261016/device-v2.json",
+  "source_sha256": "fc3c6db0344051234fdfb9aec58a9611fd1e7ef2c98d7cc40a2fa8b8d05c8352",
+  "constraints": {
+    "C": 16,
+    "preload": 128,
+    "pagecache": 0,
+    "readers": 6,
+    "new_weight_cache": false,
+    "new_activation_buffer": false,
+    "weight_quantization_changed": false
+  },
+  "scope": {
+    "normal_calls": 38,
+    "warmup_calls_excluded": 1,
+    "rows": 1024,
+    "blocks": 3776,
+    "active_expert_instances": 2283,
+    "fused_flags": 0,
+    "device_ids_exact": "parent verified 65 IDs",
+    "dma_trace_truncated_calls": 37
+  },
+  "serial_stage_ms": {
+    "quant_us": 17.309,
+    "dequant_wait_us": 12.161,
+    "acc_read_us": 22.34,
+    "drain_gu_us": 54.343,
+    "scatter_wait_us": 24.615,
+    "gather_us": 1.649,
+    "requant_wait_us": 0.625,
+    "mm_us": 104.761,
+    "alloc_us": 0.024,
+    "drain_dn_us": 12.916,
+    "push_us": 5.444,
+    "staging_us": 25.678
+  },
+  "dsp_kernel_ms": 382.527,
+  "unnamed_residual_ms": 100.662,
+  "not_additive_ms": {
+    "swiglu_worker_us": 1168.875,
+    "dma_first_us": 0.027,
+    "dma_wait_us": 26.416
+  },
+  "candidates": [
+    {
+      "rank": 1,
+      "name": "reuse already cached router input for following plain MoE",
+      "duplicate_input_mib": 304,
+      "new_buffer_bytes": 0,
+      "measured_input_only_ms": null,
+      "equal_input_output_cost_hypothesis_ms": 12.839,
+      "combined_staging_upper_envelope_ms": 25.678,
+      "hypothesis_kernel_time_reduction_percent": 3.3563643873504354,
+      "status": "design only; explicit per-call validity protocol required; defer from current commit"
+    },
+    {
+      "rank": 2,
+      "name": "batch stable native GU/DN metadata refresh drains and preserve initialized zero bias",
+      "measured_refresh_ms": null,
+      "expected_gain_ms": null,
+      "changed_pair_count": null,
+      "saving_formula_ms": "changed_pairs * saved_time_per_pair_us / 1000",
+      "maximum_changed_pairs": 2283,
+      "removed_zero_bias_bytes_per_changed_pair": 20480,
+      "required_metadata_bytes_per_changed_pair": 40960,
+      "new_buffer_bytes": 0,
+      "status": "read-only candidate; benefit not isolated; not a 15% claim"
+    }
+  ],
+  "limitations": [
+    "Warmup 9.429 ms is load-time, excluded.",
+    "SwiGLU worker times overlap and are not caller elapsed.",
+    "DMA_FIRST is a subset of GU drain here; DMA_WAIT is nested and not added.",
+    "37 truncated descriptor traces cannot establish bandwidth.",
+    "Combined staging does not isolate input cost; half is only a same-cost hypothesis.",
+    "Kernel savings can expose later reader waits, so full prefill gain may be smaller.",
+    "No production code or device modified; no candidate benchmark performed."
+  ]
+}

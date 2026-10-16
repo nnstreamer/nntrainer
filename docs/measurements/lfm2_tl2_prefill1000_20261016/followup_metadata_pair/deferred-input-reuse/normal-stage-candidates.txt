@@ -1,0 +1,45 @@
+# Normal LFM prefill MoE: two remaining exact-work candidates
+
+Read-only source review. Constraints: C16, preload128, PAGE0, six readers, unchanged native TL2 weight values, no new weight cache or activation buffer. The input-reuse candidate is now **design only**, following the parent's request to review its protocol before implementing it.
+
+Evidence: `/tmp/nntr-lfm2-moe-stage-trace-20261016/device-v2-stage.log` and `device-v2.json`. The parent verified all 65 normal generated IDs with PROFILE=1 plus I/O tracing. The first of 39 calls is a known load-time warmup (9.429 ms); all figures below exclude it. The remaining 38 calls have M1024, rc=0, f=0, 2,283 active expert instances and 3,776 HMX blocks. This establishes the actual plain MoE dispatch, not the previously assumed fused-norm path.
+
+| Caller-clock stage across 38 calls | ms |
+|---|---:|
+| Whole DSP kernel | 382.527 |
+| HMX issue loops | 104.761 |
+| GU / DN DMA-and-expansion exposed waits | 54.343 / 12.916 |
+| Activation quantization | 17.309 |
+| Accumulator reads | 22.340 |
+| Exposed dequant / requant / scatter waits | 12.161 / 0.625 / 24.615 |
+| Activation-in plus output-out staging | 25.678 |
+| Gather / push / allocation | 1.649 / 5.444 / 0.024 |
+| Unnamed remainder | 100.662 |
+
+SwiGLU worker time (1,168.875 ms) is an overlapping aggregate and is not added. DMA_FIRST=0.027 ms is already inside GU drain; DMA_WAIT is also nested. The unnamed remainder includes initial synchronous expansion, metadata refresh, validation/setup and uninstrumented scheduling; it is not one optimization's cost. 37/38 descriptor traces overflow the 512-record capacity, so their zero busy/last-issue fields do not measure bandwidth. Instrumented TPS is not a normal benchmark result.
+
+## 1. Reuse the router's cached activation for the immediately following plain MoE
+
+`test/htp/nntr_hvx_mm_u8i4.c:1924–1953` already copies the exact CPU-normalized LFM input into `s->moe_scratch.base`, runs the ordered FP32 router, and leaves that input unchanged. `hmx/hexkl_mm_u8i4_moe.c:2382` then copies the same ION activation into another slice of that scratch. For M1024/K2048 this repeats an 8 MiB DMA per layer: **304 MiB across 38 layers**. No normalization arithmetic, quantization, routing, accumulation order or output location needs to change.
+
+The host ION input is already reused: the same run's MoE input-stage bucket has only four copies including other/warmup calls. Therefore this candidate removes the second **DSP input DMA**, not another 304 MiB ARM copy. The normal output staging remains necessary for the existing ARM residual/next norm.
+
+**Gain estimate:** input-only time was not separately measured. If input and output copies cost about the same, removing input gives approximately **12.839 ms**, or **3.36% of the measured MoE kernel time**. This is a working hypothesis, not a measured saving or a strict half-time bound. The entire shared staging bucket is 25.678 ms (6.71% of kernel time), which is only a conservative cost envelope. End-to-end benefit can be smaller because shorter compute may expose file-reader waits. A 15% kernel reduction would need 57.379 ms; this copy alone cannot justify that claim.
+
+A safe implementation needs explicit proof that the ION source has not been written since the router, and that the DSP scratch has not been reused. Pointer/shape equality or sampled host-content comparisons are insufficient. It also needs to carve `act_c` first at scratch base: the present slot/order metadata is written into the beginning of scratch before the copy and would otherwise overwrite the router input. Full design and invalidation scope are in `router-input-reuse-design.md`. **Recommendation: defer from the current commit; do not introduce a pointer-only fast path.**
+
+## 2. Remove redundant barriers and zero writes in stable native metadata refresh
+
+`hmx/hexkl_mm_u8i4_dma.c:169–207` refreshes changed GU and DN arena metadata separately. Each side invalidates its source tail, submits two descriptors, drains, invalidates its destination and zeros its bias. Current stable native slots have initialized zero bias; scale and integer colsum must still be refreshed after every changed generation.
+
+For the exact native LFM shape, a pair has 24 KiB GU plus 16 KiB DN scale/colsum and 20 KiB total bias. A specialized stable-pair path can enqueue both matrices before one drain, then invalidate both destinations. Preserving the already initialized bias removes repeated zero writes. Initial registration and general rebind retain their initialization. GU's combined 24 KiB cannot be one DMA row beyond the 16 KiB row limit: retain valid separate descriptors or describe valid multi-row geometry.
+
+**Gain estimate:** the changed-generation count and refresh time are not isolated by this trace. No numeric saving is established. The removed work is one drain plus 20 KiB of zero stores per changed pair. The 2,283 active expert instances are only an upper count, not the number of refreshes: resident and newly registered pairs can already match. Even the all-changed upper case removes at most 44.59 MiB of zero stores; the required metadata transfer remains. The useful estimate is `changed_pairs × saved_us_per_pair / 1000` ms. For example, 1,500 changed pairs with a measured 1/3/5 us saving would yield 1.5/4.5/7.5 ms; neither the count nor per-pair saving is measured here. It is incorrect to assign the whole 100.662 ms remainder to this helper.
+
+Validation must preserve generation checks, source/destination cache invalidation, release ordering and initialization after reuse. Use the existing `test/htp/host/swap_host_check.c` generation/rebind fixture, then actual device byte/ID parity and same-handle restart. A narrow helper timer/counter or same-pair microbenchmark should precede any performance claim. This is a lower-scope exact-work candidate, not an established 15% improvement.
+
+## Why larger visible totals are not immediate waste-removal candidates
+
+The GU+DN 67.259 ms wait is genuinely exposed, but includes required native expansion and DMA. Each panel already has pushed/expanded masks, and two-chunk lookahead already schedules work under neighboring HMX phases. `hvx_worker_pool_wait_bg` also executes background units on the caller while waiting. The existing foreground/background arbitration can still be optimized, but I found no simple redundant expansion or idle-only wait to delete safely. Do not count the entire wait as a predicted gain.
+
+Original activation quantization is once per layer, GU dequant/SwiGLU and DN dequant/weighted scatter are fused, and native DN carries next-block requantization. The route's 35.59% padded HMX row capacity is not a whole-FFN saving: native HVX tail support is not active and would compete with expansion/epilogues. Session allocation is already negligible. Load-time registration and dummy warmup are excluded from prefill savings.

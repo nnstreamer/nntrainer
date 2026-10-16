@@ -199,10 +199,22 @@ int hexkl_weight_tl2_refresh_pair(hexkl_weight_u8i4 *g, hexkl_weight_u8i4 *d) {
   hexkl_dcache_inva(g->tl2_generation, 128u);
   const uint32_t generation = *(const volatile uint32_t *)g->tl2_generation;
   if (generation != g->tl2_generation_seen) {
-    hexkl_weight_u8i4_tail_from_arena(
-      g, (uint32_t)htp_tl2_native_bytes(g->K, g->N));
-    hexkl_weight_u8i4_tail_from_arena(
-      d, (uint32_t)htp_tl2_native_bytes(d->K, d->N));
+    /* fill_slot places scales and sums consecutively in aligned arrays,
+     * just as the native arena stores them. The LFM shape above fits one
+     * two-row descriptor per weight; both finish before either is used. */
+    const uint32_t gn4 = (uint32_t)sizeof(float) * g->N;
+    const uint32_t dn4 = (uint32_t)sizeof(float) * d->N;
+    const uint8_t *gt = g->wh_bytes + htp_tl2_native_bytes(g->K, g->N);
+    const uint8_t *dt = d->wh_bytes + htp_tl2_native_bytes(d->K, d->N);
+    hexkl_dcache_inva(gt, 2u * gn4);
+    hexkl_dcache_inva(dt, 2u * dn4);
+    hexkl_dma_ring_push2d(g->w_scale, gt, gn4, gn4, gn4, 2u, 0, 0);
+    hexkl_dma_ring_push2d(d->w_scale, dt, dn4, dn4, dn4, 2u, 0, 0);
+    hexkl_dma_ring_drain();
+    hexkl_dcache_inva(g->w_scale, 2u * gn4);
+    hexkl_dcache_inva(d->w_scale, 2u * dn4);
+    /* Compact register/rebind initialize bias to zero. No kernel writes
+     * it, and legacy rebind clears compact/generation, so keep that bias. */
     g->tl2_generation_seen = generation;
   }
   return AEE_SUCCESS;

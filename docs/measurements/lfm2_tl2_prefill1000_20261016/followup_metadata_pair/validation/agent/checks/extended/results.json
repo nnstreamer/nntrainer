@@ -1,0 +1,37 @@
+[
+  {
+    "name": "baseline",
+    "exit": 0,
+    "expected_pass": true
+  },
+  {
+    "name": "wrong_dn_row_count",
+    "exit": -6,
+    "expected_pass": false
+  },
+  {
+    "name": "wrong_gu_stride",
+    "exit": -6,
+    "expected_pass": false
+  },
+  {
+    "name": "missing_drain",
+    "exit": -6,
+    "expected_pass": false
+  },
+  {
+    "name": "early_generation",
+    "exit": -6,
+    "expected_pass": false
+  },
+  {
+    "name": "missing_destination_invalidate",
+    "exit": -6,
+    "expected_pass": false
+  },
+  {
+    "name": "redundant_bias_zero",
+    "exit": -6,
+    "expected_pass": false
+  }
+]

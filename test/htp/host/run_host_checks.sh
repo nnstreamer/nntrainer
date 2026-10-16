@@ -780,6 +780,21 @@ python3 "$HERE/gen_nntr_hvx_h.py" "$HERE/../nntr_hvx.idl" "$OUT/nntr_hvx.h"
 
 "$OUT/swap_host_check"
 
+# Deferred DMA checks the real native registry refresh's publication order.
+# This fixture includes the registry C file and drops unrelated compute
+# functions with the ELF linker, so it is deliberately a Linux host check.
+if [ "$(uname -s)" = "Linux" ]; then
+  "$cc" -std=gnu11 -O2 -Wall -Wextra -Wno-unused-parameter \
+    -ffunction-sections -fdata-sections -include malloc.h \
+    -I "$HERE/stub" -I "$HERE/standin" -I "$HERE/.." \
+    -I "$BACKEND" -I "$BACKEND/.." -I "$BACKEND/hmx" -I "$BACKEND/hvx" \
+    "$HERE/tl2_refresh_pair_check.c" -Wl,--gc-sections -lm \
+    -o "$OUT/tl2_refresh_pair_check"
+  "$OUT/tl2_refresh_pair_check"
+else
+  echo "TL2 refresh pair: Linux ELF fixture skipped on this platform"
+fi
+
 # The q2 attention calibration's abs-max (abs_max.h): natively, and on the
 # NEON path when an aarch64 g++ and qemu-aarch64 are installed (ABS MAX OK).
 ABS_SRCS="$HERE/abs_max_check.cpp $BACKEND/../../utils/fp16.cpp"

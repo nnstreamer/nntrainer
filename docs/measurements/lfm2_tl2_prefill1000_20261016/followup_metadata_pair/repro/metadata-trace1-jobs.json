@@ -1,0 +1,16 @@
+[
+  {
+    "variant": "metadata-trace1",
+    "tag": "postpush-meta-trace1",
+    "model": "model",
+    "env": {
+      "NNTR_HTP_PREDICT": "2",
+      "NNTR_MOE_PREFETCH_RESIDUAL": "0.5",
+      "NNTR_HTP_TL2_STABLE_SLOTS": "1",
+      "NNTR_LFM2_PREFILL_EARLY": "1",
+      "NNTR_LFM2_DECODE_PAIR_READ": "1",
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": "1"
+    },
+    "profile": true
+  }
+]

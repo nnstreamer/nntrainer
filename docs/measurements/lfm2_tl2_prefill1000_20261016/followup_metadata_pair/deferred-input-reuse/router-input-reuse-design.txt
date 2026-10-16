@@ -1,0 +1,54 @@
+# Router input to plain MoE: design review only
+
+**Decision:** no implementation in this audit. The DMA is redundant on the observed model path, but safe removal spans ARM buffer ownership and DSP scratch ownership. It is more than a local memcpy deletion. Given the approximately 12.8 ms/38-layer cost hypothesis, defer from the current commit unless this protocol receives its own validation scope. No new allocation or weight cache is required by the design below.
+
+## Actual producer and consumer
+
+1. `lfm2_moe_layer.cpp:1843–1878` performs CPU input RMSNorm, then the FP32 sigmoid router over the normalized input. The tensors share the normalized source on this builder.
+2. `htp_compute_ops.cpp:1742–1806` stages input in `act_pool_` and invokes the router under `invoke_mutex_`.
+3. `nntr_hvx_mm_u8i4.c:1924–1953` copies eligible M128..4096/K2048/E64, top_k=0, gammaLen=0 input to cached scratch base. The router's output is copied back and the normalized input stays there.
+4. CPU top-k and expert file/handle registration run before `computeLayerExperts` invokes plain MoE. The existing weight registration/rebind functions use weight arrays/VTCM, not `moe_scratch`.
+5. `invokeMoeLayer:7184` normally returns the existing ION activation without copying; `hexkl_mm_u8i4_moe_layer_run:2382` nevertheless DMA-copies it again. Both M1024 and M2048 satisfy the same producer guard. Actual candidate reuse at each shape still requires a diagnostic; there is no implemented candidate yet.
+
+## Minimum protocol
+
+The proposed reuse is a one-shot handoff, never a general persistent content cache.
+
+| Side / file | Required change |
+|---|---|
+| ARM `htp_compute_ops.cpp` | A monotonic staging write/identity generation and one pending router record (session, source buffer identity, byte count/shape, generation). Record only after successful eligible FP32 router RPC. Before plain MoE, require the same ION buffer and unchanged generation; consume once under `invoke_mutex_`. |
+| Shared `htp_moe_opts.h` and DSP MoE header | A named per-call modifier in the existing `act` uint32, separate from the low activation selector. Do not place it in the persistent session options. |
+| DSP `nntr_hvx_mm_u8i4.c` | Save a successful router scratch stamp (source mapping, shape/bytes, base/capacity epoch). At plain-entry validation, reject unsupported modifier combinations, consume the old stamp even on failure, and pass a local reuse request only for exact native LFM geometry. Low activation semantics stay unchanged. |
+| DSP `hexkl_mm_u8i4_moe.h/.c` | Invalidate the stamp on every scratch reservation/free; snapshot the validated stamp before this MoE's reserve and verify no growth/base change. Carve activation first at base in the guarded path so metadata writes cannot destroy it. Skip only the input DMA when every predicate holds; otherwise preserve the existing copy. |
+| `nntr_hvx.idl` comment and fixtures | No RPC signature, buffer length, or generated stub-layout change. However, a formerly invalid `act` value becomes a modifier: this is still a wire-contract semantic extension and requires paired ARM/DSP deployment. Keep it opt-in. |
+
+The source/base pointer is necessary but not sufficient. No equality decision may depend only on pointer, shape or `sampledSame`. The host generation proves absence of writes to the actual ION bytes; DSP stamp proves absence of scratch writes. Existing host `sampledSame` can remain part of staging's old behavior, but is not the new proof: if it mistakenly retains old ION bytes, both baseline and candidate must consume exactly those same bytes. Never infer host-content equality from the sample.
+
+No extra 8/16 MiB activation allocation is needed. A short pending record on each side plus a generation counter is sufficient in principle, but coverage of all mutation paths is the main verification burden.
+
+## Host invalidation scope to audit and test
+
+- `stage()` must invalidate/bump before a buffer can be returned as an output or written; a same-class output overwrite counts even when shape and pointer match.
+- `stageInput()` actual copy, `from` pool swap, and identity replacement must invalidate/bump. Only its verified no-write return may preserve the generation. A swap must not transfer a pending record to an unrelated owner accidentally.
+- `fit()` replacement and all release/reset paths invalidate: `begin_prompt` around line1344, `release_prefill_scratch`, `releasePrefillStaging` around line3705, destruction, and error/retry cleanup. Counter wrap must conservatively invalidate.
+- Direct RPC writes or memcpy into an existing retained buffer without going through `stage()` must be included. Track invalidation where ownership is handed out for writing, not just in `stagedMemcpy` (which would miss DSP writes).
+- A different compute operation between router and MoE should conservatively invalidate the host pending record even if it uses a different size class; expert registration is the specific permitted gap. At MoE, consume the pending record before dispatch and do not retain it across exceptions/repeats.
+- Capture permission only after the final input-stage decision. Creating output staging must not accidentally suppress the intended same-call use, but it also must not alias/overwrite the input. The current distinct pool ownership is the starting invariant to verify.
+
+## DSP invalidation and fallback scope
+
+All current users of shared `moe_scratch` must invalidate the stamp before writes: MoE, dense/M1 FC, conv, attention staging and router. `hexkl_moe_scratch_reserve` is the common point, including no-growth reserves; free must invalidate too. Failed producer/consumer calls clear the old stamp. A new router replaces the old one only after success. Weight registration may preserve the stamp because it does not write this scratch.
+
+The consumer uses a local snapshot and validates scratch base/capacity after reserve. A growth, missing producer, source mapping change, wrong M/K, non-native weight, M1, GeGLU, fused norms/add, split/repeated invocation, or unsupported profile path takes the old input DMA. Only the first plain call can consume the stamp; later split groups and PROFILE repeats copy normally. An old DSP rejects the opt-in modifier rather than silently ignoring its meaning; a deployment check must make that failure explicit.
+
+Candidate compute changes are limited to memory layout and deletion of a byte copy. Norm/activation quant arithmetic, per-expert route order and scatter order stay fixed. A layout-only A/B is useful to separate layout effects from copy removal.
+
+## Required diagnostics and validation before adoption
+
+A compile-time or opt-in FARF trace should report one line for each normal eligible MoE: M/K/I/N, request, hit, reason for fallback, source byte count and before/after generation, without tensor contents. Use a tag containing `nntr` or retrieve raw logcat, since the earlier stage tag was filtered out. M1024 hits skip8 MiB; M2048 hits skip16 MiB. Count the real 38 normal calls separately from the load warmup. A shared staging bucket alone cannot prove dispatch.
+
+Host fixtures must exercise exact byte snapshots and lifecycle transitions: unchanged handoff; mutation outside sampled windows; same-address replacement; input pool overwrite; pool swap; different session; scratch growth/failed allocation; conv/attention/dense interposition; failed router; bad consumer args; second consumer; shape change; long-prompt block boundaries; and same-handle second prompt. Actual extracted helpers should be used rather than a toy state machine alone. Verify scratch extent/alignment unchanged and output/reference canaries under ASan/UBSan.
+
+On device, the parent owns all checks: paired binaries, 1024/2048 dispatch counters, all65 IDs, per-MoE output byte comparisons where available, same-handle repeat, normal uninstrumented A/B, complete-run sampled peak. C16/PAGE0/preload128/six readers and weight file remain fixed. Do not run repeated Gemma benchmarks; prove its guards never request the modifier and retain fallback.
+
+The new contract/invalidation work is the reason to defer, not a claim that the input copy cannot be removed. A pointer-only patch would be smaller but unsafe.

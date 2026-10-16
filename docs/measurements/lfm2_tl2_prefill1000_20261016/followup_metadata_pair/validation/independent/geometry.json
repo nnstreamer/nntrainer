@@ -1,0 +1,58 @@
+{
+  "patch_sha256": "323a6e2b94b52de3796ca8e4f658f7db3d30f496129106112d3bd490177dfe57",
+  "rows": [
+    {
+      "weight": "GU",
+      "K": 2048,
+      "N": 3072,
+      "native_bytes": 1320960,
+      "row_bytes": 12288,
+      "rows": 2,
+      "src_stride": 12288,
+      "dst_stride": 12288,
+      "transferred_bytes": 24576,
+      "source_interval": [
+        1320960,
+        1345536
+      ],
+      "destination_relative_interval": [
+        0,
+        24576
+      ],
+      "bias_relative_interval": [
+        24576,
+        36864
+      ],
+      "metadata_cache_boundaries_128_aligned": true,
+      "descriptor_field_limits_fit": true,
+      "old_new_transfer_intervals_equal": true
+    },
+    {
+      "weight": "DN",
+      "K": 1536,
+      "N": 2048,
+      "native_bytes": 655360,
+      "row_bytes": 8192,
+      "rows": 2,
+      "src_stride": 8192,
+      "dst_stride": 8192,
+      "transferred_bytes": 16384,
+      "source_interval": [
+        655360,
+        671744
+      ],
+      "destination_relative_interval": [
+        0,
+        16384
+      ],
+      "bias_relative_interval": [
+        16384,
+        24576
+      ],
+      "metadata_cache_boundaries_128_aligned": true,
+      "descriptor_field_limits_fit": true,
+      "old_new_transfer_intervals_equal": true
+    }
+  ],
+  "conclusion": "exact baseline payload union; unchanged row width, stride and bypass; new height is 2"
+}

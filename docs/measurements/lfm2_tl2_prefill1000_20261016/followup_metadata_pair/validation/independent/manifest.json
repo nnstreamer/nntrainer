@@ -1,0 +1,15 @@
+{
+  "base": "b464fbf6f167b8e5ac2e135201c1316cc6f141f8",
+  "patch": "/tmp/nntr-lfm2-tl2-refresh-pair-20261016/production.patch",
+  "patch_sha256": "323a6e2b94b52de3796ca8e4f658f7db3d30f496129106112d3bd490177dfe57",
+  "verdict": "no new blocker found",
+  "production_edits": false,
+  "device_access": false,
+  "validation_scope": "independent source/ownership/geometry review plus inspection of author test logs",
+  "known_existing_limitation": "void DMA drain does not propagate its polling timeout",
+  "pending_at_report": "author rerun of expanded lifecycle fixture",
+  "files": {
+    "README.md": "9a91c9c58ec3d5588bec416da92fba653bac717b20e9c2285faf5e8e2348c14e",
+    "geometry.json": "5362f14cc0e5ce4593243d4cd43d311160500fa775ecbce43f24afb298f3abca"
+  }
+}

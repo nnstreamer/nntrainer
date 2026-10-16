@@ -1,0 +1,16 @@
+{
+  "normal_comparison_tags": [
+    "postpush-metaab-0-r1",
+    "postpush-metaab-1-r1",
+    "postpush-metaab-1-r2",
+    "postpush-metaab-0-r2",
+    "postpush-metaab-0-r3",
+    "postpush-metaab-1-r3"
+  ],
+  "pilot_excluded": "postpush-meta0-r1 was a control build sanity check before candidate build/testing; long deployment gap. Decision made before first candidate model run. Retain its raw results separately.",
+  "long_prompt_single_correctness_run": "postpush-metapair-2048",
+  "C": 16,
+  "page_cache": 0,
+  "grow_cache": 0,
+  "preload": 128
+}

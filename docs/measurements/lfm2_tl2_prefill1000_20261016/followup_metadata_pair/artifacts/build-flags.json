@@ -1,0 +1,14 @@
+{
+  "metadata-control": {
+    "HEX_EXTRA_CFLAGS": ""
+  },
+  "metadata-pair": {
+    "HEX_EXTRA_CFLAGS": ""
+  },
+  "metadata-trace0": {
+    "HEX_EXTRA_CFLAGS": "-DNNTR_LFM2_METADATA_TRACE=1"
+  },
+  "metadata-trace1": {
+    "HEX_EXTRA_CFLAGS": "-DNNTR_LFM2_METADATA_TRACE=1"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "command": [
+    "bash",
+    "test/htp/host/run_host_checks.sh"
+  ],
+  "exit_code": 0,
+  "exit_code_source": "Observed completion of exec session 60087",
+  "log_sha256": "2a312f3cda18f630253d1a23cbf260fbcf1e6e65ecd247e12d9be409c2152955",
+  "optional_skipped": [
+    "ARM NEON abs_max cross-check: aarch64 g++ or qemu-aarch64 missing"
+  ],
+  "existing_compiler_warnings_present": true,
+  "full_cross_platform_ci_run": false
+}

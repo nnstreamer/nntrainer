@@ -1,0 +1,94 @@
+LFM native TL2 stable-pair metadata refresh
+=========================================
+Base: b464fbf6f (production file byte-identical to the saved before/ source).
+Scope: hexkl_mm_u8i4_dma.c, hexkl_weight_tl2_refresh_pair only.
+Production patch SHA256:
+323a6e2b94b52de3796ca8e4f658f7db3d30f496129106112d3bd490177dfe57
+
+Change
+------
+Inside the pre-existing stable-generation and LFM K=2048/I=1536/N=2048
+validation, issue GU scales+sums as a 12288-byte by 2-row DMA and DN as an
+8192-byte by 2-row DMA, then drain both. Previous code used four single-row
+DMA descriptors and two drains. Total payload stays 40960 bytes per changed
+pair. The immutable +0 bias is no longer rewritten (20480 bytes per pair).
+Initial register/rebind still initialize all metadata and zero bias.
+
+No change to registration, handles, arena ownership, generation publication,
+source/destination storage, reader count, cache size, precision, IDL or ABI.
+No new heap, VTCM, arena, static cache or runtime flag. The compiled refresh
+stack frame changes from 48 to 64 bytes (+16 bytes). Descriptor and cache-line
+bounds are satisfied by the existing shape guard; no broad model dispatch.
+Gemma and non-stable handles retain the original no-generation no-op.
+
+Correctness reasoning
+---------------------
+- fill_slot allocates the scales/sums/bias consecutively in a 128-byte-aligned
+  allocation. Each LFM metadata row is a multiple of 128 bytes. The native
+  source tail similarly stores scales followed immediately by sums. Each
+  two-row extent ends before bias, so invalidation does not discard its
+  initialized +0 cache lines.
+- Compact register and compact rebind are the only production paths setting
+  tl2_compact. Both call the existing tail helper, which zeros bias. Legacy
+  rebind clears compact/generation, and transitioning back through compact
+  rebind reestablishes +0 even after a caller-supplied nonzero legacy bias.
+  No kernel writes registered bias. Affine offsets reject bits==2 handles.
+- Both source ranges are invalidated before either DMA starts; destination
+  ranges are invalidated only after the one drain completes. Generation_seen
+  is stored last. No-change and validation-failure behavior is untouched.
+- A moved compact arena clears the old generation pointer and reads the new
+  metadata through the existing rebind. Attaching the new generation then
+  uses the same refresh ownership rule. The host must continue publishing
+  payload before generation; this patch does not change that contract.
+
+Validation
+----------
+1. New actual-production fixture includes the registry C file, including real
+   register/rebind/release/refresh. Its DMA completes only at drain and checks
+   source invalidation, exact extents/strides, post-DMA invalidation, generation
+   commit ordering, allocation counts and untouched code/guard bytes.
+   Six changed generations (including UINT32_MAX -> 0), no-change calls, all
+   ten existing shape/state rejection predicates, Gemma no-op, exact byte
+   comparison against the old serial tail helper, legacy nonzero bias ->
+   compact -> legacy transitions, and different-arena rebind/republish PASS.
+   GCC -Wall -Wextra -Werror, ASan, UBSan and leak detection PASS.
+2. Six mutations were caught by the intended assertions: wrong row count,
+   wrong stride, missing drain, early generation commit, missing destination
+   invalidation, redundant bias reset. Evidence: checks/extended/results.json.
+3. Existing real-RPC swap_host_check with candidate registry, ASan+UBSan and
+   leak detection PASS: metadata, rebind, bounds, legacy transitions, stable
+   Gemma rejection, stable LFM three generations/same handles, and negative
+   shape/extent/offset/pair guards. Evidence: checks/swap/run.log.
+4. Actual Hexagon v81 -O3 -Wall -Werror compilation PASS, both saved baseline
+   and candidate; .su verifies 48 -> 64 byte refresh frame. Commands and
+   compile logs are in checks/dsp*. No simulator performance claim.
+5. clang-format 14 applied, shell syntax PASS, complete patch apply-check
+   PASS in an independent temporary overlay. Root and device were not edited
+   or used by this agent. The new host check is explicitly Linux-guarded
+   because it uses ELF section garbage collection; production adds no OS API.
+
+Limits and interpretation
+-------------------------
+The DMA API already returns void; its internal guard timeout is not surfaced
+as a failure. This patch preserves that existing limitation. Host deferred
+DMA validates software ordering, not the physical cache/DMA hardware. Device
+validation belongs to root. Root reports normal A/B IDs and same-handle tests
+exact with no peak increase, but timing attribution is still measured by
+root's separate refresh-loop diagnostic. Do not equate the existing ~67 ms
+GU/DN weight-drain bucket with metadata refresh or claim it is eliminated.
+
+Artifacts / reproduction
+------------------------
+production.patch: production-only delta (root has applied this).
+tests.patch: new fixture and guarded run_host_checks.sh integration.
+complete.patch: both; sha256.json records all three patch hashes.
+
+After applying both patches to a checkout, run the new block integrated in
+  bash test/htp/host/run_host_checks.sh
+or use the standalone checker from this artifact directory:
+  python3 checks/run_checks.py --repo /path/to/checkout \
+    --output /tmp/tl2-refresh-check --sanitize --mutations
+The runner accepts --source /path/to/hexkl_mm_u8i4_dma.c and --fixture
+/path/to/tl2_refresh_pair_check.c to test this artifact without applying it.
+No hardcoded repository path is present in the integrated test or runner.
+Recorded command JSON files intentionally retain the actual execution paths.
