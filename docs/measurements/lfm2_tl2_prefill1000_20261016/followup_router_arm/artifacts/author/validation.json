@@ -1,0 +1,183 @@
+{
+  "production": {
+    "base": "f7b16e48ca01a650160d823141e86e67c7993a7c",
+    "production_equivalent": "ccea0d476daf43ddd5dbe201178755e6ff978dfd",
+    "files": {
+      "Applications/CausalLM/app_build/meson.build": "c602cf6785c1790ee361fedc0d45490cf0194d208b75acf4ba895f0c527ac92f",
+      "Applications/CausalLM/models/gemma4/meson.build": "f54cbe5e90b246898649425607a7010cdd06e8df52f3540aaa402947267b7d9c",
+      "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp": "103b1e1df18efe8de8085f01167f29f2a4502178ac22e5c1aaab68dc38c036a8",
+      "Applications/CausalLM/models/lfm2_moe/lfm2_router_arm.cpp": "d74cacb8b4c42ea701c37922ff773dff95804e92d0f38d84a09ce3d86000aa79",
+      "Applications/CausalLM/models/lfm2_moe/lfm2_router_arm.h": "5a79209dd974817dc20a7a13ee4e29b7b71c90fc2fb6e42dcafadda4a8794339"
+    },
+    "production_patch_sha256": "d5604ee3969f985032b607967870f3e8983a4b534572a0e2910a1746839c4796"
+  },
+  "tests_patch_sha256": "403448179df6daf166ef4c3df8ecc7fef0489d530bf253b1f257437fba520d76",
+  "test_files": {
+    "test/htp/host/lfm2_router_arm_check.cpp": "6c5143373c8dcebf52fcf4f734c4495116f90aeec0fcd942e4bfaf17b521dba0",
+    "test/htp/host/lfm2_router_arm_data.h": "2e38f11c419789dd3f0bd363952d4a0e57e06e3564b6f683600b9fa3e1f8e574",
+    "test/htp/host/lfm2_router_arm_native_check.cpp": "d773915325e783da2f42fc633d91a3492a35acb7b3ee7d752549f3861833d455",
+    "test/htp/host/run_lfm2_router_arm_check.py": "aff221615c40317db49590d076e0d86d1fff584b7e8459a8733df190d50e080a",
+    "test/htp/host/run_lfm2_router_arm_mutations.py": "0a51056d36c74722ac1059260e6bf7ee05b1278b04bf1071b36f7477752ed982",
+    "test/htp/host/run_lfm2_router_arm_native.py": "6763c209385bda65cda9e7f6c2d2f75e41cedd5f56b3949b319faa6f186f32cb"
+  },
+  "author_host": {
+    "cases": 120,
+    "envs": [
+      "1",
+      "0",
+      "unset",
+      "true",
+      "quantized-present"
+    ],
+    "ASan_UBSan": true,
+    "log": "host-v3b.log",
+    "log_sha256": "183e84994a9467bf1d5215323dda77213ebd5f86e2fbe70f42a32d62d5626092"
+  },
+  "mutations": [
+    {
+      "name": "input_subnormal",
+      "returncode": 1,
+      "expected_assertion": "primitive special qualification",
+      "pass": true
+    },
+    {
+      "name": "weight_subnormal",
+      "returncode": 1,
+      "expected_assertion": "primitive special qualification",
+      "pass": true
+    },
+    {
+      "name": "nonfinite_output",
+      "returncode": 1,
+      "expected_assertion": "primitive special qualification",
+      "pass": true
+    },
+    {
+      "name": "input_alias",
+      "returncode": 1,
+      "expected_assertion": "metadata guard accepted",
+      "pass": true
+    },
+    {
+      "name": "weight_context",
+      "returncode": 1,
+      "expected_assertion": "metadata guard accepted",
+      "pass": true
+    },
+    {
+      "name": "last_task",
+      "returncode": 1,
+      "expected_assertion": "task coverage",
+      "pass": true
+    },
+    {
+      "name": "failure_propagation",
+      "returncode": 1,
+      "expected_assertion": "special caller used ARM",
+      "pass": true
+    },
+    {
+      "name": "fallback_overwrite",
+      "returncode": 1,
+      "expected_assertion": "actual caller RPC count",
+      "pass": true
+    },
+    {
+      "name": "gelu_guard",
+      "returncode": 1,
+      "expected_assertion": "unsupported caller policy",
+      "pass": true
+    },
+    {
+      "name": "opt_in",
+      "returncode": 1,
+      "expected_assertion": "actual caller qualification",
+      "pass": true
+    }
+  ],
+  "codegen": {
+    "strict_dot_frame": 64,
+    "weight_scan_frame": 0,
+    "kernel_fmul_per_k_column_group": 16,
+    "kernel_fadd_per_k_column_group": 16,
+    "kernel_fmla": 0,
+    "column_groups": 4,
+    "hot_k_loop_stack_operations": 0,
+    "app_incremental_frame_before_after": [
+      3008,
+      3008
+    ],
+    "qualification_helper_frame": 128,
+    "parallel_for_frame": 96,
+    "callback_frame": 32,
+    "callback_capture_bytes": 32,
+    "std_function_metadata_bytes": 40,
+    "unsupported_platform_compile": [
+      "Android x86 Clang",
+      "Linux x86 GCC"
+    ],
+    "wrong_fastmath_build_rejected": true,
+    "source_sha256": "d74cacb8b4c42ea701c37922ff773dff95804e92d0f38d84a09ce3d86000aa79"
+  },
+  "root_native": {
+    "binary_sha256": "f956408ffd7f054be2507cedbef1cad72ef12f8f4ac457d4f7fd8975b46aee75",
+    "runs": [
+      {
+        "flag": 1,
+        "threads": 8,
+        "command": "env LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated:/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/tile-ion ADSP_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated NNTR_NUM_THREADS=8 NNTR_HTP_PAGE_CACHE=0 NNTR_LFM2_ROUTER_ARM=1 timeout 60 /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/router-native-v3 8",
+        "returncode": 0,
+        "seconds": 1.4265025269705802,
+        "log_sha256": "152811c5a9b4f8b018648d33477618c933436dca90ac4977e1110deb0326af8c",
+        "log": "root-native-v3-1-8.log"
+      },
+      {
+        "flag": 0,
+        "threads": 8,
+        "command": "env LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated:/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/tile-ion ADSP_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated NNTR_NUM_THREADS=8 NNTR_HTP_PAGE_CACHE=0 NNTR_LFM2_ROUTER_ARM=0 timeout 60 /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/router-native-v3 8",
+        "returncode": 0,
+        "seconds": 1.4392814709572122,
+        "log_sha256": "3209d863d4ed1b3b679f179b807b58e65212fd1ca0b7aea1978ccfc8f00a0f20",
+        "log": "root-native-v3-0-8.log"
+      },
+      {
+        "flag": 1,
+        "threads": 1,
+        "command": "env LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated:/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/tile-ion ADSP_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated NNTR_NUM_THREADS=1 NNTR_HTP_PAGE_CACHE=0 NNTR_LFM2_ROUTER_ARM=1 timeout 60 /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/router-native-v3 1",
+        "returncode": 0,
+        "seconds": 1.6923039810499176,
+        "log_sha256": "8797bc64f3d61bb779381a9220757e2e3563fb4dca935eb5057df8c6fa4a85b1",
+        "log": "root-native-v3-1-1.log"
+      },
+      {
+        "flag": 0,
+        "threads": 1,
+        "command": "env LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated:/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/tile-ion ADSP_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated NNTR_NUM_THREADS=1 NNTR_HTP_PAGE_CACHE=0 NNTR_LFM2_ROUTER_ARM=0 timeout 60 /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/router-native-v3 1",
+        "returncode": 0,
+        "seconds": 1.4498939480399713,
+        "log_sha256": "9c9656ba0b85d19c710c8dc95b8645af8e46f1b3aea43c7f2e7bfaf17377105a",
+        "log": "root-native-v3-0-1.log"
+      }
+    ]
+  },
+  "independent_review": {
+    "path": "/tmp/nntr-lfm2-router-arm-review-20261017",
+    "review_sha256": "dbe541c8c2c0983ec680c52823425e42bf2a87ba5723fa373a0ac2cdb1f62269",
+    "validation_sha256": "dc3f3f7529621515a5d83fd596fe0082d874c463605535023fd3140b2b233931"
+  },
+  "diagnostic_sha256": "67cdb600a11c1cae4dddc44e6944c27d2e0965b279cb77472d41f5be7974f740",
+  "model_status": "Root normal12 all checks pass; diagnostics/repeated2048 pending at document freeze",
+  "prior_failures_preserved": {
+    "v1": [
+      14,
+      6
+    ],
+    "v2": [
+      46,
+      8
+    ]
+  },
+  "README_sha256": "f08984f66cd88b69df85fcfb401b1928237906cd9c9b8c301b6c42d8049cf389",
+  "root_normal_summary_sha256": "cc07aa694ba71096f34ea531cbe09a4d1951551c0470703172a6bd8f54ebd0d0",
+  "root_normal_runtime_identity_sha256": "55c8846e468acde8d454682ce99af8994e0d3998fd4a2663bead54bc9fdb5c97"
+}

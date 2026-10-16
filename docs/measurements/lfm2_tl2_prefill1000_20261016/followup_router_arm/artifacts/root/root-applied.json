@@ -1,0 +1,9 @@
+{
+  "patch_sha256": "d5604ee3969f985032b607967870f3e8983a4b534572a0e2910a1746839c4796",
+  "files": {
+    "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp": "103b1e1df18efe8de8085f01167f29f2a4502178ac22e5c1aaab68dc38c036a8",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_router_arm.cpp": "d74cacb8b4c42ea701c37922ff773dff95804e92d0f38d84a09ce3d86000aa79",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_router_arm.h": "5a79209dd974817dc20a7a13ee4e29b7b71c90fc2fb6e42dcafadda4a8794339"
+  },
+  "clang_format_14_byte_identical": true
+}

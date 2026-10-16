@@ -1,0 +1,8 @@
+[
+  {
+    "symbol": "0000000000007c18 <armRouter(float const*, float const*, float*, unsigned int)::$_0::operator()(unsigned long) const>:",
+    "fmul": 0,
+    "fadd": 0,
+    "fmla": 64
+  }
+]

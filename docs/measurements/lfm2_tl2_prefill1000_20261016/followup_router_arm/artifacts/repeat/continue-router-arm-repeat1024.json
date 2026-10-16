@@ -1,0 +1,51 @@
+{
+  "configured_decode_tokens": 64,
+  "expected_dumped_ids": 65,
+  "expected_token_trace_output_ids": 64,
+  "input_ids_equal": true,
+  "output_ids_equal": true,
+  "runs": [
+    {
+      "decode_tokens": 64,
+      "dumped_generated_ids": 65,
+      "ids": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/continue-router-arm-repeat1024-run1.ids",
+      "input_tokens": 1024,
+      "prefill_generated_tokens": 1,
+      "run": 1,
+      "token_trace": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/continue-router-arm-repeat1024-run1.trace.json",
+      "token_trace_output_ids": 64
+    },
+    {
+      "decode_tokens": 64,
+      "dumped_generated_ids": 65,
+      "ids": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/continue-router-arm-repeat1024-run2.ids",
+      "input_tokens": 1024,
+      "prefill_generated_tokens": 1,
+      "run": 2,
+      "token_trace": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/continue-router-arm-repeat1024-run2.trace.json",
+      "token_trace_output_ids": 64
+    }
+  ],
+  "skip_prefill": false,
+  "token_trace_skips_prefill_generated_id": true,
+  "environment": {
+    "LD_LIBRARY_PATH": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-router-arm-1",
+    "ADSP_LIBRARY_PATH": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-router-arm-1",
+    "NNTR_NUM_THREADS": "8",
+    "NNTR_HTP_PAGE_CACHE": "0",
+    "NNTR_LOAD_PREFETCH": "0",
+    "NNTR_MOE_CACHE_GROW": "0",
+    "NNTR_MOE_PRELOAD_EXPERTS": "128",
+    "NNTR_REPEAT_PREFIX": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/continue-router-arm-repeat1024",
+    "NNTR_HTP_PREDICT": "2",
+    "NNTR_MOE_PREFETCH_RESIDUAL": "0.5",
+    "NNTR_HTP_TL2_STABLE_SLOTS": "1",
+    "NNTR_LFM2_PREFILL_EARLY": "1",
+    "NNTR_LFM2_DECODE_PAIR_READ": "1",
+    "NNTR_LFM2_DECODE_DEMAND_HANDOFF": "1",
+    "NNTR_LFM2_ROUTER_INPUT_HANDOFF": "1",
+    "NNTR_LFM2_ROUTER_ARM": "1"
+  },
+  "ids_match_normal_run": true,
+  "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e"
+}

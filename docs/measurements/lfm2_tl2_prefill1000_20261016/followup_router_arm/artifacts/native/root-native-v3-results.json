@@ -1,0 +1,41 @@
+{
+  "binary_sha256": "f956408ffd7f054be2507cedbef1cad72ef12f8f4ac457d4f7fd8975b46aee75",
+  "runs": [
+    {
+      "flag": 1,
+      "threads": 8,
+      "command": "env LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated:/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/tile-ion ADSP_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated NNTR_NUM_THREADS=8 NNTR_HTP_PAGE_CACHE=0 NNTR_LFM2_ROUTER_ARM=1 timeout 60 /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/router-native-v3 8",
+      "returncode": 0,
+      "seconds": 1.4265025269705802,
+      "log_sha256": "152811c5a9b4f8b018648d33477618c933436dca90ac4977e1110deb0326af8c",
+      "log": "root-native-v3-1-8.log"
+    },
+    {
+      "flag": 0,
+      "threads": 8,
+      "command": "env LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated:/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/tile-ion ADSP_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated NNTR_NUM_THREADS=8 NNTR_HTP_PAGE_CACHE=0 NNTR_LFM2_ROUTER_ARM=0 timeout 60 /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/router-native-v3 8",
+      "returncode": 0,
+      "seconds": 1.4392814709572122,
+      "log_sha256": "3209d863d4ed1b3b679f179b807b58e65212fd1ca0b7aea1978ccfc8f00a0f20",
+      "log": "root-native-v3-0-8.log"
+    },
+    {
+      "flag": 1,
+      "threads": 1,
+      "command": "env LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated:/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/tile-ion ADSP_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated NNTR_NUM_THREADS=1 NNTR_HTP_PAGE_CACHE=0 NNTR_LFM2_ROUTER_ARM=1 timeout 60 /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/router-native-v3 1",
+      "returncode": 0,
+      "seconds": 1.6923039810499176,
+      "log_sha256": "8797bc64f3d61bb779381a9220757e2e3563fb4dca935eb5057df8c6fa4a85b1",
+      "log": "root-native-v3-1-1.log"
+    },
+    {
+      "flag": 0,
+      "threads": 1,
+      "command": "env LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated:/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/tile-ion ADSP_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated NNTR_NUM_THREADS=1 NNTR_HTP_PAGE_CACHE=0 NNTR_LFM2_ROUTER_ARM=0 timeout 60 /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/router-native-v3 1",
+      "returncode": 0,
+      "seconds": 1.4498939480399713,
+      "log_sha256": "9c9656ba0b85d19c710c8dc95b8645af8e46f1b3aea43c7f2e7bfaf17377105a",
+      "log": "root-native-v3-0-1.log"
+    }
+  ]
+}

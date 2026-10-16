@@ -1,0 +1,138 @@
+{
+  "pass": true,
+  "normal_runs": 12,
+  "diagnostic_runs": 2,
+  "same_handle_prompts": {
+    "1024": 2,
+    "2048": 2
+  },
+  "native_cases": 376,
+  "runtime_binaries_same_off_on": 7,
+  "normal_summary": [
+    {
+      "tokens": 1024,
+      "prefill_tps": {
+        "control": [
+          816.587,
+          816.587,
+          821.83
+        ],
+        "candidate": [
+          843.493,
+          853.333,
+          842.798
+        ],
+        "median_control": 816.587,
+        "median_candidate": 843.493,
+        "median_pct": 3.294933669039568,
+        "pairs_faster": 3,
+        "paired_deltas_pct": [
+          3.294933669039568,
+          4.49994917871579,
+          2.551379239015361
+        ]
+      },
+      "decode_tps": {
+        "control": [
+          17.3819,
+          17.6649,
+          17.288
+        ],
+        "candidate": [
+          17.6309,
+          17.7728,
+          17.4672
+        ],
+        "median_control": 17.3819,
+        "median_candidate": 17.6309,
+        "median_pct": 1.4325246376978296,
+        "pairs_faster": 3,
+        "paired_deltas_pct": [
+          1.4325246376978296,
+          0.610815798560993,
+          1.0365571494678205
+        ]
+      },
+      "control_max_peak_kib": 2731436.0,
+      "candidate_max_peak_kib": 2725072.0
+    },
+    {
+      "tokens": 2048,
+      "prefill_tps": {
+        "control": [
+          816.587,
+          792.57,
+          772.83
+        ],
+        "candidate": [
+          799.688,
+          799.064,
+          802.508
+        ],
+        "median_control": 792.57,
+        "median_candidate": 799.688,
+        "median_pct": 0.8980910203514991,
+        "pairs_faster": 2,
+        "paired_deltas_pct": [
+          -2.0694671847580226,
+          0.8193598041813299,
+          3.8401718359794446
+        ]
+      },
+      "decode_tps": {
+        "control": [
+          16.3349,
+          16.3224,
+          15.7519
+        ],
+        "candidate": [
+          16.4187,
+          16.1412,
+          15.9244
+        ],
+        "median_control": 16.3224,
+        "median_candidate": 16.1412,
+        "median_pct": -1.1101308631083495,
+        "pairs_faster": 2,
+        "paired_deltas_pct": [
+          0.5130120172146757,
+          -1.1101308631083495,
+          1.095105987214251
+        ]
+      },
+      "control_max_peak_kib": 3069164.0,
+      "candidate_max_peak_kib": 3018440.0
+    }
+  ],
+  "diagnostics": [
+    {
+      "rows": 1024,
+      "fast": 38,
+      "tasks": 9728,
+      "completed": 9728,
+      "rejected": 0,
+      "experts_read": 2304,
+      "exposed_wait_ms": 35.5,
+      "register_rpc_ms": 2.6,
+      "performance_comparison_eligible": false
+    },
+    {
+      "rows": 2048,
+      "fast": 38,
+      "tasks": 19456,
+      "completed": 19456,
+      "rejected": 0,
+      "experts_read": 2304,
+      "exposed_wait_ms": 0.1,
+      "register_rpc_ms": 3.0,
+      "performance_comparison_eligible": false
+    }
+  ],
+  "model_config_sha256": {
+    "1024": "25e976ccca0d49737bc9097a8212086036bbb9dd6ca999d318e6add06b95f79c",
+    "2048": "c877d7792cf8830898f49c87b535724d26ce18d62daf5d8c185756cae49f9c71"
+  },
+  "diagnostic_input_contract": "One child process stderr; parser does not authenticate PID",
+  "decision": "retain_opt_in_prefill_router",
+  "default_enabled": false
+}

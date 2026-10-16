@@ -1,0 +1,62 @@
+[
+  {
+    "name": "input_subnormal",
+    "returncode": 1,
+    "expected_assertion": "primitive special qualification",
+    "pass": true
+  },
+  {
+    "name": "weight_subnormal",
+    "returncode": 1,
+    "expected_assertion": "primitive special qualification",
+    "pass": true
+  },
+  {
+    "name": "nonfinite_output",
+    "returncode": 1,
+    "expected_assertion": "primitive special qualification",
+    "pass": true
+  },
+  {
+    "name": "input_alias",
+    "returncode": 1,
+    "expected_assertion": "metadata guard accepted",
+    "pass": true
+  },
+  {
+    "name": "weight_context",
+    "returncode": 1,
+    "expected_assertion": "metadata guard accepted",
+    "pass": true
+  },
+  {
+    "name": "last_task",
+    "returncode": 1,
+    "expected_assertion": "task coverage",
+    "pass": true
+  },
+  {
+    "name": "failure_propagation",
+    "returncode": 1,
+    "expected_assertion": "special caller used ARM",
+    "pass": true
+  },
+  {
+    "name": "fallback_overwrite",
+    "returncode": 1,
+    "expected_assertion": "actual caller RPC count",
+    "pass": true
+  },
+  {
+    "name": "gelu_guard",
+    "returncode": 1,
+    "expected_assertion": "unsupported caller policy",
+    "pass": true
+  },
+  {
+    "name": "opt_in",
+    "returncode": 1,
+    "expected_assertion": "actual caller qualification",
+    "pass": true
+  }
+]

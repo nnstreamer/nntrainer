@@ -1,0 +1,14 @@
+[
+  {
+    "symbol": "00000000000078dc <main::$_0::operator()(unsigned int) const>:",
+    "fmul": 0,
+    "fadd": 0,
+    "fmla": 16
+  },
+  {
+    "symbol": "0000000000007d60 <std::__ndk1::__function::__func<armRouter(float const*, float const*, float*, unsigned int)::$_0, std::__ndk1::allocator<armRouter(float const*, float const*, float*, unsigned int)::$_0>, void (unsigned long)>::operator()(unsigned long&&)>:",
+    "fmul": 0,
+    "fadd": 0,
+    "fmla": 16
+  }
+]

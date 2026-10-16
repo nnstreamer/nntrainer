@@ -1,0 +1,32 @@
+[
+  {
+    "name": "kernel-arm",
+    "returncode": 0,
+    "object_sha256": "9cf943d1b46bd171373e36b225967c9d13f0404d5c291952f0d9d0028922b45f"
+  },
+  {
+    "name": "app-arm",
+    "returncode": 0,
+    "object_sha256": "60776f2d0b05d60370972d1483d3eda997be2a1c6c0d099be4dd43a529347bbb"
+  },
+  {
+    "name": "app-android-x86",
+    "returncode": 0,
+    "object_sha256": "b9cd7dd942f1ec3a37e8642d5171ca6956fe88c4954bd8e10972b01778e74d78"
+  },
+  {
+    "name": "kernel-android-x86",
+    "returncode": 0,
+    "object_sha256": "d7325adaeabf06d74ea5a098369a4fc7024c32f6cbce0311cb003edb4784fd86"
+  },
+  {
+    "name": "app-linux-x86",
+    "returncode": 0,
+    "object_sha256": "f4946ce1a640de673f08d06b44add85f4cf8118d0085a45fe045ce6e17332ced"
+  },
+  {
+    "name": "kernel-linux-x86",
+    "returncode": 0,
+    "object_sha256": "b066ac54fea3ed8a48b16f7d0d1ec761c1bbc679dbccfe1409b4608c721f7da4"
+  }
+]

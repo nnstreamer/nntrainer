@@ -1,0 +1,24 @@
+{
+  "strict_dot_frame": 64,
+  "weight_scan_frame": 0,
+  "kernel_fmul_per_k_column_group": 16,
+  "kernel_fadd_per_k_column_group": 16,
+  "kernel_fmla": 0,
+  "column_groups": 4,
+  "hot_k_loop_stack_operations": 0,
+  "app_incremental_frame_before_after": [
+    3008,
+    3008
+  ],
+  "qualification_helper_frame": 128,
+  "parallel_for_frame": 96,
+  "callback_frame": 32,
+  "callback_capture_bytes": 32,
+  "std_function_metadata_bytes": 40,
+  "unsupported_platform_compile": [
+    "Android x86 Clang",
+    "Linux x86 GCC"
+  ],
+  "wrong_fastmath_build_rejected": true,
+  "source_sha256": "d74cacb8b4c42ea701c37922ff773dff95804e92d0f38d84a09ce3d86000aa79"
+}

@@ -1,0 +1,224 @@
+{
+  "control": "lfm-router-arm-0",
+  "candidate": "lfm-router-arm-1",
+  "runs": [
+    {
+      "tag": "continue-router-arm-0-r1",
+      "variant": "lfm-router-arm-0",
+      "prefill_tokens": 1024,
+      "prefill_tps": 816.587,
+      "decode_tps": 17.3819,
+      "full_run_sampled_peak_kib": 2731416.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 1
+    },
+    {
+      "tag": "continue-router-arm-1-r1",
+      "variant": "lfm-router-arm-1",
+      "prefill_tokens": 1024,
+      "prefill_tps": 843.493,
+      "decode_tps": 17.6309,
+      "full_run_sampled_peak_kib": 2714412.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 1
+    },
+    {
+      "tag": "continue-router-arm-1-r2",
+      "variant": "lfm-router-arm-1",
+      "prefill_tokens": 1024,
+      "prefill_tps": 853.333,
+      "decode_tps": 17.7728,
+      "full_run_sampled_peak_kib": 2725072.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 2
+    },
+    {
+      "tag": "continue-router-arm-0-r2",
+      "variant": "lfm-router-arm-0",
+      "prefill_tokens": 1024,
+      "prefill_tps": 816.587,
+      "decode_tps": 17.6649,
+      "full_run_sampled_peak_kib": 2731328.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 2
+    },
+    {
+      "tag": "continue-router-arm-0-r3",
+      "variant": "lfm-router-arm-0",
+      "prefill_tokens": 1024,
+      "prefill_tps": 821.83,
+      "decode_tps": 17.288,
+      "full_run_sampled_peak_kib": 2731436.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 3
+    },
+    {
+      "tag": "continue-router-arm-1-r3",
+      "variant": "lfm-router-arm-1",
+      "prefill_tokens": 1024,
+      "prefill_tps": 842.798,
+      "decode_tps": 17.4672,
+      "full_run_sampled_peak_kib": 2715344.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 3
+    },
+    {
+      "tag": "continue-router-arm2048-0-r1",
+      "variant": "lfm-router-arm-0",
+      "prefill_tokens": 2048,
+      "prefill_tps": 816.587,
+      "decode_tps": 16.3349,
+      "full_run_sampled_peak_kib": 3069164.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 1
+    },
+    {
+      "tag": "continue-router-arm2048-1-r1",
+      "variant": "lfm-router-arm-1",
+      "prefill_tokens": 2048,
+      "prefill_tps": 799.688,
+      "decode_tps": 16.4187,
+      "full_run_sampled_peak_kib": 3016432.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 1
+    },
+    {
+      "tag": "continue-router-arm2048-1-r2",
+      "variant": "lfm-router-arm-1",
+      "prefill_tokens": 2048,
+      "prefill_tps": 799.064,
+      "decode_tps": 16.1412,
+      "full_run_sampled_peak_kib": 3018440.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 2
+    },
+    {
+      "tag": "continue-router-arm2048-0-r2",
+      "variant": "lfm-router-arm-0",
+      "prefill_tokens": 2048,
+      "prefill_tps": 792.57,
+      "decode_tps": 16.3224,
+      "full_run_sampled_peak_kib": 3035540.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 2
+    },
+    {
+      "tag": "continue-router-arm2048-0-r3",
+      "variant": "lfm-router-arm-0",
+      "prefill_tokens": 2048,
+      "prefill_tps": 772.83,
+      "decode_tps": 15.7519,
+      "full_run_sampled_peak_kib": 3037536.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 3
+    },
+    {
+      "tag": "continue-router-arm2048-1-r3",
+      "variant": "lfm-router-arm-1",
+      "prefill_tokens": 2048,
+      "prefill_tps": 802.508,
+      "decode_tps": 15.9244,
+      "full_run_sampled_peak_kib": 3016520.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 3
+    }
+  ],
+  "summary": [
+    {
+      "tokens": 1024,
+      "prefill_tps": {
+        "control": [
+          816.587,
+          816.587,
+          821.83
+        ],
+        "candidate": [
+          843.493,
+          853.333,
+          842.798
+        ],
+        "median_control": 816.587,
+        "median_candidate": 843.493,
+        "median_pct": 3.294933669039568,
+        "pairs_faster": 3,
+        "paired_deltas_pct": [
+          3.294933669039568,
+          4.49994917871579,
+          2.551379239015361
+        ]
+      },
+      "decode_tps": {
+        "control": [
+          17.3819,
+          17.6649,
+          17.288
+        ],
+        "candidate": [
+          17.6309,
+          17.7728,
+          17.4672
+        ],
+        "median_control": 17.3819,
+        "median_candidate": 17.6309,
+        "median_pct": 1.4325246376978296,
+        "pairs_faster": 3,
+        "paired_deltas_pct": [
+          1.4325246376978296,
+          0.610815798560993,
+          1.0365571494678205
+        ]
+      },
+      "control_max_peak_kib": 2731436.0,
+      "candidate_max_peak_kib": 2725072.0
+    },
+    {
+      "tokens": 2048,
+      "prefill_tps": {
+        "control": [
+          816.587,
+          792.57,
+          772.83
+        ],
+        "candidate": [
+          799.688,
+          799.064,
+          802.508
+        ],
+        "median_control": 792.57,
+        "median_candidate": 799.688,
+        "median_pct": 0.8980910203514991,
+        "pairs_faster": 2,
+        "paired_deltas_pct": [
+          -2.0694671847580226,
+          0.8193598041813299,
+          3.8401718359794446
+        ]
+      },
+      "decode_tps": {
+        "control": [
+          16.3349,
+          16.3224,
+          15.7519
+        ],
+        "candidate": [
+          16.4187,
+          16.1412,
+          15.9244
+        ],
+        "median_control": 16.3224,
+        "median_candidate": 16.1412,
+        "median_pct": -1.1101308631083495,
+        "pairs_faster": 2,
+        "paired_deltas_pct": [
+          0.5130120172146757,
+          -1.1101308631083495,
+          1.095105987214251
+        ]
+      },
+      "control_max_peak_kib": 3069164.0,
+      "candidate_max_peak_kib": 3018440.0
+    }
+  ],
+  "all_checks_pass": true,
+  "memory_scope": "Sampled whole child lifetime RssAnon + deduplicated fdinfo allocation sizes. Not total device physical memory; unreported DSP/driver/VTCM and between-sample spikes excluded."
+}

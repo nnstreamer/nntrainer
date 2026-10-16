@@ -1,0 +1,15 @@
+{
+  "production_patch_sha256": "d5604ee3969f985032b607967870f3e8983a4b534572a0e2910a1746839c4796",
+  "tests_patch_sha256": "403448179df6daf166ef4c3df8ecc7fef0489d530bf253b1f257437fba520d76",
+  "source_manifest_sha256": "d45a81ea467c923f355e349733106b3121926c87f9b91d09d2a5eaa30f6f3f53",
+  "README_sha256": "f08984f66cd88b69df85fcfb401b1928237906cd9c9b8c301b6c42d8049cf389",
+  "validation_sha256": "93e10c320581ab087a88fc665da064511cd504eca9cc937e8e3e4fe93e7ba87e",
+  "test_files": {
+    "test/htp/host/lfm2_router_arm_check.cpp": "6c5143373c8dcebf52fcf4f734c4495116f90aeec0fcd942e4bfaf17b521dba0",
+    "test/htp/host/lfm2_router_arm_data.h": "2e38f11c419789dd3f0bd363952d4a0e57e06e3564b6f683600b9fa3e1f8e574",
+    "test/htp/host/lfm2_router_arm_native_check.cpp": "d773915325e783da2f42fc633d91a3492a35acb7b3ee7d752549f3861833d455",
+    "test/htp/host/run_lfm2_router_arm_check.py": "aff221615c40317db49590d076e0d86d1fff584b7e8459a8733df190d50e080a",
+    "test/htp/host/run_lfm2_router_arm_mutations.py": "0a51056d36c74722ac1059260e6bf7ee05b1278b04bf1071b36f7477752ed982",
+    "test/htp/host/run_lfm2_router_arm_native.py": "6763c209385bda65cda9e7f6c2d2f75e41cedd5f56b3949b319faa6f186f32cb"
+  }
+}

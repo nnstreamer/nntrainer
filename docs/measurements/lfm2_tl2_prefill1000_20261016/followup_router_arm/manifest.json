@@ -1,0 +1,2588 @@
+{
+  "format": 1,
+  "decision": "retain_opt_in_prefill_router",
+  "provenance": {
+    "source": "/tmp/nntr-lfm2-router-arm-20261017",
+    "evidence": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016",
+    "review": "/tmp/nntr-lfm2-router-arm-review-20261017",
+    "prescreen": "/tmp/nntr-lfm2-router-neon-prescreen-20261017",
+    "shared": "/tmp/nntr-lfm2-tl2-prefill1000-20261016"
+  },
+  "files": {
+    "README.txt": {
+      "source": "/tmp/nntr-lfm2-router-arm-archive-20261017/README.txt",
+      "source_sha256": "03d89a095fe304841370d93cea6163d25b898ce192a9eb8358fc60ebdf0d3e55",
+      "uncompressed_sha256": "03d89a095fe304841370d93cea6163d25b898ce192a9eb8358fc60ebdf0d3e55",
+      "uncompressed_bytes": 11015,
+      "sha256": "03d89a095fe304841370d93cea6163d25b898ce192a9eb8358fc60ebdf0d3e55",
+      "bytes": 11015
+    },
+    "artifacts/author/README.txt": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/README.txt",
+      "source_sha256": "f08984f66cd88b69df85fcfb401b1928237906cd9c9b8c301b6c42d8049cf389",
+      "uncompressed_sha256": "f08984f66cd88b69df85fcfb401b1928237906cd9c9b8c301b6c42d8049cf389",
+      "uncompressed_bytes": 10772,
+      "sha256": "f08984f66cd88b69df85fcfb401b1928237906cd9c9b8c301b6c42d8049cf389",
+      "bytes": 10772
+    },
+    "artifacts/author/checks/host-v3b/commands.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/host-v3b/commands.json",
+      "source_sha256": "8a42b4aff194882bd34e884fe077e2ea37ad0dca997df22db1f4e3fa57f3325f",
+      "uncompressed_sha256": "8a42b4aff194882bd34e884fe077e2ea37ad0dca997df22db1f4e3fa57f3325f",
+      "uncompressed_bytes": 4519,
+      "sha256": "8a42b4aff194882bd34e884fe077e2ea37ad0dca997df22db1f4e3fa57f3325f",
+      "bytes": 4519
+    },
+    "artifacts/author/checks/mutations-v3-final/failure_propagation/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/failure_propagation/build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/author/checks/mutations-v3-final/failure_propagation/commands.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/failure_propagation/commands.json",
+      "source_sha256": "953e39562af6cdc27957384699e483788b4e15679f86f7e097748fc1809872e5",
+      "uncompressed_sha256": "953e39562af6cdc27957384699e483788b4e15679f86f7e097748fc1809872e5",
+      "uncompressed_bytes": 2440,
+      "sha256": "953e39562af6cdc27957384699e483788b4e15679f86f7e097748fc1809872e5",
+      "bytes": 2440
+    },
+    "artifacts/author/checks/mutations-v3-final/failure_propagation/run.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/failure_propagation/run.log",
+      "source_sha256": "25105883cb84f0147de9c190c0b62ad92f94bc959b3a7102a697ac443c3cc879",
+      "uncompressed_sha256": "25105883cb84f0147de9c190c0b62ad92f94bc959b3a7102a697ac443c3cc879",
+      "uncompressed_bytes": 45,
+      "sha256": "9245087b5d8538afbed21f63e70bb4d41dca5be1c174076c7257c067b27b249d",
+      "bytes": 64
+    },
+    "artifacts/author/checks/mutations-v3-final/fallback_overwrite/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/fallback_overwrite/build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/author/checks/mutations-v3-final/fallback_overwrite/commands.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/fallback_overwrite/commands.json",
+      "source_sha256": "93058faa2674409decf4528ac28210164eec1baee14fd6d2006bb9f15c5bc9dc",
+      "uncompressed_sha256": "93058faa2674409decf4528ac28210164eec1baee14fd6d2006bb9f15c5bc9dc",
+      "uncompressed_bytes": 2433,
+      "sha256": "93058faa2674409decf4528ac28210164eec1baee14fd6d2006bb9f15c5bc9dc",
+      "bytes": 2433
+    },
+    "artifacts/author/checks/mutations-v3-final/fallback_overwrite/run.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/fallback_overwrite/run.log",
+      "source_sha256": "1e1e4345f9bbb705df313d4edb3c04d7843b917ad2e718e58df9bbab6043820a",
+      "uncompressed_sha256": "1e1e4345f9bbb705df313d4edb3c04d7843b917ad2e718e58df9bbab6043820a",
+      "uncompressed_bytes": 45,
+      "sha256": "30410a7fbfe16f3c6e0db22f64bba2f602687287ad0d632038b99320d56d8315",
+      "bytes": 65
+    },
+    "artifacts/author/checks/mutations-v3-final/gelu_guard/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/gelu_guard/build.log",
+      "source_sha256": "ee6e6be47f8d49541e74b6bf12e514559ae96efc62d8c10dbab43664d24eda84",
+      "uncompressed_sha256": "ee6e6be47f8d49541e74b6bf12e514559ae96efc62d8c10dbab43664d24eda84",
+      "uncompressed_bytes": 622,
+      "sha256": "73b67c10842058300262159e3a5081d2486cfbbc67cb9bf7d4c8f769ff799098",
+      "bytes": 307
+    },
+    "artifacts/author/checks/mutations-v3-final/gelu_guard/commands.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/gelu_guard/commands.json",
+      "source_sha256": "bfc65bb763dcc10d3976945dd6f91f8745e1ac4fd66d93d66f2d0dbc15136535",
+      "uncompressed_sha256": "bfc65bb763dcc10d3976945dd6f91f8745e1ac4fd66d93d66f2d0dbc15136535",
+      "uncompressed_bytes": 2377,
+      "sha256": "bfc65bb763dcc10d3976945dd6f91f8745e1ac4fd66d93d66f2d0dbc15136535",
+      "bytes": 2377
+    },
+    "artifacts/author/checks/mutations-v3-final/gelu_guard/run.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/gelu_guard/run.log",
+      "source_sha256": "1cd3d35b8b868165b86abb7bbcf315ad503a6ce531f79470abd0c68b01627517",
+      "uncompressed_sha256": "1cd3d35b8b868165b86abb7bbcf315ad503a6ce531f79470abd0c68b01627517",
+      "uncompressed_bytes": 47,
+      "sha256": "3192d8c8a3880c9b4d057b441b39e4b1780ee406f06df8f905124dbff617f354",
+      "bytes": 67
+    },
+    "artifacts/author/checks/mutations-v3-final/input_alias/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/input_alias/build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/author/checks/mutations-v3-final/input_alias/commands.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/input_alias/commands.json",
+      "source_sha256": "d93355eec928e1ac8a71f3db05c220c606ae7e5e93d088f6a0d8f9ed7c181633",
+      "uncompressed_sha256": "d93355eec928e1ac8a71f3db05c220c606ae7e5e93d088f6a0d8f9ed7c181633",
+      "uncompressed_bytes": 2384,
+      "sha256": "d93355eec928e1ac8a71f3db05c220c606ae7e5e93d088f6a0d8f9ed7c181633",
+      "bytes": 2384
+    },
+    "artifacts/author/checks/mutations-v3-final/input_alias/run.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/input_alias/run.log",
+      "source_sha256": "48f8a513525dc149e4ae33a9c5ee728de079d6e58d4b8ebeffc71de4ba1cc939",
+      "uncompressed_sha256": "48f8a513525dc149e4ae33a9c5ee728de079d6e58d4b8ebeffc71de4ba1cc939",
+      "uncompressed_bytes": 45,
+      "sha256": "bd7d2753010552ea70bb22f5b96bc0067dc62a5d31cc73c8859a29334a8f7e17",
+      "bytes": 65
+    },
+    "artifacts/author/checks/mutations-v3-final/input_subnormal/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/input_subnormal/build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/author/checks/mutations-v3-final/input_subnormal/commands.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/input_subnormal/commands.json",
+      "source_sha256": "47462516df44290f094b4928bb62d6bcedf65385ffc908afde18f015ecea09c5",
+      "uncompressed_sha256": "47462516df44290f094b4928bb62d6bcedf65385ffc908afde18f015ecea09c5",
+      "uncompressed_bytes": 2412,
+      "sha256": "47462516df44290f094b4928bb62d6bcedf65385ffc908afde18f015ecea09c5",
+      "bytes": 2412
+    },
+    "artifacts/author/checks/mutations-v3-final/input_subnormal/run.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/input_subnormal/run.log",
+      "source_sha256": "6c2bd5541d09115c92c772b2572f12a50bd13d55702b89ac9697987b07d37a56",
+      "uncompressed_sha256": "6c2bd5541d09115c92c772b2572f12a50bd13d55702b89ac9697987b07d37a56",
+      "uncompressed_bytes": 53,
+      "sha256": "71602187199fac55aa6b4bd1fe97efca82af45fe0674334482ef447e7babd622",
+      "bytes": 73
+    },
+    "artifacts/author/checks/mutations-v3-final/last_task/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/last_task/build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/author/checks/mutations-v3-final/last_task/commands.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/last_task/commands.json",
+      "source_sha256": "63a404be58f6f122747924389f714d2c3819a101cf5536ac4dd6c8409a057da6",
+      "uncompressed_sha256": "63a404be58f6f122747924389f714d2c3819a101cf5536ac4dd6c8409a057da6",
+      "uncompressed_bytes": 2370,
+      "sha256": "63a404be58f6f122747924389f714d2c3819a101cf5536ac4dd6c8409a057da6",
+      "bytes": 2370
+    },
+    "artifacts/author/checks/mutations-v3-final/last_task/run.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/last_task/run.log",
+      "source_sha256": "270a678335358df3e5a814b173b0bc022026e0434eb8ab5e5d721a8cb1bae7be",
+      "uncompressed_sha256": "270a678335358df3e5a814b173b0bc022026e0434eb8ab5e5d721a8cb1bae7be",
+      "uncompressed_bytes": 35,
+      "sha256": "8f7c34abb305ceea70068fd833b2b8426e77be3eb3a94b6bf6a0bcf84f5fba0f",
+      "bytes": 55
+    },
+    "artifacts/author/checks/mutations-v3-final/nonfinite_output/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/nonfinite_output/build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/author/checks/mutations-v3-final/nonfinite_output/commands.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/nonfinite_output/commands.json",
+      "source_sha256": "11151dd3b7f9e0cc1bdea3f17b98ee136f64fd62ef123c884830a23b6b6a5d0e",
+      "uncompressed_sha256": "11151dd3b7f9e0cc1bdea3f17b98ee136f64fd62ef123c884830a23b6b6a5d0e",
+      "uncompressed_bytes": 2419,
+      "sha256": "11151dd3b7f9e0cc1bdea3f17b98ee136f64fd62ef123c884830a23b6b6a5d0e",
+      "bytes": 2419
+    },
+    "artifacts/author/checks/mutations-v3-final/nonfinite_output/run.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/nonfinite_output/run.log",
+      "source_sha256": "6c2bd5541d09115c92c772b2572f12a50bd13d55702b89ac9697987b07d37a56",
+      "uncompressed_sha256": "6c2bd5541d09115c92c772b2572f12a50bd13d55702b89ac9697987b07d37a56",
+      "uncompressed_bytes": 53,
+      "sha256": "71602187199fac55aa6b4bd1fe97efca82af45fe0674334482ef447e7babd622",
+      "bytes": 73
+    },
+    "artifacts/author/checks/mutations-v3-final/opt_in/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/opt_in/build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/author/checks/mutations-v3-final/opt_in/commands.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/opt_in/commands.json",
+      "source_sha256": "4badb150842623f7f3947c41333934d9b876dc798cea9200e32d1888f3711056",
+      "uncompressed_sha256": "4badb150842623f7f3947c41333934d9b876dc798cea9200e32d1888f3711056",
+      "uncompressed_bytes": 2349,
+      "sha256": "4badb150842623f7f3947c41333934d9b876dc798cea9200e32d1888f3711056",
+      "bytes": 2349
+    },
+    "artifacts/author/checks/mutations-v3-final/opt_in/run.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/opt_in/run.log",
+      "source_sha256": "bbe7d2deee43e7d77c3bfbc34e6f48598ed5bffde43c1d008c85e90d539524d3",
+      "uncompressed_sha256": "bbe7d2deee43e7d77c3bfbc34e6f48598ed5bffde43c1d008c85e90d539524d3",
+      "uncompressed_bytes": 49,
+      "sha256": "0455bed1d4a7635f51be3822acca2a7c5f130d1b145685a01c93cff020f76538",
+      "bytes": 67
+    },
+    "artifacts/author/checks/mutations-v3-final/results.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/results.json",
+      "source_sha256": "83046a7f3a8c4092add11fbe14ccf68fdf793bb73b8fb9d7aa3a26666cb0e5a7",
+      "uncompressed_sha256": "83046a7f3a8c4092add11fbe14ccf68fdf793bb73b8fb9d7aa3a26666cb0e5a7",
+      "uncompressed_bytes": 1317,
+      "sha256": "83046a7f3a8c4092add11fbe14ccf68fdf793bb73b8fb9d7aa3a26666cb0e5a7",
+      "bytes": 1317
+    },
+    "artifacts/author/checks/mutations-v3-final/weight_context/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/weight_context/build.log",
+      "source_sha256": "58a22a6e270b24028165a24d8bd8dcd32be1b8ac133aa23a64f0d29dffc3be13",
+      "uncompressed_sha256": "58a22a6e270b24028165a24d8bd8dcd32be1b8ac133aa23a64f0d29dffc3be13",
+      "uncompressed_bytes": 697,
+      "sha256": "da3a7479a85becf7653b5e50985b45ce3c4e43d233904a99bdf8674a32987241",
+      "bytes": 332
+    },
+    "artifacts/author/checks/mutations-v3-final/weight_context/commands.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/weight_context/commands.json",
+      "source_sha256": "fcf12142a9ca4887909fcaef92b0eef9d6227c1d8aeb89ce9d0bb444180838bc",
+      "uncompressed_sha256": "fcf12142a9ca4887909fcaef92b0eef9d6227c1d8aeb89ce9d0bb444180838bc",
+      "uncompressed_bytes": 2405,
+      "sha256": "fcf12142a9ca4887909fcaef92b0eef9d6227c1d8aeb89ce9d0bb444180838bc",
+      "bytes": 2405
+    },
+    "artifacts/author/checks/mutations-v3-final/weight_context/run.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/weight_context/run.log",
+      "source_sha256": "48f8a513525dc149e4ae33a9c5ee728de079d6e58d4b8ebeffc71de4ba1cc939",
+      "uncompressed_sha256": "48f8a513525dc149e4ae33a9c5ee728de079d6e58d4b8ebeffc71de4ba1cc939",
+      "uncompressed_bytes": 45,
+      "sha256": "bd7d2753010552ea70bb22f5b96bc0067dc62a5d31cc73c8859a29334a8f7e17",
+      "bytes": 65
+    },
+    "artifacts/author/checks/mutations-v3-final/weight_subnormal/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/weight_subnormal/build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/author/checks/mutations-v3-final/weight_subnormal/commands.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/weight_subnormal/commands.json",
+      "source_sha256": "08e2fba3f866b55a025ef70e50f7aa3becb91c4a814e8492dc165d982a03f215",
+      "uncompressed_sha256": "08e2fba3f866b55a025ef70e50f7aa3becb91c4a814e8492dc165d982a03f215",
+      "uncompressed_bytes": 2419,
+      "sha256": "08e2fba3f866b55a025ef70e50f7aa3becb91c4a814e8492dc165d982a03f215",
+      "bytes": 2419
+    },
+    "artifacts/author/checks/mutations-v3-final/weight_subnormal/run.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/mutations-v3-final/weight_subnormal/run.log",
+      "source_sha256": "6c2bd5541d09115c92c772b2572f12a50bd13d55702b89ac9697987b07d37a56",
+      "uncompressed_sha256": "6c2bd5541d09115c92c772b2572f12a50bd13d55702b89ac9697987b07d37a56",
+      "uncompressed_bytes": 53,
+      "sha256": "71602187199fac55aa6b4bd1fe97efca82af45fe0674334482ef447e7babd622",
+      "bytes": 73
+    },
+    "artifacts/author/codegen/app-build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/codegen/app-build.log",
+      "source_sha256": "dd76f07049c128cadb7ca549bf14fdfd56dcf02ee090a18bfb7766403dba22a3",
+      "uncompressed_sha256": "dd76f07049c128cadb7ca549bf14fdfd56dcf02ee090a18bfb7766403dba22a3",
+      "uncompressed_bytes": 2513,
+      "sha256": "326a83f4e0447f9f77491207d218573a33d7b5684fd9900ed8895164e3f73947",
+      "bytes": 557
+    },
+    "artifacts/author/codegen/app-command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/codegen/app-command.json",
+      "source_sha256": "cb73e1d7e93478c691dd043662e990b3ec4d3076fa6a9fa1f8139db3dbf4f7f4",
+      "uncompressed_sha256": "cb73e1d7e93478c691dd043662e990b3ec4d3076fa6a9fa1f8139db3dbf4f7f4",
+      "uncompressed_bytes": 4863,
+      "sha256": "cb73e1d7e93478c691dd043662e990b3ec4d3076fa6a9fa1f8139db3dbf4f7f4",
+      "bytes": 4863
+    },
+    "artifacts/author/codegen/final/android-x86-clang/command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/codegen/final/android-x86-clang/command.json",
+      "source_sha256": "6a62447b12a2bca6e5b8dd98d9c75797a2c81e684a6d78c6961c94f11533525e",
+      "uncompressed_sha256": "6a62447b12a2bca6e5b8dd98d9c75797a2c81e684a6d78c6961c94f11533525e",
+      "uncompressed_bytes": 4760,
+      "sha256": "6a62447b12a2bca6e5b8dd98d9c75797a2c81e684a6d78c6961c94f11533525e",
+      "bytes": 4760
+    },
+    "artifacts/author/codegen/final/android-x86-clang/compile.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/codegen/final/android-x86-clang/compile.log",
+      "source_sha256": "dd76f07049c128cadb7ca549bf14fdfd56dcf02ee090a18bfb7766403dba22a3",
+      "uncompressed_sha256": "dd76f07049c128cadb7ca549bf14fdfd56dcf02ee090a18bfb7766403dba22a3",
+      "uncompressed_bytes": 2513,
+      "sha256": "326a83f4e0447f9f77491207d218573a33d7b5684fd9900ed8895164e3f73947",
+      "bytes": 557
+    },
+    "artifacts/author/codegen/final/android-x86-clang/exit.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/codegen/final/android-x86-clang/exit.json",
+      "source_sha256": "5c25eb21d7e3a8498d5e60588fbaf20e3817ce544d744336c9bd310c44ac480a",
+      "uncompressed_sha256": "5c25eb21d7e3a8498d5e60588fbaf20e3817ce544d744336c9bd310c44ac480a",
+      "uncompressed_bytes": 24,
+      "sha256": "5c25eb21d7e3a8498d5e60588fbaf20e3817ce544d744336c9bd310c44ac480a",
+      "bytes": 24
+    },
+    "artifacts/author/codegen/final/android-x86-clang/kernel-build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/codegen/final/android-x86-clang/kernel-build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/author/codegen/final/android-x86-clang/kernel-command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/codegen/final/android-x86-clang/kernel-command.json",
+      "source_sha256": "d107e000f09ff58957c821cc2114c60497658593377cd8efdce5d011a52de0e2",
+      "uncompressed_sha256": "d107e000f09ff58957c821cc2114c60497658593377cd8efdce5d011a52de0e2",
+      "uncompressed_bytes": 424,
+      "sha256": "d107e000f09ff58957c821cc2114c60497658593377cd8efdce5d011a52de0e2",
+      "bytes": 424
+    },
+    "artifacts/author/codegen/final/invalid-fastmath-command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/codegen/final/invalid-fastmath-command.json",
+      "source_sha256": "a8112e13cda2cb783e00a92520d181f47a9ab1090c82ff1d401cac069584096b",
+      "uncompressed_sha256": "a8112e13cda2cb783e00a92520d181f47a9ab1090c82ff1d401cac069584096b",
+      "uncompressed_bytes": 942,
+      "sha256": "a8112e13cda2cb783e00a92520d181f47a9ab1090c82ff1d401cac069584096b",
+      "bytes": 942
+    },
+    "artifacts/author/codegen/final/invalid-fastmath.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/codegen/final/invalid-fastmath.log",
+      "source_sha256": "279f9ab5fb78481f2b39ad217cd6000b5cb70b3ea05ed29642b0ec1c45a59fe5",
+      "uncompressed_sha256": "279f9ab5fb78481f2b39ad217cd6000b5cb70b3ea05ed29642b0ec1c45a59fe5",
+      "uncompressed_bytes": 297,
+      "sha256": "e163303f68dcb562e1b6bdce74456481521b35da6aca83485328a9e394c95e85",
+      "bytes": 187
+    },
+    "artifacts/author/codegen/final/kernel-build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/codegen/final/kernel-build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/author/codegen/final/kernel-command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/codegen/final/kernel-command.json",
+      "source_sha256": "8aa1d7193ae2bcd16ea381dfbd6ec681d3fde8abcf8df03b217e86894bbde51a",
+      "uncompressed_sha256": "8aa1d7193ae2bcd16ea381dfbd6ec681d3fde8abcf8df03b217e86894bbde51a",
+      "uncompressed_bytes": 858,
+      "sha256": "8aa1d7193ae2bcd16ea381dfbd6ec681d3fde8abcf8df03b217e86894bbde51a",
+      "bytes": 858
+    },
+    "artifacts/author/codegen/final/linux-x86-gcc/command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/codegen/final/linux-x86-gcc/command.json",
+      "source_sha256": "c3ca59618dbe8e87b6a4ca4e33a29007667acb1fcd5688c471c9c8137ea24bde",
+      "uncompressed_sha256": "c3ca59618dbe8e87b6a4ca4e33a29007667acb1fcd5688c471c9c8137ea24bde",
+      "uncompressed_bytes": 4743,
+      "sha256": "c3ca59618dbe8e87b6a4ca4e33a29007667acb1fcd5688c471c9c8137ea24bde",
+      "bytes": 4743
+    },
+    "artifacts/author/codegen/final/linux-x86-gcc/compile.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/codegen/final/linux-x86-gcc/compile.log",
+      "source_sha256": "f000160c3a234e19a6fe9bce4884bbe19b06b3b3febe1638f2bfcab6b720dfe4",
+      "uncompressed_sha256": "f000160c3a234e19a6fe9bce4884bbe19b06b3b3febe1638f2bfcab6b720dfe4",
+      "uncompressed_bytes": 1313,
+      "sha256": "f1c5081b782885dd7124276fe62898605a66ff66ca7221cf0aa9ac11881d05e0",
+      "bytes": 484
+    },
+    "artifacts/author/codegen/final/linux-x86-gcc/exit.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/codegen/final/linux-x86-gcc/exit.json",
+      "source_sha256": "5c25eb21d7e3a8498d5e60588fbaf20e3817ce544d744336c9bd310c44ac480a",
+      "uncompressed_sha256": "5c25eb21d7e3a8498d5e60588fbaf20e3817ce544d744336c9bd310c44ac480a",
+      "uncompressed_bytes": 24,
+      "sha256": "5c25eb21d7e3a8498d5e60588fbaf20e3817ce544d744336c9bd310c44ac480a",
+      "bytes": 24
+    },
+    "artifacts/author/codegen/final/linux-x86-gcc/kernel-build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/codegen/final/linux-x86-gcc/kernel-build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/author/codegen/final/linux-x86-gcc/kernel-command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/codegen/final/linux-x86-gcc/kernel-command.json",
+      "source_sha256": "4272bdd2080be79994a0c41bd82dfc6d99944c46351d17cd2dcecc9d764f60d0",
+      "uncompressed_sha256": "4272bdd2080be79994a0c41bd82dfc6d99944c46351d17cd2dcecc9d764f60d0",
+      "uncompressed_bytes": 306,
+      "sha256": "4272bdd2080be79994a0c41bd82dfc6d99944c46351d17cd2dcecc9d764f60d0",
+      "bytes": 306
+    },
+    "artifacts/author/codegen/final/router.disasm.txt.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/codegen/final/router.disasm.txt",
+      "source_sha256": "88456d8e854e67bf70bdce5ed302ac11fcf861287638333f4b33a537b85dddaf",
+      "uncompressed_sha256": "88456d8e854e67bf70bdce5ed302ac11fcf861287638333f4b33a537b85dddaf",
+      "uncompressed_bytes": 7544,
+      "sha256": "43f36af26a67fb8991264cfb2f07b67a486034eebb5fd4baf540511fdca42d59",
+      "bytes": 1672
+    },
+    "artifacts/author/codegen/final/router.nm.txt": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/codegen/final/router.nm.txt",
+      "source_sha256": "e6ecbf42304d525801bd7d2863d5b76a7596453662156bf146502f6d74fca328",
+      "uncompressed_sha256": "e6ecbf42304d525801bd7d2863d5b76a7596453662156bf146502f6d74fca328",
+      "uncompressed_bytes": 190,
+      "sha256": "e6ecbf42304d525801bd7d2863d5b76a7596453662156bf146502f6d74fca328",
+      "bytes": 190
+    },
+    "artifacts/author/codegen/final/router.su.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/codegen/final/router.su",
+      "source_sha256": "b33bd15902fd5a379e0afb7f3f1dea799676d3dd6b8703fa8d0ceb041313c136",
+      "uncompressed_sha256": "b33bd15902fd5a379e0afb7f3f1dea799676d3dd6b8703fa8d0ceb041313c136",
+      "uncompressed_bytes": 320,
+      "sha256": "b4aab2b7ef671d7bb10f1aa89679b024dc9b73b5166bb92a18d7dd3067b4a05f",
+      "bytes": 182
+    },
+    "artifacts/author/codegen/final/summary.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/codegen/final/summary.json",
+      "source_sha256": "d6bd39b3ced703d044ebb87b3bf859b8a179a9ea3ab1efbb1c58be07781acd12",
+      "uncompressed_sha256": "d6bd39b3ced703d044ebb87b3bf859b8a179a9ea3ab1efbb1c58be07781acd12",
+      "uncompressed_bytes": 651,
+      "sha256": "d6bd39b3ced703d044ebb87b3bf859b8a179a9ea3ab1efbb1c58be07781acd12",
+      "bytes": 651
+    },
+    "artifacts/author/codegen/moe.su.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/codegen/moe.su",
+      "source_sha256": "756cf354746601243f017ede0ac8ffb855190c3236d4b51c56623a2360cc06d6",
+      "uncompressed_sha256": "756cf354746601243f017ede0ac8ffb855190c3236d4b51c56623a2360cc06d6",
+      "uncompressed_bytes": 184651,
+      "sha256": "ffff24ff6c88ae5399004e3af08a48ffc53d900f510ec7a153b7d8071ea53dbb",
+      "bytes": 12669
+    },
+    "artifacts/author/frozen.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/frozen.json",
+      "source_sha256": "96ec3d6645ef99bd43947f077d4f15ed427747be48896b8831903d15ed45484c",
+      "uncompressed_sha256": "96ec3d6645ef99bd43947f077d4f15ed427747be48896b8831903d15ed45484c",
+      "uncompressed_bytes": 1196,
+      "sha256": "96ec3d6645ef99bd43947f077d4f15ed427747be48896b8831903d15ed45484c",
+      "bytes": 1196
+    },
+    "artifacts/author/host-v3.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/host-v3.log",
+      "source_sha256": "c9753a8ff10ac8dae75f7e865ec1ab0c3168c450762b25cfa359c940140e7c1f",
+      "uncompressed_sha256": "c9753a8ff10ac8dae75f7e865ec1ab0c3168c450762b25cfa359c940140e7c1f",
+      "uncompressed_bytes": 6368,
+      "sha256": "93c6146f93b9bf62f11683c7921bea9a1ae22cd1c4d874c33aa5370c4196fe42",
+      "bytes": 1382
+    },
+    "artifacts/author/host-v3b.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/host-v3b.log",
+      "source_sha256": "183e84994a9467bf1d5215323dda77213ebd5f86e2fbe70f42a32d62d5626092",
+      "uncompressed_sha256": "183e84994a9467bf1d5215323dda77213ebd5f86e2fbe70f42a32d62d5626092",
+      "uncompressed_bytes": 185,
+      "sha256": "d788fa2567ea8fd6629aadd78301a01335ec633343e86c5568546f82724762a5",
+      "bytes": 64
+    },
+    "artifacts/author/validation.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/validation.json",
+      "source_sha256": "93e10c320581ab087a88fc665da064511cd504eca9cc937e8e3e4fe93e7ba87e",
+      "uncompressed_sha256": "93e10c320581ab087a88fc665da064511cd504eca9cc937e8e3e4fe93e7ba87e",
+      "uncompressed_bytes": 7880,
+      "sha256": "93e10c320581ab087a88fc665da064511cd504eca9cc937e8e3e4fe93e7ba87e",
+      "bytes": 7880
+    },
+    "artifacts/diagnostic/README.txt": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/diagnostic/README.txt",
+      "source_sha256": "e75c292c0cd698e099925983b62de375be5bb36d5ea7a05783d664261a8d1a88",
+      "uncompressed_sha256": "e75c292c0cd698e099925983b62de375be5bb36d5ea7a05783d664261a8d1a88",
+      "uncompressed_bytes": 2907,
+      "sha256": "e75c292c0cd698e099925983b62de375be5bb36d5ea7a05783d664261a8d1a88",
+      "bytes": 2907
+    },
+    "artifacts/diagnostic/check.py": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/diagnostic/check.py",
+      "source_sha256": "70c3b2259243d4097683bc53465613339d1b9b3b7d4c8abe2b1d14372e99238a",
+      "uncompressed_sha256": "70c3b2259243d4097683bc53465613339d1b9b3b7d4c8abe2b1d14372e99238a",
+      "uncompressed_bytes": 4768,
+      "sha256": "70c3b2259243d4097683bc53465613339d1b9b3b7d4c8abe2b1d14372e99238a",
+      "bytes": 4768
+    },
+    "artifacts/diagnostic/checks/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/diagnostic/checks/build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/diagnostic/checks/command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/diagnostic/checks/command.json",
+      "source_sha256": "e444b41f90db02b2c3d523bb9d655ae73f97cad838d68a4f8dd0ecacc3efc274",
+      "uncompressed_sha256": "e444b41f90db02b2c3d523bb9d655ae73f97cad838d68a4f8dd0ecacc3efc274",
+      "uncompressed_bytes": 1383,
+      "sha256": "e444b41f90db02b2c3d523bb9d655ae73f97cad838d68a4f8dd0ecacc3efc274",
+      "bytes": 1383
+    },
+    "artifacts/diagnostic/checks/results.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/diagnostic/checks/results.json",
+      "source_sha256": "8677e5aa7125691388d504e121c102b4dc2cc1f29cd8dafe40f69e39a8867e5f",
+      "uncompressed_sha256": "8677e5aa7125691388d504e121c102b4dc2cc1f29cd8dafe40f69e39a8867e5f",
+      "uncompressed_bytes": 139,
+      "sha256": "8677e5aa7125691388d504e121c102b4dc2cc1f29cd8dafe40f69e39a8867e5f",
+      "bytes": 139
+    },
+    "artifacts/diagnostic/checks/run-0.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/diagnostic/checks/run-0.log",
+      "source_sha256": "6d882b89371a750aed6a0377a4823878cb59616c33519db7f2a05603eb08c43d",
+      "uncompressed_sha256": "6d882b89371a750aed6a0377a4823878cb59616c33519db7f2a05603eb08c43d",
+      "uncompressed_bytes": 1284,
+      "sha256": "efa8a79bac1a56d8d78714b0a9d63672141703d1872592750a040e20a5c4dda2",
+      "bytes": 202
+    },
+    "artifacts/diagnostic/checks/run-1.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/diagnostic/checks/run-1.log",
+      "source_sha256": "f2ed3b26a323dd93e7dcb67d04fdc3c05088b0711b42f1fc6d1e86ed7420e375",
+      "uncompressed_sha256": "f2ed3b26a323dd93e7dcb67d04fdc3c05088b0711b42f1fc6d1e86ed7420e375",
+      "uncompressed_bytes": 1316,
+      "sha256": "8c16d8bd77dee155578f90490f5067e497ead127033ce61ff50c1e4122217d46",
+      "bytes": 242
+    },
+    "artifacts/diagnostic/codegen/0/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/diagnostic/codegen/0/build.log",
+      "source_sha256": "7b7b08b028bbebde642d2a5b61f66549328b7e7fcd93d0888217a74f0262c457",
+      "uncompressed_sha256": "7b7b08b028bbebde642d2a5b61f66549328b7e7fcd93d0888217a74f0262c457",
+      "uncompressed_bytes": 2535,
+      "sha256": "d26ad2e4c95e6191a5b8bbfae5833279892bb926e78012cb0ac3276733864494",
+      "bytes": 563
+    },
+    "artifacts/diagnostic/codegen/0/command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/diagnostic/codegen/0/command.json",
+      "source_sha256": "f72da1172af7fccd14426c54c87f8f066ad736cec9e0457c57fd7f38a37dcbf5",
+      "uncompressed_sha256": "f72da1172af7fccd14426c54c87f8f066ad736cec9e0457c57fd7f38a37dcbf5",
+      "uncompressed_bytes": 4925,
+      "sha256": "f72da1172af7fccd14426c54c87f8f066ad736cec9e0457c57fd7f38a37dcbf5",
+      "bytes": 4925
+    },
+    "artifacts/diagnostic/codegen/0/moe.su.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/diagnostic/codegen/0/moe.su",
+      "source_sha256": "9c972d91883ec2219979589d6da698b963b84e7656c05e4d1b111c1a1fe4d8f8",
+      "uncompressed_sha256": "9c972d91883ec2219979589d6da698b963b84e7656c05e4d1b111c1a1fe4d8f8",
+      "uncompressed_bytes": 185091,
+      "sha256": "18890f0710fb6586d0a6a1a22f8c94e25960867f145ec403fb690d8bb59bdae5",
+      "bytes": 12695
+    },
+    "artifacts/diagnostic/codegen/1/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/diagnostic/codegen/1/build.log",
+      "source_sha256": "7b7b08b028bbebde642d2a5b61f66549328b7e7fcd93d0888217a74f0262c457",
+      "uncompressed_sha256": "7b7b08b028bbebde642d2a5b61f66549328b7e7fcd93d0888217a74f0262c457",
+      "uncompressed_bytes": 2535,
+      "sha256": "d26ad2e4c95e6191a5b8bbfae5833279892bb926e78012cb0ac3276733864494",
+      "bytes": 563
+    },
+    "artifacts/diagnostic/codegen/1/command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/diagnostic/codegen/1/command.json",
+      "source_sha256": "3ebda001063fc5cbcf47e424651206e8b83ceb57b60f0bb6b456095f401689bd",
+      "uncompressed_sha256": "3ebda001063fc5cbcf47e424651206e8b83ceb57b60f0bb6b456095f401689bd",
+      "uncompressed_bytes": 4925,
+      "sha256": "3ebda001063fc5cbcf47e424651206e8b83ceb57b60f0bb6b456095f401689bd",
+      "bytes": 4925
+    },
+    "artifacts/diagnostic/codegen/1/moe.su.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/diagnostic/codegen/1/moe.su",
+      "source_sha256": "1a55044d8b46a68fc0547edde7444bacd09faae236031d8b7c0d8d64b3a2a50c",
+      "uncompressed_sha256": "1a55044d8b46a68fc0547edde7444bacd09faae236031d8b7c0d8d64b3a2a50c",
+      "uncompressed_bytes": 185528,
+      "sha256": "1a22a059e21f5358e0068591baba17284851f4ebc57d134f37733ea647da744b",
+      "bytes": 12746
+    },
+    "artifacts/diagnostic/codegen/off-identical.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/diagnostic/codegen/off-identical.json",
+      "source_sha256": "46f3f9043480886629d39add1bce2f0d1b4cd80141aa6fd29526dbe686a74b92",
+      "uncompressed_sha256": "46f3f9043480886629d39add1bce2f0d1b4cd80141aa6fd29526dbe686a74b92",
+      "uncompressed_bytes": 135,
+      "sha256": "46f3f9043480886629d39add1bce2f0d1b4cd80141aa6fd29526dbe686a74b92",
+      "bytes": 135
+    },
+    "artifacts/diagnostic/diagnostic.patch.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/diagnostic/diagnostic.patch",
+      "source_sha256": "a233cdd49ad768451001b8fe1c51ffebeb8d29fba7cd7979c89f91098efe66b9",
+      "uncompressed_sha256": "a233cdd49ad768451001b8fe1c51ffebeb8d29fba7cd7979c89f91098efe66b9",
+      "uncompressed_bytes": 5315,
+      "sha256": "da62778ff45f4374748a90d7514fbb37eb7f928687e022b438eb5636a78cca9d",
+      "bytes": 1848
+    },
+    "artifacts/diagnostic/parse.py": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/diagnostic/parse.py",
+      "source_sha256": "7f949e97b2cfd1fb51df865c6cbc58e8de451810f264bfd9f19d140223344e43",
+      "uncompressed_sha256": "7f949e97b2cfd1fb51df865c6cbc58e8de451810f264bfd9f19d140223344e43",
+      "uncompressed_bytes": 3340,
+      "sha256": "7f949e97b2cfd1fb51df865c6cbc58e8de451810f264bfd9f19d140223344e43",
+      "bytes": 3340
+    },
+    "artifacts/diagnostic/parser-results.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/diagnostic/parser-results.json",
+      "source_sha256": "587a9ab65208760ab7dd56e27dac6c4a00272d35b19a298ad10663f1380c6de2",
+      "uncompressed_sha256": "587a9ab65208760ab7dd56e27dac6c4a00272d35b19a298ad10663f1380c6de2",
+      "uncompressed_bytes": 52,
+      "sha256": "587a9ab65208760ab7dd56e27dac6c4a00272d35b19a298ad10663f1380c6de2",
+      "bytes": 52
+    },
+    "artifacts/diagnostic/parser_check.py": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/diagnostic/parser_check.py",
+      "source_sha256": "d24c80a5b27b0bd3a54c71595339853c787aaaef18be474e82329a9ec9a82b58",
+      "uncompressed_sha256": "d24c80a5b27b0bd3a54c71595339853c787aaaef18be474e82329a9ec9a82b58",
+      "uncompressed_bytes": 3164,
+      "sha256": "d24c80a5b27b0bd3a54c71595339853c787aaaef18be474e82329a9ec9a82b58",
+      "bytes": 3164
+    },
+    "artifacts/diagnostic/source/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/diagnostic/candidate/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp",
+      "source_sha256": "2f57675b9dd553d1a84fbbad183194dae6e54a9e52432dc8bc8a29a9f7d34fe3",
+      "uncompressed_sha256": "2f57675b9dd553d1a84fbbad183194dae6e54a9e52432dc8bc8a29a9f7d34fe3",
+      "uncompressed_bytes": 107576,
+      "sha256": "07558848519e7bb14abf1569475b3315e77af698ad1916dbb18fc31471cf5963",
+      "bytes": 30021
+    },
+    "artifacts/diagnostic/validation.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/diagnostic/validation.json",
+      "source_sha256": "67cdb600a11c1cae4dddc44e6944c27d2e0965b279cb77472d41f5be7974f740",
+      "uncompressed_sha256": "67cdb600a11c1cae4dddc44e6944c27d2e0965b279cb77472d41f5be7974f740",
+      "uncompressed_bytes": 1029,
+      "sha256": "67cdb600a11c1cae4dddc44e6944c27d2e0965b279cb77472d41f5be7974f740",
+      "bytes": 1029
+    },
+    "artifacts/independent/codegen/app-android-x86/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/app-android-x86/build.log",
+      "source_sha256": "dd76f07049c128cadb7ca549bf14fdfd56dcf02ee090a18bfb7766403dba22a3",
+      "uncompressed_sha256": "dd76f07049c128cadb7ca549bf14fdfd56dcf02ee090a18bfb7766403dba22a3",
+      "uncompressed_bytes": 2513,
+      "sha256": "326a83f4e0447f9f77491207d218573a33d7b5684fd9900ed8895164e3f73947",
+      "bytes": 557
+    },
+    "artifacts/independent/codegen/app-android-x86/command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/app-android-x86/command.json",
+      "source_sha256": "28d7e299be48d28429a4eeb0d4589344a60dfe2bf411b0d53ceab986dd9ea8f3",
+      "uncompressed_sha256": "28d7e299be48d28429a4eeb0d4589344a60dfe2bf411b0d53ceab986dd9ea8f3",
+      "uncompressed_bytes": 4783,
+      "sha256": "28d7e299be48d28429a4eeb0d4589344a60dfe2bf411b0d53ceab986dd9ea8f3",
+      "bytes": 4783
+    },
+    "artifacts/independent/codegen/app-android-x86/output.su.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/app-android-x86/output.su",
+      "source_sha256": "8597cd8a939e78fd788f8bca3335d42aac1985b0c1d81de56c3ca97779ffb871",
+      "uncompressed_sha256": "8597cd8a939e78fd788f8bca3335d42aac1985b0c1d81de56c3ca97779ffb871",
+      "uncompressed_bytes": 181194,
+      "sha256": "c6b5a56adaa9fbf208e1ee2f61ee4c64baf1d7b2a1af98b14d7a2c51b7c26ed6",
+      "bytes": 12495
+    },
+    "artifacts/independent/codegen/app-arm-before/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/app-arm-before/build.log",
+      "source_sha256": "e18f84b3188ac438e85087ae2984fca7e7182d4ef25fa73ed232ebee69779a36",
+      "uncompressed_sha256": "e18f84b3188ac438e85087ae2984fca7e7182d4ef25fa73ed232ebee69779a36",
+      "uncompressed_bytes": 2507,
+      "sha256": "7b39398875a22e2c3213cafae8cf5f8090cdcf3f28c1950d4c5af413f0c55bbf",
+      "bytes": 555
+    },
+    "artifacts/independent/codegen/app-arm-before/command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/app-arm-before/command.json",
+      "source_sha256": "a43a7f0467a46878ab89dbbaccd7a040db72018de3d4ffc3e890a0ece933c1a9",
+      "uncompressed_sha256": "a43a7f0467a46878ab89dbbaccd7a040db72018de3d4ffc3e890a0ece933c1a9",
+      "uncompressed_bytes": 4885,
+      "sha256": "a43a7f0467a46878ab89dbbaccd7a040db72018de3d4ffc3e890a0ece933c1a9",
+      "bytes": 4885
+    },
+    "artifacts/independent/codegen/app-arm-before/output.su.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/app-arm-before/output.su",
+      "source_sha256": "f4e58c283eac928aabba5a87f250b36c96bcca743e698671fbf2f4fb3919c05d",
+      "uncompressed_sha256": "f4e58c283eac928aabba5a87f250b36c96bcca743e698671fbf2f4fb3919c05d",
+      "uncompressed_bytes": 181195,
+      "sha256": "4d55738dc48c830520559c309d4a2f341d22ef5c3ecfdfc74877b69c1d108894",
+      "bytes": 12518
+    },
+    "artifacts/independent/codegen/app-arm/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/app-arm/build.log",
+      "source_sha256": "dd76f07049c128cadb7ca549bf14fdfd56dcf02ee090a18bfb7766403dba22a3",
+      "uncompressed_sha256": "dd76f07049c128cadb7ca549bf14fdfd56dcf02ee090a18bfb7766403dba22a3",
+      "uncompressed_bytes": 2513,
+      "sha256": "326a83f4e0447f9f77491207d218573a33d7b5684fd9900ed8895164e3f73947",
+      "bytes": 557
+    },
+    "artifacts/independent/codegen/app-arm/command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/app-arm/command.json",
+      "source_sha256": "313640a5f2674e52262e5c5476be3ed9fc4929125730bb5d6b3bdde1c18a57a6",
+      "uncompressed_sha256": "313640a5f2674e52262e5c5476be3ed9fc4929125730bb5d6b3bdde1c18a57a6",
+      "uncompressed_bytes": 4881,
+      "sha256": "313640a5f2674e52262e5c5476be3ed9fc4929125730bb5d6b3bdde1c18a57a6",
+      "bytes": 4881
+    },
+    "artifacts/independent/codegen/app-arm/output.su.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/app-arm/output.su",
+      "source_sha256": "756cf354746601243f017ede0ac8ffb855190c3236d4b51c56623a2360cc06d6",
+      "uncompressed_sha256": "756cf354746601243f017ede0ac8ffb855190c3236d4b51c56623a2360cc06d6",
+      "uncompressed_bytes": 184651,
+      "sha256": "ffff24ff6c88ae5399004e3af08a48ffc53d900f510ec7a153b7d8071ea53dbb",
+      "bytes": 12669
+    },
+    "artifacts/independent/codegen/app-linux-x86/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/app-linux-x86/build.log",
+      "source_sha256": "f000160c3a234e19a6fe9bce4884bbe19b06b3b3febe1638f2bfcab6b720dfe4",
+      "uncompressed_sha256": "f000160c3a234e19a6fe9bce4884bbe19b06b3b3febe1638f2bfcab6b720dfe4",
+      "uncompressed_bytes": 1313,
+      "sha256": "f1c5081b782885dd7124276fe62898605a66ff66ca7221cf0aa9ac11881d05e0",
+      "bytes": 484
+    },
+    "artifacts/independent/codegen/app-linux-x86/command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/app-linux-x86/command.json",
+      "source_sha256": "15d54dc6a6bee93bad625919d7cc6050058e735242f3a1b59b21eb3a6b8592e7",
+      "uncompressed_sha256": "15d54dc6a6bee93bad625919d7cc6050058e735242f3a1b59b21eb3a6b8592e7",
+      "uncompressed_bytes": 4768,
+      "sha256": "15d54dc6a6bee93bad625919d7cc6050058e735242f3a1b59b21eb3a6b8592e7",
+      "bytes": 4768
+    },
+    "artifacts/independent/codegen/app-linux-x86/output.su.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/app-linux-x86/output.su",
+      "source_sha256": "3f4bb179263eef38f64e4ec3e5af827615b576a731b3fdb252978aecb8d638e8",
+      "uncompressed_sha256": "3f4bb179263eef38f64e4ec3e5af827615b576a731b3fdb252978aecb8d638e8",
+      "uncompressed_bytes": 146497,
+      "sha256": "20394e11275e630ae0376b3bca210b98ffea6b653c30e5bf6c06d34dfce3a9b9",
+      "bytes": 10778
+    },
+    "artifacts/independent/codegen/invalid-fastmath/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/invalid-fastmath/build.log",
+      "source_sha256": "279f9ab5fb78481f2b39ad217cd6000b5cb70b3ea05ed29642b0ec1c45a59fe5",
+      "uncompressed_sha256": "279f9ab5fb78481f2b39ad217cd6000b5cb70b3ea05ed29642b0ec1c45a59fe5",
+      "uncompressed_bytes": 297,
+      "sha256": "e163303f68dcb562e1b6bdce74456481521b35da6aca83485328a9e394c95e85",
+      "bytes": 187
+    },
+    "artifacts/independent/codegen/invalid-fastmath/command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/invalid-fastmath/command.json",
+      "source_sha256": "a2963df8996da0fb3789619bfe70dcadebfa72658f0f2719bdb083bfeea1d969",
+      "uncompressed_sha256": "a2963df8996da0fb3789619bfe70dcadebfa72658f0f2719bdb083bfeea1d969",
+      "uncompressed_bytes": 833,
+      "sha256": "a2963df8996da0fb3789619bfe70dcadebfa72658f0f2719bdb083bfeea1d969",
+      "bytes": 833
+    },
+    "artifacts/independent/codegen/kernel-android-x86/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/kernel-android-x86/build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/independent/codegen/kernel-android-x86/command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/kernel-android-x86/command.json",
+      "source_sha256": "d01b42ba7668485a323d7701e33000fb512cc3ac58e508677a4ee69531afa15c",
+      "uncompressed_sha256": "d01b42ba7668485a323d7701e33000fb512cc3ac58e508677a4ee69531afa15c",
+      "uncompressed_bytes": 500,
+      "sha256": "d01b42ba7668485a323d7701e33000fb512cc3ac58e508677a4ee69531afa15c",
+      "bytes": 500
+    },
+    "artifacts/independent/codegen/kernel-arm/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/kernel-arm/build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/independent/codegen/kernel-arm/command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/kernel-arm/command.json",
+      "source_sha256": "d05ec77556e49485e333f0e88ce9537babacd5fb51fec44f7b9ae2ccdf88d96a",
+      "uncompressed_sha256": "d05ec77556e49485e333f0e88ce9537babacd5fb51fec44f7b9ae2ccdf88d96a",
+      "uncompressed_bytes": 951,
+      "sha256": "d05ec77556e49485e333f0e88ce9537babacd5fb51fec44f7b9ae2ccdf88d96a",
+      "bytes": 951
+    },
+    "artifacts/independent/codegen/kernel-arm/hot-loop.asm.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/kernel-arm/hot-loop.asm",
+      "source_sha256": "59cdd49dd045bb464b3792628a405b4d979ca73119e078335cb8f57052cd00e2",
+      "uncompressed_sha256": "59cdd49dd045bb464b3792628a405b4d979ca73119e078335cb8f57052cd00e2",
+      "uncompressed_bytes": 2205,
+      "sha256": "116c03ea3437483dd1150a7ac420a81b2746f398cfd2eae889439a8b951b7127",
+      "bytes": 722
+    },
+    "artifacts/independent/codegen/kernel-arm/llvm-command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/kernel-arm/llvm-command.json",
+      "source_sha256": "21b4e66c2a81919f4d821448d5b4bdaf950124d92588ae4b7142dc2d6f7f740e",
+      "uncompressed_sha256": "21b4e66c2a81919f4d821448d5b4bdaf950124d92588ae4b7142dc2d6f7f740e",
+      "uncompressed_bytes": 887,
+      "sha256": "21b4e66c2a81919f4d821448d5b4bdaf950124d92588ae4b7142dc2d6f7f740e",
+      "bytes": 887
+    },
+    "artifacts/independent/codegen/kernel-arm/llvm-ops.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/kernel-arm/llvm-ops.json",
+      "source_sha256": "e29f06193509579399084e5cddea65beea2022bcfdf6b5dc62250f1c7feb0052",
+      "uncompressed_sha256": "e29f06193509579399084e5cddea65beea2022bcfdf6b5dc62250f1c7feb0052",
+      "uncompressed_bytes": 1603,
+      "sha256": "e29f06193509579399084e5cddea65beea2022bcfdf6b5dc62250f1c7feb0052",
+      "bytes": 1603
+    },
+    "artifacts/independent/codegen/kernel-arm/output.asm.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/kernel-arm/output.asm",
+      "source_sha256": "fd5a1679f44027a63312dd068e85bc2e8f8644fcfac8183554baeceb38dcc606",
+      "uncompressed_sha256": "fd5a1679f44027a63312dd068e85bc2e8f8644fcfac8183554baeceb38dcc606",
+      "uncompressed_bytes": 8900,
+      "sha256": "ff6c53108db551f05d6f3e5cdb84fee97bb2220e122a345476e1e2a8e338b303",
+      "bytes": 2353
+    },
+    "artifacts/independent/codegen/kernel-arm/output.ll.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/kernel-arm/output.ll",
+      "source_sha256": "ef54672147dbac763414872ae4523783c5df7027b345ab11ef0b86ebabb4bf8b",
+      "uncompressed_sha256": "ef54672147dbac763414872ae4523783c5df7027b345ab11ef0b86ebabb4bf8b",
+      "uncompressed_bytes": 20357,
+      "sha256": "77f0a5aa7530fb109c3d7c852b70bbd5c16592b104d9ece9f14562934665f208",
+      "bytes": 3997
+    },
+    "artifacts/independent/codegen/kernel-arm/output.su.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/kernel-arm/output.su",
+      "source_sha256": "b33bd15902fd5a379e0afb7f3f1dea799676d3dd6b8703fa8d0ceb041313c136",
+      "uncompressed_sha256": "b33bd15902fd5a379e0afb7f3f1dea799676d3dd6b8703fa8d0ceb041313c136",
+      "uncompressed_bytes": 320,
+      "sha256": "b4aab2b7ef671d7bb10f1aa89679b024dc9b73b5166bb92a18d7dd3067b4a05f",
+      "bytes": 182
+    },
+    "artifacts/independent/codegen/kernel-linux-x86/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/kernel-linux-x86/build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/independent/codegen/kernel-linux-x86/command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/kernel-linux-x86/command.json",
+      "source_sha256": "d8bc017f8e01a5d8e684508ee66700c385554f985bfea3550199d846b347ba09",
+      "uncompressed_sha256": "d8bc017f8e01a5d8e684508ee66700c385554f985bfea3550199d846b347ba09",
+      "uncompressed_bytes": 384,
+      "sha256": "d8bc017f8e01a5d8e684508ee66700c385554f985bfea3550199d846b347ba09",
+      "bytes": 384
+    },
+    "artifacts/independent/codegen/kernel-linux-x86/output.su.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/kernel-linux-x86/output.su",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/independent/codegen/results.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/codegen/results.json",
+      "source_sha256": "a1cc215e988984fdc10ea96488018ec2b234ed8c68b573ae65fd4bdab0c11a83",
+      "uncompressed_sha256": "a1cc215e988984fdc10ea96488018ec2b234ed8c68b573ae65fd4bdab0c11a83",
+      "uncompressed_bytes": 886,
+      "sha256": "a1cc215e988984fdc10ea96488018ec2b234ed8c68b573ae65fd4bdab0c11a83",
+      "bytes": 886
+    },
+    "artifacts/independent/compile.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/compile.log",
+      "source_sha256": "d86016e10a06e32ee22d36ac61441ff5471702dc30eeb5f0c915f2ad3413e852",
+      "uncompressed_sha256": "d86016e10a06e32ee22d36ac61441ff5471702dc30eeb5f0c915f2ad3413e852",
+      "uncompressed_bytes": 769,
+      "sha256": "7d2d7d151e52daad17c99babc0659eff6e3f0e43a9eb57344829502511d3ac03",
+      "bytes": 355
+    },
+    "artifacts/independent/host-san.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/host-san.log",
+      "source_sha256": "183e84994a9467bf1d5215323dda77213ebd5f86e2fbe70f42a32d62d5626092",
+      "uncompressed_sha256": "183e84994a9467bf1d5215323dda77213ebd5f86e2fbe70f42a32d62d5626092",
+      "uncompressed_bytes": 185,
+      "sha256": "d788fa2567ea8fd6629aadd78301a01335ec633343e86c5568546f82724762a5",
+      "bytes": 64
+    },
+    "artifacts/independent/host-san/commands.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/host-san/commands.json",
+      "source_sha256": "9dfcdd42e21097fbf935b64d9b52f3628c6cf69e43cf769b703fe356b1226aca",
+      "uncompressed_sha256": "9dfcdd42e21097fbf935b64d9b52f3628c6cf69e43cf769b703fe356b1226aca",
+      "uncompressed_bytes": 4519,
+      "sha256": "9dfcdd42e21097fbf935b64d9b52f3628c6cf69e43cf769b703fe356b1226aca",
+      "bytes": 4519
+    },
+    "artifacts/independent/manifest.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/manifest.json",
+      "source_sha256": "592fa32673dff15dbe27a30ca793c2dc8f8bf2b64230aaf2b521e86e1a1af8a5",
+      "uncompressed_sha256": "592fa32673dff15dbe27a30ca793c2dc8f8bf2b64230aaf2b521e86e1a1af8a5",
+      "uncompressed_bytes": 726,
+      "sha256": "592fa32673dff15dbe27a30ca793c2dc8f8bf2b64230aaf2b521e86e1a1af8a5",
+      "bytes": 726
+    },
+    "artifacts/independent/mutations.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations.log",
+      "source_sha256": "c54b3a80c39796d709aedf3dc42310bcae9e547268ea43d8515e67e4f3f9a744",
+      "uncompressed_sha256": "c54b3a80c39796d709aedf3dc42310bcae9e547268ea43d8515e67e4f3f9a744",
+      "uncompressed_bytes": 504,
+      "sha256": "ca491b3fa33505551b4672567ddc96a8598ed999c438a92f595436b992850012",
+      "bytes": 227
+    },
+    "artifacts/independent/mutations/failure_propagation/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/failure_propagation/build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/independent/mutations/failure_propagation/commands.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/failure_propagation/commands.json",
+      "source_sha256": "9a1e13b1b65b861ab0e91ba7241b49ddf97a12b392aecdebecff17d4c6bc4746",
+      "uncompressed_sha256": "9a1e13b1b65b861ab0e91ba7241b49ddf97a12b392aecdebecff17d4c6bc4746",
+      "uncompressed_bytes": 2377,
+      "sha256": "9a1e13b1b65b861ab0e91ba7241b49ddf97a12b392aecdebecff17d4c6bc4746",
+      "bytes": 2377
+    },
+    "artifacts/independent/mutations/failure_propagation/run.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/failure_propagation/run.log",
+      "source_sha256": "25105883cb84f0147de9c190c0b62ad92f94bc959b3a7102a697ac443c3cc879",
+      "uncompressed_sha256": "25105883cb84f0147de9c190c0b62ad92f94bc959b3a7102a697ac443c3cc879",
+      "uncompressed_bytes": 45,
+      "sha256": "9245087b5d8538afbed21f63e70bb4d41dca5be1c174076c7257c067b27b249d",
+      "bytes": 64
+    },
+    "artifacts/independent/mutations/fallback_overwrite/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/fallback_overwrite/build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/independent/mutations/fallback_overwrite/commands.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/fallback_overwrite/commands.json",
+      "source_sha256": "5db92b2d59736ff845b3480b3af6afd0bc07abcfd3406010dfd2864b5d446318",
+      "uncompressed_sha256": "5db92b2d59736ff845b3480b3af6afd0bc07abcfd3406010dfd2864b5d446318",
+      "uncompressed_bytes": 2370,
+      "sha256": "5db92b2d59736ff845b3480b3af6afd0bc07abcfd3406010dfd2864b5d446318",
+      "bytes": 2370
+    },
+    "artifacts/independent/mutations/fallback_overwrite/run.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/fallback_overwrite/run.log",
+      "source_sha256": "1e1e4345f9bbb705df313d4edb3c04d7843b917ad2e718e58df9bbab6043820a",
+      "uncompressed_sha256": "1e1e4345f9bbb705df313d4edb3c04d7843b917ad2e718e58df9bbab6043820a",
+      "uncompressed_bytes": 45,
+      "sha256": "30410a7fbfe16f3c6e0db22f64bba2f602687287ad0d632038b99320d56d8315",
+      "bytes": 65
+    },
+    "artifacts/independent/mutations/gelu_guard/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/gelu_guard/build.log",
+      "source_sha256": "69729fc418399895d7f5e6a155a29bb4a8347ed40a9e2ea749785f5edfddcbda",
+      "uncompressed_sha256": "69729fc418399895d7f5e6a155a29bb4a8347ed40a9e2ea749785f5edfddcbda",
+      "uncompressed_bytes": 604,
+      "sha256": "8521128fcb08056d0efa64df77b986fa53a5e197425defc2d7885a7aee009f71",
+      "bytes": 301
+    },
+    "artifacts/independent/mutations/gelu_guard/commands.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/gelu_guard/commands.json",
+      "source_sha256": "5b87e5d5ecb6ea23e8d5fb246376fe86b4a213f387436aba5a0fce5d76c25b0c",
+      "uncompressed_sha256": "5b87e5d5ecb6ea23e8d5fb246376fe86b4a213f387436aba5a0fce5d76c25b0c",
+      "uncompressed_bytes": 2314,
+      "sha256": "5b87e5d5ecb6ea23e8d5fb246376fe86b4a213f387436aba5a0fce5d76c25b0c",
+      "bytes": 2314
+    },
+    "artifacts/independent/mutations/gelu_guard/run.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/gelu_guard/run.log",
+      "source_sha256": "1cd3d35b8b868165b86abb7bbcf315ad503a6ce531f79470abd0c68b01627517",
+      "uncompressed_sha256": "1cd3d35b8b868165b86abb7bbcf315ad503a6ce531f79470abd0c68b01627517",
+      "uncompressed_bytes": 47,
+      "sha256": "3192d8c8a3880c9b4d057b441b39e4b1780ee406f06df8f905124dbff617f354",
+      "bytes": 67
+    },
+    "artifacts/independent/mutations/input_alias/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/input_alias/build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/independent/mutations/input_alias/commands.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/input_alias/commands.json",
+      "source_sha256": "7e71108e842e36b9417e7c5706c6526596d261d5ca7dcb9a86f187e61c7aa118",
+      "uncompressed_sha256": "7e71108e842e36b9417e7c5706c6526596d261d5ca7dcb9a86f187e61c7aa118",
+      "uncompressed_bytes": 2321,
+      "sha256": "7e71108e842e36b9417e7c5706c6526596d261d5ca7dcb9a86f187e61c7aa118",
+      "bytes": 2321
+    },
+    "artifacts/independent/mutations/input_alias/run.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/input_alias/run.log",
+      "source_sha256": "48f8a513525dc149e4ae33a9c5ee728de079d6e58d4b8ebeffc71de4ba1cc939",
+      "uncompressed_sha256": "48f8a513525dc149e4ae33a9c5ee728de079d6e58d4b8ebeffc71de4ba1cc939",
+      "uncompressed_bytes": 45,
+      "sha256": "bd7d2753010552ea70bb22f5b96bc0067dc62a5d31cc73c8859a29334a8f7e17",
+      "bytes": 65
+    },
+    "artifacts/independent/mutations/input_subnormal/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/input_subnormal/build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/independent/mutations/input_subnormal/commands.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/input_subnormal/commands.json",
+      "source_sha256": "aa1b991c6a7a0331d7702913996a6862408f3a373e2a9f24171cf185a0068a58",
+      "uncompressed_sha256": "aa1b991c6a7a0331d7702913996a6862408f3a373e2a9f24171cf185a0068a58",
+      "uncompressed_bytes": 2349,
+      "sha256": "aa1b991c6a7a0331d7702913996a6862408f3a373e2a9f24171cf185a0068a58",
+      "bytes": 2349
+    },
+    "artifacts/independent/mutations/input_subnormal/run.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/input_subnormal/run.log",
+      "source_sha256": "6c2bd5541d09115c92c772b2572f12a50bd13d55702b89ac9697987b07d37a56",
+      "uncompressed_sha256": "6c2bd5541d09115c92c772b2572f12a50bd13d55702b89ac9697987b07d37a56",
+      "uncompressed_bytes": 53,
+      "sha256": "71602187199fac55aa6b4bd1fe97efca82af45fe0674334482ef447e7babd622",
+      "bytes": 73
+    },
+    "artifacts/independent/mutations/last_task/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/last_task/build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/independent/mutations/last_task/commands.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/last_task/commands.json",
+      "source_sha256": "b6ee2eb0e62dafaf128799de629af929c88121ebc4ec027e633c1f03463f6d3e",
+      "uncompressed_sha256": "b6ee2eb0e62dafaf128799de629af929c88121ebc4ec027e633c1f03463f6d3e",
+      "uncompressed_bytes": 2307,
+      "sha256": "b6ee2eb0e62dafaf128799de629af929c88121ebc4ec027e633c1f03463f6d3e",
+      "bytes": 2307
+    },
+    "artifacts/independent/mutations/last_task/run.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/last_task/run.log",
+      "source_sha256": "270a678335358df3e5a814b173b0bc022026e0434eb8ab5e5d721a8cb1bae7be",
+      "uncompressed_sha256": "270a678335358df3e5a814b173b0bc022026e0434eb8ab5e5d721a8cb1bae7be",
+      "uncompressed_bytes": 35,
+      "sha256": "8f7c34abb305ceea70068fd833b2b8426e77be3eb3a94b6bf6a0bcf84f5fba0f",
+      "bytes": 55
+    },
+    "artifacts/independent/mutations/nonfinite_output/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/nonfinite_output/build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/independent/mutations/nonfinite_output/commands.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/nonfinite_output/commands.json",
+      "source_sha256": "8c43ef0c435f77e734edb6310d3aa9ffddc4392b01fde0023daa43952984d18b",
+      "uncompressed_sha256": "8c43ef0c435f77e734edb6310d3aa9ffddc4392b01fde0023daa43952984d18b",
+      "uncompressed_bytes": 2356,
+      "sha256": "8c43ef0c435f77e734edb6310d3aa9ffddc4392b01fde0023daa43952984d18b",
+      "bytes": 2356
+    },
+    "artifacts/independent/mutations/nonfinite_output/run.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/nonfinite_output/run.log",
+      "source_sha256": "6c2bd5541d09115c92c772b2572f12a50bd13d55702b89ac9697987b07d37a56",
+      "uncompressed_sha256": "6c2bd5541d09115c92c772b2572f12a50bd13d55702b89ac9697987b07d37a56",
+      "uncompressed_bytes": 53,
+      "sha256": "71602187199fac55aa6b4bd1fe97efca82af45fe0674334482ef447e7babd622",
+      "bytes": 73
+    },
+    "artifacts/independent/mutations/opt_in/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/opt_in/build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/independent/mutations/opt_in/commands.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/opt_in/commands.json",
+      "source_sha256": "ac6772d1ff9399afdb997528119227170de68459d7cd3437de09a370ca7a66f9",
+      "uncompressed_sha256": "ac6772d1ff9399afdb997528119227170de68459d7cd3437de09a370ca7a66f9",
+      "uncompressed_bytes": 2286,
+      "sha256": "ac6772d1ff9399afdb997528119227170de68459d7cd3437de09a370ca7a66f9",
+      "bytes": 2286
+    },
+    "artifacts/independent/mutations/opt_in/run.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/opt_in/run.log",
+      "source_sha256": "bbe7d2deee43e7d77c3bfbc34e6f48598ed5bffde43c1d008c85e90d539524d3",
+      "uncompressed_sha256": "bbe7d2deee43e7d77c3bfbc34e6f48598ed5bffde43c1d008c85e90d539524d3",
+      "uncompressed_bytes": 49,
+      "sha256": "0455bed1d4a7635f51be3822acca2a7c5f130d1b145685a01c93cff020f76538",
+      "bytes": 67
+    },
+    "artifacts/independent/mutations/results.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/results.json",
+      "source_sha256": "83046a7f3a8c4092add11fbe14ccf68fdf793bb73b8fb9d7aa3a26666cb0e5a7",
+      "uncompressed_sha256": "83046a7f3a8c4092add11fbe14ccf68fdf793bb73b8fb9d7aa3a26666cb0e5a7",
+      "uncompressed_bytes": 1317,
+      "sha256": "83046a7f3a8c4092add11fbe14ccf68fdf793bb73b8fb9d7aa3a26666cb0e5a7",
+      "bytes": 1317
+    },
+    "artifacts/independent/mutations/weight_context/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/weight_context/build.log",
+      "source_sha256": "86cb49cd4a803a89b2ea6df179bc1133cf88a6e005779203d5abb64404920b41",
+      "uncompressed_sha256": "86cb49cd4a803a89b2ea6df179bc1133cf88a6e005779203d5abb64404920b41",
+      "uncompressed_bytes": 670,
+      "sha256": "20428d20072c640536fb2a7bbcabcb81779cf684aeb05cb0b1a4e6087710ddd1",
+      "bytes": 327
+    },
+    "artifacts/independent/mutations/weight_context/commands.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/weight_context/commands.json",
+      "source_sha256": "84a05fc9e87689341b85a552297d71fa74f8c139e2bdfdd7138dfaa3597555ee",
+      "uncompressed_sha256": "84a05fc9e87689341b85a552297d71fa74f8c139e2bdfdd7138dfaa3597555ee",
+      "uncompressed_bytes": 2342,
+      "sha256": "84a05fc9e87689341b85a552297d71fa74f8c139e2bdfdd7138dfaa3597555ee",
+      "bytes": 2342
+    },
+    "artifacts/independent/mutations/weight_context/run.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/weight_context/run.log",
+      "source_sha256": "48f8a513525dc149e4ae33a9c5ee728de079d6e58d4b8ebeffc71de4ba1cc939",
+      "uncompressed_sha256": "48f8a513525dc149e4ae33a9c5ee728de079d6e58d4b8ebeffc71de4ba1cc939",
+      "uncompressed_bytes": 45,
+      "sha256": "bd7d2753010552ea70bb22f5b96bc0067dc62a5d31cc73c8859a29334a8f7e17",
+      "bytes": 65
+    },
+    "artifacts/independent/mutations/weight_subnormal/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/weight_subnormal/build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/independent/mutations/weight_subnormal/commands.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/weight_subnormal/commands.json",
+      "source_sha256": "837bea3be809b194b0ceebbf7722e3c50c6eae58c2b5b65e4c03ffc814e968e9",
+      "uncompressed_sha256": "837bea3be809b194b0ceebbf7722e3c50c6eae58c2b5b65e4c03ffc814e968e9",
+      "uncompressed_bytes": 2356,
+      "sha256": "837bea3be809b194b0ceebbf7722e3c50c6eae58c2b5b65e4c03ffc814e968e9",
+      "bytes": 2356
+    },
+    "artifacts/independent/mutations/weight_subnormal/run.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/mutations/weight_subnormal/run.log",
+      "source_sha256": "6c2bd5541d09115c92c772b2572f12a50bd13d55702b89ac9697987b07d37a56",
+      "uncompressed_sha256": "6c2bd5541d09115c92c772b2572f12a50bd13d55702b89ac9697987b07d37a56",
+      "uncompressed_bytes": 53,
+      "sha256": "71602187199fac55aa6b4bd1fe97efca82af45fe0674334482ef447e7babd622",
+      "bytes": 73
+    },
+    "artifacts/independent/recompile.py": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/recompile.py",
+      "source_sha256": "ff2fe1e2b9ed9938d3254ca84a61418205ea1b60dd0bc2f583ca133475d4e00c",
+      "uncompressed_sha256": "ff2fe1e2b9ed9938d3254ca84a61418205ea1b60dd0bc2f583ca133475d4e00c",
+      "uncompressed_bytes": 1835,
+      "sha256": "ff2fe1e2b9ed9938d3254ca84a61418205ea1b60dd0bc2f583ca133475d4e00c",
+      "bytes": 1835
+    },
+    "artifacts/independent/review.txt": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/review.txt",
+      "source_sha256": "dbe541c8c2c0983ec680c52823425e42bf2a87ba5723fa373a0ac2cdb1f62269",
+      "uncompressed_sha256": "dbe541c8c2c0983ec680c52823425e42bf2a87ba5723fa373a0ac2cdb1f62269",
+      "uncompressed_bytes": 6796,
+      "sha256": "dbe541c8c2c0983ec680c52823425e42bf2a87ba5723fa373a0ac2cdb1f62269",
+      "bytes": 6796
+    },
+    "artifacts/independent/reviewed-source-hashes.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/reviewed-source-hashes.json",
+      "source_sha256": "d45a81ea467c923f355e349733106b3121926c87f9b91d09d2a5eaa30f6f3f53",
+      "uncompressed_sha256": "d45a81ea467c923f355e349733106b3121926c87f9b91d09d2a5eaa30f6f3f53",
+      "uncompressed_bytes": 880,
+      "sha256": "d45a81ea467c923f355e349733106b3121926c87f9b91d09d2a5eaa30f6f3f53",
+      "bytes": 880
+    },
+    "artifacts/independent/validation.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-review-20261017/validation.json",
+      "source_sha256": "dc3f3f7529621515a5d83fd596fe0082d874c463605535023fd3140b2b233931",
+      "uncompressed_sha256": "dc3f3f7529621515a5d83fd596fe0082d874c463605535023fd3140b2b233931",
+      "uncompressed_bytes": 5850,
+      "sha256": "dc3f3f7529621515a5d83fd596fe0082d874c463605535023fd3140b2b233931",
+      "bytes": 5850
+    },
+    "artifacts/native/binary.sha256": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/native-v3-final/binary.sha256",
+      "source_sha256": "7d75a2393024a114db8d3f253efd286b0e3e17fb1a978044b870e1f17f8317e6",
+      "uncompressed_sha256": "7d75a2393024a114db8d3f253efd286b0e3e17fb1a978044b870e1f17f8317e6",
+      "uncompressed_bytes": 65,
+      "sha256": "7d75a2393024a114db8d3f253efd286b0e3e17fb1a978044b870e1f17f8317e6",
+      "bytes": 65
+    },
+    "artifacts/native/commands.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/checks/native-v3-final/commands.json",
+      "source_sha256": "290e8a570f3e9ee6b526f7110557709656c4a49c9b397ff9c64ec987d4e29e93",
+      "uncompressed_sha256": "290e8a570f3e9ee6b526f7110557709656c4a49c9b397ff9c64ec987d4e29e93",
+      "uncompressed_bytes": 2901,
+      "sha256": "290e8a570f3e9ee6b526f7110557709656c4a49c9b397ff9c64ec987d4e29e93",
+      "bytes": 2901
+    },
+    "artifacts/native/root-native-v3-0-1.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/root-native-v3-0-1.log",
+      "source_sha256": "9c9656ba0b85d19c710c8dc95b8645af8e46f1b3aea43c7f2e7bfaf17377105a",
+      "uncompressed_sha256": "9c9656ba0b85d19c710c8dc95b8645af8e46f1b3aea43c7f2e7bfaf17377105a",
+      "uncompressed_bytes": 3076,
+      "sha256": "990526c5f5965143c4aed5c205c6b1352576c6baf5f3d7656ed6673041f7fbd2",
+      "bytes": 306
+    },
+    "artifacts/native/root-native-v3-0-8.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/root-native-v3-0-8.log",
+      "source_sha256": "3209d863d4ed1b3b679f179b807b58e65212fd1ca0b7aea1978ccfc8f00a0f20",
+      "uncompressed_sha256": "3209d863d4ed1b3b679f179b807b58e65212fd1ca0b7aea1978ccfc8f00a0f20",
+      "uncompressed_bytes": 3076,
+      "sha256": "a7c03ad112b8cfe369519482eb1eca510fc2e096c40e7f78badffa86aa10cb6e",
+      "bytes": 307
+    },
+    "artifacts/native/root-native-v3-1-1.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/root-native-v3-1-1.log",
+      "source_sha256": "8797bc64f3d61bb779381a9220757e2e3563fb4dca935eb5057df8c6fa4a85b1",
+      "uncompressed_sha256": "8797bc64f3d61bb779381a9220757e2e3563fb4dca935eb5057df8c6fa4a85b1",
+      "uncompressed_bytes": 3076,
+      "sha256": "4013d428b313c15502bdf2873f69cd680224d2fac362590133c913afa7530481",
+      "bytes": 322
+    },
+    "artifacts/native/root-native-v3-1-8.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/root-native-v3-1-8.log",
+      "source_sha256": "152811c5a9b4f8b018648d33477618c933436dca90ac4977e1110deb0326af8c",
+      "uncompressed_sha256": "152811c5a9b4f8b018648d33477618c933436dca90ac4977e1110deb0326af8c",
+      "uncompressed_bytes": 3076,
+      "sha256": "797a3628186009233e5ef006bb5ab4712b49b31641478d89f57730c42f288394",
+      "bytes": 322
+    },
+    "artifacts/native/root-native-v3-results.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/root-native-v3-results.json",
+      "source_sha256": "5ea12c8fea0382af369de9b7635014c3a960270b4272eaee04873c8e59012b52",
+      "uncompressed_sha256": "5ea12c8fea0382af369de9b7635014c3a960270b4272eaee04873c8e59012b52",
+      "uncompressed_bytes": 2726,
+      "sha256": "5ea12c8fea0382af369de9b7635014c3a960270b4272eaee04873c8e59012b52",
+      "bytes": 2726
+    },
+    "artifacts/prescreen/build-command.json": {
+      "source": "/tmp/nntr-lfm2-router-neon-prescreen-20261017/build-command.json",
+      "source_sha256": "df27dffc1ffb5021a701e0cbae731affd72e836819d8b5ffeb0a87ece311d95e",
+      "uncompressed_sha256": "df27dffc1ffb5021a701e0cbae731affd72e836819d8b5ffeb0a87ece311d95e",
+      "uncompressed_bytes": 5016,
+      "sha256": "df27dffc1ffb5021a701e0cbae731affd72e836819d8b5ffeb0a87ece311d95e",
+      "bytes": 5016
+    },
+    "artifacts/prescreen/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-neon-prescreen-20261017/build.log",
+      "source_sha256": "80aeb7ad2678131809d977f0148b8de1702dc765285a330e00420a832559f702",
+      "uncompressed_sha256": "80aeb7ad2678131809d977f0148b8de1702dc765285a330e00420a832559f702",
+      "uncompressed_bytes": 118,
+      "sha256": "3ce6168c65c502d466a65f13ea651f2913fb1c6ad604c54bcddd6fb30b762f59",
+      "bytes": 116
+    },
+    "artifacts/prescreen/codegen.json": {
+      "source": "/tmp/nntr-lfm2-router-neon-prescreen-20261017/codegen.json",
+      "source_sha256": "dcf3194373eb93ce3e66563d1545a7fbd8f5dfcc7dd7f81974f1bc805635c0e5",
+      "uncompressed_sha256": "dcf3194373eb93ce3e66563d1545a7fbd8f5dfcc7dd7f81974f1bc805635c0e5",
+      "uncompressed_bytes": 44,
+      "sha256": "dcf3194373eb93ce3e66563d1545a7fbd8f5dfcc7dd7f81974f1bc805635c0e5",
+      "bytes": 44
+    },
+    "artifacts/prescreen/micro.cpp.gz": {
+      "source": "/tmp/nntr-lfm2-router-neon-prescreen-20261017/micro.cpp",
+      "source_sha256": "5f5eca24c37111279aa753fa60af23f00237f94163f504aa703747e56bb33dcb",
+      "uncompressed_sha256": "5f5eca24c37111279aa753fa60af23f00237f94163f504aa703747e56bb33dcb",
+      "uncompressed_bytes": 3679,
+      "sha256": "6641949f180cf137ca07af0bc1b561df85ebc56dd290a3bff0aa60563a15546c",
+      "bytes": 1512
+    },
+    "artifacts/prescreen/micro.disasm.gz": {
+      "source": "/tmp/nntr-lfm2-router-neon-prescreen-20261017/micro.disasm",
+      "source_sha256": "c76814d0e66949c152b17bd784e69bac585ae17e42314f4bbd9c4e29871c6a73",
+      "uncompressed_sha256": "c76814d0e66949c152b17bd784e69bac585ae17e42314f4bbd9c4e29871c6a73",
+      "uncompressed_bytes": 365588,
+      "sha256": "ffb35efe068249df6936dfe96563537b345655d667cc1ba2a258245ce9729a43",
+      "bytes": 52095
+    },
+    "artifacts/prescreen/root-micro.json": {
+      "source": "/tmp/nntr-lfm2-router-neon-prescreen-20261017/root-micro.json",
+      "source_sha256": "46dbb1e25b1d72ebc3d52334af35ecb5041b625436f4e668a3c7d183b24a92ab",
+      "uncompressed_sha256": "46dbb1e25b1d72ebc3d52334af35ecb5041b625436f4e668a3c7d183b24a92ab",
+      "uncompressed_bytes": 1274,
+      "sha256": "46dbb1e25b1d72ebc3d52334af35ecb5041b625436f4e668a3c7d183b24a92ab",
+      "bytes": 1274
+    },
+    "artifacts/prescreen/root-micro.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-neon-prescreen-20261017/root-micro.log",
+      "source_sha256": "6cf8d1ce1a811f852657830229949e0d60d6e1e1745f06adc59cb081bbd478c7",
+      "uncompressed_sha256": "6cf8d1ce1a811f852657830229949e0d60d6e1e1745f06adc59cb081bbd478c7",
+      "uncompressed_bytes": 4025,
+      "sha256": "1e864bcc002bcc8324fbf16e69f5e0ffcf8c741c49156eccb3ebf1683176a8b3",
+      "bytes": 827
+    },
+    "artifacts/production/before/Applications/CausalLM/app_build/meson.build": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/before/Applications/CausalLM/app_build/meson.build",
+      "source_sha256": "6ae061ade930d5fd047b88dc20d9303055c9bb86dfee3771f484d7f4952a8f0f",
+      "uncompressed_sha256": "6ae061ade930d5fd047b88dc20d9303055c9bb86dfee3771f484d7f4952a8f0f",
+      "uncompressed_bytes": 23185,
+      "sha256": "6ae061ade930d5fd047b88dc20d9303055c9bb86dfee3771f484d7f4952a8f0f",
+      "bytes": 23185
+    },
+    "artifacts/production/before/Applications/CausalLM/models/gemma4/meson.build": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/before/Applications/CausalLM/models/gemma4/meson.build",
+      "source_sha256": "45d7a1d10d19e1841a9e74c91a4934a78be9267490a04849def8a7157010d6b6",
+      "uncompressed_sha256": "45d7a1d10d19e1841a9e74c91a4934a78be9267490a04849def8a7157010d6b6",
+      "uncompressed_bytes": 1588,
+      "sha256": "45d7a1d10d19e1841a9e74c91a4934a78be9267490a04849def8a7157010d6b6",
+      "bytes": 1588
+    },
+    "artifacts/production/before/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/before/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp",
+      "source_sha256": "4ed12667f11b5886648c18faf367ce1a1022b9baf81274f76045d028dd9dd5ec",
+      "uncompressed_sha256": "4ed12667f11b5886648c18faf367ce1a1022b9baf81274f76045d028dd9dd5ec",
+      "uncompressed_bytes": 100362,
+      "sha256": "c9b67304ca6eb2e6bad9dd8bfb52307c0114d21defa7f5af2c2890ff5abbd04d",
+      "bytes": 28056
+    },
+    "artifacts/production/production.patch.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/production.patch",
+      "source_sha256": "d5604ee3969f985032b607967870f3e8983a4b534572a0e2910a1746839c4796",
+      "uncompressed_sha256": "d5604ee3969f985032b607967870f3e8983a4b534572a0e2910a1746839c4796",
+      "uncompressed_bytes": 13251,
+      "sha256": "8fc4cebdf0afcc257b6a105b9e01c75841f9cc0dea2bd154115cad1f7cb5d882",
+      "bytes": 4202
+    },
+    "artifacts/production/source-hashes.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/source-hashes.json",
+      "source_sha256": "d45a81ea467c923f355e349733106b3121926c87f9b91d09d2a5eaa30f6f3f53",
+      "uncompressed_sha256": "d45a81ea467c923f355e349733106b3121926c87f9b91d09d2a5eaa30f6f3f53",
+      "uncompressed_bytes": 880,
+      "sha256": "d45a81ea467c923f355e349733106b3121926c87f9b91d09d2a5eaa30f6f3f53",
+      "bytes": 880
+    },
+    "artifacts/production/source/Applications/CausalLM/app_build/meson.build": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/candidate/Applications/CausalLM/app_build/meson.build",
+      "source_sha256": "c602cf6785c1790ee361fedc0d45490cf0194d208b75acf4ba895f0c527ac92f",
+      "uncompressed_sha256": "c602cf6785c1790ee361fedc0d45490cf0194d208b75acf4ba895f0c527ac92f",
+      "uncompressed_bytes": 23655,
+      "sha256": "c602cf6785c1790ee361fedc0d45490cf0194d208b75acf4ba895f0c527ac92f",
+      "bytes": 23655
+    },
+    "artifacts/production/source/Applications/CausalLM/models/gemma4/meson.build": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/candidate/Applications/CausalLM/models/gemma4/meson.build",
+      "source_sha256": "f54cbe5e90b246898649425607a7010cdd06e8df52f3540aaa402947267b7d9c",
+      "uncompressed_sha256": "f54cbe5e90b246898649425607a7010cdd06e8df52f3540aaa402947267b7d9c",
+      "uncompressed_bytes": 2079,
+      "sha256": "f54cbe5e90b246898649425607a7010cdd06e8df52f3540aaa402947267b7d9c",
+      "bytes": 2079
+    },
+    "artifacts/production/source/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/candidate/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp",
+      "source_sha256": "103b1e1df18efe8de8085f01167f29f2a4502178ac22e5c1aaab68dc38c036a8",
+      "uncompressed_sha256": "103b1e1df18efe8de8085f01167f29f2a4502178ac22e5c1aaab68dc38c036a8",
+      "uncompressed_bytes": 104946,
+      "sha256": "5e7bcce7505930115a118714cdde860892cd1d6891171da85b89e7e053216e66",
+      "bytes": 29346
+    },
+    "artifacts/production/source/Applications/CausalLM/models/lfm2_moe/lfm2_router_arm.cpp.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/candidate/Applications/CausalLM/models/lfm2_moe/lfm2_router_arm.cpp",
+      "source_sha256": "d74cacb8b4c42ea701c37922ff773dff95804e92d0f38d84a09ce3d86000aa79",
+      "uncompressed_sha256": "d74cacb8b4c42ea701c37922ff773dff95804e92d0f38d84a09ce3d86000aa79",
+      "uncompressed_bytes": 3106,
+      "sha256": "261f14480671365f7f42c3e191bfa6ed796dfc5e33eddb4391ae1cbc48b23e81",
+      "bytes": 1229
+    },
+    "artifacts/production/source/Applications/CausalLM/models/lfm2_moe/lfm2_router_arm.h.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/candidate/Applications/CausalLM/models/lfm2_moe/lfm2_router_arm.h",
+      "source_sha256": "5a79209dd974817dc20a7a13ee4e29b7b71c90fc2fb6e42dcafadda4a8794339",
+      "uncompressed_sha256": "5a79209dd974817dc20a7a13ee4e29b7b71c90fc2fb6e42dcafadda4a8794339",
+      "uncompressed_bytes": 915,
+      "sha256": "b73b26773659a1ffc254c0370200300a88c13e8e5b1b9f25fa9506981eb209f7",
+      "bytes": 553
+    },
+    "artifacts/rejected/fp-pragmas/pragma-build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/pragma-build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/rejected/fp-pragmas/pragma-codegen.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/pragma-codegen.json",
+      "source_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "uncompressed_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "uncompressed_bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "bytes": 3
+    },
+    "artifacts/rejected/fp-pragmas/pragma-command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/pragma-command.json",
+      "source_sha256": "b9ca0ba3bb42f6a4000efee1afdb35e0b087ae2f821d32a50c4498ed02f5b28f",
+      "uncompressed_sha256": "b9ca0ba3bb42f6a4000efee1afdb35e0b087ae2f821d32a50c4498ed02f5b28f",
+      "uncompressed_bytes": 4896,
+      "sha256": "b9ca0ba3bb42f6a4000efee1afdb35e0b087ae2f821d32a50c4498ed02f5b28f",
+      "bytes": 4896
+    },
+    "artifacts/rejected/fp-pragmas/pragma-probe.cpp.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/pragma-probe.cpp",
+      "source_sha256": "4fcdeb603954a9eae3d74bb5526c975ce94601e192db795d7e7181cc08ade702",
+      "uncompressed_sha256": "4fcdeb603954a9eae3d74bb5526c975ce94601e192db795d7e7181cc08ade702",
+      "uncompressed_bytes": 3710,
+      "sha256": "d8e28efa1378411f59f40d14907f5a456f02ef3d907e1bac6b66f82e08d1fc6d",
+      "bytes": 1512
+    },
+    "artifacts/rejected/fp-pragmas/pragma-probe.disasm.txt.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/pragma-probe.disasm.txt",
+      "source_sha256": "982e7628756195c3fe919a5e0d75a213c1604ae5a59bc56e8d9448d983c591c3",
+      "uncompressed_sha256": "982e7628756195c3fe919a5e0d75a213c1604ae5a59bc56e8d9448d983c591c3",
+      "uncompressed_bytes": 362035,
+      "sha256": "191030e76e04dd7446a1a346b25bcd3af7a2ffa0fba7efa80516ba54789e9576",
+      "bytes": 51262
+    },
+    "artifacts/rejected/fp-pragmas/strict-build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/strict-build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/rejected/fp-pragmas/strict-codegen.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/strict-codegen.json",
+      "source_sha256": "39a884b656c5fe749e5446146fd9b720693df536803e33d6577958aacc2be8da",
+      "uncompressed_sha256": "39a884b656c5fe749e5446146fd9b720693df536803e33d6577958aacc2be8da",
+      "uncompressed_bytes": 466,
+      "sha256": "39a884b656c5fe749e5446146fd9b720693df536803e33d6577958aacc2be8da",
+      "bytes": 466
+    },
+    "artifacts/rejected/fp-pragmas/strict-command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/strict-command.json",
+      "source_sha256": "97d86d0bb59499693b3050b2111e1a89973df175eb8364f63513b1e838e6cf34",
+      "uncompressed_sha256": "97d86d0bb59499693b3050b2111e1a89973df175eb8364f63513b1e838e6cf34",
+      "uncompressed_bytes": 4917,
+      "sha256": "97d86d0bb59499693b3050b2111e1a89973df175eb8364f63513b1e838e6cf34",
+      "bytes": 4917
+    },
+    "artifacts/rejected/fp-pragmas/strict-probe.cpp.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/strict-probe.cpp",
+      "source_sha256": "3fdc9c2d6e443557d15e580444e0c1ff957098975912f48668fd6cd58a4d82a7",
+      "uncompressed_sha256": "3fdc9c2d6e443557d15e580444e0c1ff957098975912f48668fd6cd58a4d82a7",
+      "uncompressed_bytes": 3728,
+      "sha256": "9f736cbbc18f5ca82c8a66befddc3c4fe62861ed99180699ce1abcf591c5bfc8",
+      "bytes": 1512
+    },
+    "artifacts/rejected/fp-pragmas/strict-probe.disasm.txt.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/strict-probe.disasm.txt",
+      "source_sha256": "f1d95c2d858aeda71236905e17c697f5ee18c479e541f296ed7374adc174474b",
+      "uncompressed_sha256": "f1d95c2d858aeda71236905e17c697f5ee18c479e541f296ed7374adc174474b",
+      "uncompressed_bytes": 378519,
+      "sha256": "1a4c0bf040dfea0ece089cdb70e889bcf4653f376d841e0771bab61f6af9db1b",
+      "bytes": 50852
+    },
+    "artifacts/rejected/fp-pragmas/vector-build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/vector-build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/rejected/fp-pragmas/vector-codegen.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/vector-codegen.json",
+      "source_sha256": "4e8291b64d6b043d006ab48fbb7f68b3da445bd0c18d5f5d6ab780cfbccdc2df",
+      "uncompressed_sha256": "4e8291b64d6b043d006ab48fbb7f68b3da445bd0c18d5f5d6ab780cfbccdc2df",
+      "uncompressed_bytes": 192,
+      "sha256": "4e8291b64d6b043d006ab48fbb7f68b3da445bd0c18d5f5d6ab780cfbccdc2df",
+      "bytes": 192
+    },
+    "artifacts/rejected/fp-pragmas/vector-command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/vector-command.json",
+      "source_sha256": "ab8cfd9573391f719395c3fec65279179d4b9a986d8bb35bd1c4d7763f601dde",
+      "uncompressed_sha256": "ab8cfd9573391f719395c3fec65279179d4b9a986d8bb35bd1c4d7763f601dde",
+      "uncompressed_bytes": 4917,
+      "sha256": "ab8cfd9573391f719395c3fec65279179d4b9a986d8bb35bd1c4d7763f601dde",
+      "bytes": 4917
+    },
+    "artifacts/rejected/fp-pragmas/vector-probe.cpp.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/vector-probe.cpp",
+      "source_sha256": "950b9fef1c46c725a917ffb3f06adae6ab01aa3b392baab3051e3664dcacafd1",
+      "uncompressed_sha256": "950b9fef1c46c725a917ffb3f06adae6ab01aa3b392baab3051e3664dcacafd1",
+      "uncompressed_bytes": 3690,
+      "sha256": "79288c9d45cfb7b098d2c98abe7628960fb79ef2108d4edd55a4096d88ecd3e4",
+      "bytes": 1505
+    },
+    "artifacts/rejected/fp-pragmas/vector-probe.disasm.txt.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/vector-probe.disasm.txt",
+      "source_sha256": "3aaad85ac35163c3628f71770f0975edea4d7d930738804c17c2efe75654d89c",
+      "uncompressed_sha256": "3aaad85ac35163c3628f71770f0975edea4d7d930738804c17c2efe75654d89c",
+      "uncompressed_bytes": 362035,
+      "sha256": "c15b38c5f3f3a1d1dca80759a79c513dd2b3f302134f32a8c9f8292fe6af735a",
+      "bytes": 51258
+    },
+    "artifacts/rejected/prescreen-fma/build-command.json": {
+      "source": "/tmp/nntr-lfm2-router-neon-prescreen-20261017/invalid-fma/build-command.json",
+      "source_sha256": "62e855341866b7c303ee24d1e7385326b70d691321f1c1a1b9f38896f11b3362",
+      "uncompressed_sha256": "62e855341866b7c303ee24d1e7385326b70d691321f1c1a1b9f38896f11b3362",
+      "uncompressed_bytes": 4991,
+      "sha256": "62e855341866b7c303ee24d1e7385326b70d691321f1c1a1b9f38896f11b3362",
+      "bytes": 4991
+    },
+    "artifacts/rejected/prescreen-fma/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-neon-prescreen-20261017/invalid-fma/build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/rejected/prescreen-fma/micro.cpp.gz": {
+      "source": "/tmp/nntr-lfm2-router-neon-prescreen-20261017/invalid-fma/micro.cpp",
+      "source_sha256": "5f5eca24c37111279aa753fa60af23f00237f94163f504aa703747e56bb33dcb",
+      "uncompressed_sha256": "5f5eca24c37111279aa753fa60af23f00237f94163f504aa703747e56bb33dcb",
+      "uncompressed_bytes": 3679,
+      "sha256": "6641949f180cf137ca07af0bc1b561df85ebc56dd290a3bff0aa60563a15546c",
+      "bytes": 1512
+    },
+    "artifacts/rejected/prescreen-fma/micro.disasm.gz": {
+      "source": "/tmp/nntr-lfm2-router-neon-prescreen-20261017/invalid-fma/micro.disasm",
+      "source_sha256": "56795e03dc8e37a69a255c3ac4cba82af060d8ab3b8e86b4e863577f7ff616d7",
+      "uncompressed_sha256": "56795e03dc8e37a69a255c3ac4cba82af060d8ab3b8e86b4e863577f7ff616d7",
+      "uncompressed_bytes": 362039,
+      "sha256": "8d943321827db9a6382884955ce52ae18201d347a013b18e3c8d5069dececf5f",
+      "bytes": 51265
+    },
+    "artifacts/rejected/prescreen-fma/root-micro.json": {
+      "source": "/tmp/nntr-lfm2-router-neon-prescreen-20261017/invalid-fma/root-micro.json",
+      "source_sha256": "57f2d83deec61791d558609a8692516fc3a45b6fb845e23f01f5d25be963d451",
+      "uncompressed_sha256": "57f2d83deec61791d558609a8692516fc3a45b6fb845e23f01f5d25be963d451",
+      "uncompressed_bytes": 1238,
+      "sha256": "57f2d83deec61791d558609a8692516fc3a45b6fb845e23f01f5d25be963d451",
+      "bytes": 1238
+    },
+    "artifacts/rejected/prescreen-fma/root-micro.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-neon-prescreen-20261017/invalid-fma/root-micro.log",
+      "source_sha256": "4f67dd4fb405239d69e674b6248982a4da76cb618c36b32e5714afd8a88926fc",
+      "uncompressed_sha256": "4f67dd4fb405239d69e674b6248982a4da76cb618c36b32e5714afd8a88926fc",
+      "uncompressed_bytes": 4066,
+      "sha256": "a4319989b4253eefcb9432ea7e8d9df2082443d875db4ff44b4f9e5412ce0129",
+      "bytes": 856
+    },
+    "artifacts/rejected/v1/lfm2_router_arm.cpp.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/invalid-nonfinite/lfm2_router_arm.cpp",
+      "source_sha256": "c27da553af864b786b0fe0525affc8a1158465f1469dcb483b8b860358220ce6",
+      "uncompressed_sha256": "c27da553af864b786b0fe0525affc8a1158465f1469dcb483b8b860358220ce6",
+      "uncompressed_bytes": 1632,
+      "sha256": "95c494faf5f31a6a634f1fbdb655d5dc34d9b1d1d8ff75cf658838afd44e9f1b",
+      "bytes": 708
+    },
+    "artifacts/rejected/v1/lfm2_router_arm.h.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/invalid-nonfinite/lfm2_router_arm.h",
+      "source_sha256": "a6cd675d61d44cfad2692ad6871b59ac45ffee395d578ffe8043157e33988295",
+      "uncompressed_sha256": "a6cd675d61d44cfad2692ad6871b59ac45ffee395d578ffe8043157e33988295",
+      "uncompressed_bytes": 616,
+      "sha256": "e0739fdd8b3305607753e4d7af7115e849f4ee7bdea1c1ab0dd782599c10afb9",
+      "bytes": 422
+    },
+    "artifacts/rejected/v1/manifest.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/invalid-nonfinite/manifest.json",
+      "source_sha256": "7c99830467371e6c3148d8913030382341dcaf2d3795b9b91583c2df98fc3b7d",
+      "uncompressed_sha256": "7c99830467371e6c3148d8913030382341dcaf2d3795b9b91583c2df98fc3b7d",
+      "uncompressed_bytes": 747,
+      "sha256": "7c99830467371e6c3148d8913030382341dcaf2d3795b9b91583c2df98fc3b7d",
+      "bytes": 747
+    },
+    "artifacts/rejected/v1/numeric-build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/invalid-nonfinite/numeric-build.log",
+      "source_sha256": "80aeb7ad2678131809d977f0148b8de1702dc765285a330e00420a832559f702",
+      "uncompressed_sha256": "80aeb7ad2678131809d977f0148b8de1702dc765285a330e00420a832559f702",
+      "uncompressed_bytes": 118,
+      "sha256": "3ce6168c65c502d466a65f13ea651f2913fb1c6ad604c54bcddd6fb30b762f59",
+      "bytes": 116
+    },
+    "artifacts/rejected/v1/numeric-command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/invalid-nonfinite/numeric-command.json",
+      "source_sha256": "58eb354a4e7a5ae164d6c3b57a1f738981cef880ef2f0a8c8c88d0679fa27535",
+      "uncompressed_sha256": "58eb354a4e7a5ae164d6c3b57a1f738981cef880ef2f0a8c8c88d0679fa27535",
+      "uncompressed_bytes": 5123,
+      "sha256": "58eb354a4e7a5ae164d6c3b57a1f738981cef880ef2f0a8c8c88d0679fa27535",
+      "bytes": 5123
+    },
+    "artifacts/rejected/v1/numeric_native.cpp.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/invalid-nonfinite/numeric_native.cpp",
+      "source_sha256": "6f9644688c0ddafc623e3a53cc32a497cc4b218e531a433c429904c4affc339e",
+      "uncompressed_sha256": "6f9644688c0ddafc623e3a53cc32a497cc4b218e531a433c429904c4affc339e",
+      "uncompressed_bytes": 3985,
+      "sha256": "02c45f5310d0947ad70afca01761f16812488a1981c85be8b58663a5858b8cf4",
+      "bytes": 1622
+    },
+    "artifacts/rejected/v1/root-numeric-native.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/invalid-nonfinite/root-numeric-native.json",
+      "source_sha256": "4925f8de16c69febabf4f686615411abd6f53a90a9f0ce724ceaeb48727add03",
+      "uncompressed_sha256": "4925f8de16c69febabf4f686615411abd6f53a90a9f0ce724ceaeb48727add03",
+      "uncompressed_bytes": 624,
+      "sha256": "4925f8de16c69febabf4f686615411abd6f53a90a9f0ce724ceaeb48727add03",
+      "bytes": 624
+    },
+    "artifacts/rejected/v1/root-numeric-native.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/invalid-nonfinite/root-numeric-native.log",
+      "source_sha256": "30acfea7db39c3e3f18f640e86c430bed9b7cfa11ff084da08acb370330d3f24",
+      "uncompressed_sha256": "30acfea7db39c3e3f18f640e86c430bed9b7cfa11ff084da08acb370330d3f24",
+      "uncompressed_bytes": 2067,
+      "sha256": "954b0cf2bbc9b35868be2d58b841132f820c6cf2ca6482e995ad5d69b1a52ac1",
+      "bytes": 344
+    },
+    "artifacts/rejected/v2/build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/numeric-v2/build.log",
+      "source_sha256": "80aeb7ad2678131809d977f0148b8de1702dc765285a330e00420a832559f702",
+      "uncompressed_sha256": "80aeb7ad2678131809d977f0148b8de1702dc765285a330e00420a832559f702",
+      "uncompressed_bytes": 118,
+      "sha256": "3ce6168c65c502d466a65f13ea651f2913fb1c6ad604c54bcddd6fb30b762f59",
+      "bytes": 116
+    },
+    "artifacts/rejected/v2/command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/numeric-v2/command.json",
+      "source_sha256": "6a394f3d97e220a4fe80a5795c9bc2d0520d98be9ad33a840312140e5b067eab",
+      "uncompressed_sha256": "6a394f3d97e220a4fe80a5795c9bc2d0520d98be9ad33a840312140e5b067eab",
+      "uncompressed_bytes": 5128,
+      "sha256": "6a394f3d97e220a4fe80a5795c9bc2d0520d98be9ad33a840312140e5b067eab",
+      "bytes": 5128
+    },
+    "artifacts/rejected/v2/kernel-build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/numeric-v2/kernel-build.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "artifacts/rejected/v2/kernel-command.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/numeric-v2/kernel-command.json",
+      "source_sha256": "fe74f453fe271c3e5614e1ee168484811cfa115c19e239e8f6bc2d49a1852b51",
+      "uncompressed_sha256": "fe74f453fe271c3e5614e1ee168484811cfa115c19e239e8f6bc2d49a1852b51",
+      "uncompressed_bytes": 4840,
+      "sha256": "fe74f453fe271c3e5614e1ee168484811cfa115c19e239e8f6bc2d49a1852b51",
+      "bytes": 4840
+    },
+    "artifacts/rejected/v2/kernel.disasm.txt.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/numeric-v2/kernel.disasm.txt",
+      "source_sha256": "7f64e72b7b47425ecd8892bb6e81ad61625ad8dcf90e36812fc3814c4478ef9c",
+      "uncompressed_sha256": "7f64e72b7b47425ecd8892bb6e81ad61625ad8dcf90e36812fc3814c4478ef9c",
+      "uncompressed_bytes": 6695,
+      "sha256": "0aa393826ff80a316abbae0b65901e9f8f986bd75eb93f04841b410bfdbaac05",
+      "bytes": 1963
+    },
+    "artifacts/rejected/v2/root-numeric-native-v2.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/numeric-v2/root-numeric-native-v2.json",
+      "source_sha256": "8deb809413e7a88e382d8c69f6efc4f0c96e85b5c223ec54b92ab7a26da073df",
+      "uncompressed_sha256": "8deb809413e7a88e382d8c69f6efc4f0c96e85b5c223ec54b92ab7a26da073df",
+      "uncompressed_bytes": 627,
+      "sha256": "8deb809413e7a88e382d8c69f6efc4f0c96e85b5c223ec54b92ab7a26da073df",
+      "bytes": 627
+    },
+    "artifacts/rejected/v2/root-numeric-native-v2.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/numeric-v2/root-numeric-native-v2.log",
+      "source_sha256": "1f461eddf1aa76fdb0b320504dcdf36a3a59d9002d0652980f6c6d81427980c2",
+      "uncompressed_sha256": "1f461eddf1aa76fdb0b320504dcdf36a3a59d9002d0652980f6c6d81427980c2",
+      "uncompressed_bytes": 5410,
+      "sha256": "86a7388ed2d1ed66776743099420a4dac38823cfca61265a157e13022ede1d59",
+      "bytes": 618
+    },
+    "artifacts/rejected/v2/router.su.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/numeric-v2/router.su",
+      "source_sha256": "fc1ac97aa86fd816c730f51a849eb166c6466a8ef1c590676377fafa358fd563",
+      "uncompressed_sha256": "fc1ac97aa86fd816c730f51a849eb166c6466a8ef1c590676377fafa358fd563",
+      "uncompressed_bytes": 158,
+      "sha256": "077a67b088f7970cc8d4fc46b51acda391404a6acf32e6f3fc38fdbb71f1c289",
+      "bytes": 150
+    },
+    "artifacts/rejected/v2/source/lfm2_router_arm.cpp.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/numeric-v2/source/lfm2_router_arm.cpp",
+      "source_sha256": "7acefc9a45d54891b101764e006679b69221df6f79fde2ac19a331026660d85e",
+      "uncompressed_sha256": "7acefc9a45d54891b101764e006679b69221df6f79fde2ac19a331026660d85e",
+      "uncompressed_bytes": 1943,
+      "sha256": "4baf8843cac443abe226587b10b158d76d26a566e476706288dfe554a89f147b",
+      "bytes": 813
+    },
+    "artifacts/rejected/v2/source/lfm2_router_arm.h.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/numeric-v2/source/lfm2_router_arm.h",
+      "source_sha256": "a8cb9e3a9ea03592f0a3fe0f951dad3fd34673d2ae2016390d59b73a045a1b3d",
+      "uncompressed_sha256": "a8cb9e3a9ea03592f0a3fe0f951dad3fd34673d2ae2016390d59b73a045a1b3d",
+      "uncompressed_bytes": 770,
+      "sha256": "2c73d218e9c0d6622632bda379b415acb94c2c51eebe11421cfce5e0c7ad477c",
+      "bytes": 508
+    },
+    "artifacts/rejected/v2/source/numeric_native.cpp.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/numeric-v2/source/numeric_native.cpp",
+      "source_sha256": "636bd440f18719bd28dfa3b2a0d296964c9c1ed3b9cd19d94d9a23bde6c108c0",
+      "uncompressed_sha256": "636bd440f18719bd28dfa3b2a0d296964c9c1ed3b9cd19d94d9a23bde6c108c0",
+      "uncompressed_bytes": 4944,
+      "sha256": "e4615223458a29a5a90a241573e1340b47bab0220ff46e73b195990e37c6d560",
+      "bytes": 1919
+    },
+    "artifacts/repeat/continue-router-arm-repeat1024-run1.ids": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/continue-router-arm-repeat1024-run1.ids",
+      "source_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_bytes": 324,
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "bytes": 324
+    },
+    "artifacts/repeat/continue-router-arm-repeat1024-run2.ids": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/continue-router-arm-repeat1024-run2.ids",
+      "source_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_bytes": 324,
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "bytes": 324
+    },
+    "artifacts/repeat/continue-router-arm-repeat1024.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/continue-router-arm-repeat1024.json",
+      "source_sha256": "177f76357b9a2bab38d56c0169b8fd97789c712e02d1a6dd5f2e90a2e05d99be",
+      "uncompressed_sha256": "177f76357b9a2bab38d56c0169b8fd97789c712e02d1a6dd5f2e90a2e05d99be",
+      "uncompressed_bytes": 1969,
+      "sha256": "177f76357b9a2bab38d56c0169b8fd97789c712e02d1a6dd5f2e90a2e05d99be",
+      "bytes": 1969
+    },
+    "artifacts/repeat/continue-router-arm-repeat1024.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/continue-router-arm-repeat1024.log",
+      "source_sha256": "cdf4958b4d1d0ca3b39af7246d94ecd1529672b1c9ba6376ed5208dc326e249f",
+      "uncompressed_sha256": "cdf4958b4d1d0ca3b39af7246d94ecd1529672b1c9ba6376ed5208dc326e249f",
+      "uncompressed_bytes": 17508,
+      "sha256": "fe51e692db5726c5d76a9b0303194595b3041bac41e8f8507b068ebc512093bf",
+      "bytes": 2983
+    },
+    "artifacts/repeat/continue-router-arm-repeat2048-run1.ids": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/continue-router-arm-repeat2048-run1.ids",
+      "source_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_bytes": 326,
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "bytes": 326
+    },
+    "artifacts/repeat/continue-router-arm-repeat2048-run2.ids": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/continue-router-arm-repeat2048-run2.ids",
+      "source_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_bytes": 326,
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "bytes": 326
+    },
+    "artifacts/repeat/continue-router-arm-repeat2048.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/continue-router-arm-repeat2048.json",
+      "source_sha256": "afacddbf5602eada2a7637ff037919b2e8bb1adfd995ee447a1ae729feccc0c1",
+      "uncompressed_sha256": "afacddbf5602eada2a7637ff037919b2e8bb1adfd995ee447a1ae729feccc0c1",
+      "uncompressed_bytes": 1969,
+      "sha256": "afacddbf5602eada2a7637ff037919b2e8bb1adfd995ee447a1ae729feccc0c1",
+      "bytes": 1969
+    },
+    "artifacts/repeat/continue-router-arm-repeat2048.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/continue-router-arm-repeat2048.log",
+      "source_sha256": "8b348a572b1fc50b024f6a08a70c6282adead4b510dfcd12adb290ffde60a976",
+      "uncompressed_sha256": "8b348a572b1fc50b024f6a08a70c6282adead4b510dfcd12adb290ffde60a976",
+      "uncompressed_bytes": 28904,
+      "sha256": "3ea59216690892032dc9a6167e50cc69eef2e2ce7ba581bea94419a71508a704",
+      "bytes": 3117
+    },
+    "artifacts/repeat/prior-environment-reference.json": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/validation/lfm-repeat.json",
+      "source_sha256": "88256b1b9ff45646ff6a455baecacd32b8edd2fa32018edde51e6f1ca7a9b2a3",
+      "uncompressed_sha256": "88256b1b9ff45646ff6a455baecacd32b8edd2fa32018edde51e6f1ca7a9b2a3",
+      "uncompressed_bytes": 1822,
+      "sha256": "88256b1b9ff45646ff6a455baecacd32b8edd2fa32018edde51e6f1ca7a9b2a3",
+      "bytes": 1822
+    },
+    "artifacts/repeat/root-repeat.py": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/root-repeat.py",
+      "source_sha256": "e602af437011281ed885171e74761cc7eeaeec594b957338f51c9d91369adeb5",
+      "uncompressed_sha256": "e602af437011281ed885171e74761cc7eeaeec594b957338f51c9d91369adeb5",
+      "uncompressed_bytes": 2483,
+      "sha256": "e602af437011281ed885171e74761cc7eeaeec594b957338f51c9d91369adeb5",
+      "bytes": 2483
+    },
+    "artifacts/root/deployment/lfm-router-arm-0-artifacts.json": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/lfm-router-arm-0-artifacts.json",
+      "source_sha256": "5268e0c44c3e3276f38224977ea58084bcc403a01da898673dc4966656e46ff9",
+      "uncompressed_sha256": "5268e0c44c3e3276f38224977ea58084bcc403a01da898673dc4966656e46ff9",
+      "uncompressed_bytes": 858,
+      "sha256": "5268e0c44c3e3276f38224977ea58084bcc403a01da898673dc4966656e46ff9",
+      "bytes": 858
+    },
+    "artifacts/root/deployment/lfm-router-arm-0.source.patch.gz": {
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/lfm-router-arm-0.source.patch",
+      "source_sha256": "cf1f99fc550bee96b6efa06d93fca15ec68063fa5cdaa0bb58e189610aa33cbf",
+      "uncompressed_sha256": "cf1f99fc550bee96b6efa06d93fca15ec68063fa5cdaa0bb58e189610aa33cbf",
+      "uncompressed_bytes": 14499,
+      "sha256": "bfbc3636a6dc390d2a0729fc30a6cbb227f10e0a9ce686979ec512178a5b1183",
+      "bytes": 4452
+    },
+    "artifacts/root/deployment/lfm-router-arm-1-artifacts.json": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/lfm-router-arm-1-artifacts.json",
+      "source_sha256": "5268e0c44c3e3276f38224977ea58084bcc403a01da898673dc4966656e46ff9",
+      "uncompressed_sha256": "5268e0c44c3e3276f38224977ea58084bcc403a01da898673dc4966656e46ff9",
+      "uncompressed_bytes": 858,
+      "sha256": "5268e0c44c3e3276f38224977ea58084bcc403a01da898673dc4966656e46ff9",
+      "bytes": 858
+    },
+    "artifacts/root/deployment/lfm-router-arm-1.source.patch.gz": {
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/lfm-router-arm-1.source.patch",
+      "source_sha256": "cf1f99fc550bee96b6efa06d93fca15ec68063fa5cdaa0bb58e189610aa33cbf",
+      "uncompressed_sha256": "cf1f99fc550bee96b6efa06d93fca15ec68063fa5cdaa0bb58e189610aa33cbf",
+      "uncompressed_bytes": 14499,
+      "sha256": "bfbc3636a6dc390d2a0729fc30a6cbb227f10e0a9ce686979ec512178a5b1183",
+      "bytes": 4452
+    },
+    "artifacts/root/deployment/lfm-router-arm-diagnostic-artifacts.json": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/lfm-router-arm-diagnostic-artifacts.json",
+      "source_sha256": "ca28390f07662e6ddc1adb3d146cdeb31bbb4611a49a3e01f554f22ac4707acd",
+      "uncompressed_sha256": "ca28390f07662e6ddc1adb3d146cdeb31bbb4611a49a3e01f554f22ac4707acd",
+      "uncompressed_bytes": 849,
+      "sha256": "ca28390f07662e6ddc1adb3d146cdeb31bbb4611a49a3e01f554f22ac4707acd",
+      "bytes": 849
+    },
+    "artifacts/root/deployment/lfm-router-arm-diagnostic.source.patch.gz": {
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/lfm-router-arm-diagnostic.source.patch",
+      "source_sha256": "8e491920fd06baad80a9c0015de9343ff20f1ac9f182307dd267433b795cb2bf",
+      "uncompressed_sha256": "8e491920fd06baad80a9c0015de9343ff20f1ac9f182307dd267433b795cb2bf",
+      "uncompressed_bytes": 17359,
+      "sha256": "1d16b4accc92d8cb701246b82d2c87298ed6fecb4c90424b0e86c05beba18445",
+      "bytes": 5131
+    },
+    "artifacts/root/root-app-build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/root-app-build.log",
+      "source_sha256": "4b93deb64c220391cd9e2b7c7757371900fc869d7fd25fa32804e6351e8d384a",
+      "uncompressed_sha256": "4b93deb64c220391cd9e2b7c7757371900fc869d7fd25fa32804e6351e8d384a",
+      "uncompressed_bytes": 5434,
+      "sha256": "4b81a13f66c6be933ef305271eaaea303ef3661d88ee57cf0c77003a9e950cc1",
+      "bytes": 1376
+    },
+    "artifacts/root/root-applied.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/root-applied.json",
+      "source_sha256": "a03ae61f33d20e62b8f04893dc266def0c016b7d37427f1d15e65763c57063a2",
+      "uncompressed_sha256": "a03ae61f33d20e62b8f04893dc266def0c016b7d37427f1d15e65763c57063a2",
+      "uncompressed_bytes": 544,
+      "sha256": "a03ae61f33d20e62b8f04893dc266def0c016b7d37427f1d15e65763c57063a2",
+      "bytes": 544
+    },
+    "artifacts/root/root-diagnostic-1024.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/root-diagnostic-1024.json",
+      "source_sha256": "6b65d1817d6a35bee23fdf2cb44908a09816cf0c0d97188fac6286a904c13edc",
+      "uncompressed_sha256": "6b65d1817d6a35bee23fdf2cb44908a09816cf0c0d97188fac6286a904c13edc",
+      "uncompressed_bytes": 8238,
+      "sha256": "6b65d1817d6a35bee23fdf2cb44908a09816cf0c0d97188fac6286a904c13edc",
+      "bytes": 8238
+    },
+    "artifacts/root/root-diagnostic-2048.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/root-diagnostic-2048.json",
+      "source_sha256": "48aee97afb9421cac5c9dad07610e58a9c4b0aa0a6f3ede8467c0fc23433ba8e",
+      "uncompressed_sha256": "48aee97afb9421cac5c9dad07610e58a9c4b0aa0a6f3ede8467c0fc23433ba8e",
+      "uncompressed_bytes": 8240,
+      "sha256": "48aee97afb9421cac5c9dad07610e58a9c4b0aa0a6f3ede8467c0fc23433ba8e",
+      "bytes": 8240
+    },
+    "artifacts/root/root-diagnostic-build.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/root-diagnostic-build.json",
+      "source_sha256": "dcc21470d32ac9a17d1e221c53879f983b9d61eee9e868f21e01bdac252330b5",
+      "uncompressed_sha256": "dcc21470d32ac9a17d1e221c53879f983b9d61eee9e868f21e01bdac252330b5",
+      "uncompressed_bytes": 276,
+      "sha256": "dcc21470d32ac9a17d1e221c53879f983b9d61eee9e868f21e01bdac252330b5",
+      "bytes": 276
+    },
+    "artifacts/root/root-diagnostic-build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/root-diagnostic-build.log",
+      "source_sha256": "7360c26c9d37836d885240c92c34294e4e47125ce44a5638df4c3e9d71a2fe42",
+      "uncompressed_sha256": "7360c26c9d37836d885240c92c34294e4e47125ce44a5638df4c3e9d71a2fe42",
+      "uncompressed_bytes": 2750,
+      "sha256": "4870ca20f41d43b3b09b8e1c5f96d0abf4ac12f86654cd9fa48d5906b6ce4190",
+      "bytes": 662
+    },
+    "artifacts/root/root-diagnostic-jobs.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/root-diagnostic-jobs.json",
+      "source_sha256": "49925b9091a8d3fd996ad90ae2cd779ea83bc4085ed35fb3c733d2c90e84f498",
+      "uncompressed_sha256": "49925b9091a8d3fd996ad90ae2cd779ea83bc4085ed35fb3c733d2c90e84f498",
+      "uncompressed_bytes": 995,
+      "sha256": "49925b9091a8d3fd996ad90ae2cd779ea83bc4085ed35fb3c733d2c90e84f498",
+      "bytes": 995
+    },
+    "artifacts/root/root-diagnostic-removed.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/root-diagnostic-removed.json",
+      "source_sha256": "a02cf63b013f0c6f7f3eda0fa0cfb208bb2add39f604af7bf6c2ce6a7f08ded7",
+      "uncompressed_sha256": "a02cf63b013f0c6f7f3eda0fa0cfb208bb2add39f604af7bf6c2ce6a7f08ded7",
+      "uncompressed_bytes": 353,
+      "sha256": "a02cf63b013f0c6f7f3eda0fa0cfb208bb2add39f604af7bf6c2ce6a7f08ded7",
+      "bytes": 353
+    },
+    "artifacts/root/root-diagnostic-source.cpp.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/root-diagnostic-source.cpp",
+      "source_sha256": "0f295d7c7baab306f9d40b6b44c78fd71eff93e1f1f1c4155f1193eb8d8bc158",
+      "uncompressed_sha256": "0f295d7c7baab306f9d40b6b44c78fd71eff93e1f1f1c4155f1193eb8d8bc158",
+      "uncompressed_bytes": 107613,
+      "sha256": "14309480e9c797be7473d45c5d76b27d99b241cc346b154e7fa9d3885dda8466",
+      "bytes": 30042
+    },
+    "artifacts/root/root-frozen.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/root-frozen.json",
+      "source_sha256": "b0630583c3a9d8f3bd91e143e5b341ca1b90b41cc07635d9a81e348937d23170",
+      "uncompressed_sha256": "b0630583c3a9d8f3bd91e143e5b341ca1b90b41cc07635d9a81e348937d23170",
+      "uncompressed_bytes": 5904,
+      "sha256": "b0630583c3a9d8f3bd91e143e5b341ca1b90b41cc07635d9a81e348937d23170",
+      "bytes": 5904
+    },
+    "artifacts/root/root-kernel.disasm.txt.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/root-kernel.disasm.txt",
+      "source_sha256": "1fa81e6adf629a7f56bb6c52d39d3a0fadbfbef80822d1aba64c6c15276334dc",
+      "uncompressed_sha256": "1fa81e6adf629a7f56bb6c52d39d3a0fadbfbef80822d1aba64c6c15276334dc",
+      "uncompressed_bytes": 8902,
+      "sha256": "8113997012664152e2ba7be0b136a0949b5a6747037b61a74072315beeafe7fa",
+      "bytes": 2426
+    },
+    "artifacts/root/root-normal-jobs.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/root-normal-jobs.json",
+      "source_sha256": "809ddf81c7783bdc9c44f2dda9020a69ea1f15eae18f91c28db9661599b61b3a",
+      "uncompressed_sha256": "809ddf81c7783bdc9c44f2dda9020a69ea1f15eae18f91c28db9661599b61b3a",
+      "uncompressed_bytes": 5163,
+      "sha256": "809ddf81c7783bdc9c44f2dda9020a69ea1f15eae18f91c28db9661599b61b3a",
+      "bytes": 5163
+    },
+    "artifacts/root/root-normal-restored-build.log.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/root-normal-restored-build.log",
+      "source_sha256": "027f4d9dbd1d657ffc7bcc3124d0c71cb597dda7d9864e2adc5217a216282c50",
+      "uncompressed_sha256": "027f4d9dbd1d657ffc7bcc3124d0c71cb597dda7d9864e2adc5217a216282c50",
+      "uncompressed_bytes": 2750,
+      "sha256": "387e4a673c333365613c787202c528d8ce6ee68a975c812a0f285da52c043565",
+      "bytes": 663
+    },
+    "artifacts/root/root-normal-runtime-identity.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/root-normal-runtime-identity.json",
+      "source_sha256": "55c8846e468acde8d454682ce99af8994e0d3998fd4a2663bead54bc9fdb5c97",
+      "uncompressed_sha256": "55c8846e468acde8d454682ce99af8994e0d3998fd4a2663bead54bc9fdb5c97",
+      "uncompressed_bytes": 727,
+      "sha256": "55c8846e468acde8d454682ce99af8994e0d3998fd4a2663bead54bc9fdb5c97",
+      "bytes": 727
+    },
+    "artifacts/root/root-normal-summary.json": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/root-normal-summary.json",
+      "source_sha256": "cc07aa694ba71096f34ea531cbe09a4d1951551c0470703172a6bd8f54ebd0d0",
+      "uncompressed_sha256": "cc07aa694ba71096f34ea531cbe09a4d1951551c0470703172a6bd8f54ebd0d0",
+      "uncompressed_bytes": 6529,
+      "sha256": "cc07aa694ba71096f34ea531cbe09a4d1951551c0470703172a6bd8f54ebd0d0",
+      "bytes": 6529
+    },
+    "artifacts/tests/source/test/htp/host/lfm2_router_arm_check.cpp.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/test/htp/host/lfm2_router_arm_check.cpp",
+      "source_sha256": "6c5143373c8dcebf52fcf4f734c4495116f90aeec0fcd942e4bfaf17b521dba0",
+      "uncompressed_sha256": "6c5143373c8dcebf52fcf4f734c4495116f90aeec0fcd942e4bfaf17b521dba0",
+      "uncompressed_bytes": 16335,
+      "sha256": "d764d9bf8e76992e4bb99953f5656a042cc9f003a9a4b65300167fe161648a3d",
+      "bytes": 4604
+    },
+    "artifacts/tests/source/test/htp/host/lfm2_router_arm_data.h.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/test/htp/host/lfm2_router_arm_data.h",
+      "source_sha256": "2e38f11c419789dd3f0bd363952d4a0e57e06e3564b6f683600b9fa3e1f8e574",
+      "uncompressed_sha256": "2e38f11c419789dd3f0bd363952d4a0e57e06e3564b6f683600b9fa3e1f8e574",
+      "uncompressed_bytes": 2085,
+      "sha256": "dd4afc252b632d9274947e068e1808b56bcbc20a41bd7205fe12a980e7695fd0",
+      "bytes": 861
+    },
+    "artifacts/tests/source/test/htp/host/lfm2_router_arm_native_check.cpp.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/test/htp/host/lfm2_router_arm_native_check.cpp",
+      "source_sha256": "d773915325e783da2f42fc633d91a3492a35acb7b3ee7d752549f3861833d455",
+      "uncompressed_sha256": "d773915325e783da2f42fc633d91a3492a35acb7b3ee7d752549f3861833d455",
+      "uncompressed_bytes": 10190,
+      "sha256": "77f4b40e9791254121252873cfe846d73c63e8c86005c7f2aa40277f778f7069",
+      "bytes": 3218
+    },
+    "artifacts/tests/source/test/htp/host/run_lfm2_router_arm_check.py": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/test/htp/host/run_lfm2_router_arm_check.py",
+      "source_sha256": "aff221615c40317db49590d076e0d86d1fff584b7e8459a8733df190d50e080a",
+      "uncompressed_sha256": "aff221615c40317db49590d076e0d86d1fff584b7e8459a8733df190d50e080a",
+      "uncompressed_bytes": 4094,
+      "sha256": "aff221615c40317db49590d076e0d86d1fff584b7e8459a8733df190d50e080a",
+      "bytes": 4094
+    },
+    "artifacts/tests/source/test/htp/host/run_lfm2_router_arm_mutations.py": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/test/htp/host/run_lfm2_router_arm_mutations.py",
+      "source_sha256": "0a51056d36c74722ac1059260e6bf7ee05b1278b04bf1071b36f7477752ed982",
+      "uncompressed_sha256": "0a51056d36c74722ac1059260e6bf7ee05b1278b04bf1071b36f7477752ed982",
+      "uncompressed_bytes": 4560,
+      "sha256": "0a51056d36c74722ac1059260e6bf7ee05b1278b04bf1071b36f7477752ed982",
+      "bytes": 4560
+    },
+    "artifacts/tests/source/test/htp/host/run_lfm2_router_arm_native.py": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/test/htp/host/run_lfm2_router_arm_native.py",
+      "source_sha256": "6763c209385bda65cda9e7f6c2d2f75e41cedd5f56b3949b319faa6f186f32cb",
+      "uncompressed_sha256": "6763c209385bda65cda9e7f6c2d2f75e41cedd5f56b3949b319faa6f186f32cb",
+      "uncompressed_bytes": 3394,
+      "sha256": "6763c209385bda65cda9e7f6c2d2f75e41cedd5f56b3949b319faa6f186f32cb",
+      "bytes": 3394
+    },
+    "artifacts/tests/tests.patch.gz": {
+      "source": "/tmp/nntr-lfm2-router-arm-20261017/tests.patch",
+      "source_sha256": "403448179df6daf166ef4c3df8ecc7fef0489d530bf253b1f257437fba520d76",
+      "uncompressed_sha256": "403448179df6daf166ef4c3df8ecc7fef0489d530bf253b1f257437fba520d76",
+      "uncompressed_bytes": 42159,
+      "sha256": "c6d7aebcb904e73c4f48c2e9fe7959391b5739b9870b9a69f07f95a1e4452b23",
+      "bytes": 11005
+    },
+    "raw/continue-router-arm-0-r1.ids": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-0-r1.ids",
+      "source_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_bytes": 324,
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "bytes": 324
+    },
+    "raw/continue-router-arm-0-r1.json": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-0-r1.json",
+      "source_sha256": "9fa2e363f335158181fa774c4a2b2a81a43c62d9c7d50e29376477bc33ccd5c9",
+      "uncompressed_sha256": "9fa2e363f335158181fa774c4a2b2a81a43c62d9c7d50e29376477bc33ccd5c9",
+      "uncompressed_bytes": 6315,
+      "sha256": "9fa2e363f335158181fa774c4a2b2a81a43c62d9c7d50e29376477bc33ccd5c9",
+      "bytes": 6315
+    },
+    "raw/continue-router-arm-0-r1.log.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-0-r1.log",
+      "source_sha256": "5992f00b8e9df15d16ef2788d8a3de7ea95dc18c0d2250bbaaa112af83436b6d",
+      "uncompressed_sha256": "5992f00b8e9df15d16ef2788d8a3de7ea95dc18c0d2250bbaaa112af83436b6d",
+      "uncompressed_bytes": 11310,
+      "sha256": "eca6143f4043b5af3a12aa87e9a12e61312c5783cded74f770ad39331a424d42",
+      "bytes": 2979
+    },
+    "raw/continue-router-arm-0-r1.memory.json.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-0-r1.memory.json",
+      "source_sha256": "f1429cb0c7c351d17e45716101126dbafe970df9da0bbaa2698999854258711b",
+      "uncompressed_sha256": "f1429cb0c7c351d17e45716101126dbafe970df9da0bbaa2698999854258711b",
+      "uncompressed_bytes": 253857,
+      "sha256": "33efd96dbc8b1860b14f65e1286a55ee9989fb616dd2c19cf04967cd774b001d",
+      "bytes": 13010
+    },
+    "raw/continue-router-arm-0-r2.ids": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-0-r2.ids",
+      "source_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_bytes": 324,
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "bytes": 324
+    },
+    "raw/continue-router-arm-0-r2.json": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-0-r2.json",
+      "source_sha256": "62895a3459b703db55324b622da26f975bd6efb39a1cd61363eb07fc0444d1c2",
+      "uncompressed_sha256": "62895a3459b703db55324b622da26f975bd6efb39a1cd61363eb07fc0444d1c2",
+      "uncompressed_bytes": 6316,
+      "sha256": "62895a3459b703db55324b622da26f975bd6efb39a1cd61363eb07fc0444d1c2",
+      "bytes": 6316
+    },
+    "raw/continue-router-arm-0-r2.log.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-0-r2.log",
+      "source_sha256": "98a88cafa32f919aafbd5f311823ec76f906d64e784902f788344db0ea0ae394",
+      "uncompressed_sha256": "98a88cafa32f919aafbd5f311823ec76f906d64e784902f788344db0ea0ae394",
+      "uncompressed_bytes": 11310,
+      "sha256": "9c9d7bb34d26dc45e039f2f9d8630363a2c50f4f3700e79dc2611226029561a2",
+      "bytes": 2990
+    },
+    "raw/continue-router-arm-0-r2.memory.json.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-0-r2.memory.json",
+      "source_sha256": "52d8d45bd18b407aaf753ef928f88987bb506e4125d9859e83c76236e7747a82",
+      "uncompressed_sha256": "52d8d45bd18b407aaf753ef928f88987bb506e4125d9859e83c76236e7747a82",
+      "uncompressed_bytes": 249678,
+      "sha256": "811d9a1e01f6533b08e8c7a70a52587ecb8f82826b71e871931a1d136d467326",
+      "bytes": 12902
+    },
+    "raw/continue-router-arm-0-r3.ids": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-0-r3.ids",
+      "source_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_bytes": 324,
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "bytes": 324
+    },
+    "raw/continue-router-arm-0-r3.json": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-0-r3.json",
+      "source_sha256": "534a8af709d761a4c7116b9cd58357a759c8839f47b5f58b31a39c1f8c3e4deb",
+      "uncompressed_sha256": "534a8af709d761a4c7116b9cd58357a759c8839f47b5f58b31a39c1f8c3e4deb",
+      "uncompressed_bytes": 6310,
+      "sha256": "534a8af709d761a4c7116b9cd58357a759c8839f47b5f58b31a39c1f8c3e4deb",
+      "bytes": 6310
+    },
+    "raw/continue-router-arm-0-r3.log.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-0-r3.log",
+      "source_sha256": "ebe8ec583bcb4020fcb759923f9cdc475f072d20abd01418696ade380cbdf79d",
+      "uncompressed_sha256": "ebe8ec583bcb4020fcb759923f9cdc475f072d20abd01418696ade380cbdf79d",
+      "uncompressed_bytes": 11308,
+      "sha256": "97f305f15b0ee48ff01beca36b400805bd0c250e5752457515a7202181ce5fe4",
+      "bytes": 2991
+    },
+    "raw/continue-router-arm-0-r3.memory.json.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-0-r3.memory.json",
+      "source_sha256": "1e0cb3e8fac897700bad6ec04381c766aa10ed64731336d760ef99eef02b8ae6",
+      "uncompressed_sha256": "1e0cb3e8fac897700bad6ec04381c766aa10ed64731336d760ef99eef02b8ae6",
+      "uncompressed_bytes": 254709,
+      "sha256": "1425fee968e28c5d444bc2fd37e882cbcb74dc13542c488d22eb1e8082c9d0d0",
+      "bytes": 13131
+    },
+    "raw/continue-router-arm-1-r1.ids": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-1-r1.ids",
+      "source_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_bytes": 324,
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "bytes": 324
+    },
+    "raw/continue-router-arm-1-r1.json": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-1-r1.json",
+      "source_sha256": "6f648420b01a7790e170d1f36bb0a5c472c2c8a25afd8784a6a42f6bad8fca13",
+      "uncompressed_sha256": "6f648420b01a7790e170d1f36bb0a5c472c2c8a25afd8784a6a42f6bad8fca13",
+      "uncompressed_bytes": 6316,
+      "sha256": "6f648420b01a7790e170d1f36bb0a5c472c2c8a25afd8784a6a42f6bad8fca13",
+      "bytes": 6316
+    },
+    "raw/continue-router-arm-1-r1.log.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-1-r1.log",
+      "source_sha256": "84a1b3388542e05b0c996b6e002a56a752af80aebafd6b6841151e0c4fa0d509",
+      "uncompressed_sha256": "84a1b3388542e05b0c996b6e002a56a752af80aebafd6b6841151e0c4fa0d509",
+      "uncompressed_bytes": 11309,
+      "sha256": "5976b22e14b97b54fd768b8ad6a40126a842b6a7a00e5da39b790294e52c69fd",
+      "bytes": 2988
+    },
+    "raw/continue-router-arm-1-r1.memory.json.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-1-r1.memory.json",
+      "source_sha256": "a541282a4baf4eaca85cbfacca495dfa4f963b8edf238bced940a333df5e1275",
+      "uncompressed_sha256": "a541282a4baf4eaca85cbfacca495dfa4f963b8edf238bced940a333df5e1275",
+      "uncompressed_bytes": 249584,
+      "sha256": "dcb8edb9fcb9545f8ea492d0be7dbbd025272534ea491aa1ce94c82b7e2573cb",
+      "bytes": 11328
+    },
+    "raw/continue-router-arm-1-r2.ids": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-1-r2.ids",
+      "source_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_bytes": 324,
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "bytes": 324
+    },
+    "raw/continue-router-arm-1-r2.json": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-1-r2.json",
+      "source_sha256": "1943be7b5e339cb282f857d43a0e2ed483d8e17ead365845df7d6b8b500a1caf",
+      "uncompressed_sha256": "1943be7b5e339cb282f857d43a0e2ed483d8e17ead365845df7d6b8b500a1caf",
+      "uncompressed_bytes": 6316,
+      "sha256": "1943be7b5e339cb282f857d43a0e2ed483d8e17ead365845df7d6b8b500a1caf",
+      "bytes": 6316
+    },
+    "raw/continue-router-arm-1-r2.log.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-1-r2.log",
+      "source_sha256": "98f465bd5e3f289fad80f3dcd09d142b3b7b12995d120d1a0a9ac8580188659e",
+      "uncompressed_sha256": "98f465bd5e3f289fad80f3dcd09d142b3b7b12995d120d1a0a9ac8580188659e",
+      "uncompressed_bytes": 11309,
+      "sha256": "49bb09346aff36955c467827e5ec2d336922b7b9d14725c1509f39bbd5e8240a",
+      "bytes": 2991
+    },
+    "raw/continue-router-arm-1-r2.memory.json.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-1-r2.memory.json",
+      "source_sha256": "9a04f877c7c031dfa2ba818a7d043914a9beebe0002e9b13c72351f61e5e1f90",
+      "uncompressed_sha256": "9a04f877c7c031dfa2ba818a7d043914a9beebe0002e9b13c72351f61e5e1f90",
+      "uncompressed_bytes": 242893,
+      "sha256": "a684ecfe13d407b2ce455d1172d6bc775a7dc55a6f0cc424a10225c204bd25cc",
+      "bytes": 11155
+    },
+    "raw/continue-router-arm-1-r3.ids": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-1-r3.ids",
+      "source_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_bytes": 324,
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "bytes": 324
+    },
+    "raw/continue-router-arm-1-r3.json": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-1-r3.json",
+      "source_sha256": "b8bdf764c4228c6838144287262d4a196f4d2003a3676c78d34764d0c141a185",
+      "uncompressed_sha256": "b8bdf764c4228c6838144287262d4a196f4d2003a3676c78d34764d0c141a185",
+      "uncompressed_bytes": 6315,
+      "sha256": "b8bdf764c4228c6838144287262d4a196f4d2003a3676c78d34764d0c141a185",
+      "bytes": 6315
+    },
+    "raw/continue-router-arm-1-r3.log.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-1-r3.log",
+      "source_sha256": "5d89e4f13dbfe300a9b0a708f1b8cd648b7e952507ac25538bc5247419e7f6fe",
+      "uncompressed_sha256": "5d89e4f13dbfe300a9b0a708f1b8cd648b7e952507ac25538bc5247419e7f6fe",
+      "uncompressed_bytes": 11311,
+      "sha256": "648661a25cdec57e9afcfaa1b48bb5573e595fefd6dda098b3d09f8f73188b51",
+      "bytes": 2988
+    },
+    "raw/continue-router-arm-1-r3.memory.json.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-1-r3.memory.json",
+      "source_sha256": "9c843a4047a794442a05c05cfcc05a80fad466bf41f310ba995c662133fa5718",
+      "uncompressed_sha256": "9c843a4047a794442a05c05cfcc05a80fad466bf41f310ba995c662133fa5718",
+      "uncompressed_bytes": 251193,
+      "sha256": "61556c883f1d35aab682fcad62816a3094d3693392ade13a4d8f2eb148abb82a",
+      "bytes": 11488
+    },
+    "raw/continue-router-arm-diagnostic1024.ids": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-diagnostic1024.ids",
+      "source_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "uncompressed_bytes": 324,
+      "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "bytes": 324
+    },
+    "raw/continue-router-arm-diagnostic1024.json": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-diagnostic1024.json",
+      "source_sha256": "a77a47c1c8db274fcf4a033473e37f269cdc8274af4300ae37b088c6f31bdc21",
+      "uncompressed_sha256": "a77a47c1c8db274fcf4a033473e37f269cdc8274af4300ae37b088c6f31bdc21",
+      "uncompressed_bytes": 6605,
+      "sha256": "a77a47c1c8db274fcf4a033473e37f269cdc8274af4300ae37b088c6f31bdc21",
+      "bytes": 6605
+    },
+    "raw/continue-router-arm-diagnostic1024.log.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-diagnostic1024.log",
+      "source_sha256": "6b7ac16da9d650a1279e522f21a697f50ffb9703f3ab77181d8d6693ad79689e",
+      "uncompressed_sha256": "6b7ac16da9d650a1279e522f21a697f50ffb9703f3ab77181d8d6693ad79689e",
+      "uncompressed_bytes": 788417,
+      "sha256": "5da98fecf8b3f9f95793efd1b921c9c613d35c4ee526d7a2be4eb0a34c509a70",
+      "bytes": 71982
+    },
+    "raw/continue-router-arm-diagnostic1024.logcat.txt.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-diagnostic1024.logcat.txt",
+      "source_sha256": "ffe508cca410690f32036fc48d3e584944e82172d3ea2049e6945bfc5f4beb93",
+      "uncompressed_sha256": "ffe508cca410690f32036fc48d3e584944e82172d3ea2049e6945bfc5f4beb93",
+      "uncompressed_bytes": 426625,
+      "sha256": "e71ce94b4e6cab34d2f1dc91e32c094bcae7e446e29eb16acff3f56ecdcae471",
+      "bytes": 17358
+    },
+    "raw/continue-router-arm-diagnostic1024.memory.json.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-diagnostic1024.memory.json",
+      "source_sha256": "8bd466ce9eae4fd302e242497fb6ff04127668c661b69d4d2946164efd54d889",
+      "uncompressed_sha256": "8bd466ce9eae4fd302e242497fb6ff04127668c661b69d4d2946164efd54d889",
+      "uncompressed_bytes": 255368,
+      "sha256": "30365c88f2da59d2a0ed3a39d2236569d3e68e8d3a10ace48f65e78ec1319d02",
+      "bytes": 11610
+    },
+    "raw/continue-router-arm-diagnostic2048.ids": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-diagnostic2048.ids",
+      "source_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_bytes": 326,
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "bytes": 326
+    },
+    "raw/continue-router-arm-diagnostic2048.json": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-diagnostic2048.json",
+      "source_sha256": "90dae7b7d4954d9a5ed207207bd11594747ccf680499debbc7fb9a4deca2a2e4",
+      "uncompressed_sha256": "90dae7b7d4954d9a5ed207207bd11594747ccf680499debbc7fb9a4deca2a2e4",
+      "uncompressed_bytes": 6615,
+      "sha256": "90dae7b7d4954d9a5ed207207bd11594747ccf680499debbc7fb9a4deca2a2e4",
+      "bytes": 6615
+    },
+    "raw/continue-router-arm-diagnostic2048.log.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-diagnostic2048.log",
+      "source_sha256": "0d2f19eec282edceecbcc038097ef3eaf58fb94985425d75573220fdb52a622c",
+      "uncompressed_sha256": "0d2f19eec282edceecbcc038097ef3eaf58fb94985425d75573220fdb52a622c",
+      "uncompressed_bytes": 796304,
+      "sha256": "910c695bf1c3c4948769307e5f3dae461e1a2708ad25ad55d8877c6fa2fb8385",
+      "bytes": 69014
+    },
+    "raw/continue-router-arm-diagnostic2048.logcat.txt.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-diagnostic2048.logcat.txt",
+      "source_sha256": "381c3564fc1dea5d6fd24ba57d7a820be8b5aeb777d7a5becf8f4e60d5818378",
+      "uncompressed_sha256": "381c3564fc1dea5d6fd24ba57d7a820be8b5aeb777d7a5becf8f4e60d5818378",
+      "uncompressed_bytes": 456654,
+      "sha256": "95d5e3dd2b1770d9ca0f6914dbc3b9773e3d145ae81337c23fa8b3a9a57058bc",
+      "bytes": 18261
+    },
+    "raw/continue-router-arm-diagnostic2048.memory.json.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-diagnostic2048.memory.json",
+      "source_sha256": "8cd265d06962ad4297c3a70bba4b4efdc73d51466da9a19a1848a58961d8d9a1",
+      "uncompressed_sha256": "8cd265d06962ad4297c3a70bba4b4efdc73d51466da9a19a1848a58961d8d9a1",
+      "uncompressed_bytes": 317736,
+      "sha256": "b7b916b2b7ec4e762dfc5d1237bf03bc9db0fce8334de8e22da3673322bbabc5",
+      "bytes": 14116
+    },
+    "raw/continue-router-arm2048-0-r1.ids": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm2048-0-r1.ids",
+      "source_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_bytes": 326,
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "bytes": 326
+    },
+    "raw/continue-router-arm2048-0-r1.json": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm2048-0-r1.json",
+      "source_sha256": "75f1225e6a957995a3c1e05aff9a8aa60318099fd0b4b46be1a22121107a0840",
+      "uncompressed_sha256": "75f1225e6a957995a3c1e05aff9a8aa60318099fd0b4b46be1a22121107a0840",
+      "uncompressed_bytes": 6339,
+      "sha256": "75f1225e6a957995a3c1e05aff9a8aa60318099fd0b4b46be1a22121107a0840",
+      "bytes": 6339
+    },
+    "raw/continue-router-arm2048-0-r1.log.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm2048-0-r1.log",
+      "source_sha256": "cd456085b28977b096a75fffa0b1c8d72698d078b10ea8febec1d0d40ef229b2",
+      "uncompressed_sha256": "cd456085b28977b096a75fffa0b1c8d72698d078b10ea8febec1d0d40ef229b2",
+      "uncompressed_bytes": 17014,
+      "sha256": "ca59bd47d486ac636bd0d3155d5de7472b1787b010c6f579fe70267032da13ba",
+      "bytes": 3068
+    },
+    "raw/continue-router-arm2048-0-r1.memory.json.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm2048-0-r1.memory.json",
+      "source_sha256": "ef37759f322bd1600eb99d45767f6de2747e2f01d36123a48265fe72799c635c",
+      "uncompressed_sha256": "ef37759f322bd1600eb99d45767f6de2747e2f01d36123a48265fe72799c635c",
+      "uncompressed_bytes": 316365,
+      "sha256": "7426a22b3838d091f17149760b65a0448cd90e5b44e32bda552d49d0dde5b0c4",
+      "bytes": 15732
+    },
+    "raw/continue-router-arm2048-0-r2.ids": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm2048-0-r2.ids",
+      "source_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_bytes": 326,
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "bytes": 326
+    },
+    "raw/continue-router-arm2048-0-r2.json": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm2048-0-r2.json",
+      "source_sha256": "b1dbf2231ff3eb2ddd4e7549d527372e53c2409aa029431a34c26793bdd21fd7",
+      "uncompressed_sha256": "b1dbf2231ff3eb2ddd4e7549d527372e53c2409aa029431a34c26793bdd21fd7",
+      "uncompressed_bytes": 6339,
+      "sha256": "b1dbf2231ff3eb2ddd4e7549d527372e53c2409aa029431a34c26793bdd21fd7",
+      "bytes": 6339
+    },
+    "raw/continue-router-arm2048-0-r2.log.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm2048-0-r2.log",
+      "source_sha256": "a81d46e861063d28d4d246d7214dadc3b913707ef12de87f273359ac5f5384d4",
+      "uncompressed_sha256": "a81d46e861063d28d4d246d7214dadc3b913707ef12de87f273359ac5f5384d4",
+      "uncompressed_bytes": 17013,
+      "sha256": "70401ccbf803a6a275a076555ba92f1cd1fa509152ab28ab7cf8fec70e990b73",
+      "bytes": 3072
+    },
+    "raw/continue-router-arm2048-0-r2.memory.json.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm2048-0-r2.memory.json",
+      "source_sha256": "6aad1a7e9a07fa79a4a6267febdd6ec8726155437b2943f6abe9f91acf0e3738",
+      "uncompressed_sha256": "6aad1a7e9a07fa79a4a6267febdd6ec8726155437b2943f6abe9f91acf0e3738",
+      "uncompressed_bytes": 320479,
+      "sha256": "b050f0f520ae3e8f8fc0fa6312c820e410f85a3e4bfc3136ab27ea4955497ac0",
+      "bytes": 15876
+    },
+    "raw/continue-router-arm2048-0-r3.ids": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm2048-0-r3.ids",
+      "source_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_bytes": 326,
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "bytes": 326
+    },
+    "raw/continue-router-arm2048-0-r3.json": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm2048-0-r3.json",
+      "source_sha256": "f027815247a444a6ccf850ed0642a125e74653e0e928cb9d314de914b04875fb",
+      "uncompressed_sha256": "f027815247a444a6ccf850ed0642a125e74653e0e928cb9d314de914b04875fb",
+      "uncompressed_bytes": 6338,
+      "sha256": "f027815247a444a6ccf850ed0642a125e74653e0e928cb9d314de914b04875fb",
+      "bytes": 6338
+    },
+    "raw/continue-router-arm2048-0-r3.log.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm2048-0-r3.log",
+      "source_sha256": "36fe9f32299ae8216008e1b6c04aceca402b6df16d4253c584dcf7df7a30f82a",
+      "uncompressed_sha256": "36fe9f32299ae8216008e1b6c04aceca402b6df16d4253c584dcf7df7a30f82a",
+      "uncompressed_bytes": 17015,
+      "sha256": "71e3eedeef41358b6c52278ff0d92615295a8d85f034b2a2840b80fd99816ff7",
+      "bytes": 3072
+    },
+    "raw/continue-router-arm2048-0-r3.memory.json.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm2048-0-r3.memory.json",
+      "source_sha256": "723f459e83b4d0da56d237147017dd933da9c658d83e4cdc7c455a2555827434",
+      "uncompressed_sha256": "723f459e83b4d0da56d237147017dd933da9c658d83e4cdc7c455a2555827434",
+      "uncompressed_bytes": 328896,
+      "sha256": "99ad00e508e5f5719112c82921c363fd64b8dcd7407106747f5149fe83cbbbaa",
+      "bytes": 16094
+    },
+    "raw/continue-router-arm2048-1-r1.ids": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm2048-1-r1.ids",
+      "source_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_bytes": 326,
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "bytes": 326
+    },
+    "raw/continue-router-arm2048-1-r1.json": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm2048-1-r1.json",
+      "source_sha256": "ef872409e1cca72a31ced2e840da7a8af981b0d15fc13a62fb9ec2cc0b6af4aa",
+      "uncompressed_sha256": "ef872409e1cca72a31ced2e840da7a8af981b0d15fc13a62fb9ec2cc0b6af4aa",
+      "uncompressed_bytes": 6340,
+      "sha256": "ef872409e1cca72a31ced2e840da7a8af981b0d15fc13a62fb9ec2cc0b6af4aa",
+      "bytes": 6340
+    },
+    "raw/continue-router-arm2048-1-r1.log.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm2048-1-r1.log",
+      "source_sha256": "08adb7450290330c835e6fd66f8a89ec367db17643658981af8d2dde69e98bbe",
+      "uncompressed_sha256": "08adb7450290330c835e6fd66f8a89ec367db17643658981af8d2dde69e98bbe",
+      "uncompressed_bytes": 17014,
+      "sha256": "244fa54f5ee03bbc6edd70dee4b2da7767cf698186b8301999cf73457b56ea75",
+      "bytes": 3065
+    },
+    "raw/continue-router-arm2048-1-r1.memory.json.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm2048-1-r1.memory.json",
+      "source_sha256": "99fc09d74f62f27017c37559cf38ba8864d53bd8772aa7fbb001b181893ed872",
+      "uncompressed_sha256": "99fc09d74f62f27017c37559cf38ba8864d53bd8772aa7fbb001b181893ed872",
+      "uncompressed_bytes": 319447,
+      "sha256": "66425c74faae55c1dd89b86de4b36355ab5ec7ce44a72ae8b1028adb429c12d2",
+      "bytes": 14369
+    },
+    "raw/continue-router-arm2048-1-r2.ids": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm2048-1-r2.ids",
+      "source_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_bytes": 326,
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "bytes": 326
+    },
+    "raw/continue-router-arm2048-1-r2.json": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm2048-1-r2.json",
+      "source_sha256": "d3c5c7e7aea0dcac6b795bdaa1aa2b423c1c0e119e514e450363cf9efdd8b8e3",
+      "uncompressed_sha256": "d3c5c7e7aea0dcac6b795bdaa1aa2b423c1c0e119e514e450363cf9efdd8b8e3",
+      "uncompressed_bytes": 6340,
+      "sha256": "d3c5c7e7aea0dcac6b795bdaa1aa2b423c1c0e119e514e450363cf9efdd8b8e3",
+      "bytes": 6340
+    },
+    "raw/continue-router-arm2048-1-r2.log.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm2048-1-r2.log",
+      "source_sha256": "11c958c64848ab10b9dd637bc34e6563379a95fdd05aa4fb958391925ff05f19",
+      "uncompressed_sha256": "11c958c64848ab10b9dd637bc34e6563379a95fdd05aa4fb958391925ff05f19",
+      "uncompressed_bytes": 17013,
+      "sha256": "d943c0e8b9e933b91b5892cd01a07f5f1e3887ff34557c65c147601a8453e59f",
+      "bytes": 3078
+    },
+    "raw/continue-router-arm2048-1-r2.memory.json.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm2048-1-r2.memory.json",
+      "source_sha256": "b37f16aa9b7d0249582b0928b6fc5bd50ea62a43606dbff135e47c408fbc6a3d",
+      "uncompressed_sha256": "b37f16aa9b7d0249582b0928b6fc5bd50ea62a43606dbff135e47c408fbc6a3d",
+      "uncompressed_bytes": 323616,
+      "sha256": "56e5f8c43aed04a590432e4d1bab0af559408f14c0be1a4fe2d3ed65568f7bc7",
+      "bytes": 14534
+    },
+    "raw/continue-router-arm2048-1-r3.ids": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm2048-1-r3.ids",
+      "source_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "uncompressed_bytes": 326,
+      "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "bytes": 326
+    },
+    "raw/continue-router-arm2048-1-r3.json": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm2048-1-r3.json",
+      "source_sha256": "c8566bfb2b8b1229fffe1d5dd162e5fb01da82e7beedef9a94761d893b0a210f",
+      "uncompressed_sha256": "c8566bfb2b8b1229fffe1d5dd162e5fb01da82e7beedef9a94761d893b0a210f",
+      "uncompressed_bytes": 6340,
+      "sha256": "c8566bfb2b8b1229fffe1d5dd162e5fb01da82e7beedef9a94761d893b0a210f",
+      "bytes": 6340
+    },
+    "raw/continue-router-arm2048-1-r3.log.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm2048-1-r3.log",
+      "source_sha256": "7af01cafa316b3ccf005a3e11a731345680d4b6c93985370df93b4fc2e23ddf9",
+      "uncompressed_sha256": "7af01cafa316b3ccf005a3e11a731345680d4b6c93985370df93b4fc2e23ddf9",
+      "uncompressed_bytes": 17015,
+      "sha256": "520e02b0b211cd4e557fe6e72f40e84a33ffbb6875a4f726d88335cb315aa4b5",
+      "bytes": 3067
+    },
+    "raw/continue-router-arm2048-1-r3.memory.json.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm2048-1-r3.memory.json",
+      "source_sha256": "dbc0d211c64d11ffe47403fbd01f3bddd5dda339999c2b3a6a09ac47b47b8cb9",
+      "uncompressed_sha256": "dbc0d211c64d11ffe47403fbd01f3bddd5dda339999c2b3a6a09ac47b47b8cb9",
+      "uncompressed_bytes": 324422,
+      "sha256": "50d9eac010fbde9e751b472b1ab160fa043837f16e32ae6fa49f3544cad76243",
+      "bytes": 14497
+    },
+    "repro/README.txt": {
+      "source": "/tmp/nntr-lfm2-router-arm-archive-20261017/REPRODUCE.txt",
+      "source_sha256": "8b82655b23d77548088744535a259236fa5f65e4b79e9496e8e4d86971123079",
+      "uncompressed_sha256": "8b82655b23d77548088744535a259236fa5f65e4b79e9496e8e4d86971123079",
+      "uncompressed_bytes": 4807,
+      "sha256": "8b82655b23d77548088744535a259236fa5f65e4b79e9496e8e4d86971123079",
+      "bytes": 4807
+    },
+    "repro/device/bench.py": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/bench.py",
+      "source_sha256": "1adff089388ee972a411c1467f653d24b76ef9c28079602e03595bc76da0df25",
+      "uncompressed_sha256": "1adff089388ee972a411c1467f653d24b76ef9c28079602e03595bc76da0df25",
+      "uncompressed_bytes": 9105,
+      "sha256": "1adff089388ee972a411c1467f653d24b76ef9c28079602e03595bc76da0df25",
+      "bytes": 9105
+    },
+    "repro/device/build_repeat_check_1024.py": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/repro/build_repeat_check.py",
+      "source_sha256": "0737f169dc9134f342b56c6d812e2c1212e90c9fcb1f7d37fd4ed37736cbb316",
+      "uncompressed_sha256": "0737f169dc9134f342b56c6d812e2c1212e90c9fcb1f7d37fd4ed37736cbb316",
+      "uncompressed_bytes": 9799,
+      "sha256": "0737f169dc9134f342b56c6d812e2c1212e90c9fcb1f7d37fd4ed37736cbb316",
+      "bytes": 9799
+    },
+    "repro/device/deploy_runtime.py": {
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/deploy_runtime.py",
+      "source_sha256": "3951b217a3333dbdf41b46be8b7351ed1baf7f3a34c1a3327071f3fc8885793b",
+      "uncompressed_sha256": "3951b217a3333dbdf41b46be8b7351ed1baf7f3a34c1a3327071f3fc8885793b",
+      "uncompressed_bytes": 1993,
+      "sha256": "3951b217a3333dbdf41b46be8b7351ed1baf7f3a34c1a3327071f3fc8885793b",
+      "bytes": 1993
+    },
+    "repro/device/memory_monitor.cpp.gz": {
+      "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/validation/memory_monitor.cpp",
+      "source_sha256": "fb92e1591fe70904b392adbfeb14a44853b03416c9ce0fe0a433232ee84660bc",
+      "uncompressed_sha256": "fb92e1591fe70904b392adbfeb14a44853b03416c9ce0fe0a433232ee84660bc",
+      "uncompressed_bytes": 21151,
+      "sha256": "6cd8dcdc414862cb9ff0cdff898e3a9b2e25b30938d58137b676a311d2fd679d",
+      "bytes": 6144
+    },
+    "repro/device/repeat2048/build.json": {
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/repeat2048/build.json",
+      "source_sha256": "753177226307317035d2a96a6755d63796f524733febd73f7e7f6256795fb22b",
+      "uncompressed_sha256": "753177226307317035d2a96a6755d63796f524733febd73f7e7f6256795fb22b",
+      "uncompressed_bytes": 6658,
+      "sha256": "753177226307317035d2a96a6755d63796f524733febd73f7e7f6256795fb22b",
+      "bytes": 6658
+    },
+    "repro/device/repeat2048/build_repeat_check.py": {
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/repeat2048/build_repeat_check.py",
+      "source_sha256": "ba3fd3a184b0dd365691b3cb9b5d78e9029c01d488ebf9c17102b0356d7f3785",
+      "uncompressed_sha256": "ba3fd3a184b0dd365691b3cb9b5d78e9029c01d488ebf9c17102b0356d7f3785",
+      "uncompressed_bytes": 9799,
+      "sha256": "ba3fd3a184b0dd365691b3cb9b5d78e9029c01d488ebf9c17102b0356d7f3785",
+      "bytes": 9799
+    },
+    "repro/device/repeat2048/compile.log.gz": {
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/repeat2048/compile.log",
+      "source_sha256": "1c9f950fbe4ea1fb83db79f4ce82feea1d6e2049d93292086effc46d6383bdb1",
+      "uncompressed_sha256": "1c9f950fbe4ea1fb83db79f4ce82feea1d6e2049d93292086effc46d6383bdb1",
+      "uncompressed_bytes": 5718,
+      "sha256": "b573481ec2d1cdd72b94132a4a85824deb1dda9305d608f8ee8de063c67d1578",
+      "bytes": 913
+    },
+    "repro/device/repeat2048/link.log.gz": {
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/repeat2048/link.log",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "uncompressed_bytes": 0,
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "repro/device/repeat2048/repeat_prompt_check.cpp.gz": {
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/repeat2048/repeat_prompt_check.cpp",
+      "source_sha256": "6092866bc46ef181f9a2d24001e71b7f10e4633b45cae1ed9a1e40a9f127b40f",
+      "uncompressed_sha256": "6092866bc46ef181f9a2d24001e71b7f10e4633b45cae1ed9a1e40a9f127b40f",
+      "uncompressed_bytes": 17840,
+      "sha256": "2f91ce458376989beab8c52a909ce2a73bf6370e324cc500541f81afb86eb3df",
+      "bytes": 5588
+    },
+    "repro/device/run_matrix.py": {
+      "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/run_matrix.py",
+      "source_sha256": "73449d8cc1f9b6b2d03756fa613e7fd986f9b80735b28aecf84de9330274e050",
+      "uncompressed_sha256": "73449d8cc1f9b6b2d03756fa613e7fd986f9b80735b28aecf84de9330274e050",
+      "uncompressed_bytes": 1065,
+      "sha256": "73449d8cc1f9b6b2d03756fa613e7fd986f9b80735b28aecf84de9330274e050",
+      "bytes": 1065
+    },
+    "repro/reproduce.py": {
+      "source": "/tmp/nntr-lfm2-router-arm-archive-20261017/reproduce.py",
+      "source_sha256": "f2ddd357c4b963d1f3d18d78ffc82aa93ff0fca15e21350d52a415efb86e2938",
+      "uncompressed_sha256": "f2ddd357c4b963d1f3d18d78ffc82aa93ff0fca15e21350d52a415efb86e2938",
+      "uncompressed_bytes": 3116,
+      "sha256": "f2ddd357c4b963d1f3d18d78ffc82aa93ff0fca15e21350d52a415efb86e2938",
+      "bytes": 3116
+    },
+    "validation/curate_router_arm.py": {
+      "source": "/tmp/nntr-lfm2-router-arm-archive-20261017/curate_router_arm.py",
+      "source_sha256": "eb2edba21724ca54c4865705bf308d539969f60b2d99c525dbc25bc921e6ab4b",
+      "uncompressed_sha256": "eb2edba21724ca54c4865705bf308d539969f60b2d99c525dbc25bc921e6ab4b",
+      "uncompressed_bytes": 10304,
+      "sha256": "eb2edba21724ca54c4865705bf308d539969f60b2d99c525dbc25bc921e6ab4b",
+      "bytes": 10304
+    },
+    "validation/verify.py": {
+      "source": "/tmp/nntr-lfm2-router-arm-archive-20261017/verify.py",
+      "source_sha256": "eff56d38a5f93a7f93d605a4a17be99ec64c577478f4d8f863ddb2277970f3ff",
+      "uncompressed_sha256": "eff56d38a5f93a7f93d605a4a17be99ec64c577478f4d8f863ddb2277970f3ff",
+      "uncompressed_bytes": 13653,
+      "sha256": "eff56d38a5f93a7f93d605a4a17be99ec64c577478f4d8f863ddb2277970f3ff",
+      "bytes": 13653
+    },
+    "results.json": {
+      "source": "generated from archived raw records by validation/verify.py",
+      "sha256": "8f3c6823562cdfe5478d3b68232219cd843a23ba636d681eb749f698973299fc",
+      "uncompressed_sha256": "8f3c6823562cdfe5478d3b68232219cd843a23ba636d681eb749f698973299fc",
+      "bytes": 3250,
+      "uncompressed_bytes": 3250
+    }
+  }
+}

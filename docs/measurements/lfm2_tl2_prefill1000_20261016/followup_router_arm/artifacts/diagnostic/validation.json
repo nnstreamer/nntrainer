@@ -1,0 +1,34 @@
+{
+  "production_patch_sha256": "d5604ee3969f985032b607967870f3e8983a4b534572a0e2910a1746839c4796",
+  "diagnostic_patch_sha256": "a233cdd49ad768451001b8fe1c51ffebeb8d29fba7cd7979c89f91098efe66b9",
+  "diagnostic_source_sha256": "2f57675b9dd553d1a84fbbad183194dae6e54a9e52432dc8bc8a29a9f7d34fe3",
+  "flag": "NNTR_LFM2_ROUTER_ARM_TRACE=1",
+  "runtime_flag": "NNTR_M0_PROFILE=1",
+  "parser_sha256": "7f949e97b2cfd1fb51df865c6cbc58e8de451810f264bfd9f19d140223344e43",
+  "parser_test_sha256": "d24c80a5b27b0bd3a54c71595339853c787aaaef18be474e82329a9ec9a82b58",
+  "parser_results": {
+    "valid": 6,
+    "negative": 438,
+    "pass": true
+  },
+  "actual_helper_caller": [
+    {
+      "enabled": 0,
+      "actual_calls": 12,
+      "pass": true
+    },
+    {
+      "enabled": 1,
+      "actual_calls": 12,
+      "pass": true
+    }
+  ],
+  "off_codegen": {
+    "instruction_text_identical": true,
+    "normal_source_sha256": "103b1e1df18efe8de8085f01167f29f2a4502178ac22e5c1aaab68dc38c036a8"
+  },
+  "arm_whole_tu_compile": [
+    0,
+    1
+  ]
+}

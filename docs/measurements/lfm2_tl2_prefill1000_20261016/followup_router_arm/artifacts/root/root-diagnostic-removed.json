@@ -1,0 +1,7 @@
+{
+  "normal_app_and_executable_byte_identical": true,
+  "normal_source_exact": true,
+  "libcausallm_sha256": "c34aa784141ce3c3d8cda2d8ccfd12ed759757284ee916ee4fac7f75f6197c05",
+  "decision": "retain_opt_in_prefill_router",
+  "reason": "1024 consistent3/3 measured improvement;2048 modest2/3. No decode speedup attribution and no 1000/25 achievement."
+}

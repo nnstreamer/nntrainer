@@ -1,0 +1,13 @@
+[
+  "/home/jungone-lee/workspace/nntrainer/android-ndk-r30/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android29-clang++",
+  "-std=c++17",
+  "-O3",
+  "-Wall",
+  "-Wextra",
+  "-Werror",
+  "-DENABLE_HEXKL=1",
+  "-c",
+  "/tmp/nntr-lfm2-router-arm-20261017/candidate/Applications/CausalLM/models/lfm2_moe/lfm2_router_arm.cpp",
+  "-o",
+  "/tmp/nntr-lfm2-router-arm-20261017/codegen/final/android-x86-clang/router.o"
+]

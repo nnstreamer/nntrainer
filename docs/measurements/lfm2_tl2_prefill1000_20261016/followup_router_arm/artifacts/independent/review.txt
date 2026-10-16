@@ -1,0 +1,37 @@
+Independent review: opt-in LFM ARM FP32 prefill router
+2026-10-17. Verdict: no correctness/build blocker in production d5604ee3969f985032b607967870f3e8983a4b534572a0e2910a1746839c4796.
+No root source, phone, commit, or push was used. This is a code/correctness verdict; model timing remains root's separate measurement.
+
+Frozen source and scope
+- Actual source manifest rehashed in reviewed-source-hashes.json: app103b1e1d, strict kernel d74cacb8, header5a79209d. Read-only original candidate remained unchanged.
+- Exact env NNTR_LFM2_ROUTER_ARM=1; presence of NNTR_HTP_ROUTER_U8I8 disables it, including value0, matching the current backend's presence option.
+- ARM+HTP only; M1024/2048, K2048/E64/inter1536, NCHW contiguous FP32 rows/weights/logits, all128 expert GU/DN tensors native TL2. Outer in_norm/plain/single-input/sigmoid-SiLU guards exclude Gemma, decode and alternate norms/epilogues. Default remains existing DSP path.
+- Output cannot overlap rows or weight spans. Checked dimensions bound all offset products; subtraction-based overlap test does not create overflowing end pointers. Reading overlapping input and weight is harmless, but neither may overlap writable output.
+
+Math and qualification
+- Each logit starts +0; K visits0..2047 in order, one rounded FP32 multiply then add. Each4-row/16-column group is independent. DSP stores at KB256 boundaries are already FP32 and do not add another arithmetic operation. ARM uses no horizontal summation, fusion, reassociation or quantization.
+- Integer abs-bit scan marks precisely nonzero subnormals1..0x7fffff; signed zero is accepted and loads do not quiet NaNs. Weight scan happens before jobs. Each job checks its8192 input elements before output writes. Non-finite output, including finite-input overflow, causes fallback. NaNs/Infs which propagate through all-logit computation are rejected by integer exponent test.
+- Native special-value proof is bounded to root's frozen94x4 matrix, including sNaN/qNaN, infinities, signed zero, last-element subnormals and normal operands with underflowing products. Host lane emulation alone would not establish ARM/HVX special-value parity. Root's actual DSP comparison supplies that separate evidence.
+
+Ownership, synchronization and fallback
+- Jobs own disjoint4x64 output slices; input/weights read-only. No new weight/activation cache, queue, reader, or capacity. A local atomic flag communicates failure; ThreadManager::parallelize serializes dispatch with execution_mutex_, all workers check in acq_rel, wait observes completion with acquire, and an acquire fence precedes return. Relaxed failure stores are therefore visible after join.
+- Existing ThreadManager owns the copied callback until its next dispatch/destruction. Its captured pointer to local finite is used only before parallel_for returns; destruction of the later retained callable does not dereference it. The kernel cannot throw. Allocation failure before dispatch follows the existing pool contract.
+- After any rejected job, all jobs finish before routerLogitsOnAccelerator overwrites the whole logits tensor. Router selection happens only after router_ready. RPC errors propagate after the CPU jobs have joined. Tests verify failure/retry and fallback output overwrite.
+- CPU route reads the complete CPU-normalized tensor produced by existing normRows. It publishes no new backend handoff ticket. The following ordinary MoE stages input and consumes any current ticket through the unchanged one-shot htp_router_handoff_take. Previous normal layer MoE already consumes its ticket; beginPrompt, writable staging and copies invalidate it. This does not claim to change general sampled staging-cache semantics.
+
+Build and code generation
+- Separate static TU is linked in both app_build and in-tree Gemma model source arrangements. It is not also in the explicitly enumerated fast-math source list. Actual ABI compile flags contain architecture/feature defines only.
+- Strict kernel flags end -fno-fast-math -ffp-contract=off. Root separately confirmed these final arguments in the actual Meson compile_commands after global -ffast-math. Our independent actual NDK compile confirms16 FMUL+16 FADD per K/column group, zero FMLA, and no hot-loop stack load/store. LLVM32 FP instructions have no fast/contract/reassoc flags. Explicit wrong-fastmath compile is rejected by #error.
+- Own whole ARM app and strict TU compile PASS; Android x86 and Linux GCC whole app/kernel compile PASS. Non-ARM definitions are absent consistently. No Linux-only API was added. Full Meson linking was performed by root, not reproduced here.
+- Actual .su: app incremental3008->3008B, outlined qualification helper128B, ThreadManager parallel_for96B, callback wrapper32B, strict dot64B, weight scan0B. Dot64B is callee-saved vector storage outside hot loop. These are per-function frames, not an exact whole-stack peak. Existing ThreadManager stores a32-byte capture in its40-byte std::function allocation; this small task metadata replaces its previous task at dispatch. No claim of zero heap activity.
+
+Independent executions
+- host-san.log: actual helper/caller plus strict production kernel and actual HVX C with lane emulator,120 cases each for env1/0/unset/true and U8I8-present; ASan+UBSan halt, no suppressions. Actual4-row outputs,64-column dots, redzones, alias/context/dtype/shape/option guards, work-stealing order, late-job failure and fallback/retry are covered.
+- mutations.log: all10 actual-source mutants rejected by intended runtime assertions, including both subnormal guards, nonfinite output, alias/context, missing last task, failure propagation, fallback overwrite, GELU and opt-in.
+- codegen/results.json: own ARM/x86/GCC output object hashes and compile exit0. Invalid-fastmath and strict LLVM evidence in codegen/invalid-fastmath and codegen/kernel-arm.
+- Root-only native matrix logs were independently rehashed against root-native-v3-results.json:94 cases x (OFF/ON)x(threads1/8), all PASS. ON138/OFF188 actual RPC counts; full output/input/weight parity and failure/retry are in the fixture. These are primitive/helper tests, not whole-model throughput.
+
+Reproduce in a fresh directory (paths are evidence locations, no edits to source):
+python3 /tmp/nntr-lfm2-router-arm-20261017/test/htp/host/run_lfm2_router_arm_check.py --repo /home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000 --source /tmp/nntr-lfm2-router-arm-20261017/candidate --output <own>/host --simde-include /tmp/nntr-lfm2-conv-chunk-view-20261016/deps/simde-0.8.2 --sanitize
+python3 /tmp/nntr-lfm2-router-arm-20261017/test/htp/host/run_lfm2_router_arm_mutations.py --checked-output <own>/host --output <own>/mutations
+Exact independent compiler argv/cwd are recorded under codegen/*/command.json. All outputs used separate /tmp paths.

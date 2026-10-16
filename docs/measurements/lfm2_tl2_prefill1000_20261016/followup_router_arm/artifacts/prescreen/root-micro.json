@@ -1,0 +1,16 @@
+{
+  "command": "env LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated:/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/tile-ion ADSP_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated NNTR_NUM_THREADS=8 NNTR_HTP_PAGE_CACHE=0 NNTR_LFM2_ROUTER_INPUT_HANDOFF=1 timeout 60 /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/router-neon-prescreen",
+  "environment": {
+    "LD_LIBRARY_PATH": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated:/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/tile-ion",
+    "ADSP_LIBRARY_PATH": "/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated",
+    "NNTR_NUM_THREADS": "8",
+    "NNTR_HTP_PAGE_CACHE": "0",
+    "NNTR_LFM2_ROUTER_INPUT_HANDOFF": "1"
+  },
+  "returncode": 0,
+  "source_sha256": "5f5eca24c37111279aa753fa60af23f00237f94163f504aa703747e56bb33dcb",
+  "binary_sha256": "b2952ac29063ae368f99df172fb32eb897d2e5791d201b68232860e4e1f49908",
+  "log_sha256": "6cf8d1ce1a811f852657830229949e0d60d6e1e1745f06adc59cb081bbd478c7",
+  "scope": "Prototype ARM router versus actual existing HTP router. Repeated fixed inputs, hot caches, no model or concurrent expert I/O.",
+  "compiler_fp_contract_off": true
+}

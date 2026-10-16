@@ -1,0 +1,12 @@
+[
+  {
+    "enabled": 0,
+    "actual_calls": 12,
+    "pass": true
+  },
+  {
+    "enabled": 1,
+    "actual_calls": 12,
+    "pass": true
+  }
+]

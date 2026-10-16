@@ -34,6 +34,7 @@
 #include <htp_fixed_opts.h>
 #include <iostream>
 #include <lfm2_moe_layer.h>
+#include <lfm2_router_arm.h>
 #include <node_exporter.h>
 #include <stdexcept>
 #include <thread_manager.h>
@@ -780,6 +781,89 @@ static void normRows(const nntrainer::Tensor &src, nntrainer::Tensor &dst,
     src.getData<float>(), dst.getData<float>(), src.size() / width, width, eps);
   dst.multiply_i(gamma);
 }
+
+#if defined(__aarch64__) && defined(ENABLE_HEXKL)
+/** Use the existing CPU-normalized LFM rows and CPU-resident FP32 router
+ * weights. No backend ownership is published: the following plain MoE call
+ * stages its input normally and consumes no new router handoff ticket. */
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((noinline))
+#endif
+static bool
+lfmRouterOnArm(const nntrainer::Tensor &rows, const nntrainer::Tensor &weights,
+               nntrainer::Tensor &logits, nntrainer::RunLayerContext &context,
+               const std::vector<unsigned int> &gate_up_indices,
+               const std::vector<unsigned int> &down_indices) {
+  const auto fp32 = nntrainer::Tdatatype::FP32;
+  const unsigned int count = rows.height();
+  if ((count != 1024 && count != 2048) || rows.batch() != 1 ||
+      rows.channel() != 1 || rows.width() != 2048 ||
+      rows.getFormat() != nntrainer::Tformat::NCHW ||
+      rows.getDataType() != fp32 || weights.batch() != 1 ||
+      weights.channel() != 1 || weights.height() != 2048 ||
+      weights.width() != 64 || weights.getDataType() != fp32 ||
+      weights.getFormat() != rows.getFormat() || logits.batch() != count ||
+      logits.channel() != 1 || logits.height() != 1 || logits.width() != 64 ||
+      logits.getDataType() != fp32 || logits.getFormat() != rows.getFormat() ||
+      !rows.getContiguous() || !weights.getContiguous() ||
+      !logits.getContiguous() || gate_up_indices.size() != 64 ||
+      down_indices.size() != 64)
+    return false;
+  auto *ops = rows.getOps();
+  if (ops == nullptr || logits.getOps() != ops ||
+      !ops->supports_router_logits_fp32() ||
+      !ops->supports_gemm_qs4cx_moe_layer_fp32() ||
+      ops != nntrainer::get_htp_ops())
+    return false;
+  const auto &row_context = rows.getContextData();
+  const auto &weight_context = weights.getContextData();
+  const auto &logit_context = logits.getContextData();
+  if ((row_context && weight_context && row_context != weight_context) ||
+      (row_context && logit_context && row_context != logit_context))
+    return false;
+  for (size_t e = 0; e < 64; ++e) {
+    if (context.getWeight(gate_up_indices[e]).getDataType() !=
+          nntrainer::Tdatatype::TL2CX_WH ||
+        context.getWeight(down_indices[e]).getDataType() !=
+          nntrainer::Tdatatype::TL2CX_WH)
+      return false;
+  }
+  static const bool enabled = [] {
+    const char *value = std::getenv("NNTR_LFM2_ROUTER_ARM");
+    return value != nullptr && std::strcmp(value, "1") == 0 &&
+           std::getenv("NNTR_HTP_ROUTER_U8I8") == nullptr;
+  }();
+  if (!enabled)
+    return false;
+  const float *input = rows.getData<float>();
+  const float *weight = weights.getData<float>();
+  float *output = logits.getData<float>();
+  const size_t out_bytes = static_cast<size_t>(count) * 64 * sizeof(float);
+  const uintptr_t out_address = reinterpret_cast<uintptr_t>(output);
+  const auto disjoint = [out_address, out_bytes](const float *p, size_t size) {
+    const uintptr_t address = reinterpret_cast<uintptr_t>(p);
+    return out_address >= address ? out_address - address >= size
+                                  : address - out_address >= out_bytes;
+  };
+  if (!input || !weight || !output ||
+      !disjoint(input, static_cast<size_t>(count) * 2048 * sizeof(float)) ||
+      !disjoint(weight, 2048 * 64 * sizeof(float)))
+    return false;
+  if (!lfm2RouterArmWeightSupported(weight))
+    return false;
+  std::atomic<bool> finite{true};
+  nntrainer::ThreadManager::Global().parallel_for(
+    0, count / 4, [input, weight, output, &finite](size_t task) {
+      if (!lfm2RouterArmBlock(input + task * 4 * 2048, weight,
+                              output + task * 4 * 64))
+        finite.store(false, std::memory_order_relaxed);
+    });
+  // Non-finite outputs can encode different NaN payloads on ARM and HVX.
+  // All jobs have joined; false lets the existing router overwrite the entire
+  // output before selection. No handoff stamp has been created by this path.
+  return finite.load(std::memory_order_relaxed);
+}
+#endif
 
 /** @brief The router's logits on the accelerator at prefill: its own norm
  *  (gamma, or nullptr) folded into the call over the raw rows, so the CPU
@@ -1869,13 +1953,25 @@ void Lfm2MoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
     route.n_sel =
       want_extra ? std::min<unsigned>(topk + EXTRA_TOPK, num_experts) : topk;
     route.scale = expert_bias.getData<float>();
-    const bool router_on_accel = routerLogitsOnAccelerator(
-      router_norm ? raw : router_in, gate_weights,
-      router_norm ? context.getWeight(router_gamma_idx).getData<float>()
-                  : nullptr,
-      norm_eps, total_tokens, hidden_size, num_experts, router_logits,
-      softmax_router ? &route : nullptr);
-    if (router_norm && !router_on_accel)
+    bool router_on_arm = false;
+#if defined(__aarch64__) && defined(ENABLE_HEXKL)
+    if (in_norm && !norm_on_accel && !out_add && !router_norm && !gelu_act &&
+        !softmax_router && num_experts == 64 &&
+        std::get<nntrainer::props::Unit>(moe_props).get() == 1536 &&
+        context.getNumInputs() == 1)
+      router_on_arm =
+        lfmRouterOnArm(router_in, gate_weights, router_logits, context,
+                       expert_gate_up_proj_indices, expert_down_proj_indices);
+#endif
+    const bool router_ready =
+      router_on_arm ||
+      routerLogitsOnAccelerator(
+        router_norm ? raw : router_in, gate_weights,
+        router_norm ? context.getWeight(router_gamma_idx).getData<float>()
+                    : nullptr,
+        norm_eps, total_tokens, hidden_size, num_experts, router_logits,
+        softmax_router ? &route : nullptr);
+    if (router_norm && !router_ready)
       normRows(raw, router_in, context.getWeight(router_gamma_idx), norm_eps);
 
     {
@@ -1905,7 +2001,7 @@ void Lfm2MoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
     fused.stop();
 
     // routing, part two: the dot the accelerator did not do
-    if (!router_on_accel) {
+    if (!router_ready) {
       M0Timer t(&g_m0.router);
       router_in.dot(gate_weights, router_logits);
     }
@@ -1916,7 +2012,7 @@ void Lfm2MoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
     size_t max_assigned_tokens = 0;
     {
       M0Timer t(&g_m0.topk);
-      if (router_on_accel && softmax_router)
+      if (router_ready && softmax_router)
         assignmentsFromRoute(route, total_tokens, expert_assignments,
                              want_extra ? &extra_top_k : nullptr);
       else

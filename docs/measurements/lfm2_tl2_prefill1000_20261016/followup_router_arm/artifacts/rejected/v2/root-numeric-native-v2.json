@@ -1,0 +1,7 @@
+{
+  "binary_sha256": "a8b6ca8635c2b3718ec31a76c7c8838507eaee958a211ed14db3f8db770d0845",
+  "returncode": 1,
+  "seconds": 0.40498759399633855,
+  "command": "env LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated:/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/tile-ion ADSP_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated NNTR_NUM_THREADS=8 NNTR_HTP_PAGE_CACHE=0 timeout 60 /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/router-numeric-native-v2 8",
+  "log_sha256": "1f461eddf1aa76fdb0b320504dcdf36a3a59d9002d0652980f6c6d81427980c2"
+}

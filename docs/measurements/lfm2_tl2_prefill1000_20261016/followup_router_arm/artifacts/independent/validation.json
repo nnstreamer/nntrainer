@@ -1,0 +1,169 @@
+{
+  "status": "PASS_no_correctness_build_blocker",
+  "production_patch_sha256": "d5604ee3969f985032b607967870f3e8983a4b534572a0e2910a1746839c4796",
+  "source": {
+    "Applications/CausalLM/app_build/meson.build": "c602cf6785c1790ee361fedc0d45490cf0194d208b75acf4ba895f0c527ac92f",
+    "Applications/CausalLM/models/gemma4/meson.build": "f54cbe5e90b246898649425607a7010cdd06e8df52f3540aaa402947267b7d9c",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp": "103b1e1df18efe8de8085f01167f29f2a4502178ac22e5c1aaab68dc38c036a8",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_router_arm.cpp": "d74cacb8b4c42ea701c37922ff773dff95804e92d0f38d84a09ce3d86000aa79",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_router_arm.h": "5a79209dd974817dc20a7a13ee4e29b7b71c90fc2fb6e42dcafadda4a8794339"
+  },
+  "host": {
+    "cases": 120,
+    "configurations": 5,
+    "asan_ubsan": true,
+    "log_sha256": "183e84994a9467bf1d5215323dda77213ebd5f86e2fbe70f42a32d62d5626092",
+    "scope": "Actual helper/caller/strict ARM kernel; SIMDe, Tensor and scheduler stand-ins; actual HVX C with lane emulation. Does not prove hardware FP or RPC behavior."
+  },
+  "mutations": [
+    {
+      "name": "input_subnormal",
+      "returncode": 1,
+      "expected_assertion": "primitive special qualification",
+      "pass": true
+    },
+    {
+      "name": "weight_subnormal",
+      "returncode": 1,
+      "expected_assertion": "primitive special qualification",
+      "pass": true
+    },
+    {
+      "name": "nonfinite_output",
+      "returncode": 1,
+      "expected_assertion": "primitive special qualification",
+      "pass": true
+    },
+    {
+      "name": "input_alias",
+      "returncode": 1,
+      "expected_assertion": "metadata guard accepted",
+      "pass": true
+    },
+    {
+      "name": "weight_context",
+      "returncode": 1,
+      "expected_assertion": "metadata guard accepted",
+      "pass": true
+    },
+    {
+      "name": "last_task",
+      "returncode": 1,
+      "expected_assertion": "task coverage",
+      "pass": true
+    },
+    {
+      "name": "failure_propagation",
+      "returncode": 1,
+      "expected_assertion": "special caller used ARM",
+      "pass": true
+    },
+    {
+      "name": "fallback_overwrite",
+      "returncode": 1,
+      "expected_assertion": "actual caller RPC count",
+      "pass": true
+    },
+    {
+      "name": "gelu_guard",
+      "returncode": 1,
+      "expected_assertion": "unsupported caller policy",
+      "pass": true
+    },
+    {
+      "name": "opt_in",
+      "returncode": 1,
+      "expected_assertion": "actual caller qualification",
+      "pass": true
+    }
+  ],
+  "compiles": [
+    {
+      "name": "kernel-arm",
+      "returncode": 0,
+      "object_sha256": "9cf943d1b46bd171373e36b225967c9d13f0404d5c291952f0d9d0028922b45f"
+    },
+    {
+      "name": "app-arm",
+      "returncode": 0,
+      "object_sha256": "60776f2d0b05d60370972d1483d3eda997be2a1c6c0d099be4dd43a529347bbb"
+    },
+    {
+      "name": "app-android-x86",
+      "returncode": 0,
+      "object_sha256": "b9cd7dd942f1ec3a37e8642d5171ca6956fe88c4954bd8e10972b01778e74d78"
+    },
+    {
+      "name": "kernel-android-x86",
+      "returncode": 0,
+      "object_sha256": "d7325adaeabf06d74ea5a098369a4fc7024c32f6cbce0311cb003edb4784fd86"
+    },
+    {
+      "name": "app-linux-x86",
+      "returncode": 0,
+      "object_sha256": "f4946ce1a640de673f08d06b44add85f4cf8118d0085a45fe045ce6e17332ced"
+    },
+    {
+      "name": "kernel-linux-x86",
+      "returncode": 0,
+      "object_sha256": "b066ac54fea3ed8a48b16f7d0d1ec761c1bbc679dbccfe1409b4608c721f7da4"
+    }
+  ],
+  "codegen": {
+    "loop_fmul": 16,
+    "loop_fadd": 16,
+    "fmla": 0,
+    "hot_stack_load_store": 0,
+    "kernel_frame": 64,
+    "weight_scan_frame": 0,
+    "app_incremental_frame_before_after": [
+      3008,
+      3008
+    ],
+    "app_helper_frame": 128,
+    "parallel_for_frame": 96,
+    "callback_wrapper_frame": 32,
+    "fastmath_bad_configuration_rejected": true,
+    "llvm_fp_ops_without_fast_contract_reassoc": 32
+  },
+  "native_by_root": {
+    "binary_sha256": "f956408ffd7f054be2507cedbef1cad72ef12f8f4ac457d4f7fd8975b46aee75",
+    "runs": [
+      {
+        "log": "/tmp/nntr-lfm2-router-arm-20261017/root-native-v3-1-8.log",
+        "sha256": "152811c5a9b4f8b018648d33477618c933436dca90ac4977e1110deb0326af8c",
+        "flag": 1,
+        "threads": 8,
+        "result": "ROUTER_ARM_NATIVE 94 cases threads=8 env=1 RPC=138 PASS"
+      },
+      {
+        "log": "/tmp/nntr-lfm2-router-arm-20261017/root-native-v3-0-8.log",
+        "sha256": "3209d863d4ed1b3b679f179b807b58e65212fd1ca0b7aea1978ccfc8f00a0f20",
+        "flag": 0,
+        "threads": 8,
+        "result": "ROUTER_ARM_NATIVE 94 cases threads=8 env=0 RPC=188 PASS"
+      },
+      {
+        "log": "/tmp/nntr-lfm2-router-arm-20261017/root-native-v3-1-1.log",
+        "sha256": "8797bc64f3d61bb779381a9220757e2e3563fb4dca935eb5057df8c6fa4a85b1",
+        "flag": 1,
+        "threads": 1,
+        "result": "ROUTER_ARM_NATIVE 94 cases threads=1 env=1 RPC=138 PASS"
+      },
+      {
+        "log": "/tmp/nntr-lfm2-router-arm-20261017/root-native-v3-0-1.log",
+        "sha256": "9c9656ba0b85d19c710c8dc95b8645af8e46f1b3aea43c7f2e7bfaf17377105a",
+        "flag": 0,
+        "threads": 1,
+        "result": "ROUTER_ARM_NATIVE 94 cases threads=1 env=0 RPC=188 PASS"
+      }
+    ],
+    "scope": "Reviewed raw results; root alone executed actual S26/DSP 94 cases x OFF/ON x threads1/8."
+  },
+  "limits": [
+    "Not an end-to-end speed result.",
+    "No universal statement about arbitrary external FPCR configurations; frozen native special/subnormal/overflow cases passed.",
+    "Full app TU and Linux/Android fallback builds verified here; complete Meson link and generated flags separately verified by root.",
+    "Existing backend sampled staging semantics are unchanged; CPU-normalized input is whole on the host."
+  ]
+}
