@@ -1,0 +1,6 @@
+{
+  "production.patch": "1f130610bee92f91b5d8ca125c2dc661e42a89c4a5c6312e49c7748bba560f49",
+  "tests.patch": "30397390363ff7dc1e6fea28de969fbf9a3bf4081c172d83dbc7609628c4610d",
+  "candidate/test/htp/host/lfm2_prefill_recency_check.cpp": "805f773ec787c69bbc3fe2908f0765c1446e8a3b79b5a7d48bf91968a8951fad",
+  "candidate/test/htp/host/run_lfm2_prefill_recency_check.py": "f6d13a5ee77358082406f9108f4171806067a3de9247250e6d9ace878c0e3251"
+}

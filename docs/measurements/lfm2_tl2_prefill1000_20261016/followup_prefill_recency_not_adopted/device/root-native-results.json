@@ -1,0 +1,80 @@
+{
+  "binary": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/native/check",
+  "sha256": "abf446746fe3a2d795d4057a75d6aaf4009d2e8eacc027310b61e5777c5286b6",
+  "remote_sha256": "abf446746fe3a2d795d4057a75d6aaf4009d2e8eacc027310b61e5777c5286b6",
+  "scope": "Actual extracted FP/std::partial_sort methods, unchanged real ExpertLru and extracted caller/reshape with Tensor metadata stand-ins; no full-model/DSP claim",
+  "runs": [
+    {
+      "mode": "1",
+      "command": [
+        "adb",
+        "-s",
+        "R3CY70LV96T",
+        "shell",
+        "env -u NNTR_LFM2_COMPACT_PREFILL_RECENCY -u NNTR_MOE_TRACE LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-router-arm-1 NNTR_LFM2_COMPACT_PREFILL_RECENCY=1 /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/prefill-recency/check"
+      ],
+      "returncode": 0,
+      "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=1\n"
+    },
+    {
+      "mode": "0",
+      "command": [
+        "adb",
+        "-s",
+        "R3CY70LV96T",
+        "shell",
+        "env -u NNTR_LFM2_COMPACT_PREFILL_RECENCY -u NNTR_MOE_TRACE LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-router-arm-1 NNTR_LFM2_COMPACT_PREFILL_RECENCY=0 /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/prefill-recency/check"
+      ],
+      "returncode": 0,
+      "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0\n"
+    },
+    {
+      "mode": "unset",
+      "command": [
+        "adb",
+        "-s",
+        "R3CY70LV96T",
+        "shell",
+        "env -u NNTR_LFM2_COMPACT_PREFILL_RECENCY -u NNTR_MOE_TRACE LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-router-arm-1 /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/prefill-recency/check"
+      ],
+      "returncode": 0,
+      "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0\n"
+    },
+    {
+      "mode": "true",
+      "command": [
+        "adb",
+        "-s",
+        "R3CY70LV96T",
+        "shell",
+        "env -u NNTR_LFM2_COMPACT_PREFILL_RECENCY -u NNTR_MOE_TRACE LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-router-arm-1 NNTR_LFM2_COMPACT_PREFILL_RECENCY=true /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/prefill-recency/check"
+      ],
+      "returncode": 0,
+      "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0\n"
+    },
+    {
+      "mode": "trace-configured",
+      "command": [
+        "adb",
+        "-s",
+        "R3CY70LV96T",
+        "shell",
+        "env -u NNTR_LFM2_COMPACT_PREFILL_RECENCY -u NNTR_MOE_TRACE LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-router-arm-1 NNTR_LFM2_COMPACT_PREFILL_RECENCY=1 NNTR_MOE_TRACE=/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/prefill-recency/missing/trace /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/prefill-recency/check"
+      ],
+      "returncode": 0,
+      "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0\n"
+    },
+    {
+      "mode": "trace-opened",
+      "command": [
+        "adb",
+        "-s",
+        "R3CY70LV96T",
+        "shell",
+        "env -u NNTR_LFM2_COMPACT_PREFILL_RECENCY -u NNTR_MOE_TRACE LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-router-arm-1 NNTR_LFM2_COMPACT_PREFILL_RECENCY=1 NNTR_MOE_TRACE=/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/prefill-recency/trace.txt /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/prefill-recency/check opened-trace"
+      ],
+      "returncode": 0,
+      "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0\n"
+    }
+  ]
+}

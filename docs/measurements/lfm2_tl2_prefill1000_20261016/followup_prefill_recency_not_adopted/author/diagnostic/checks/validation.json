@@ -1,0 +1,58 @@
+{
+  "actual_formatter_positive_cohorts": [
+    {
+      "layers": 38,
+      "rows": 1024,
+      "enabled": 0,
+      "fast_calls": 0,
+      "raw_entries": 350208,
+      "kept_entries": 350208,
+      "eliminated_entries": 0,
+      "scope": "One process stderr is required; PID identity is not encoded or checked. Counts are not a time or TPS measurement."
+    },
+    {
+      "layers": 38,
+      "rows": 1024,
+      "enabled": 1,
+      "fast_calls": 38,
+      "raw_entries": 350208,
+      "kept_entries": 2341,
+      "eliminated_entries": 347867,
+      "scope": "One process stderr is required; PID identity is not encoded or checked. Counts are not a time or TPS measurement."
+    },
+    {
+      "layers": 38,
+      "rows": 2048,
+      "enabled": 0,
+      "fast_calls": 0,
+      "raw_entries": 700416,
+      "kept_entries": 700416,
+      "eliminated_entries": 0,
+      "scope": "One process stderr is required; PID identity is not encoded or checked. Counts are not a time or TPS measurement."
+    },
+    {
+      "layers": 38,
+      "rows": 2048,
+      "enabled": 1,
+      "fast_calls": 38,
+      "raw_entries": 700416,
+      "kept_entries": 2341,
+      "eliminated_entries": 698075,
+      "scope": "One process stderr is required; PID identity is not encoded or checked. Counts are not a time or TPS measurement."
+    }
+  ],
+  "invalid_rejected": 65,
+  "max_actual_format_bytes": 82,
+  "compile": [
+    "g++",
+    "-std=c++17",
+    "-O2",
+    "-Wall",
+    "-Wextra",
+    "-DNNTR_LFM2_RECENCY_TRACE=1",
+    "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/checks/marker.cpp",
+    "-o",
+    "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/checks/marker"
+  ],
+  "scope": "Actual marker text with metadata/counter stand-ins. No numerical or timing claim."
+}

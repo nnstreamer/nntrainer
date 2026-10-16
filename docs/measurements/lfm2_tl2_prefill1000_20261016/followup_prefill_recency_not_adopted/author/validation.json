@@ -1,0 +1,299 @@
+{
+  "production": {
+    "production.patch": "1f130610bee92f91b5d8ca125c2dc661e42a89c4a5c6312e49c7748bba560f49",
+    "candidate/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp": "ac743dacb89bae9b3961452aedf7fdebe1b3f97a7e6c7d712ec23b6d7a2abbfa",
+    "candidate/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.h": "b6fb960d6dff9615e367e18460288f8ea44a62d754978a5ebe0bfdd4b6a0b0ad"
+  },
+  "tests": {
+    "production.patch": "1f130610bee92f91b5d8ca125c2dc661e42a89c4a5c6312e49c7748bba560f49",
+    "tests.patch": "30397390363ff7dc1e6fea28de969fbf9a3bf4081c172d83dbc7609628c4610d",
+    "candidate/test/htp/host/lfm2_prefill_recency_check.cpp": "805f773ec787c69bbc3fe2908f0765c1446e8a3b79b5a7d48bf91968a8951fad",
+    "candidate/test/htp/host/run_lfm2_prefill_recency_check.py": "f6d13a5ee77358082406f9108f4171806067a3de9247250e6d9ace878c0e3251"
+  },
+  "own": {
+    "final-san": {
+      "compile": [
+        "g++",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-fno-fast-math",
+        "-ffp-contract=off",
+        "-std=c++17",
+        "-O2",
+        "-g",
+        "-pthread",
+        "-Wall",
+        "-Wextra",
+        "-Wno-unused-parameter",
+        "-Wno-unused-function",
+        "-fstack-usage",
+        "-I/tmp/nntr-lfm2-prefill-recency-20261017/checks/final-san",
+        "/tmp/nntr-lfm2-prefill-recency-20261017/checks/final-san/lfm2_prefill_recency_check.cpp",
+        "-o",
+        "/tmp/nntr-lfm2-prefill-recency-20261017/checks/final-san/check"
+      ],
+      "extract_sha256": {
+        "baseline.inc": "5cf589c76eaf75652c1caa96f831e49778790e5fb2f3f2987672026be88aa2a1",
+        "baseline-decl.inc": "11955b17f47509240fe2740deb5696c470604a5be30c007324763707721c5600",
+        "candidate.inc": "98c95d312c8d2edbe277d8b0884c7bbaaeef312fb291ba10d3ad0ab30eff38e4",
+        "candidate-decl.inc": "a0402345e5488d181d7e351e6fc0629153543825b0c49eb849806ed6edab674d",
+        "constants.inc": "f10eb60df36b67b206562ef7861cdad679decce1720790378a3baa2c9e7cc74c",
+        "trace.inc": "00869d71af232c13f564865571eefb3635ba7cf760d34f6f46d44263e11a595e",
+        "helper.inc": "02add21695e9fafc3ad0d31939e731eb81b9f7802ca4608c15f5ba3783b5a380",
+        "caller.inc": "f085f02ddde05dacd7cbd03dd43b81eaad597dde91d048d32187b25c60ce56ee",
+        "reshape.inc": "adf93c7b604ced89837e3cfb371cdc029e756950929d7d0a4838cf14ddf5cf8c",
+        "prepared-caller.inc": "5874c6184846111549367aa725f155a7895d31681907dde3f4d5a0d0434dbc7b",
+        "expert_lru.h": "406399391256fabde5770a9cee827dca3ad152337ca050e8210dcd552da0cdbd"
+      },
+      "fixture_sha256": "805f773ec787c69bbc3fe2908f0765c1446e8a3b79b5a7d48bf91968a8951fad",
+      "scope": "Actual FP/std::partial_sort method and unchanged ExpertLru. Tensor metadata/getWeight and reshape are stand-ins; exact production reshape/caller/trace/guard text is extracted. No DSP, I/O, full-model or timing proof.",
+      "runs": [
+        {
+          "mode": "1",
+          "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=1",
+          "returncode": 0
+        },
+        {
+          "mode": "0",
+          "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0",
+          "returncode": 0
+        },
+        {
+          "mode": "unset",
+          "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0",
+          "returncode": 0
+        },
+        {
+          "mode": "true",
+          "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0",
+          "returncode": 0
+        },
+        {
+          "mode": "trace-configured",
+          "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0",
+          "returncode": 0
+        },
+        {
+          "mode": "trace-opened",
+          "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0",
+          "returncode": 0
+        }
+      ],
+      "binary_sha256": "a244d39867a5b51cbb68770a6ac74745666d870257e9622c4a106fd7871795bc"
+    },
+    "fast": {
+      "compile": [
+        "g++",
+        "-ffast-math",
+        "-std=c++17",
+        "-O3",
+        "-g",
+        "-pthread",
+        "-Wall",
+        "-Wextra",
+        "-Wno-unused-parameter",
+        "-Wno-unused-function",
+        "-fstack-usage",
+        "-I/tmp/nntr-lfm2-prefill-recency-20261017/checks/fast",
+        "/tmp/nntr-lfm2-prefill-recency-20261017/checks/fast/lfm2_prefill_recency_check.cpp",
+        "-o",
+        "/tmp/nntr-lfm2-prefill-recency-20261017/checks/fast/check"
+      ],
+      "extract_sha256": {
+        "baseline.inc": "5cf589c76eaf75652c1caa96f831e49778790e5fb2f3f2987672026be88aa2a1",
+        "baseline-decl.inc": "11955b17f47509240fe2740deb5696c470604a5be30c007324763707721c5600",
+        "candidate.inc": "98c95d312c8d2edbe277d8b0884c7bbaaeef312fb291ba10d3ad0ab30eff38e4",
+        "candidate-decl.inc": "a0402345e5488d181d7e351e6fc0629153543825b0c49eb849806ed6edab674d",
+        "constants.inc": "f10eb60df36b67b206562ef7861cdad679decce1720790378a3baa2c9e7cc74c",
+        "trace.inc": "00869d71af232c13f564865571eefb3635ba7cf760d34f6f46d44263e11a595e",
+        "helper.inc": "02add21695e9fafc3ad0d31939e731eb81b9f7802ca4608c15f5ba3783b5a380",
+        "caller.inc": "f085f02ddde05dacd7cbd03dd43b81eaad597dde91d048d32187b25c60ce56ee",
+        "reshape.inc": "adf93c7b604ced89837e3cfb371cdc029e756950929d7d0a4838cf14ddf5cf8c",
+        "prepared-caller.inc": "5874c6184846111549367aa725f155a7895d31681907dde3f4d5a0d0434dbc7b",
+        "expert_lru.h": "406399391256fabde5770a9cee827dca3ad152337ca050e8210dcd552da0cdbd"
+      },
+      "fixture_sha256": "805f773ec787c69bbc3fe2908f0765c1446e8a3b79b5a7d48bf91968a8951fad",
+      "scope": "Actual FP/std::partial_sort method and unchanged ExpertLru. Tensor metadata/getWeight and reshape are stand-ins; exact production reshape/caller/trace/guard text is extracted. No DSP, I/O, full-model or timing proof.",
+      "runs": [
+        {
+          "mode": "1",
+          "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=1",
+          "returncode": 0
+        },
+        {
+          "mode": "0",
+          "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0",
+          "returncode": 0
+        },
+        {
+          "mode": "unset",
+          "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0",
+          "returncode": 0
+        },
+        {
+          "mode": "true",
+          "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0",
+          "returncode": 0
+        },
+        {
+          "mode": "trace-configured",
+          "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0",
+          "returncode": 0
+        },
+        {
+          "mode": "trace-opened",
+          "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0",
+          "returncode": 0
+        }
+      ],
+      "binary_sha256": "7bda0c1ba68d4ea60bee70e02a40882662aaf044b458a4ab188daddd980f458e"
+    },
+    "generic": {
+      "compile": [
+        "g++",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-DRECENCY_CHECK_GENERIC=1",
+        "-fno-fast-math",
+        "-ffp-contract=off",
+        "-std=c++17",
+        "-O2",
+        "-g",
+        "-pthread",
+        "-Wall",
+        "-Wextra",
+        "-Wno-unused-parameter",
+        "-Wno-unused-function",
+        "-fstack-usage",
+        "-I/tmp/nntr-lfm2-prefill-recency-20261017/checks/generic",
+        "/tmp/nntr-lfm2-prefill-recency-20261017/checks/generic/lfm2_prefill_recency_check.cpp",
+        "-o",
+        "/tmp/nntr-lfm2-prefill-recency-20261017/checks/generic/check"
+      ],
+      "extract_sha256": {
+        "baseline.inc": "5cf589c76eaf75652c1caa96f831e49778790e5fb2f3f2987672026be88aa2a1",
+        "baseline-decl.inc": "11955b17f47509240fe2740deb5696c470604a5be30c007324763707721c5600",
+        "candidate.inc": "98c95d312c8d2edbe277d8b0884c7bbaaeef312fb291ba10d3ad0ab30eff38e4",
+        "candidate-decl.inc": "a0402345e5488d181d7e351e6fc0629153543825b0c49eb849806ed6edab674d",
+        "constants.inc": "f10eb60df36b67b206562ef7861cdad679decce1720790378a3baa2c9e7cc74c",
+        "trace.inc": "00869d71af232c13f564865571eefb3635ba7cf760d34f6f46d44263e11a595e",
+        "helper.inc": "02add21695e9fafc3ad0d31939e731eb81b9f7802ca4608c15f5ba3783b5a380",
+        "caller.inc": "f085f02ddde05dacd7cbd03dd43b81eaad597dde91d048d32187b25c60ce56ee",
+        "reshape.inc": "adf93c7b604ced89837e3cfb371cdc029e756950929d7d0a4838cf14ddf5cf8c",
+        "prepared-caller.inc": "5874c6184846111549367aa725f155a7895d31681907dde3f4d5a0d0434dbc7b",
+        "expert_lru.h": "406399391256fabde5770a9cee827dca3ad152337ca050e8210dcd552da0cdbd"
+      },
+      "fixture_sha256": "805f773ec787c69bbc3fe2908f0765c1446e8a3b79b5a7d48bf91968a8951fad",
+      "scope": "Actual FP/std::partial_sort method and unchanged ExpertLru. Tensor metadata/getWeight and reshape are stand-ins; exact production reshape/caller/trace/guard text is extracted. No DSP, I/O, full-model or timing proof.",
+      "runs": [
+        {
+          "mode": "1",
+          "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0",
+          "returncode": 0
+        },
+        {
+          "mode": "0",
+          "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0",
+          "returncode": 0
+        },
+        {
+          "mode": "unset",
+          "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0",
+          "returncode": 0
+        },
+        {
+          "mode": "true",
+          "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0",
+          "returncode": 0
+        },
+        {
+          "mode": "trace-configured",
+          "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0",
+          "returncode": 0
+        },
+        {
+          "mode": "trace-opened",
+          "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0",
+          "returncode": 0
+        }
+      ],
+      "binary_sha256": "9bbec4f0c5b407e0af672b34311cd870dfc72d1e1863dd9452b81289bb652b40"
+    },
+    "native": {
+      "compile": [
+        "/home/jungone-lee/workspace/nntrainer/android-ndk-r30/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang++",
+        "-march=armv8.2-a+fp16+dotprod+i8mm",
+        "-static-libstdc++",
+        "-ffast-math",
+        "-std=c++17",
+        "-O3",
+        "-g",
+        "-pthread",
+        "-Wall",
+        "-Wextra",
+        "-Wno-unused-parameter",
+        "-Wno-unused-function",
+        "-fstack-usage",
+        "-I/tmp/nntr-lfm2-prefill-recency-20261017/checks/native",
+        "/tmp/nntr-lfm2-prefill-recency-20261017/checks/native/lfm2_prefill_recency_check.cpp",
+        "-o",
+        "/tmp/nntr-lfm2-prefill-recency-20261017/checks/native/check"
+      ],
+      "extract_sha256": {
+        "baseline.inc": "5cf589c76eaf75652c1caa96f831e49778790e5fb2f3f2987672026be88aa2a1",
+        "baseline-decl.inc": "11955b17f47509240fe2740deb5696c470604a5be30c007324763707721c5600",
+        "candidate.inc": "98c95d312c8d2edbe277d8b0884c7bbaaeef312fb291ba10d3ad0ab30eff38e4",
+        "candidate-decl.inc": "a0402345e5488d181d7e351e6fc0629153543825b0c49eb849806ed6edab674d",
+        "constants.inc": "f10eb60df36b67b206562ef7861cdad679decce1720790378a3baa2c9e7cc74c",
+        "trace.inc": "00869d71af232c13f564865571eefb3635ba7cf760d34f6f46d44263e11a595e",
+        "helper.inc": "02add21695e9fafc3ad0d31939e731eb81b9f7802ca4608c15f5ba3783b5a380",
+        "caller.inc": "f085f02ddde05dacd7cbd03dd43b81eaad597dde91d048d32187b25c60ce56ee",
+        "reshape.inc": "adf93c7b604ced89837e3cfb371cdc029e756950929d7d0a4838cf14ddf5cf8c",
+        "prepared-caller.inc": "5874c6184846111549367aa725f155a7895d31681907dde3f4d5a0d0434dbc7b",
+        "expert_lru.h": "406399391256fabde5770a9cee827dca3ad152337ca050e8210dcd552da0cdbd"
+      },
+      "fixture_sha256": "805f773ec787c69bbc3fe2908f0765c1446e8a3b79b5a7d48bf91968a8951fad",
+      "scope": "Actual FP/std::partial_sort method and unchanged ExpertLru. Tensor metadata/getWeight and reshape are stand-ins; exact production reshape/caller/trace/guard text is extracted. No DSP, I/O, full-model or timing proof.",
+      "runs": [],
+      "binary_sha256": "abf446746fe3a2d795d4057a75d6aaf4009d2e8eacc027310b61e5777c5286b6"
+    }
+  },
+  "whole_tu": [
+    {
+      "mode": "before",
+      "arch": "arm",
+      "object_sha256": "60776f2d0b05d60370972d1483d3eda997be2a1c6c0d099be4dd43a529347bbb"
+    },
+    {
+      "mode": "candidate",
+      "arch": "arm",
+      "object_sha256": "b4c189667bfee41b7ab700137cfbbd6633a83229b389c8f753e0ec12719cdbd8"
+    },
+    {
+      "mode": "candidate",
+      "arch": "android-x86",
+      "object_sha256": "d27ff4aabaace975b1e25b9550255c0b2954018416393306d4c529dc670e525a"
+    },
+    {
+      "mode": "candidate",
+      "arch": "linux-x86",
+      "object_sha256": "8be68d2cadda33c86c02b7af7f3b46f3b6178415a469060b6ef1c60ca80a19f0"
+    }
+  ],
+  "metadata": {
+    "clang_format_14_exact": true,
+    "frame_bytes": {
+      "incremental_before": 3008,
+      "incremental_candidate": 3008,
+      "assignments_before": 528,
+      "assignments_candidate": 544
+    },
+    "new_static_object_bytes": {
+      "enabled": 1,
+      "threadsafe_initialization_guard": 8
+    },
+    "normal_helper_inlined": true
+  },
+  "device_execution": "Parent only; own native command is build-only. Parent reports six native environments PASS in /tmp/nntr-lfm2-prefill-recency-root-20261017/root-native-results.json. No actual-model performance claim yet.",
+  "independent_review": "Reviewer reports six environments, 2880 real LRU transitions, six semantic mutants and four whole-TU compiles PASS; artifacts kept in separate reviewer output."
+}

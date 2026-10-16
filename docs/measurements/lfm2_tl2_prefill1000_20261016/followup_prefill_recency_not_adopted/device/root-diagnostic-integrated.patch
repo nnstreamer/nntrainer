@@ -1,0 +1,26 @@
+--- /tmp/nntr-lfm2-prefill-recency-root-20261017/normal/lfm2_moe_layer.cpp	2026-10-17 01:58:49.641083806 +0900
++++ /tmp/nntr-lfm2-prefill-recency-root-20261017/diagnostic/lfm2_moe_layer.cpp	2026-10-17 02:03:31.539251196 +0900
+@@ -1,3 +1,4 @@
++#define NNTR_LFM2_RECENCY_TRACE 1
+ // SPDX-License-Identifier: Apache-2.0
+ /**
+  * Copyright (C) 2026 Jungwon-Lee <jungone.lee@samsung.com>
+@@ -2084,6 +2085,18 @@
+         buildExpertAssignments(
+           router_logits, expert_bias, total_tokens, expert_assignments,
+           want_extra ? &extra_top_k : nullptr, compact_recency);
++#if defined(NNTR_LFM2_RECENCY_TRACE) && NNTR_LFM2_RECENCY_TRACE
++      if (from == 0 && input_.batch() == 1 && input_.channel() == 1 &&
++          (total_tokens == 1024 || total_tokens == 2048) &&
++          hidden_size == 2048 && experts_virtual && in_norm && !router_norm &&
++          !out_norm && !out_add && context.getNumInputs() == 1 &&
++          !softmax_router && !gelu_act && num_experts == 64 && topk == 4 &&
++          std::get<nntrainer::props::Unit>(moe_props).get() == 1536)
++        std::fprintf(
++          stderr, "[LFM-RECENCY] layer=%u M=%u raw=%u kept=%zu fast=%u !\n",
++          trace_layer, total_tokens, total_tokens * (topk + EXTRA_TOPK),
++          extra_top_k.size(), compact_recency ? 1u : 0u);
++#endif
+       if (std::FILE *tf = moeTrace()) {
+         std::fprintf(tf, "%u %u |", trace_layer, total_tokens);
+         for (unsigned int e = 0; e < num_experts; ++e)

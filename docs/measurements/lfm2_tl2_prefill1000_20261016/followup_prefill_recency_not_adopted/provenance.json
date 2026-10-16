@@ -1,0 +1,1478 @@
+[
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/.clang-format",
+    "archived": "author/.clang-format",
+    "sha256": "ef9673b8409e13bf100358f6b21ad7e08153edb2c36e2d404b109644871fbccf",
+    "bytes": 2616
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/README.txt",
+    "archived": "author/README.txt",
+    "sha256": "0474218f0cf61bf34d5c8918ef08256b7956004d108ddcaa301a3e2511d08b85",
+    "bytes": 8347
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/validation.json",
+    "archived": "author/validation.json",
+    "sha256": "fdaae833c92a6c4764af458567b1d9cd8b1c6069a4cb851a10338107ea311fe8",
+    "bytes": 13735
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/manifest.json",
+    "archived": "author/manifest.json",
+    "sha256": "f6e7619cfcc0e546794f633b75084492c3d59d1253a4a2a4b46d0718ca744ced",
+    "bytes": 724
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/frozen.json",
+    "archived": "author/frozen.json",
+    "sha256": "9a54fd28792ebf3db9dbfa880dec057410cc7d9f5f03add0f714403fceaa9b10",
+    "bytes": 437
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/production-hashes.json",
+    "archived": "author/production-hashes.json",
+    "sha256": "f369707b9704effdb1f2830969a7e5cb953bf261a61b7d1a41a7539bced902e0",
+    "bytes": 371
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/production.patch",
+    "archived": "author/production.patch",
+    "sha256": "1f130610bee92f91b5d8ca125c2dc661e42a89c4a5c6312e49c7748bba560f49",
+    "bytes": 6302
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/tests.patch",
+    "archived": "author/tests.patch",
+    "sha256": "30397390363ff7dc1e6fea28de969fbf9a3bf4081c172d83dbc7609628c4610d",
+    "bytes": 22546
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/before/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp",
+    "archived": "author/before/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp",
+    "sha256": "103b1e1df18efe8de8085f01167f29f2a4502178ac22e5c1aaab68dc38c036a8",
+    "bytes": 104946
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/before/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.h",
+    "archived": "author/before/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.h",
+    "sha256": "5af03853f7f2f942163d396e0d1a1a144abbc6066546cf9b13c15f40080ca305",
+    "bytes": 13911
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/before/Applications/CausalLM/models/lfm2_moe/expert_lru.h",
+    "archived": "author/before/Applications/CausalLM/models/lfm2_moe/expert_lru.h",
+    "sha256": "406399391256fabde5770a9cee827dca3ad152337ca050e8210dcd552da0cdbd",
+    "bytes": 11651
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/before/Applications/CausalLM/models/lfm2_moe/lfm2_router_arm.cpp",
+    "archived": "author/before/Applications/CausalLM/models/lfm2_moe/lfm2_router_arm.cpp",
+    "sha256": "d74cacb8b4c42ea701c37922ff773dff95804e92d0f38d84a09ce3d86000aa79",
+    "bytes": 3106
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/before/Applications/CausalLM/models/lfm2_moe/lfm2_router_arm.h",
+    "archived": "author/before/Applications/CausalLM/models/lfm2_moe/lfm2_router_arm.h",
+    "sha256": "5a79209dd974817dc20a7a13ee4e29b7b71c90fc2fb6e42dcafadda4a8794339",
+    "bytes": 915
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/candidate/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp",
+    "archived": "author/candidate/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp",
+    "sha256": "ac743dacb89bae9b3961452aedf7fdebe1b3f97a7e6c7d712ec23b6d7a2abbfa",
+    "bytes": 107969
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/candidate/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.h",
+    "archived": "author/candidate/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.h",
+    "sha256": "b6fb960d6dff9615e367e18460288f8ea44a62d754978a5ebe0bfdd4b6a0b0ad",
+    "bytes": 14167
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/candidate/Applications/CausalLM/models/lfm2_moe/expert_lru.h",
+    "archived": "author/candidate/Applications/CausalLM/models/lfm2_moe/expert_lru.h",
+    "sha256": "406399391256fabde5770a9cee827dca3ad152337ca050e8210dcd552da0cdbd",
+    "bytes": 11651
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/candidate/Applications/CausalLM/models/lfm2_moe/lfm2_router_arm.cpp",
+    "archived": "author/candidate/Applications/CausalLM/models/lfm2_moe/lfm2_router_arm.cpp",
+    "sha256": "d74cacb8b4c42ea701c37922ff773dff95804e92d0f38d84a09ce3d86000aa79",
+    "bytes": 3106
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/candidate/Applications/CausalLM/models/lfm2_moe/lfm2_router_arm.h",
+    "archived": "author/candidate/Applications/CausalLM/models/lfm2_moe/lfm2_router_arm.h",
+    "sha256": "5a79209dd974817dc20a7a13ee4e29b7b71c90fc2fb6e42dcafadda4a8794339",
+    "bytes": 915
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/candidate/test/htp/host/lfm2_prefill_recency_check.cpp",
+    "archived": "author/candidate/test/htp/host/lfm2_prefill_recency_check.cpp",
+    "sha256": "805f773ec787c69bbc3fe2908f0765c1446e8a3b79b5a7d48bf91968a8951fad",
+    "bytes": 15115
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/candidate/test/htp/host/run_lfm2_prefill_recency_check.py",
+    "archived": "author/candidate/test/htp/host/run_lfm2_prefill_recency_check.py",
+    "sha256": "f6d13a5ee77358082406f9108f4171806067a3de9247250e6d9ace878c0e3251",
+    "bytes": 6652
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/final-san/1.log",
+    "archived": "author/checks/final-san/1.log",
+    "sha256": "35d953c791eccc04a2c270d40ca36805eb2dbfcba52a32d90d423aef58bcb7cf",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/final-san/trace-configured.log",
+    "archived": "author/checks/final-san/trace-configured.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/final-san/commands.json",
+    "archived": "author/checks/final-san/commands.json",
+    "sha256": "474978a38664cb09634a7a2d7a2fbd68ad2b6fcd9112f5a59caf7277456d842d",
+    "bytes": 2814
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/final-san/unset.log",
+    "archived": "author/checks/final-san/unset.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/final-san/check-lfm2_prefill_recency_check.su",
+    "archived": "author/checks/final-san/check-lfm2_prefill_recency_check.su",
+    "sha256": "33efeaad711649945528b2e42e7d0881e3555ac1ed1c329c58046b99aa3502e8",
+    "bytes": 38583
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/final-san/0.log",
+    "archived": "author/checks/final-san/0.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/final-san/true.log",
+    "archived": "author/checks/final-san/true.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/final-san/trace-opened.log",
+    "archived": "author/checks/final-san/trace-opened.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/fast/1.log",
+    "archived": "author/checks/fast/1.log",
+    "sha256": "35d953c791eccc04a2c270d40ca36805eb2dbfcba52a32d90d423aef58bcb7cf",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/fast/trace-configured.log",
+    "archived": "author/checks/fast/trace-configured.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/fast/commands.json",
+    "archived": "author/checks/fast/commands.json",
+    "sha256": "1883176fe8304565fb8d9357665bb34148b6853c8552f285addb2cb5c653125b",
+    "bytes": 2704
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/fast/unset.log",
+    "archived": "author/checks/fast/unset.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/fast/check-lfm2_prefill_recency_check.su",
+    "archived": "author/checks/fast/check-lfm2_prefill_recency_check.su",
+    "sha256": "76e3c41cc202c44e6eccf615f1796f4a12d1b55ba1a744c161af191685c25466",
+    "bytes": 20838
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/fast/0.log",
+    "archived": "author/checks/fast/0.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/fast/true.log",
+    "archived": "author/checks/fast/true.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/fast/trace-opened.log",
+    "archived": "author/checks/fast/trace-opened.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/generic/1.log",
+    "archived": "author/checks/generic/1.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/generic/trace-configured.log",
+    "archived": "author/checks/generic/trace-configured.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/generic/commands.json",
+    "archived": "author/checks/generic/commands.json",
+    "sha256": "37232fdbd0f7aac74f94517ada61cad96a6d918ad2664ea8e21904e9841058dc",
+    "bytes": 2841
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/generic/unset.log",
+    "archived": "author/checks/generic/unset.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/generic/check-lfm2_prefill_recency_check.su",
+    "archived": "author/checks/generic/check-lfm2_prefill_recency_check.su",
+    "sha256": "effc182988c20a3cddedf5ad13f34ed0350778eacae136aed1a8e1e5f5633c80",
+    "bytes": 38134
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/generic/0.log",
+    "archived": "author/checks/generic/0.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/generic/true.log",
+    "archived": "author/checks/generic/true.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/generic/trace-opened.log",
+    "archived": "author/checks/generic/trace-opened.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/native/commands.json",
+    "archived": "author/checks/native/commands.json",
+    "sha256": "20065be380752219ee355a1e3085821fe39991a0f5406bc5456c4e3a5efc99e9",
+    "bytes": 2062
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/native/check.su",
+    "archived": "author/checks/native/check.su",
+    "sha256": "84326fb0ec490797b5cd828fb65427c1c7732c471dc82759cecba079d5519685",
+    "bytes": 26621
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/checks/host-san/1.log",
+    "archived": "author/history/initial-include-order-failure.log",
+    "sha256": "8c482a788fe68ce8d69aa1e50282ad13c8890f295b636d97f00196769ada2d7a",
+    "bytes": 46
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/codegen/summary.json",
+    "archived": "author/codegen/summary.json",
+    "sha256": "5fe852640e48c2ca0a036269bab8668816e7bd376ad6355da5a1d87274e4beda",
+    "bytes": 319
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/codegen/validation.json",
+    "archived": "author/codegen/validation.json",
+    "sha256": "72548a739b6364d8eb44154e0a1a05b1831b96c229f2a2ba9abcc2dbebe31524",
+    "bytes": 578
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/codegen/arm/before/command.json",
+    "archived": "author/codegen/arm/before/command.json",
+    "sha256": "fbf9e957402a2d3d5007efd8cd6ccf3804097cdc122e3f85ed731c5fc24335a1",
+    "bytes": 4883
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/codegen/arm/before/compile.log",
+    "archived": "author/codegen/arm/before/compile.log",
+    "sha256": "24bab5041b6e9bc991e2b0d424ccb0df42260bdeb018729b68c24471aac21824",
+    "bytes": 2492
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/codegen/arm/before/moe.su",
+    "archived": "author/codegen/arm/before/moe.su",
+    "sha256": "094f8bb778c366bd415ce311e59525ed2fe6cd998d2d9df95e30886793f0b3cb",
+    "bytes": 185717
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/codegen/arm/candidate/command.json",
+    "archived": "author/codegen/arm/candidate/command.json",
+    "sha256": "25fa46b90904d4673526f18ed08dba1315deff245169a9174e4bfcbb69d7ab1a",
+    "bytes": 4892
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/codegen/arm/candidate/compile.log",
+    "archived": "author/codegen/arm/candidate/compile.log",
+    "sha256": "8702f92e473610d605f76a7228732c449fa23c7f6c271d49c1054cb0cb9fa6a1",
+    "bytes": 2501
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/codegen/arm/candidate/moe.su",
+    "archived": "author/codegen/arm/candidate/moe.su",
+    "sha256": "d2e886ab9ca56670f9220efc220f739490c944433725405157e2318aeef33b1d",
+    "bytes": 185925
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/codegen/linux-x86/candidate/command.json",
+    "archived": "author/codegen/linux-x86/candidate/command.json",
+    "sha256": "34fe06229b1cd80cea00a2fa027be8762778271cf920769f47fac0b0a15f5fac",
+    "bytes": 4758
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/codegen/linux-x86/candidate/compile.log",
+    "archived": "author/codegen/linux-x86/candidate/compile.log",
+    "sha256": "0d71b4425c5abb81eb9987e4f5fe7d6810f91f4d41021138e3ba0342173aa823",
+    "bytes": 1296
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/codegen/android-x86/candidate/command.json",
+    "archived": "author/codegen/android-x86/candidate/command.json",
+    "sha256": "eae5ac2d9584c68ec13f3f669ecbf9ae119b63fd69369de8863350343f76eedf",
+    "bytes": 4773
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/codegen/android-x86/candidate/compile.log",
+    "archived": "author/codegen/android-x86/candidate/compile.log",
+    "sha256": "8702f92e473610d605f76a7228732c449fa23c7f6c271d49c1054cb0cb9fa6a1",
+    "bytes": 2501
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/diagnostic.patch",
+    "archived": "author/diagnostic/diagnostic.patch",
+    "sha256": "8b709c5601b980db4602c1fa236ec6669f9860fd4c671690a54fa0d05f897960",
+    "bytes": 1217
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/parse.py",
+    "archived": "author/diagnostic/parse.py",
+    "sha256": "d1cba687bbadd653b4fa9b17b50a49266099085c6dc5cd55525dec62f35fd254",
+    "bytes": 2797
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/check.py",
+    "archived": "author/diagnostic/check.py",
+    "sha256": "2b4f0d2170cbd4c2b4bcce4821a1c0d0638b9cc6cbaaf155f8db55eafd46dff3",
+    "bytes": 3975
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/source-hashes.json",
+    "archived": "author/diagnostic/source-hashes.json",
+    "sha256": "b9adf0ec929dc8bea4f833ca6f20217045b8c75088d06b62b643725a2ce0bc08",
+    "bytes": 317
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/manifest.json",
+    "archived": "author/diagnostic/manifest.json",
+    "sha256": "daaaf526e2d689c1f53973e594a6567c50bfbec86fcb790a2f8bb8ebd3dde29a",
+    "bytes": 531
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/codegen.json",
+    "archived": "author/diagnostic/codegen.json",
+    "sha256": "8ff3d2a228010608f4b4962c3c95e3b26b367c1360d6808a3062563f460f41f7",
+    "bytes": 495
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/compile.json",
+    "archived": "author/diagnostic/compile.json",
+    "sha256": "445c3d77b6f971dc477590bde1a565846ec87502f150e3a21bc58f6ec2c083f5",
+    "bytes": 233
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/marker.inc",
+    "archived": "author/diagnostic/marker.inc",
+    "sha256": "00385e5ea5351a54becdbabe5eb8ff2256d4406260d1ab89e640965e264a4593",
+    "bytes": 722
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/candidate/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp",
+    "archived": "author/diagnostic/candidate/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp",
+    "sha256": "78f67f3d9f2c03879d05e97a5d23e4b877fb39aac4bbc754465df8a4950231cc",
+    "bytes": 108691
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/candidate/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.h",
+    "archived": "author/diagnostic/candidate/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.h",
+    "sha256": "b6fb960d6dff9615e367e18460288f8ea44a62d754978a5ebe0bfdd4b6a0b0ad",
+    "bytes": 14167
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/candidate/Applications/CausalLM/models/lfm2_moe/lfm2_router_arm.h",
+    "archived": "author/diagnostic/candidate/Applications/CausalLM/models/lfm2_moe/lfm2_router_arm.h",
+    "sha256": "5a79209dd974817dc20a7a13ee4e29b7b71c90fc2fb6e42dcafadda4a8794339",
+    "bytes": 915
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/checks/1024-1.log",
+    "archived": "author/diagnostic/checks/1024-1.log",
+    "sha256": "31c88f319b9b30bb911fce935403a5bcf05204ccf18e52a2f23512694923153f",
+    "bytes": 2118
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/checks/1024-0.log",
+    "archived": "author/diagnostic/checks/1024-0.log",
+    "sha256": "cfbcf1ec4f23639abd6184e72864c636b8ec800b279c4d7e037578c35b968861",
+    "bytes": 2194
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/checks/marker.inc",
+    "archived": "author/diagnostic/checks/marker.inc",
+    "sha256": "00385e5ea5351a54becdbabe5eb8ff2256d4406260d1ab89e640965e264a4593",
+    "bytes": 722
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/checks/validation.json",
+    "archived": "author/diagnostic/checks/validation.json",
+    "sha256": "2eca144211ec79e1a79ea35ade9e12dd62b6a6dda5594e3787440d69171e79e8",
+    "bytes": 1759
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/checks/2048-0.log",
+    "archived": "author/diagnostic/checks/2048-0.log",
+    "sha256": "acbd87369c755a3e65b0cbcd20d2607a1c1bcb131430e62d36fca6ff4f6cd9f4",
+    "bytes": 2270
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/checks/2048-1.log",
+    "archived": "author/diagnostic/checks/2048-1.log",
+    "sha256": "59017c66b65b498638006895cb8e2fd4154b0ea098ca18db170fb4a5c37768f3",
+    "bytes": 2156
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/checks/marker.cpp",
+    "archived": "author/diagnostic/checks/marker.cpp",
+    "sha256": "b22fc92ae049f0a1d566155fced5a0a76c62d3c8eb3dad5b6d1a4d60c18ee8ae",
+    "bytes": 1169
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/compile-0/command.json",
+    "archived": "author/diagnostic/compile-0/command.json",
+    "sha256": "50b286b5025ce700e3c55a45eb698e82aa3edb4d516c694c157174ecbe94d6e7",
+    "bytes": 4948
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/compile-0/compile.log",
+    "archived": "author/diagnostic/compile-0/compile.log",
+    "sha256": "efabc94cff0aad35aa51b02bf31040551195e89d91eae84226aa88b994cceaf5",
+    "bytes": 2534
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/compile-0/moe.su",
+    "archived": "author/diagnostic/compile-0/moe.su",
+    "sha256": "a4de65f62dcea0f1a02c648372864c2c258ad72e553c687f86d245bb9653641b",
+    "bytes": 186108
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/compile-1/command.json",
+    "archived": "author/diagnostic/compile-1/command.json",
+    "sha256": "ff45036409ec00e4727bef6bae47a9ca0826cd1884270ab0d7c90c20c7599945",
+    "bytes": 4948
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/compile-1/compile.log",
+    "archived": "author/diagnostic/compile-1/compile.log",
+    "sha256": "efabc94cff0aad35aa51b02bf31040551195e89d91eae84226aa88b994cceaf5",
+    "bytes": 2534
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-20261017/diagnostic/compile-1/moe.su",
+    "archived": "author/diagnostic/compile-1/moe.su",
+    "sha256": "0246f90be93c7864bd0827a27d5bd2d0ec9fd86d3919232811eb8fdecb192ab4",
+    "bytes": 186108
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/review.txt",
+    "archived": "review/review.txt",
+    "sha256": "e47ab3a774de4dfb77e4ce9012a199249175a05d744a64463010324d8a817cac",
+    "bytes": 8831
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/validation.json",
+    "archived": "review/validation.json",
+    "sha256": "cc3d633df42c8b89b5699b8669eb8afc5601f3857dfb76dae737441acbe3d1a0",
+    "bytes": 4132
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/manifest.json",
+    "archived": "review/manifest.json",
+    "sha256": "74d4dd2582407e59bc6d7a48f3aa26ad0219af5cccf83728bc35107c0133cca4",
+    "bytes": 21136
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/source-audit.txt",
+    "archived": "review/source-audit.txt",
+    "sha256": "cdc94dff07dbf18ec4f50e2598083ee743a8ba34e63d9ef304d0dba7d4b6b488",
+    "bytes": 4454
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/initial-source-hashes.json",
+    "archived": "review/initial-source-hashes.json",
+    "sha256": "0223f02a1eedb908878ebe4f63ebabf370971534c527940ee23ce8a5c7eacf08",
+    "bytes": 582
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/lru_stress.cpp",
+    "archived": "review/lru_stress.cpp",
+    "sha256": "2ceb0ef652367c92e5915883deec49cf69492f61db6d85568d99263392f99721",
+    "bytes": 6465
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/run_lru_stress.py",
+    "archived": "review/run_lru_stress.py",
+    "sha256": "6df46a7dccdd4ce0aef2aa335471d1861160a4a0cba10a76759ca2ab382b6d2b",
+    "bytes": 2651
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/run_mutants.py",
+    "archived": "review/run_mutants.py",
+    "sha256": "9795112653ef6277510cce85ad17b53ee4d944cabbe794296a5335760306d9d5",
+    "bytes": 4282
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/final-host-san/1.log",
+    "archived": "review/final-host-san/1.log",
+    "sha256": "35d953c791eccc04a2c270d40ca36805eb2dbfcba52a32d90d423aef58bcb7cf",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/final-host-san/trace-configured.log",
+    "archived": "review/final-host-san/trace-configured.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/final-host-san/commands.json",
+    "archived": "review/final-host-san/commands.json",
+    "sha256": "fa077e22b16404e7fe242cfd69a041aa3146250866eb700aeeb9e32bd3bd5f21",
+    "bytes": 2829
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/final-host-san/unset.log",
+    "archived": "review/final-host-san/unset.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/final-host-san/check-lfm2_prefill_recency_check.su",
+    "archived": "review/final-host-san/check-lfm2_prefill_recency_check.su",
+    "sha256": "95a94e8d928ce5428e94b0254464e5c44058f7bb1868a7934986e6ede0221265",
+    "bytes": 38703
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/final-host-san/0.log",
+    "archived": "review/final-host-san/0.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/final-host-san/true.log",
+    "archived": "review/final-host-san/true.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/final-host-san/trace-opened.log",
+    "archived": "review/final-host-san/trace-opened.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/final-policy-san/run.log",
+    "archived": "review/final-policy-san/run.log",
+    "sha256": "d899672aeab187ac3c3415d1d22a2875bf1a73125ea4c1f96a29f97c6624360b",
+    "bytes": 56
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/final-policy-san/commands.json",
+    "archived": "review/final-policy-san/commands.json",
+    "sha256": "e539b9ba35e01295da7b536e0dcee2ad568c8f52f80096077fb1872833e2474c",
+    "bytes": 914
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/final-policy-san/build.log",
+    "archived": "review/final-policy-san/build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/mutants/results.json",
+    "archived": "review/mutants/results.json",
+    "sha256": "3f01151539efe1cbd8ec58d2f06597143a2778854d2be335d5aa19f6ffe39ac5",
+    "bytes": 12791
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/mutants/append/result.json",
+    "archived": "review/mutants/append/result.json",
+    "sha256": "7b3ca8d8287feff033578a21bc1648a75ea5baa96b0a35cb66a5cccbd7ffb26d",
+    "bytes": 2012
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/mutants/append/run.log",
+    "archived": "review/mutants/append/run.log",
+    "sha256": "b981e28efa299e3ff0889bc99d3b9acff57b2b571efcc72ec9eae87d8630d927",
+    "bytes": 53
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/mutants/append/build.log",
+    "archived": "review/mutants/append/build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/mutants/flattened_shape/result.json",
+    "archived": "review/mutants/flattened_shape/result.json",
+    "sha256": "05fbaece9368adaf920f653c8786dad38d99f9811f126cc3bea25f7cda2669c3",
+    "bytes": 2040
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/mutants/flattened_shape/run.log",
+    "archived": "review/mutants/flattened_shape/run.log",
+    "sha256": "8c482a788fe68ce8d69aa1e50282ad13c8890f295b636d97f00196769ada2d7a",
+    "bytes": 46
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/mutants/flattened_shape/build.log",
+    "archived": "review/mutants/flattened_shape/build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/mutants/trace_configured/result.json",
+    "archived": "review/mutants/trace_configured/result.json",
+    "sha256": "0d8f40a2efa08a47583507f871eea9b9737b450e108392967314ab603b4e4a16",
+    "bytes": 2042
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/mutants/trace_configured/run.log",
+    "archived": "review/mutants/trace_configured/run.log",
+    "sha256": "8c482a788fe68ce8d69aa1e50282ad13c8890f295b636d97f00196769ada2d7a",
+    "bytes": 46
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/mutants/trace_configured/build.log",
+    "archived": "review/mutants/trace_configured/build.log",
+    "sha256": "c1d66e04acc57d7f73319dfa156a42653bfd2524fe9fbe6e65a82c9d5e52aa8f",
+    "bytes": 632
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/mutants/first_order/result.json",
+    "archived": "review/mutants/first_order/result.json",
+    "sha256": "231bde8c2e1c09543c2a3b7f3f63513b4f2ae5090039861ccaec4b084ac2b47a",
+    "bytes": 2064
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/mutants/first_order/run.log",
+    "archived": "review/mutants/first_order/run.log",
+    "sha256": "b981e28efa299e3ff0889bc99d3b9acff57b2b571efcc72ec9eae87d8630d927",
+    "bytes": 53
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/mutants/first_order/build.log",
+    "archived": "review/mutants/first_order/build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/mutants/bit63/result.json",
+    "archived": "review/mutants/bit63/result.json",
+    "sha256": "2494af59279b0f8e1aab6c346aba4b4d96f38d48471dac0489fa9ef2904f677b",
+    "bytes": 2017
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/mutants/bit63/run.log",
+    "archived": "review/mutants/bit63/run.log",
+    "sha256": "97f72a3c9b976c13a06336fccb0394134f04156305d11a6e0f3bbb84f536045b",
+    "bytes": 159
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/mutants/bit63/build.log",
+    "archived": "review/mutants/bit63/build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/mutants/trace_opened/result.json",
+    "archived": "review/mutants/trace_opened/result.json",
+    "sha256": "ba64754345de5777172a29f42e89882e0ec446b58d85091aca5791a61be3b1e2",
+    "bytes": 2041
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/mutants/trace_opened/run.log",
+    "archived": "review/mutants/trace_opened/run.log",
+    "sha256": "8c482a788fe68ce8d69aa1e50282ad13c8890f295b636d97f00196769ada2d7a",
+    "bytes": 46
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/mutants/trace_opened/build.log",
+    "archived": "review/mutants/trace_opened/build.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/codegen/recency-symbols.txt",
+    "archived": "review/codegen/recency-symbols.txt",
+    "sha256": "253cf4d94543daa3b73d43bd80bbfc3d67bef122007ec6369d0e95861129e9d6",
+    "bytes": 609
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/codegen/results.json",
+    "archived": "review/codegen/results.json",
+    "sha256": "67452159eeaff5f43e768bb586701e1de3134faa990a2cc718b6abbb19f49bbd",
+    "bytes": 602
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/codegen/arm-before/command.json",
+    "archived": "review/codegen/arm-before/command.json",
+    "sha256": "b07370c6018c632cf53ad9e6f631c7068483c5890fe1b8053f73df2449665038",
+    "bytes": 4893
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/codegen/arm-before/build.log",
+    "archived": "review/codegen/arm-before/build.log",
+    "sha256": "24bab5041b6e9bc991e2b0d424ccb0df42260bdeb018729b68c24471aac21824",
+    "bytes": 2492
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/codegen/arm-before/output.su",
+    "archived": "review/codegen/arm-before/output.su",
+    "sha256": "094f8bb778c366bd415ce311e59525ed2fe6cd998d2d9df95e30886793f0b3cb",
+    "bytes": 185717
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/codegen/linux-x86-candidate/command.json",
+    "archived": "review/codegen/linux-x86-candidate/command.json",
+    "sha256": "2ab4987b8178aef00cf1a017381d1757ea392011e7348bc6c24ca956d6f84ee3",
+    "bytes": 4789
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/codegen/linux-x86-candidate/build.log",
+    "archived": "review/codegen/linux-x86-candidate/build.log",
+    "sha256": "0d71b4425c5abb81eb9987e4f5fe7d6810f91f4d41021138e3ba0342173aa823",
+    "bytes": 1296
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/codegen/linux-x86-candidate/output.su",
+    "archived": "review/codegen/linux-x86-candidate/output.su",
+    "sha256": "8dd24b44a3233e3c61ad663ad6777072e7518f09ddb7d2dfebf27a7f399a6baa",
+    "bytes": 146303
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/codegen/android-x86-candidate/command.json",
+    "archived": "review/codegen/android-x86-candidate/command.json",
+    "sha256": "3623b8f05dba3cdeca16dc2364e9505ce1a86068548a8f8c74f422fefbf78a6c",
+    "bytes": 4804
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/codegen/android-x86-candidate/build.log",
+    "archived": "review/codegen/android-x86-candidate/build.log",
+    "sha256": "8702f92e473610d605f76a7228732c449fa23c7f6c271d49c1054cb0cb9fa6a1",
+    "bytes": 2501
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/codegen/android-x86-candidate/output.su",
+    "archived": "review/codegen/android-x86-candidate/output.su",
+    "sha256": "1fc6e2f02c50f27700492cc558a4d7b03bdb49ec06490fa1e83f5ad4a789ed8c",
+    "bytes": 182463
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/codegen/arm-candidate/command.json",
+    "archived": "review/codegen/arm-candidate/command.json",
+    "sha256": "b147a9d382777592a1a9924359015d6310018ef276259b29f4904ff41def7b20",
+    "bytes": 4902
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/codegen/arm-candidate/build.log",
+    "archived": "review/codegen/arm-candidate/build.log",
+    "sha256": "8702f92e473610d605f76a7228732c449fa23c7f6c271d49c1054cb0cb9fa6a1",
+    "bytes": 2501
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-review-20261017/codegen/arm-candidate/output.su",
+    "archived": "review/codegen/arm-candidate/output.su",
+    "sha256": "d2e886ab9ca56670f9220efc220f739490c944433725405157e2318aeef33b1d",
+    "bytes": 185925
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/root-native-trace-opened.log",
+    "archived": "device/root-native-trace-opened.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/root-normal-restored.json",
+    "archived": "device/root-normal-restored.json",
+    "sha256": "a1df93908de2ccd6166c20042df30431ec39b1cbbcb64c69f710fe67974cd639",
+    "bytes": 2070
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/root-normal-runtime-identity.json",
+    "archived": "device/root-normal-runtime-identity.json",
+    "sha256": "a2c9297bf42bbd7dba0a6132a0e863c40f2b963bfddd8754694f5bec4463f76e",
+    "bytes": 818
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/root-native-results.json",
+    "archived": "device/root-native-results.json",
+    "sha256": "e2510cd833d4c71aea3b14e89fc177d768807a0ec4686d7d93a6c0d25d3103dc",
+    "bytes": 3635
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/root-native-trace-configured.log",
+    "archived": "device/root-native-trace-configured.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/root-native-1.log",
+    "archived": "device/root-native-1.log",
+    "sha256": "35d953c791eccc04a2c270d40ca36805eb2dbfcba52a32d90d423aef58bcb7cf",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/root-diagnostic-build.json",
+    "archived": "device/root-diagnostic-build.json",
+    "sha256": "3b2bfd8ebfbd7f31121b280ee06658ef0e8778a582c91b0dd7e1977b98910806",
+    "bytes": 368
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/root-diagnostic-integrated.patch",
+    "archived": "device/root-diagnostic-integrated.patch",
+    "sha256": "f6ece5c8a238ee1b552606e9052d53ae63186927a0d17ba5ea6d5ca335f9418e",
+    "bytes": 1474
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/root-native-0.log",
+    "archived": "device/root-native-0.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/root-diagnostic-2048.json",
+    "archived": "device/root-diagnostic-2048.json",
+    "sha256": "777e35cc8c80124c0e80ee03a78000945021041a0b140d37fd3d9558f853b882",
+    "bytes": 4401
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/root-normal-jobs.json",
+    "archived": "device/root-normal-jobs.json",
+    "sha256": "02317f8a01b12b2c818e77fc981125d8376686cf42927c887293d9083eb54bea",
+    "bytes": 5835
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/root-diagnostic-build.log",
+    "archived": "device/root-diagnostic-build.log",
+    "sha256": "7360c26c9d37836d885240c92c34294e4e47125ce44a5638df4c3e9d71a2fe42",
+    "bytes": 2750
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/root-native-unset.log",
+    "archived": "device/root-native-unset.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/root-accepted-control.json",
+    "archived": "device/root-accepted-control.json",
+    "sha256": "f6bbb0f1f50af01391a0c30f3ef8d39de90067e88f5e39ece2e5abc449bdba5e",
+    "bytes": 1153
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/root-normal-frozen.json",
+    "archived": "device/root-normal-frozen.json",
+    "sha256": "a70457a2a594cbe83a495da8ef0cfff66f2bb7ec96c4898f98f6525aa2683eb6",
+    "bytes": 470
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/root-diagnostic-1024.json",
+    "archived": "device/root-diagnostic-1024.json",
+    "sha256": "16babb42c18ddba480c71a237446daa22ebba90c1132c4e147f1a2d280dcf76f",
+    "bytes": 4363
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/root-normal-build.log",
+    "archived": "device/root-normal-build.log",
+    "sha256": "560e46b7a1f8fd2cf428ae43d5d51b8984668ae20d7265cfc2fda8e1226f578c",
+    "bytes": 24866
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/root-native-true.log",
+    "archived": "device/root-native-true.log",
+    "sha256": "151f1cb33b44e259aa6c358ffc754df38948e41f2a3ee289136bc4068631c7a9",
+    "bytes": 61
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/root-normal-summary.json",
+    "archived": "device/root-normal-summary.json",
+    "sha256": "e338c3612dc66aa6dccfa3ac8fc94683f976e4ea99011133c83a9b970457b96e",
+    "bytes": 6674
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/root-normal-build-command.json",
+    "archived": "device/root-normal-build-command.json",
+    "sha256": "e15c3436bf976282537e03ea2d39fb2cce964eb81c918eeb9988fcfc903ad1b8",
+    "bytes": 1146
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/root-diagnostic-jobs.json",
+    "archived": "device/root-diagnostic-jobs.json",
+    "sha256": "96e42066d5f2eea42741fdafa5a4a2aca7d6ec10b27ccba097bbb9b4ce8ce33f",
+    "bytes": 1239
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/root-accepted-restored-build.log",
+    "archived": "device/root-accepted-restored-build.log",
+    "sha256": "560e46b7a1f8fd2cf428ae43d5d51b8984668ae20d7265cfc2fda8e1226f578c",
+    "bytes": 24866
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/root-local-restored.json",
+    "archived": "device/root-local-restored.json",
+    "sha256": "cc13f456b5b0d548395b1f1c819e42066e32eb5b964cd6c72205f9103723750b",
+    "bytes": 1205
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/accepted-control/lfm2_moe_layer.cpp",
+    "archived": "device/accepted-control/lfm2_moe_layer.cpp",
+    "sha256": "103b1e1df18efe8de8085f01167f29f2a4502178ac22e5c1aaab68dc38c036a8",
+    "bytes": 104946
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/accepted-control/lfm2_moe_layer.h",
+    "archived": "device/accepted-control/lfm2_moe_layer.h",
+    "sha256": "5af03853f7f2f942163d396e0d1a1a144abbc6066546cf9b13c15f40080ca305",
+    "bytes": 13911
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/normal/lfm2_moe_layer.cpp",
+    "archived": "device/normal/lfm2_moe_layer.cpp",
+    "sha256": "ac743dacb89bae9b3961452aedf7fdebe1b3f97a7e6c7d712ec23b6d7a2abbfa",
+    "bytes": 107969
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/normal/lfm2_moe_layer.h",
+    "archived": "device/normal/lfm2_moe_layer.h",
+    "sha256": "b6fb960d6dff9615e367e18460288f8ea44a62d754978a5ebe0bfdd4b6a0b0ad",
+    "bytes": 14167
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/diagnostic/lfm2_moe_layer.cpp",
+    "archived": "device/diagnostic/lfm2_moe_layer.cpp",
+    "sha256": "40b15ad923dc8687c7846d7196fc98f2f990bf1a966b3aa16ae2ecc36a641cbd",
+    "bytes": 108725
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/diagnostic/lfm2_moe_layer.h",
+    "archived": "device/diagnostic/lfm2_moe_layer.h",
+    "sha256": "b6fb960d6dff9615e367e18460288f8ea44a62d754978a5ebe0bfdd4b6a0b0ad",
+    "bytes": 14167
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-0-r1.json",
+    "archived": "raw/normal/continue-prefill-recency-0-r1.json",
+    "sha256": "b087e63a5372daf37ae6e4f4053657a946da2bee04eccacb33adc874aa67e0ed",
+    "bytes": 6448
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-0-r1.log",
+    "archived": "raw/normal/continue-prefill-recency-0-r1.log",
+    "sha256": "4124f74b216d5b043c56f709ecbbc8fda3822b14d8e0f5ab601d4bf7a1c37d29",
+    "bytes": 11311
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-0-r1.memory.json",
+    "archived": "raw/normal/continue-prefill-recency-0-r1.memory.json",
+    "sha256": "f970be6b8ef4f6776848b8ad3c77cf933219798b692cb1517f92f406301be9fe",
+    "bytes": 249566
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-0-r1.ids",
+    "archived": "raw/normal/continue-prefill-recency-0-r1.ids",
+    "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+    "bytes": 324
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-1-r1.json",
+    "archived": "raw/normal/continue-prefill-recency-1-r1.json",
+    "sha256": "bfb2b243a68feaf791744bc51f1e4d5ad37fced8997eb4214af8a2835896ea83",
+    "bytes": 6448
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-1-r1.log",
+    "archived": "raw/normal/continue-prefill-recency-1-r1.log",
+    "sha256": "48e5b6fbd475fd17ab0d801e4e1bfb6b17fd4165843bfe43eb63e525e82ca1a6",
+    "bytes": 11309
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-1-r1.memory.json",
+    "archived": "raw/normal/continue-prefill-recency-1-r1.memory.json",
+    "sha256": "3d48c55c65c28147bedec491c1b52fe1ca3b43f38b4c7014b7a738039d6f78e9",
+    "bytes": 249573
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-1-r1.ids",
+    "archived": "raw/normal/continue-prefill-recency-1-r1.ids",
+    "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+    "bytes": 324
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-1-r2.json",
+    "archived": "raw/normal/continue-prefill-recency-1-r2.json",
+    "sha256": "e95863e86f3d846b7cb85c82c6701f1e589a7ea8f5e39a1b0779ebc278bcd752",
+    "bytes": 6448
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-1-r2.log",
+    "archived": "raw/normal/continue-prefill-recency-1-r2.log",
+    "sha256": "308dee32d0cb94ed57d9806b146f2900689928681fc4f3a4956177b819d660e5",
+    "bytes": 11311
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-1-r2.memory.json",
+    "archived": "raw/normal/continue-prefill-recency-1-r2.memory.json",
+    "sha256": "84c8a64b2f46e60b68dbfe07f4c34ba5c3c07855eedf8b372f277233ae119e81",
+    "bytes": 248706
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-1-r2.ids",
+    "archived": "raw/normal/continue-prefill-recency-1-r2.ids",
+    "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+    "bytes": 324
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-0-r2.json",
+    "archived": "raw/normal/continue-prefill-recency-0-r2.json",
+    "sha256": "65b35fc9502910f63b8ebb3fa71422d882df54ddb1b73f881b010d802a7479f2",
+    "bytes": 6448
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-0-r2.log",
+    "archived": "raw/normal/continue-prefill-recency-0-r2.log",
+    "sha256": "3ef78f1c94481f7fd04fbde7bd9f5042c9d0f8e448fae5aff338cda957649318",
+    "bytes": 11310
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-0-r2.memory.json",
+    "archived": "raw/normal/continue-prefill-recency-0-r2.memory.json",
+    "sha256": "c3d293d7186ec5afd455a5cab7fdc40c3239c9bb6badd85ffedb5e31cbca5214",
+    "bytes": 252915
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-0-r2.ids",
+    "archived": "raw/normal/continue-prefill-recency-0-r2.ids",
+    "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+    "bytes": 324
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-0-r3.json",
+    "archived": "raw/normal/continue-prefill-recency-0-r3.json",
+    "sha256": "0883e5b80e0d86d36491f2a7b50f9c6fd54996572de21b884ea3d4fabc994d52",
+    "bytes": 6447
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-0-r3.log",
+    "archived": "raw/normal/continue-prefill-recency-0-r3.log",
+    "sha256": "0362963d7694ebcc95b76fcf8588025d324e3e1fde8733078a51f80f8e62fba4",
+    "bytes": 11311
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-0-r3.memory.json",
+    "archived": "raw/normal/continue-prefill-recency-0-r3.memory.json",
+    "sha256": "d02a8af01ff49a1537591d40ab466a8440e9e04bd9ea112b15cd6680b94da076",
+    "bytes": 249485
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-0-r3.ids",
+    "archived": "raw/normal/continue-prefill-recency-0-r3.ids",
+    "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+    "bytes": 324
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-1-r3.json",
+    "archived": "raw/normal/continue-prefill-recency-1-r3.json",
+    "sha256": "5360a1b79e168ed802a669c9548847e3a906b0feb3e7772049e5a02caca9b8de",
+    "bytes": 6448
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-1-r3.log",
+    "archived": "raw/normal/continue-prefill-recency-1-r3.log",
+    "sha256": "5faae6e2c0bea18eaced3550c6081fa0b476972e164dad84dcf272a187d16bf3",
+    "bytes": 11309
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-1-r3.memory.json",
+    "archived": "raw/normal/continue-prefill-recency-1-r3.memory.json",
+    "sha256": "08ab37077b711c03a2ad59b1f4d5ef82d37856aacfa79d40a7b0a6eda49fc7f0",
+    "bytes": 252014
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-1-r3.ids",
+    "archived": "raw/normal/continue-prefill-recency-1-r3.ids",
+    "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+    "bytes": 324
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency2048-0-r1.json",
+    "archived": "raw/normal/continue-prefill-recency2048-0-r1.json",
+    "sha256": "cc24b2afdbb409a9b9b9fde1f7f537f2af592a5a66c3085890a8690db1878035",
+    "bytes": 6471
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency2048-0-r1.log",
+    "archived": "raw/normal/continue-prefill-recency2048-0-r1.log",
+    "sha256": "b6f58146c1c6db0786ec2ab89c78da5a4abe2c6c6bbf8f906ad80e608a43fc59",
+    "bytes": 17012
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency2048-0-r1.memory.json",
+    "archived": "raw/normal/continue-prefill-recency2048-0-r1.memory.json",
+    "sha256": "3a93480fe16cb07818923312539c128c3588affb688a24407ee87179570d213a",
+    "bytes": 307822
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency2048-0-r1.ids",
+    "archived": "raw/normal/continue-prefill-recency2048-0-r1.ids",
+    "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+    "bytes": 326
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency2048-1-r1.json",
+    "archived": "raw/normal/continue-prefill-recency2048-1-r1.json",
+    "sha256": "38a13cf56c3d2ac4ecf572580de33edf3a34bc158b3af7af3f1694950bb49de4",
+    "bytes": 6472
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency2048-1-r1.log",
+    "archived": "raw/normal/continue-prefill-recency2048-1-r1.log",
+    "sha256": "9c3e0c3c778afdf788f6697dd081b841992e6b41f502833ee1692bfa4f355edf",
+    "bytes": 17014
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency2048-1-r1.memory.json",
+    "archived": "raw/normal/continue-prefill-recency2048-1-r1.memory.json",
+    "sha256": "dadf93d3e4a48dac68ecf66ccbcf640d43ba42b17f86f06eec798f051e08183e",
+    "bytes": 311110
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency2048-1-r1.ids",
+    "archived": "raw/normal/continue-prefill-recency2048-1-r1.ids",
+    "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+    "bytes": 326
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency2048-1-r2.json",
+    "archived": "raw/normal/continue-prefill-recency2048-1-r2.json",
+    "sha256": "7100d85305ca2786d18afd925c44e1086da02a34905a218b743c63328f3ba209",
+    "bytes": 6472
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency2048-1-r2.log",
+    "archived": "raw/normal/continue-prefill-recency2048-1-r2.log",
+    "sha256": "9d321ca73f1e2162b1d830aab0c966097784d35508856cafc83b1306ce267efd",
+    "bytes": 17013
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency2048-1-r2.memory.json",
+    "archived": "raw/normal/continue-prefill-recency2048-1-r2.memory.json",
+    "sha256": "fe23cfd175f7950f9301a5ef73a8ff291d99f01a09137d7f5292f6baaec07caf",
+    "bytes": 305280
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency2048-1-r2.ids",
+    "archived": "raw/normal/continue-prefill-recency2048-1-r2.ids",
+    "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+    "bytes": 326
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency2048-0-r2.json",
+    "archived": "raw/normal/continue-prefill-recency2048-0-r2.json",
+    "sha256": "22bdd02a26ccc563809b5dd2a99c877b7530188087be62775638ff93569eabb9",
+    "bytes": 6472
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency2048-0-r2.log",
+    "archived": "raw/normal/continue-prefill-recency2048-0-r2.log",
+    "sha256": "43410c01a50a18919342796e2515c3580f46ca80b479e264b545afbca11ddd4d",
+    "bytes": 17012
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency2048-0-r2.memory.json",
+    "archived": "raw/normal/continue-prefill-recency2048-0-r2.memory.json",
+    "sha256": "433f46299581e92ff958eeb64606c8a784212d581e18aa3eea78e882dafeb824",
+    "bytes": 298605
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency2048-0-r2.ids",
+    "archived": "raw/normal/continue-prefill-recency2048-0-r2.ids",
+    "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+    "bytes": 326
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency2048-0-r3.json",
+    "archived": "raw/normal/continue-prefill-recency2048-0-r3.json",
+    "sha256": "8a78c147bc60d85f064271b07098fce0ea18c806485241199b024935eb0ca75f",
+    "bytes": 6471
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency2048-0-r3.log",
+    "archived": "raw/normal/continue-prefill-recency2048-0-r3.log",
+    "sha256": "29a3af99dd3f6dac272592dd5fcae4b56d46016a5e73dba6a4def89ee5c181a1",
+    "bytes": 17013
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency2048-0-r3.memory.json",
+    "archived": "raw/normal/continue-prefill-recency2048-0-r3.memory.json",
+    "sha256": "efe1424ef89aaab555aacfe9ad7486eb4fbd8e571232a1cbcd9d74c3e9abb8c5",
+    "bytes": 297788
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency2048-0-r3.ids",
+    "archived": "raw/normal/continue-prefill-recency2048-0-r3.ids",
+    "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+    "bytes": 326
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency2048-1-r3.json",
+    "archived": "raw/normal/continue-prefill-recency2048-1-r3.json",
+    "sha256": "455dc9e27d87dfa25548ffbe4f161f5ff0984e1cbf41d651fd6f53b868d62dd9",
+    "bytes": 6471
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency2048-1-r3.log",
+    "archived": "raw/normal/continue-prefill-recency2048-1-r3.log",
+    "sha256": "102fb1ce6ea5051beedb1351041fa3f95bf3b7677e62ef7770b73b0ae5d135e2",
+    "bytes": 17014
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency2048-1-r3.memory.json",
+    "archived": "raw/normal/continue-prefill-recency2048-1-r3.memory.json",
+    "sha256": "45998f7ce4bfba0d54416fbec2f1f1210b717532c343f8f3af607ebdb5fecfe1",
+    "bytes": 323633
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency2048-1-r3.ids",
+    "archived": "raw/normal/continue-prefill-recency2048-1-r3.ids",
+    "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+    "bytes": 326
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-diagnostic1024.json",
+    "archived": "raw/diagnostic/continue-prefill-recency-diagnostic1024.json",
+    "sha256": "21669f746944ed86de1e4afb8cdd882fdc1f0329927ecb0254f23fccc97092a6",
+    "bytes": 6740
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-diagnostic1024.log",
+    "archived": "raw/diagnostic/continue-prefill-recency-diagnostic1024.log",
+    "sha256": "0dc97a265ce40e6929a8211b5dcad99f6ba3f7e25a4f23d38c819e16975fc705",
+    "bytes": 786329
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-diagnostic1024.memory.json",
+    "archived": "raw/diagnostic/continue-prefill-recency-diagnostic1024.memory.json",
+    "sha256": "31ed91aa33f6754777cf22803ba512421a263114f4c0ef60619b84dccf21fd62",
+    "bytes": 251165
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-diagnostic1024.ids",
+    "archived": "raw/diagnostic/continue-prefill-recency-diagnostic1024.ids",
+    "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+    "bytes": 324
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-diagnostic2048.json",
+    "archived": "raw/diagnostic/continue-prefill-recency-diagnostic2048.json",
+    "sha256": "5dee72228ee3dc65261bb47e1ac98c1c00f01acb7a5572cf156688ef6e357e8e",
+    "bytes": 6748
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-diagnostic2048.log",
+    "archived": "raw/diagnostic/continue-prefill-recency-diagnostic2048.log",
+    "sha256": "7c56ff2dd5174a629f5b49ba18d787945fd31ae421171c1f81d60ddddbcecd52",
+    "bytes": 791489
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-diagnostic2048.memory.json",
+    "archived": "raw/diagnostic/continue-prefill-recency-diagnostic2048.memory.json",
+    "sha256": "b4fd11cabdb9d7b0499f3702478997deb639f4a4ccbb3cd7f02628f909ffe745",
+    "bytes": 305323
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-prefill-recency-diagnostic2048.ids",
+    "archived": "raw/diagnostic/continue-prefill-recency-diagnostic2048.ids",
+    "sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+    "bytes": 326
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/lfm-prefill-recency-0-artifacts.json",
+    "archived": "device/lfm-prefill-recency-0-artifacts.json",
+    "sha256": "d593e7ec63acdbf36d8e59031d78ece030e853028059f5fa2e06a705a47e1991",
+    "bytes": 849
+  },
+  {
+    "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/lfm-prefill-recency-0.source.patch",
+    "archived": "device/lfm-prefill-recency-0.source.patch",
+    "sha256": "e0d30bb95daaedbc9c7e75727d761f566e1d975081474c8cfc32903aa226ad5d",
+    "bytes": 6947
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/lfm-prefill-recency-1-artifacts.json",
+    "archived": "device/lfm-prefill-recency-1-artifacts.json",
+    "sha256": "d593e7ec63acdbf36d8e59031d78ece030e853028059f5fa2e06a705a47e1991",
+    "bytes": 849
+  },
+  {
+    "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/lfm-prefill-recency-1.source.patch",
+    "archived": "device/lfm-prefill-recency-1.source.patch",
+    "sha256": "e0d30bb95daaedbc9c7e75727d761f566e1d975081474c8cfc32903aa226ad5d",
+    "bytes": 6947
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/lfm-prefill-recency-diagnostic-artifacts.json",
+    "archived": "device/lfm-prefill-recency-diagnostic-artifacts.json",
+    "sha256": "a9123294434dad6a614d929787bb4a0f2ff17ebc9cfa33d279e5051f0c41d77f",
+    "bytes": 854
+  },
+  {
+    "source": "/tmp/nntr-lfm2-tl2-prefill1000-20261016/lfm-prefill-recency-diagnostic.source.patch",
+    "archived": "device/lfm-prefill-recency-diagnostic.source.patch",
+    "sha256": "9c200243b02dc413c2cca6c3873c61e121f6c746bd0c523237fc9c808cfdb8bf",
+    "bytes": 7839
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-queue-audit-20261017/README.txt",
+    "archived": "queue/README.txt",
+    "sha256": "25ac4b26b367cd007a9c3caf5866d08931ffc60a417ec22aa07f57134f6875ce",
+    "bytes": 14168
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-queue-audit-20261017/analyze_matched.py",
+    "archived": "queue/analyze_matched.py",
+    "sha256": "82e8b8b2289106fe16a5b041c4edc2a568d82f6edba8966fdc86054bbc79bd0c",
+    "bytes": 6616
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-queue-audit-20261017/analyze_existing.py",
+    "archived": "queue/analyze_existing.py",
+    "sha256": "954cf891b27464c5fc18cc5cc3460461f9e242cf1f00bb167558402265c1d217",
+    "bytes": 4506
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-queue-audit-20261017/manifest.json",
+    "archived": "queue/manifest.json",
+    "sha256": "9a638e3cf470e652ae7103ab10dacfdaf061af5675e7211bdf96490751beae3e",
+    "bytes": 560
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-queue-audit-20261017/existing-evidence.json",
+    "archived": "queue/existing-evidence.json",
+    "sha256": "68400d32f9f0a70e565feeb46751c65099199cb3bb273e9d15a9a0e5155cbbe8",
+    "bytes": 33521
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-queue-audit-20261017/matched-0-summary.json",
+    "archived": "queue/matched-0-summary.json",
+    "sha256": "204b1ff582cf0c2adeb9ca59d5ae48142a5c95c06cda58f09c57af6cb1c5059a",
+    "bytes": 62239
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-queue-audit-20261017/matched-1-summary.json",
+    "archived": "queue/matched-1-summary.json",
+    "sha256": "7fddbd009f3b107a65f61d531d43ba961221b5d7f83333a8a03644af75bc10f6",
+    "bytes": 63666
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-io1024-0.log",
+    "archived": "queue/repo/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-io1024-0.log",
+    "sha256": "eeb8a139a4ad9457e200bf6647e97dfa87881f395ed9f58c32c74a2e8b15a576",
+    "bytes": 1169966
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-io1024-0.json",
+    "archived": "queue/repo/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-io1024-0.json",
+    "sha256": "844446b301709949b35534ae70629eb59e59ed9a7167cdeb0096aa87a9c683d2",
+    "bytes": 6595
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-io1024-0.memory.json",
+    "archived": "queue/repo/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-io1024-0.memory.json",
+    "sha256": "8e5e19c69017295be944627b304e4af024574bdab97b0f2fce9289cec10477ea",
+    "bytes": 248845
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-io1024-0.ids",
+    "archived": "queue/repo/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-io1024-0.ids",
+    "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+    "bytes": 324
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-io1024-1.log",
+    "archived": "queue/repo/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-io1024-1.log",
+    "sha256": "39308cdd0fb120b8156269cb38c2902bfd7367e746218bb5f253540d5a0d1bc7",
+    "bytes": 1171432
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-io1024-1.json",
+    "archived": "queue/repo/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-io1024-1.json",
+    "sha256": "4eb97d001975372ac1cd89e51dca7a30900dd710e063b194b0c5bd2053b8122c",
+    "bytes": 6595
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-io1024-1.memory.json",
+    "archived": "queue/repo/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-io1024-1.memory.json",
+    "sha256": "897da2a6add0f6e9dbcba27b1367b0143e6d6fd5e93c300168fb81b948d03b88",
+    "bytes": 252122
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-io1024-1.ids",
+    "archived": "queue/repo/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-router-arm-io1024-1.ids",
+    "sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+    "bytes": 324
+  },
+  {
+    "source": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/validation/analyze_prefill_io.py",
+    "archived": "queue/repo/docs/measurements/lfm2_tl2_prefill1000_20261016/validation/analyze_prefill_io.py",
+    "sha256": "1636936f986b0293ea38b3ad9aa3e34e83d6696a9c723401ee1df3a9fde8c089",
+    "bytes": 7895
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/queue-review/root-check.log",
+    "archived": "queue/root-readback/root-check.log",
+    "sha256": "da9905f7a636cee63453352b1ee1bd2e41f9ea9506450bed9eef91443737a7dc",
+    "bytes": 1660
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/queue-review/matched-0-summary.json",
+    "archived": "queue/root-readback/matched-0-summary.json",
+    "sha256": "204b1ff582cf0c2adeb9ca59d5ae48142a5c95c06cda58f09c57af6cb1c5059a",
+    "bytes": 62239
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/queue-review/matched-1-summary.json",
+    "archived": "queue/root-readback/matched-1-summary.json",
+    "sha256": "7fddbd009f3b107a65f61d531d43ba961221b5d7f83333a8a03644af75bc10f6",
+    "bytes": 63666
+  },
+  {
+    "source": "/tmp/nntr-lfm2-prefill-recency-root-20261017/root-thermal-observations.json",
+    "archived": "device/root-thermal-observations.json",
+    "sha256": "d95b210f5db528b7226ec30151635267b4da26ab8c54f2023044229116a6c22c",
+    "bytes": 27303
+  }
+]

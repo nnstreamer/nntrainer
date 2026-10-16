@@ -1,0 +1,70 @@
+{
+  "compile": [
+    "g++",
+    "-fsanitize=address,undefined",
+    "-fno-omit-frame-pointer",
+    "-fno-fast-math",
+    "-ffp-contract=off",
+    "-std=c++17",
+    "-O2",
+    "-g",
+    "-pthread",
+    "-Wall",
+    "-Wextra",
+    "-Wno-unused-parameter",
+    "-Wno-unused-function",
+    "-fstack-usage",
+    "-I/tmp/nntr-lfm2-prefill-recency-review-20261017/final-host-san",
+    "/tmp/nntr-lfm2-prefill-recency-review-20261017/final-host-san/lfm2_prefill_recency_check.cpp",
+    "-o",
+    "/tmp/nntr-lfm2-prefill-recency-review-20261017/final-host-san/check"
+  ],
+  "extract_sha256": {
+    "baseline.inc": "5cf589c76eaf75652c1caa96f831e49778790e5fb2f3f2987672026be88aa2a1",
+    "baseline-decl.inc": "11955b17f47509240fe2740deb5696c470604a5be30c007324763707721c5600",
+    "candidate.inc": "98c95d312c8d2edbe277d8b0884c7bbaaeef312fb291ba10d3ad0ab30eff38e4",
+    "candidate-decl.inc": "a0402345e5488d181d7e351e6fc0629153543825b0c49eb849806ed6edab674d",
+    "constants.inc": "f10eb60df36b67b206562ef7861cdad679decce1720790378a3baa2c9e7cc74c",
+    "trace.inc": "00869d71af232c13f564865571eefb3635ba7cf760d34f6f46d44263e11a595e",
+    "helper.inc": "02add21695e9fafc3ad0d31939e731eb81b9f7802ca4608c15f5ba3783b5a380",
+    "caller.inc": "f085f02ddde05dacd7cbd03dd43b81eaad597dde91d048d32187b25c60ce56ee",
+    "reshape.inc": "adf93c7b604ced89837e3cfb371cdc029e756950929d7d0a4838cf14ddf5cf8c",
+    "prepared-caller.inc": "5874c6184846111549367aa725f155a7895d31681907dde3f4d5a0d0434dbc7b",
+    "expert_lru.h": "406399391256fabde5770a9cee827dca3ad152337ca050e8210dcd552da0cdbd"
+  },
+  "fixture_sha256": "805f773ec787c69bbc3fe2908f0765c1446e8a3b79b5a7d48bf91968a8951fad",
+  "scope": "Actual FP/std::partial_sort method and unchanged ExpertLru. Tensor metadata/getWeight and reshape are stand-ins; exact production reshape/caller/trace/guard text is extracted. No DSP, I/O, full-model or timing proof.",
+  "runs": [
+    {
+      "mode": "1",
+      "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=1",
+      "returncode": 0
+    },
+    {
+      "mode": "0",
+      "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0",
+      "returncode": 0
+    },
+    {
+      "mode": "unset",
+      "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0",
+      "returncode": 0
+    },
+    {
+      "mode": "true",
+      "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0",
+      "returncode": 0
+    },
+    {
+      "mode": "trace-configured",
+      "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0",
+      "returncode": 0
+    },
+    {
+      "mode": "trace-opened",
+      "output": "PASS numeric=49 guards=162 real_lru=72 observers=2 enabled=0",
+      "returncode": 0
+    }
+  ],
+  "binary_sha256": "c9a962b89557dbe33bd3999bdee26f69bf07674ece79ac65ae98cf0455cce000"
+}

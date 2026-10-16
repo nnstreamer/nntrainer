@@ -1,0 +1,22 @@
+[
+  {
+    "name": "arm-before",
+    "returncode": 0,
+    "object_sha256": "60776f2d0b05d60370972d1483d3eda997be2a1c6c0d099be4dd43a529347bbb"
+  },
+  {
+    "name": "arm-candidate",
+    "returncode": 0,
+    "object_sha256": "b4c189667bfee41b7ab700137cfbbd6633a83229b389c8f753e0ec12719cdbd8"
+  },
+  {
+    "name": "android-x86-candidate",
+    "returncode": 0,
+    "object_sha256": "d27ff4aabaace975b1e25b9550255c0b2954018416393306d4c529dc670e525a"
+  },
+  {
+    "name": "linux-x86-candidate",
+    "returncode": 0,
+    "object_sha256": "8be68d2cadda33c86c02b7af7f3b46f3b6178415a469060b6ef1c60ca80a19f0"
+  }
+]

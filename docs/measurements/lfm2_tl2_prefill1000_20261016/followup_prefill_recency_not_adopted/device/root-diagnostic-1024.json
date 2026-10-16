@@ -1,0 +1,279 @@
+{
+  "layers": 38,
+  "rows": 1024,
+  "enabled": 1,
+  "fast_calls": 38,
+  "raw_entries": 350208,
+  "kept_entries": 2405,
+  "eliminated_entries": 347803,
+  "records": [
+    {
+      "layer": 0,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 62,
+      "fast": 1
+    },
+    {
+      "layer": 1,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 2,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 3,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 4,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 5,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 6,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 7,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 8,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 60,
+      "fast": 1
+    },
+    {
+      "layer": 9,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 10,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 11,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 12,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 62,
+      "fast": 1
+    },
+    {
+      "layer": 13,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 63,
+      "fast": 1
+    },
+    {
+      "layer": 14,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 15,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 16,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 59,
+      "fast": 1
+    },
+    {
+      "layer": 17,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 63,
+      "fast": 1
+    },
+    {
+      "layer": 18,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 19,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 20,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 61,
+      "fast": 1
+    },
+    {
+      "layer": 21,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 22,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 62,
+      "fast": 1
+    },
+    {
+      "layer": 23,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 63,
+      "fast": 1
+    },
+    {
+      "layer": 24,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 25,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 26,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 27,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 63,
+      "fast": 1
+    },
+    {
+      "layer": 28,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 29,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 63,
+      "fast": 1
+    },
+    {
+      "layer": 30,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 31,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 62,
+      "fast": 1
+    },
+    {
+      "layer": 32,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 33,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 34,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 35,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 36,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 64,
+      "fast": 1
+    },
+    {
+      "layer": 37,
+      "rows": 1024,
+      "raw": 9216,
+      "kept": 62,
+      "fast": 1
+    }
+  ],
+  "scope": "One process stderr is required; PID identity is not encoded or checked. Counts are not a time or TPS measurement.",
+  "log_sha256": "0dc97a265ce40e6929a8211b5dcad99f6ba3f7e25a4f23d38c819e16975fc705"
+}

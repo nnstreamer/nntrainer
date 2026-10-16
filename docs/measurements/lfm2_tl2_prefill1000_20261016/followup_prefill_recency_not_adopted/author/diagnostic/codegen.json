@@ -1,0 +1,17 @@
+{
+  "off_instructions_exact": true,
+  "objects": [
+    {
+      "object": "codegen/arm/candidate/moe.o",
+      "asm_sha256": "89114689921b61bf23b99e913373c48a4d79b85357b59c43a0901af4243a8ab7"
+    },
+    {
+      "object": "diagnostic/compile-0/moe.o",
+      "asm_sha256": "89114689921b61bf23b99e913373c48a4d79b85357b59c43a0901af4243a8ab7"
+    },
+    {
+      "object": "diagnostic/compile-1/moe.o",
+      "asm_sha256": "ae863ec90f2ce9d67a2b83c11b283d8587557b83f20940b154570022fe72bef9"
+    }
+  ]
+}

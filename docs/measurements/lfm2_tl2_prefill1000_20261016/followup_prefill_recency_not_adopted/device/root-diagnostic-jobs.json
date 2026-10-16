@@ -1,0 +1,44 @@
+[
+  {
+    "variant": "lfm-prefill-recency-diagnostic",
+    "tag": "continue-prefill-recency-diagnostic1024",
+    "model": "model",
+    "profile": true,
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_ARM": 1,
+      "NNTR_LFM2_COMPACT_PREFILL_RECENCY": 1,
+      "NNTR_M0_PROFILE": 1
+    },
+    "require_log": [
+      "[LFM-RECENCY] layer=37 M=1024"
+    ]
+  },
+  {
+    "variant": "lfm-prefill-recency-diagnostic",
+    "tag": "continue-prefill-recency-diagnostic2048",
+    "model": "model2048",
+    "profile": true,
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_ARM": 1,
+      "NNTR_LFM2_COMPACT_PREFILL_RECENCY": 1,
+      "NNTR_M0_PROFILE": 1
+    },
+    "require_log": [
+      "[LFM-RECENCY] layer=37 M=2048"
+    ]
+  }
+]

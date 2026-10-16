@@ -1,0 +1,201 @@
+{
+  "decision": "not_adopted",
+  "reason": "No consistent whole-model prefill benefit; 2048 variability is large and causality unresolved.",
+  "normal_runs": 12,
+  "diagnostic_runs": 2,
+  "all_65_ids_exact": true,
+  "normal": [
+    {
+      "tokens": 1024,
+      "prefill_tps": {
+        "control": [
+          831.169,
+          830.495,
+          835.918
+        ],
+        "candidate": [
+          861.228,
+          849.088,
+          803.768
+        ],
+        "median_control": 831.169,
+        "median_candidate": 849.088,
+        "median_pct": 2.1558792495870227,
+        "pairs_faster": 2,
+        "paired_deltas_pct": [
+          3.6164727029039723,
+          2.238785302741131,
+          -3.8460710261054243
+        ]
+      },
+      "decode_tps": {
+        "control": [
+          17.5535,
+          17.2414,
+          17.7138
+        ],
+        "candidate": [
+          17.6893,
+          17.6649,
+          17.6406
+        ],
+        "median_control": 17.5535,
+        "median_candidate": 17.6649,
+        "median_pct": 0.6346312701170698,
+        "pairs_faster": 2,
+        "paired_deltas_pct": [
+          0.7736348876292487,
+          2.4562970524435457,
+          -0.41323713714730426
+        ]
+      },
+      "control_max_peak_kib": 2724044.0,
+      "candidate_max_peak_kib": 2714292.0
+    },
+    {
+      "tokens": 2048,
+      "prefill_tps": {
+        "control": [
+          822.49,
+          954.779,
+          977.099
+        ],
+        "candidate": [
+          833.876,
+          868.901,
+          799.688
+        ],
+        "median_control": 954.779,
+        "median_candidate": 833.876,
+        "median_pct": -12.66293037446362,
+        "pairs_faster": 1,
+        "paired_deltas_pct": [
+          1.3843329402181137,
+          -8.994542192486431,
+          -18.156911428626987
+        ]
+      },
+      "decode_tps": {
+        "control": [
+          16.8288,
+          16.5631,
+          16.3016
+        ],
+        "candidate": [
+          16.6104,
+          16.8111,
+          16.0441
+        ],
+        "median_control": 16.5631,
+        "median_candidate": 16.6104,
+        "median_pct": 0.2855745603178139,
+        "pairs_faster": 1,
+        "paired_deltas_pct": [
+          -1.2977752424415456,
+          1.497304248600817,
+          -1.5795995485105796
+        ]
+      },
+      "control_max_peak_kib": 3019488.0,
+      "candidate_max_peak_kib": 3018544.0
+    }
+  ],
+  "diagnostic_counts": [
+    {
+      "layers": 38,
+      "rows": 1024,
+      "enabled": 1,
+      "fast_calls": 38,
+      "raw_entries": 350208,
+      "kept_entries": 2405,
+      "eliminated_entries": 347803,
+      "scope": "One process stderr is required; PID identity is not encoded or checked. Counts are not a time or TPS measurement."
+    },
+    {
+      "layers": 38,
+      "rows": 2048,
+      "enabled": 1,
+      "fast_calls": 38,
+      "raw_entries": 700416,
+      "kept_entries": 2416,
+      "eliminated_entries": 698000,
+      "scope": "One process stderr is required; PID identity is not encoded or checked. Counts are not a time or TPS measurement."
+    }
+  ],
+  "diagnostic_tps_used_for_performance": false,
+  "queue_profile": [
+    {
+      "batches": 65,
+      "experts": 2304,
+      "direct_calls": 2304,
+      "requested_bytes": 4656726016,
+      "read_window_ms": 1178.197,
+      "service_ms": 7063.616,
+      "io_ms": 6752.897,
+      "copy_ms": 268.326,
+      "other_read_ms": 42.393,
+      "exposed_wait_ms": 28.807,
+      "register_ms": 1.652,
+      "excluded_warmup_calls": 102,
+      "traced_compute_calls": 120,
+      "traced_moe_calls": 38,
+      "queue_reconstruction": {
+        "definite_starvation_us": 0,
+        "definite_starvation_intervals": [],
+        "some_job_definitely_still_in_deque_us": 1172454,
+        "some_job_definitely_still_in_deque_fraction": 0.9951256029339746,
+        "read_body_capacity_utilization": 0.9992126387466048,
+        "read_window_minus_service_div_six_ms": 0.9276666666664823,
+        "interpretation": "No timing claim outside this recorded read window. Busy intervals cover read function bodies including pread wait/copy, not CPU utilization. Unstarted count includes at most six claimed jobs. Existing trace has no explicit held/free-slot timestamp."
+      }
+    },
+    {
+      "batches": 65,
+      "experts": 2304,
+      "direct_calls": 2304,
+      "requested_bytes": 4656726016,
+      "read_window_ms": 1179.362,
+      "service_ms": 7064.392,
+      "io_ms": 6730.627,
+      "copy_ms": 288.874,
+      "other_read_ms": 44.891,
+      "exposed_wait_ms": 42.162,
+      "register_ms": 1.938,
+      "excluded_warmup_calls": 102,
+      "traced_compute_calls": 120,
+      "traced_moe_calls": 38,
+      "queue_reconstruction": {
+        "definite_starvation_us": 0,
+        "definite_starvation_intervals": [],
+        "some_job_definitely_still_in_deque_us": 1172761,
+        "some_job_definitely_still_in_deque_fraction": 0.9944029059779779,
+        "read_body_capacity_utilization": 0.9983352581028273,
+        "read_window_minus_service_div_six_ms": 1.9633333333333667,
+        "interpretation": "No timing claim outside this recorded read window. Busy intervals cover read function bodies including pread wait/copy, not CPU utilization. Unstarted count includes at most six claimed jobs. Existing trace has no explicit held/free-slot timestamp."
+      }
+    }
+  ],
+  "queue_payload_identical": true,
+  "memory_scope": "Sampled whole child lifetime RssAnon + deduplicated fdinfo allocation sizes. Not total device physical memory; unreported DSP/driver/VTCM and between-sample spikes excluded.",
+  "native_environments": 6,
+  "independent_policy_transitions": 2880,
+  "thermal_observations": {
+    "normal_runs": 12,
+    "endpoint_snapshots": 24,
+    "thermal_status_zero_snapshots": 24,
+    "cached_skin_values": [
+      37.9
+    ],
+    "hal_skin_range": [
+      30.8,
+      39.3
+    ],
+    "proves_absence_of_dvfs_or_throttling": false,
+    "discarded_runs": 0,
+    "causality": "unresolved"
+  },
+  "independent_mutants": 6,
+  "local_and_phone_accepted_runtime_restored": true,
+  "source_and_deployment_patch_replay": true,
+  "scope": "Archive readback only: no tests, model, compilation, SDK or phone rerun."
+}

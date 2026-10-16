@@ -1,0 +1,141 @@
+Independent review of first-seen prefill recency materialization
+2026-10-17; /root/gemma_prefill_port
+
+Verdict: no unresolved blocker in frozen production 1f130610. The candidate
+preserves routing results and the existing final LRU/LRFU policy, including
+aliased Weight keys. It is suitable for the parent's isolated opt-in device
+evaluation. This is not a throughput or whole-model dispatch claim.
+
+Reviewed production and tests
+Production patch: 1f130610bee92f91b5d8ca125c2dc661e42a89c4a5c6312e49c7748bba560f49
+CPP: ac743dacb89bae9b3961452aedf7fdebe1b3f97a7e6c7d712ec23b6d7a2abbfa
+Header: b6fb960d6dff9615e367e18460288f8ea44a62d754978a5ebe0bfdd4b6a0b0ad
+Tests patch: 30397390363ff7dc1e6fea28de969fbf9a3bf4081c172d83dbc7609628c4610d
+Fixture: 805f773ec787c69bbc3fe2908f0765c1446e8a3b79b5a7d48bf91968a8951fad
+Runner: f6d13a5ee77358082406f9108f4171806067a3de9247250e6d9ace878c0e3251
+The source copies, commands, logs and extracted code hashes are in this review
+directory. No root/source-author file, device, cache setting or commit was
+modified by this review. The separate compile-time diagnostic is outside this
+production verdict.
+
+What changes, and what remains the same
+The actual incremental caller passes the opt-in only for ARM+HTP, first-block
+batch-one native TL2 LFM, sigmoid/SiLU, top4/E64, hidden2048/inter1536, folded
+input norm, one input and no router norm/output norm/output add. The helper
+checks the already-flattened rows [M,1,1,2048], M1024/2048, FP32/NCHW/contiguous,
+the actual nonnull HTP ops pointer and all 64 GU plus 64 DN metadata shapes and
+TL2 types. Unsupported shapes and Gemma remain on the original path.
+
+The new private method argument defaults false. Null extra output, E other
+than 64, and a nonempty incoming hint preserve the old append behavior. The
+mask shifts only IDs initialized as 0..63 in the existing scored array. Every
+row still computes the identical sigmoid, bias, partial_sort prefix9, top4
+normalization and token/weight assignments, including after all 64 bits are
+seen. The extraction runner proves the per-row FP/selection source body is
+byte-identical, and the actual method executes against the same STL/libm in
+the parity fixture. Only materialization of the unused duplicate hint IDs is
+changed. The downstream full-vector reverse, Weight-key conversion and single
+ExpertLru::refresh call are unchanged.
+
+Policy proof, aliases and observers
+Let S be the original token-major, rank-major ID stream and U preserve each
+ID's first occurrence in S. refresh visits reverse(S) and moves each resident
+key to the list back, so its last touch wins. The resulting order is governed
+by FIRST occurrences in S. The nearby old comment about the last token does
+not describe this actual operation; this candidate preserves the operation.
+
+For a key k shared by multiple expert IDs, its first position in S is the
+minimum first position of those IDs. That position survives in U, so relative
+first-key order is also preserved under aliasing. Reverse(U) therefore has
+the same effective last touches as reverse(S). Nonresident keys can be
+discarded from either stream, and untouched residents keep their prior order.
+
+Keys are addresses of Tensor objects returned by getWeight, not data pointers.
+The context lookup and Var_Grad::getVariableRef return the existing object;
+there is no deduplication by tensor storage. Distinct Tensor objects sharing
+data stay distinct, while repeated indices or shared Tensor objects are
+covered by the alias proof.
+
+The actual generic ExpertLru header is byte-identical. refresh holds one mutex
+for the entire key sequence. Its touch operations change only the list and
+stored iterators, not score_, clock_, held_, capacity_ or layers_. Equal final
+order therefore also preserves future LRFU ties and eviction behavior under
+the same subsequent operations. order/resident/size/room/acquire/makeRoom/
+hold/unhold/reset use the same mutex; intermediate duplicate splices are not
+observable through these methods. No callback, iterator, new per-key locking
+or resident-query race is introduced. Tests do not constitute a TSAN proof;
+the lock-scope conclusion is a source proof supplemented by real observers.
+
+Tracing and fallback boundaries
+An exact cached env value NNTR_LFM2_COMPACT_PREFILL_RECENCY=1 is required.
+Both a nonempty NNTR_MOE_TRACE request and an already-open moeTrace() FILE
+disable compaction. This covers a failed fopen and an open file whose env was
+subsequently unset. Normal forwarding and assignmentsFromRoute are unchanged.
+The helper and actual caller are compiled out outside ARM+ENABLE_HEXKL; the
+portable method's default path remains generic. This is a semantic guard,
+not proof of zero fallback timing overhead or unchanged Gemma throughput.
+Windows was source-reviewed for the guards, not independently built here.
+
+Independent executions on the final frozen inputs
+1. Actual assignment/guard/reshape/caller extracts and unchanged ExpertLru:
+   ASan+UBSan with halt_on_error and leak detection, no sanitizer suppression.
+   Six environments (1, 0, unset, true, trace-configured, trace-opened) each
+   passed 49 numerical, 162 guard, 72 real-LRU and 2 observer cases. The fixture
+   includes exact FP32 bits, ties/special values, bit63, full/late/incomplete
+   masks, actual flattened caller order and append/null compatibility.
+   Tensor metadata/getWeight/reshape are stand-ins; the source statements and
+   full assignment method are extracted rather than reimplemented.
+
+2. A separate reviewer-owned stress harness executes the actual before/after
+   append blocks and unchanged ExpertLru: 12 streams and 2,880 state-transition
+   cases passed ASan+UBSan. It varies key aliases, capacities0/1/4/16/64,
+   LRU/LRFU half-lives0/1/32/1000, other-layer residents, uneven acquire scores,
+   held slots, pinning and subsequent makeRoom/acquire/eviction/load sequences.
+
+3. Six deliberate mutations of the actual extracted code were all rejected
+   by the intended assertion or UBSan check: reversed unique-ID order, a
+   32-bit mask shift, missing nonempty-append guard, missing configured-trace
+   guard, missing open-FILE guard, and the wrong flattened row shape. Each
+   mutant compiled; compile failures were not counted as successful detection.
+
+4. The full app translation unit compiled independently for Android AArch64
+   before and candidate, Android x86 Clang candidate and Linux x86 GCC
+   candidate. The ARM commands use the app's -O3/-ffast-math flags. The new
+   header is the actual candidate header. Build commands, logs, object hashes
+   and stack-usage outputs are recorded in codegen/.
+
+Cost and capacity
+No activation or expert buffer, persistent data cache, reader, C setting,
+preload, layout, LRU capacity or score state is added or changed. The two
+existing temporary hint vectors shrink logically from 9*M IDs and pointers
+to at most 64 each. On AArch64 this is 36/72 KiB of IDs and 72/144 KiB of
+pointers at M1024/2048 versus at most 256+512 bytes, before allocator growth.
+These are logical element counts, not measured peak-memory savings.
+
+There is one local uint64_t mask. The independently compiled ARM assignment
+frame is 528 -> 544 bytes (+16), while incremental_forwarding stays 3,008
+bytes. llvm-nm reports a 1-byte cached opt-in boolean and its 8-byte static
+initialization guard; segment alignment may add padding. The metadata guard
+reads 128 existing weight descriptors and the hint still performs prefix9
+selection for every row. No speedup follows from these counts alone.
+
+Resolved during review
+The first draft tested [1,1,M,H] after the production caller had already
+reshaped to [M,1,1,H], so it could never qualify. The frozen guard is corrected.
+The source-based fixture now preserves reshape-before-caller order in one
+include, validates reshape element count and synchronizes its observer after
+the first actual snapshot. Both trace-state exclusions are present. These
+were corrected before the frozen hashes reviewed above.
+
+Reproduction (all outputs are isolated)
+D=/tmp/nntr-lfm2-prefill-recency-20261017
+O=/tmp/nntr-lfm2-prefill-recency-review-20261017
+python3 -B "$D/candidate/test/htp/host/run_lfm2_prefill_recency_check.py" --source "$D/candidate" --reference "$D/before" --output "$O/replay-actual" --sanitize
+python3 -B "$O/run_lru_stress.py" --source "$D/candidate" --reference "$D/before" --output "$O/replay-policy" --sanitize
+python3 -B "$O/run_mutants.py" --source "$D/candidate" --reference "$D/before" --output "$O/replay-mutants"
+python3 -B "$O/recompile.py"
+
+Hardware numeric fixtures, actual 38-call model dispatch, all dumped token
+IDs, same-handle prompts, full peak-memory measurements and balanced normal
+device A/B remain the parent's responsibility. No device action was taken
+in this review, and no result here establishes a TPS gain or the target TPS.

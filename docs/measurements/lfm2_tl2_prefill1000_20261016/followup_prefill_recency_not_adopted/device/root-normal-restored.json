@@ -1,0 +1,30 @@
+{
+  "sources": {
+    "lfm2_moe_layer.cpp": "103b1e1df18efe8de8085f01167f29f2a4502178ac22e5c1aaab68dc38c036a8",
+    "lfm2_moe_layer.h": "5af03853f7f2f942163d396e0d1a1a144abbc6066546cf9b13c15f40080ca305"
+  },
+  "binaries": {
+    "builddir/jni/arm64-v8a/libnntrainer.so": "072b5ca2700aaf10fb5b38ebd244d54691efd7ba96bf0dd699fd907bc6e42c09",
+    "builddir/jni/arm64-v8a/libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+    "builddir/jni/arm64-v8a/libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+    "builddir/jni/arm64-v8a/libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+    "builddir_app/htp/libcausallm.so": "c34aa784141ce3c3d8cda2d8ccfd12ed759757284ee916ee4fac7f75f6197c05",
+    "builddir_app/htp/nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76",
+    "test/htp/build/libnntr_hvx_skel.so": "3baddb92d14d1d23fe9b6c6a7cacfe3a6cd4708001c110bb8b15e1b0b7276f7c"
+  },
+  "restoration": "Full Android app rebuild after writing original accepted source bytes; original accepted DSP 3b untouched",
+  "phone_verification": {
+    "variant": "lfm-router-arm-1",
+    "binaries": {
+      "libnntrainer.so": "072b5ca2700aaf10fb5b38ebd244d54691efd7ba96bf0dd699fd907bc6e42c09",
+      "libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+      "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+      "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+      "libcausallm.so": "c34aa784141ce3c3d8cda2d8ccfd12ed759757284ee916ee4fac7f75f6197c05",
+      "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76",
+      "libnntr_hvx_skel.so": "3baddb92d14d1d23fe9b6c6a7cacfe3a6cd4708001c110bb8b15e1b0b7276f7c"
+    },
+    "verified_after_both_diagnostics": true
+  },
+  "diagnostic_deployment_patch_replay": "PASS exact actual diagnostic source/header reconstructed from recorded base and integrated deploy patch"
+}

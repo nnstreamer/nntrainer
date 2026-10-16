@@ -1,0 +1,27 @@
+{
+  "sources": {
+    "candidate": "ac743dacb89bae9b3961452aedf7fdebe1b3f97a7e6c7d712ec23b6d7a2abbfa",
+    "reference": "103b1e1df18efe8de8085f01167f29f2a4502178ac22e5c1aaab68dc38c036a8"
+  },
+  "extracts": {
+    "candidate": "a79962217953d734c5acf7c85696cd67aeffa7865de595bafd7c1ca42ffeba52",
+    "reference": "c038d0a6f259482c6a26cba47b69dddaa062621dbaf146f25cd65cead53da226"
+  },
+  "command": [
+    "g++",
+    "-std=c++17",
+    "-O1",
+    "-g",
+    "-pthread",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-I/tmp/nntr-lfm2-prefill-recency-review-20261017/final-policy-san",
+    "-fsanitize=address,undefined",
+    "-fno-omit-frame-pointer",
+    "/tmp/nntr-lfm2-prefill-recency-review-20261017/final-policy-san/lru_stress.cpp",
+    "-o",
+    "/tmp/nntr-lfm2-prefill-recency-review-20261017/final-policy-san/check"
+  ],
+  "expert_lru_sha256": "406399391256fabde5770a9cee827dca3ad152337ca050e8210dcd552da0cdbd"
+}

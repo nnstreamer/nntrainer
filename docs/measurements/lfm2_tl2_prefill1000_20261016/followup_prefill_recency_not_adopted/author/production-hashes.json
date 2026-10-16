@@ -1,0 +1,5 @@
+{
+  "production.patch": "1f130610bee92f91b5d8ca125c2dc661e42a89c4a5c6312e49c7748bba560f49",
+  "candidate/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp": "ac743dacb89bae9b3961452aedf7fdebe1b3f97a7e6c7d712ec23b6d7a2abbfa",
+  "candidate/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.h": "b6fb960d6dff9615e367e18460288f8ea44a62d754978a5ebe0bfdd4b6a0b0ad"
+}

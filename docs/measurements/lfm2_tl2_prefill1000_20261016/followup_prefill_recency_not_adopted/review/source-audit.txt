@@ -1,0 +1,69 @@
+Independent initial audit: first-occurrence prefill recency materialization
+2026-10-17. Read-only root/source review; no device or production edits.
+
+Current baseline, before the candidate arrives
+initial-source-hashes.json identifies the exact files read. The assignment
+method computes the same sigmoid, biased score, partial_sort prefix9 and top4
+FP32 weights for every row. extra_top_k is token-major/rank-major, then the
+entire vector is reversed at the end of tryMoeLayerOnAccelerator. ExpertLru
+refresh holds one mutex over all keys, finds resident keys and splices each to
+the list back. Its last occurrence of a key wins. Therefore its current final
+order is governed by FIRST occurrences in the original token-major list, not
+the last token, despite a nearby explanatory comment. This review requires
+preserving that actual policy rather than correcting the comment's intent.
+
+Semantic proof, including aliased Weight keys
+Let S be the forward ID stream, f map an ID to &context.getWeight(gu_index[id]),
+and U preserve each ID's first occurrence in S. For any Weight key k, the first
+position of k in f(S) is the minimum first position of all IDs mapping to k.
+That position survives in U. Thus relative first-key order in f(U) equals that
+in f(S), even when distinct IDs alias the same Tensor object. Reversing either
+stream makes these first occurrences the last touches, in the same order.
+Skipping nonresident keys does not change this argument. Untouched resident
+keys stay in their previous relative order. Keeping first occurrences in the
+already-reversed stream instead would be a different policy and is forbidden.
+
+RunLayerContext::getWeight is a reference lookup into the existing weights
+vector. Model Tensor identity stays stable during forwarding. Different Tensor
+objects sharing data are still different ExpertLru keys, exactly as before;
+dedup must be by expert ID, not data pointer or storage alias.
+
+Observation and LRFU
+refresh's touch changes only order_ and the corresponding pos_ iterator. It
+does not modify score_, clock_, held_, capacity_ or layers_. Consequently equal
+final key order also preserves LRFU score ties and future eviction order after
+the same subsequent acquire calls. Public order/resident/size/acquire/makeRoom/
+hold/unhold/reset/refresh take the same mutex. Intermediate redundant touches
+are not a supported observable state. No private iterator escapes. capacity()
+and the initialization-only setLrfu() do not inspect intermediate list order.
+The candidate must retain a single refresh invocation and its unchanged mutex
+scope. It must not insert independently locking resident queries while compacting.
+
+Other consumers and guards
+extra_top_k also feeds NNTR_MOE_TRACE. A nonempty configured trace path must
+disable compaction even if fopen fails; moeTrace()==nullptr alone is not enough
+to preserve the requested full trace contract. Preserve full materialization
+when a trace FILE is already open. In normal incremental forwarding the vector
+starts empty; its only consumers are the route trace and final LRU hint. The
+ordinary forwarding route passes nullptr/default and must remain unchanged.
+Gemma's accelerated softmax assignmentsFromRoute must not be changed.
+
+The proposed opt-in must require exact native LFM prefill dimensions and policy,
+all128 GU/DN TL2 metadata, top4/E64, M1024/2048, and ARM+HTP. A mask shift must
+only see IDs0..63; bit63, an initially empty mask, all64-seen early/late/never,
+and repeated first IDs are required tests. Sorting prefix9 and FP arithmetic
+must remain unchanged even after all64 IDs were seen. The helper's append
+contract must not silently clear an incoming nonempty extra vector.
+
+Cost and scope
+The original outputs contain9*M ints and the reverse key vector9*M pointers.
+The candidate can use the same vectors with at most64 additional IDs and one
+call-local uint64 mask; no persistent cache/buffer or slot capacity is needed.
+On AArch64 the logical element storage upper bounds are36/72 KiB of ID bytes
+and72/144 KiB of pointer bytes at M1024/2048, before allocator growth. Compact
+materialization is at most256 ID bytes plus512 pointer bytes. These are counts,
+not measured peak memory or an end-to-end speed estimate. Baseline vector
+capacity can exceed its size; actual frames/codegen remain to be checked.
+
+Awaiting frozen production patch and actual-source fixtures. This initial
+document is not a final candidate correctness/build verdict.

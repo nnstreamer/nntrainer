@@ -1,0 +1,136 @@
+{
+  "verdict": "no_unresolved_blocker",
+  "date": "2026-10-17",
+  "production_and_test_sha256": {
+    "production.patch": "1f130610bee92f91b5d8ca125c2dc661e42a89c4a5c6312e49c7748bba560f49",
+    "tests.patch": "30397390363ff7dc1e6fea28de969fbf9a3bf4081c172d83dbc7609628c4610d",
+    "candidate/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp": "ac743dacb89bae9b3961452aedf7fdebe1b3f97a7e6c7d712ec23b6d7a2abbfa",
+    "candidate/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.h": "b6fb960d6dff9615e367e18460288f8ea44a62d754978a5ebe0bfdd4b6a0b0ad",
+    "candidate/test/htp/host/lfm2_prefill_recency_check.cpp": "805f773ec787c69bbc3fe2908f0765c1446e8a3b79b5a7d48bf91968a8951fad",
+    "candidate/test/htp/host/run_lfm2_prefill_recency_check.py": "f6d13a5ee77358082406f9108f4171806067a3de9247250e6d9ace878c0e3251"
+  },
+  "independent_actual_fixture": {
+    "environments": [
+      "1",
+      "0",
+      "unset",
+      "true",
+      "trace-configured",
+      "trace-opened"
+    ],
+    "per_environment": {
+      "numeric": 49,
+      "guards": 162,
+      "real_lru": 72,
+      "observers": 2
+    },
+    "sanitizers": [
+      "address",
+      "undefined"
+    ],
+    "suppressions": [],
+    "details": "final-host-san/commands.json"
+  },
+  "independent_policy_stress": {
+    "streams": 12,
+    "state_transition_cases": 2880,
+    "sanitizers": [
+      "address",
+      "undefined"
+    ],
+    "details": "final-policy-san/commands.json"
+  },
+  "independent_mutants": [
+    {
+      "name": "first_order",
+      "intended": "hint first-occurrence/append semantics changed",
+      "compiled": true,
+      "returncode": 1,
+      "intended_detection": true
+    },
+    {
+      "name": "bit63",
+      "intended": "shift exponent",
+      "compiled": true,
+      "returncode": 1,
+      "intended_detection": true
+    },
+    {
+      "name": "append",
+      "intended": "hint first-occurrence/append semantics changed",
+      "compiled": true,
+      "returncode": 1,
+      "intended_detection": true
+    },
+    {
+      "name": "trace_configured",
+      "intended": "actual flattened caller never qualified",
+      "compiled": true,
+      "returncode": 1,
+      "intended_detection": true
+    },
+    {
+      "name": "trace_opened",
+      "intended": "actual flattened caller never qualified",
+      "compiled": true,
+      "returncode": 1,
+      "intended_detection": true
+    },
+    {
+      "name": "flattened_shape",
+      "intended": "actual flattened caller never qualified",
+      "compiled": true,
+      "returncode": 1,
+      "intended_detection": true
+    }
+  ],
+  "independent_full_tu_builds": [
+    {
+      "name": "arm-before",
+      "returncode": 0,
+      "object_sha256": "60776f2d0b05d60370972d1483d3eda997be2a1c6c0d099be4dd43a529347bbb"
+    },
+    {
+      "name": "arm-candidate",
+      "returncode": 0,
+      "object_sha256": "b4c189667bfee41b7ab700137cfbbd6633a83229b389c8f753e0ec12719cdbd8"
+    },
+    {
+      "name": "android-x86-candidate",
+      "returncode": 0,
+      "object_sha256": "d27ff4aabaace975b1e25b9550255c0b2954018416393306d4c529dc670e525a"
+    },
+    {
+      "name": "linux-x86-candidate",
+      "returncode": 0,
+      "object_sha256": "8be68d2cadda33c86c02b7af7f3b46f3b6178415a469060b6ef1c60ca80a19f0"
+    }
+  ],
+  "arm_frames_bytes": {
+    "assignments_before": 528,
+    "assignments_candidate": 544,
+    "incremental_before": 3008,
+    "incremental_candidate": 3008
+  },
+  "arm_symbols_bytes": {
+    "enabled": 1,
+    "enabled_initialization_guard": 8,
+    "caveat": "Segment alignment may add padding."
+  },
+  "limits": [
+    "No root or device action",
+    "Tensor metadata stand-ins in actual helper fixture",
+    "No TSAN execution",
+    "No Windows full build",
+    "No whole-model dispatch or TPS claim",
+    "Separate diagnostic not included in production verdict"
+  ],
+  "resolved_findings": [
+    "Flattened [M,1,1,2048] caller shape",
+    "Reshape-before-caller extraction order",
+    "Reshape element count",
+    "Observer first snapshot handshake",
+    "Configured and already-open trace exclusions"
+  ],
+  "review_sha256": "e47ab3a774de4dfb77e4ce9012a199249175a05d744a64463010324d8a817cac"
+}

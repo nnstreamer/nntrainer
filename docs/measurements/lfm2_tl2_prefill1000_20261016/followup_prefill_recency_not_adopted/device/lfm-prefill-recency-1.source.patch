@@ -1,0 +1,141 @@
+diff --git a/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp b/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp
+index e4e1f78fe..0d0058539 100644
+--- a/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp
++++ b/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp
+@@ -598,11 +598,46 @@ void Lfm2MoELayer::glu(unsigned int n, float *dst, const float *gate,
+     dst[j] = geglu_det_one(gate[j], up[j]);
+ }
+ 
++#if defined(__aarch64__) && defined(ENABLE_HEXKL)
++/** Compact only the normal native LFM prefill hint. The full trace continues
++ * to contain every token's ranked prefix; no generic LRU policy is changed. */
++static bool
++lfmCompactPrefillRecency(const nntrainer::Tensor &rows,
++                         nntrainer::RunLayerContext &context,
++                         const std::vector<unsigned int> &gate_up_indices,
++                         const std::vector<unsigned int> &down_indices) {
++  static const bool enabled = [] {
++    const char *value = std::getenv("NNTR_LFM2_COMPACT_PREFILL_RECENCY");
++    return value != nullptr && std::strcmp(value, "1") == 0;
++  }();
++  const char *trace = std::getenv("NNTR_MOE_TRACE");
++  if (!enabled || (trace && *trace) || moeTrace() != nullptr ||
++      (rows.batch() != 1024 && rows.batch() != 2048) || rows.channel() != 1 ||
++      rows.height() != 1 || rows.width() != 2048 ||
++      rows.getDataType() != nntrainer::Tdatatype::FP32 ||
++      rows.getFormat() != nntrainer::Tformat::NCHW || !rows.getContiguous() ||
++      rows.getOps() != nntrainer::get_htp_ops() || rows.getOps() == nullptr ||
++      gate_up_indices.size() != 64 || down_indices.size() != 64)
++    return false;
++  for (size_t e = 0; e < 64; ++e) {
++    const auto &gu = context.getWeight(gate_up_indices[e]);
++    const auto &dn = context.getWeight(down_indices[e]);
++    if (gu.getDataType() != nntrainer::Tdatatype::TL2CX_WH ||
++        dn.getDataType() != nntrainer::Tdatatype::TL2CX_WH || gu.batch() != 1 ||
++        gu.channel() != 1 || dn.batch() != 1 || dn.channel() != 1 ||
++        gu.height() != 2048 || gu.width() != 3072 || dn.height() != 1536 ||
++        dn.width() != 2048)
++      return false;
++  }
++  return true;
++}
++#endif
++
+ void Lfm2MoELayer::buildExpertAssignments(
+   const nntrainer::Tensor &router_logits, const nntrainer::Tensor &expert_bias,
+   unsigned int total_tokens,
+   std::vector<std::vector<std::pair<unsigned, float>>> &expert_assignments,
+-  std::vector<int> *extra_top_k) {
++  std::vector<int> *extra_top_k, bool compact_recency) {
+ 
+   const float *logits = router_logits.getData<float>();
+   const float *bias = expert_bias.getData<float>();
+@@ -615,6 +650,11 @@ void Lfm2MoELayer::buildExpertAssignments(
+   // Reusable scratch buffers (per token).
+   std::vector<float> sig(num_experts);
+   std::vector<std::pair<float, int>> scored(num_experts);
++  compact_recency =
++    compact_recency && num_experts == 64 && extra_top_k && extra_top_k->empty();
++  uint64_t seen = 0;
++  if (compact_recency)
++    extra_top_k->reserve(num_experts);
+ 
+   for (unsigned int i = 0; i < total_tokens; ++i) {
+     const float *lrow = logits + static_cast<size_t>(i) * num_experts;
+@@ -662,8 +702,23 @@ void Lfm2MoELayer::buildExpertAssignments(
+       expert_assignments[expert_idx].emplace_back(i, weight);
+     }
+     if (extra_top_k) {
+-      for (unsigned int k = 0; k < extended; ++k)
+-        extra_top_k->push_back(scored[k].second);
++      if (compact_recency) {
++        // refresh() sees the globally reversed hint. Only FIRST occurrences
++        // here determine its final order, including aliased Weight keys.
++        if (seen != UINT64_MAX) {
++          for (unsigned int k = 0; k < extended; ++k) {
++            const int id = scored[k].second;
++            const uint64_t bit = uint64_t{1} << static_cast<unsigned int>(id);
++            if ((seen & bit) == 0) {
++              seen |= bit;
++              extra_top_k->push_back(id);
++            }
++          }
++        }
++      } else {
++        for (unsigned int k = 0; k < extended; ++k)
++          extra_top_k->push_back(scored[k].second);
++      }
+     }
+   }
+ }
+@@ -2009,6 +2064,16 @@ void Lfm2MoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
+     std::vector<std::vector<std::pair<unsigned, float>>> expert_assignments(
+       num_experts);
+     std::vector<int> extra_top_k;
++    bool compact_recency = false;
++#if defined(__aarch64__) && defined(ENABLE_HEXKL)
++    if (from == 0 && input_.batch() == 1 && input_.channel() == 1 &&
++        experts_virtual && in_norm && !router_norm && !out_norm && !out_add &&
++        context.getNumInputs() == 1 && !softmax_router && !gelu_act &&
++        num_experts == 64 && topk == 4 &&
++        std::get<nntrainer::props::Unit>(moe_props).get() == 1536)
++      compact_recency = lfmCompactPrefillRecency(
++        input, context, expert_gate_up_proj_indices, expert_down_proj_indices);
++#endif
+     size_t max_assigned_tokens = 0;
+     {
+       M0Timer t(&g_m0.topk);
+@@ -2016,9 +2081,9 @@ void Lfm2MoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
+         assignmentsFromRoute(route, total_tokens, expert_assignments,
+                              want_extra ? &extra_top_k : nullptr);
+       else
+-        buildExpertAssignments(router_logits, expert_bias, total_tokens,
+-                               expert_assignments,
+-                               want_extra ? &extra_top_k : nullptr);
++        buildExpertAssignments(
++          router_logits, expert_bias, total_tokens, expert_assignments,
++          want_extra ? &extra_top_k : nullptr, compact_recency);
+       if (std::FILE *tf = moeTrace()) {
+         std::fprintf(tf, "%u %u |", trace_layer, total_tokens);
+         for (unsigned int e = 0; e < num_experts; ++e)
+diff --git a/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.h b/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.h
+index af7033fc1..7ff94271b 100644
+--- a/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.h
++++ b/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.h
+@@ -252,12 +252,15 @@ private:
+    *             recency hint the expert LRU refreshes from (doc 52), the
+    *             same rule Lfm2CachedSlimMoELayer applies. The routing
+    *             itself is unchanged by asking for it.
++   * @param compact_recency Keep only first-seen expert ids in the hint.
++   *        The caller restricts this to native LFM prefill without tracing;
++   *        reversing the compact hint preserves the LRU's final key order.
+    */
+   void buildExpertAssignments(
+     const nntrainer::Tensor &router_logits,
+     const nntrainer::Tensor &expert_bias, unsigned int total_tokens,
+     std::vector<std::vector<std::pair<unsigned, float>>> &expert_assignments,
+-    std::vector<int> *extra_top_k = nullptr);
++    std::vector<int> *extra_top_k = nullptr, bool compact_recency = false);
+ 
+   /**
+    * @brief Run one expert as a token batch and stream its compact output

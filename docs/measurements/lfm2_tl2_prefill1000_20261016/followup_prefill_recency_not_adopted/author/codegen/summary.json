@@ -1,0 +1,14 @@
+{
+  "clang_format_14_exact": true,
+  "frame_bytes": {
+    "incremental_before": 3008,
+    "incremental_candidate": 3008,
+    "assignments_before": 528,
+    "assignments_candidate": 544
+  },
+  "new_static_object_bytes": {
+    "enabled": 1,
+    "threadsafe_initialization_guard": 8
+  },
+  "normal_helper_inlined": true
+}

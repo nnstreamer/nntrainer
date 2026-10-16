@@ -1,0 +1,13 @@
+{
+  "command": [
+    "ninja",
+    "-C",
+    "builddir_app/htp",
+    "-j4",
+    "nntr_causallm"
+  ],
+  "returncode": 0,
+  "macro": "NNTR_LFM2_RECENCY_TRACE=1 prepended to only lfm2_moe_layer.cpp",
+  "source_sha256": "40b15ad923dc8687c7846d7196fc98f2f990bf1a966b3aa16ae2ecc36a641cbd",
+  "app_sha256": "071b82d06f82f9d50f3aa8debf204a5997ac6ea0e3e621823f02864cd413414f"
+}

@@ -1,0 +1,5 @@
+{
+  "candidate/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp": "78f67f3d9f2c03879d05e97a5d23e4b877fb39aac4bbc754465df8a4950231cc",
+  "diagnostic.patch": "8b709c5601b980db4602c1fa236ec6669f9860fd4c671690a54fa0d05f897960",
+  "marker.inc": "00385e5ea5351a54becdbabe5eb8ff2256d4406260d1ab89e640965e264a4593"
+}

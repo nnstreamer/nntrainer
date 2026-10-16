@@ -1,0 +1,10 @@
+{
+  "README.txt": "0474218f0cf61bf34d5c8918ef08256b7956004d108ddcaa301a3e2511d08b85",
+  "validation.json": "fdaae833c92a6c4764af458567b1d9cd8b1c6069a4cb851a10338107ea311fe8",
+  "production.patch": "1f130610bee92f91b5d8ca125c2dc661e42a89c4a5c6312e49c7748bba560f49",
+  "tests.patch": "30397390363ff7dc1e6fea28de969fbf9a3bf4081c172d83dbc7609628c4610d",
+  "production-hashes.json": "f369707b9704effdb1f2830969a7e5cb953bf261a61b7d1a41a7539bced902e0",
+  "frozen.json": "9a54fd28792ebf3db9dbfa880dec057410cc7d9f5f03add0f714403fceaa9b10",
+  "codegen/summary.json": "5fe852640e48c2ca0a036269bab8668816e7bd376ad6355da5a1d87274e4beda",
+  "diagnostic/manifest.json": "daaaf526e2d689c1f53973e594a6567c50bfbec86fcb790a2f8bb8ebd3dde29a"
+}

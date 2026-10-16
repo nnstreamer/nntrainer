@@ -1,0 +1,15 @@
+{
+  "cmd": [
+    "ninja",
+    "-C",
+    "builddir_app/htp",
+    "-j4",
+    "nntr_causallm"
+  ],
+  "environment": {
+    "ANDROID_NDK": "/home/jungone-lee/workspace/nntrainer/android-ndk-r30",
+    "ANDROID_NDK_HOME": "/home/jungone-lee/workspace/nntrainer/android-ndk-r30",
+    "HEXAGON_SDK_ROOT": "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1",
+    "PATH": "/home/jungone-lee/workspace/nntrainer/android-ndk-r30:/home/jungone-lee/workspace/nntrainer/android-ndk-r30/toolchains/llvm/prebuilt/linux-x86_64/bin:/home/jungone-lee/.codex/packages/app-server-daemon/releases/0.163.0-x86_64-unknown-linux-musl/codex-path:/home/jungone-lee/.codex/tmp/arg0-linux/codex-arg0ljppXO:/home/jungone-lee/.codex/tmp/arg0/codex-arg0TpBXVV:/home/jungone-lee/.codex/packages/app-server-daemon/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:/home/jungone-lee/.codex/tmp/arg0/codex-arg0cqST9K:/home/jungone-lee/.codex/packages/standalone/releases/0.162.1-x86_64-unknown-linux-musl/codex-path:/home/jungone-lee/.local/bin:/home/jungone-lee/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin"
+  }
+}
