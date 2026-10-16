@@ -1,0 +1,13 @@
+{
+  "source": "b0fe2e2e4ff00c068c34e64e3b073b55737f8d85af63883dd0b51ecc5e344358",
+  "primary": "normal prefill TPS, actual copy skips, exact65IDs",
+  "normal_order": "A1 B1 B2 A2 A3 B3",
+  "same_binary": true,
+  "C": 16,
+  "PAGE_CACHE": 0,
+  "cache_growth": 0,
+  "preload": 128,
+  "readers_unchanged": true,
+  "memory": "full exec/load through exit; RssAnon+deduplicated fdinfo allocation samples",
+  "Gemma_device_rerun": false
+}

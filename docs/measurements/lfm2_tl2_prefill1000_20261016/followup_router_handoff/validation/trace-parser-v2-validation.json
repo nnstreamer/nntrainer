@@ -1,0 +1,129 @@
+{
+  "positive_cases": 2,
+  "expected_rejections": 21,
+  "sha256": {
+    "parse-trace.py": "3771669dab4cb9da004472fd9e3ed069bbf3538ab59408e1aecd7e23ef6c5d56",
+    "original-scratch-capacities-v81.json": "f4682fb2f5a01569652e3de5bf0b5e20287dc3e85e9c5e665a03d24eb9adc0e6",
+    "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-handoff-remapped-trace-model.logcat.txt": "838eb0564035aea4b87f7777d7d76eb46846af2e64a6870ff4b6a2467dc80be0",
+    "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-handoff-remapped-trace-model2048.logcat.txt": "f36e54374ce509a3ffe0ccec4bb396dd7bc65a7e6524e0223813c6d3225469ed"
+  },
+  "results": [
+    {
+      "name": "actual1024",
+      "result": "PASS",
+      "skipped": 38,
+      "bytes": 318767104
+    },
+    {
+      "name": "actual2048",
+      "result": "PASS",
+      "skipped": 35,
+      "bytes": 587202560
+    },
+    {
+      "name": "missing producer",
+      "result": "EXPECTED_REJECTION",
+      "reason": "producer: expected 38 distinct tickets, got 37"
+    },
+    {
+      "name": "wrong producer ticket",
+      "result": "EXPECTED_REJECTION",
+      "reason": "producer: ticket bijection mismatch"
+    },
+    {
+      "name": "missing publish",
+      "result": "EXPECTED_REJECTION",
+      "reason": "publish: expected 38 distinct tickets, got 37"
+    },
+    {
+      "name": "duplicate publish",
+      "result": "EXPECTED_REJECTION",
+      "reason": "publish: duplicate ticket 1"
+    },
+    {
+      "name": "wrong published stamp",
+      "result": "EXPECTED_REJECTION",
+      "reason": "ticket 1: producer stamp mismatch"
+    },
+    {
+      "name": "missing requested state",
+      "result": "EXPECTED_REJECTION",
+      "reason": "requested state: expected 38 distinct tickets, got 37"
+    },
+    {
+      "name": "wrong saved ticket",
+      "result": "EXPECTED_REJECTION",
+      "reason": "ticket 1: consumer stamp mismatch"
+    },
+    {
+      "name": "wrong scratch owner",
+      "result": "EXPECTED_REJECTION",
+      "reason": "ticket 1: scratch owner changed"
+    },
+    {
+      "name": "changed scratch epoch",
+      "result": "EXPECTED_REJECTION",
+      "reason": "ticket 1: scratch epoch changed"
+    },
+    {
+      "name": "incomplete stamp mask",
+      "result": "EXPECTED_REJECTION",
+      "reason": "ticket 1: incomplete DSP stamp match"
+    },
+    {
+      "name": "missing consumer",
+      "result": "EXPECTED_REJECTION",
+      "reason": "consumer: expected 38 distinct tickets, got 37"
+    },
+    {
+      "name": "duplicate consumer",
+      "result": "EXPECTED_REJECTION",
+      "reason": "consumer: duplicate ticket 1"
+    },
+    {
+      "name": "used0 without growth",
+      "result": "EXPECTED_REJECTION",
+      "reason": "ticket 1: copy fallback without scratch growth"
+    },
+    {
+      "name": "growth inconsistent with original sizing",
+      "result": "EXPECTED_REJECTION",
+      "reason": "ticket 1: grown capacity differs from original native-LFM sizing"
+    },
+    {
+      "name": "used1 during growth",
+      "result": "EXPECTED_REJECTION",
+      "reason": "ticket 1: reuse crossed an allocation growth"
+    },
+    {
+      "name": "wrong extent",
+      "result": "EXPECTED_REJECTION",
+      "reason": "ticket 1: producer shape/extent mismatch"
+    },
+    {
+      "name": "uncached producer",
+      "result": "EXPECTED_REJECTION",
+      "reason": "ticket 1: producer did not retain input"
+    },
+    {
+      "name": "failed RPC",
+      "result": "EXPECTED_REJECTION",
+      "reason": "ticket 1: request/stamp/RPC failure"
+    },
+    {
+      "name": "missing complete lifecycle",
+      "result": "EXPECTED_REJECTION",
+      "reason": "consumer: expected 38 distinct tickets, got 37"
+    },
+    {
+      "name": "unticketed call inside live stamp",
+      "result": "EXPECTED_REJECTION",
+      "reason": "unticketed call interposed inside a live handoff"
+    },
+    {
+      "name": "consume before state",
+      "result": "EXPECTED_REJECTION",
+      "reason": "ticket 1: invalid lifecycle order"
+    }
+  ]
+}

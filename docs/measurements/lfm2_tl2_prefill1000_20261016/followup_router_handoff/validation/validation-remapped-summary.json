@@ -1,0 +1,85 @@
+{
+  "production_patch_sha256": "b0fe2e2e4ff00c068c34e64e3b073b55737f8d85af63883dd0b51ecc5e344358",
+  "actual_helper_cases": 176,
+  "mutants_rejected": 18,
+  "ndk_and_v81_tus": "PASS",
+  "trace_off_v81_tus": [
+    {
+      "i": 0,
+      "returncode": 0
+    },
+    {
+      "i": 1,
+      "returncode": 0
+    }
+  ],
+  "source_state_arm64_bytes": 48,
+  "scratch_struct_v81_before_bytes": 24,
+  "scratch_struct_v81_after_bytes": 72,
+  "fixed_metadata_delta_bytes": 96,
+  "new_activation_allocation_bytes": 0,
+  "device_checks_by_this_agent": 0,
+  "device_status": "Parent pilots: all65 IDs exact at both1024/2048; actual remapped traces pass per-ticket validation. Normal uninstrumented timing/memory acceptance is separate.",
+  "independent_review": "gemma_prefill_port: 176 cases ASan/UBSan independent PASS, 7 writer boundaries preserved, no new source/scratch API blocker. Final report is maintained by reviewer.",
+  "device_trace": {
+    "model": {
+      "calls": 39,
+      "producers": 38,
+      "requested": 38,
+      "stamp_matches": 38,
+      "input_copies_skipped": 38,
+      "bytes_skipped": 318767104,
+      "ticket_bijection_count": 38,
+      "requested_state_count": 38,
+      "extra_unticketed_state_count": 3,
+      "proven_capacity_fallbacks": []
+    },
+    "model2048": {
+      "calls": 39,
+      "producers": 38,
+      "requested": 38,
+      "stamp_matches": 38,
+      "input_copies_skipped": 35,
+      "bytes_skipped": 587202560,
+      "ticket_bijection_count": 38,
+      "requested_state_count": 38,
+      "extra_unticketed_state_count": 3,
+      "proven_capacity_fallbacks": [
+        {
+          "ticket": 1,
+          "cap_before": 55976704,
+          "cap_after": 61799296,
+          "matching_active_experts": [
+            54
+          ]
+        },
+        {
+          "ticket": 2,
+          "cap_before": 61799296,
+          "cap_after": 62969984,
+          "matching_active_experts": [
+            63
+          ]
+        },
+        {
+          "ticket": 3,
+          "cap_before": 62969984,
+          "cap_after": 63099648,
+          "matching_active_experts": [
+            64
+          ]
+        }
+      ]
+    }
+  },
+  "parser_validation": "2 actual traces pass; 21 intentional invalid traces rejected; checks/trace-parser-v2-validation.json",
+  "fixture_correction": {
+    "patch": "fixture-ninner32.patch",
+    "cases_rerun": 176,
+    "result": "ASan/UBSan PASS",
+    "production_unchanged": true,
+    "note": "Old18 mutant results retained; new176 normal cases and only affected prefix-carve mutant rerun after test-only tile correction.",
+    "limits": "fixture-ninner32/limitations.md",
+    "prefix_mutant_rerun": "Expected carve-total assertion caught; checks/ninner32-prefix/result.json"
+  }
+}

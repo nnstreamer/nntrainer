@@ -780,6 +780,10 @@ python3 "$HERE/gen_nntr_hvx_h.py" "$HERE/../nntr_hvx.idl" "$OUT/nntr_hvx.h"
 
 "$OUT/swap_host_check"
 
+# Source ownership and scratch reuse across distinct FastRPC input mappings.
+python3 "$HERE/lfm2_router_handoff_check.py" --repo "$HERE/../../.." \
+  --output "$OUT/router_handoff" --cxx "${CXX:-g++}"
+
 # Deferred DMA checks the real native registry refresh's publication order.
 # This fixture includes the registry C file and drops unrelated compute
 # functions with the ELF linker, so it is deliberately a Linux host check.

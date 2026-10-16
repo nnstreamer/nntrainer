@@ -1,0 +1,19 @@
+{
+  "command": [
+    "python3",
+    "/tmp/nntr-lfm2-router-handoff-20261016/worktree/test/htp/host/lfm2_router_handoff_check.py",
+    "--repo",
+    "/tmp/nntr-lfm2-router-handoff-20261016/worktree",
+    "--output",
+    "/tmp/nntr-lfm2-router-handoff-20261016/checks/ninner32-prefix",
+    "--mutant",
+    "prefix"
+  ],
+  "cpp_sha256": "2e7571a94c9a0289d0f4de90f99f007b4e38c10fc208bfd1164a91c761aaba47",
+  "py_sha256": "97169298e5b0738d7dac8c56b22d9e0b4ad9929fa55d09d5c144d99cc3f062ac",
+  "returncode": 1,
+  "expected_assert": "FAIL: carve total differs from same reserve sum",
+  "caught_intended_assert": true,
+  "extraction_manifest": "commands.json",
+  "scope": "Only prefix carve mutant rerun after test-only N_INNER32 correction."
+}

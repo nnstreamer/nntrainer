@@ -92,6 +92,9 @@ static inline int moe_acc_read(uint8_t *base, uint32_t config_off,
 
 void hexkl_moe_scratch_free(hexkl_moe_scratch *s) {
   if (s) {
+    htp_router_handoff_scratch_invalidate(&s->router_handoff);
+    s->router_act = NULL;
+    s->router_used = 0;
     free(s->raw);
     s->raw = NULL;
     s->base = NULL;
@@ -102,6 +105,9 @@ void hexkl_moe_scratch_free(hexkl_moe_scratch *s) {
 /** @brief Grows the scratch to @a bytes; a no-op once it is big enough,
  *         which after the first prefill call is every call. */
 int hexkl_moe_scratch_reserve(hexkl_moe_scratch *s, size_t bytes) {
+  htp_router_handoff_scratch_invalidate(&s->router_handoff);
+  s->router_act = NULL;
+  s->router_used = 0;
   if (s->cap >= bytes) {
     return AEE_SUCCESS;
   }
@@ -1910,6 +1916,12 @@ int hexkl_mm_u8i4_moe_layer_run(
   const uint32_t *row_index, const uint32_t *row_count, const float *row_weight,
   const float *act_f32, float *out_f32, hvx_worker_pool *pool,
   hexkl_moe_scratch *scratch, uint32_t flags) {
+  const float *router_act = scratch ? scratch->router_act : NULL;
+  if (scratch) {
+    htp_router_handoff_scratch_invalidate(&scratch->router_handoff);
+    scratch->router_act = NULL;
+    scratch->router_used = 0;
+  }
   if (!tbl || !vtcm_base || !h_gate_up || !h_down || !row_index || !row_count ||
       !row_weight || !act_f32 || !out_f32 || !scratch || M == 0u ||
       n_experts == 0u) {
@@ -1930,7 +1942,7 @@ int hexkl_mm_u8i4_moe_layer_run(
      found halfway through would leave out_f32 partly written, and the
      caller cannot tell that from a correct result. */
   uint32_t n_rows = 0u, n_with_rows = 0u, widest = 0u, n_tl2 = 0u,
-           n_affine = 0u;
+           n_affine = 0u, n_compact_tl2 = 0u;
   for (uint32_t e = 0; e < n_experts; ++e) {
     if (row_count[e] == 0u) {
       continue;
@@ -1954,6 +1966,7 @@ int hexkl_mm_u8i4_moe_layer_run(
           g->N > 8192u || d->N > 8192u)
         return AEE_EBADPARM;
       ++n_tl2;
+      n_compact_tl2 += g->tl2_compact && d->tl2_compact;
     }
     n_affine += g->w_offset != NULL || d->w_offset != NULL;
     n_rows += row_count[e];
@@ -2275,6 +2288,16 @@ int hexkl_mm_u8i4_moe_layer_run(
                       2u * ROUND_UP_SZ(sz_tail_rq, MOE_SCRATCH_ALIGN) +
                       ROUND_UP_SZ(sz_tail_res, MOE_SCRATCH_ALIGN) +
                       ROUND_UP_SZ(sz_expert_u32, MOE_SCRATCH_ALIGN) + sz_m1;
+  /* The router's exact input is at base. Only a consumed owner ticket may
+   * reuse it, and only if this reserve cannot replace that allocation. */
+  const int router_reuse =
+#ifdef HEXKL_MOE_NO_DIRECT
+    0 && /* Keep the diagnostic build's forced copies. */
+#endif
+    router_act && router_act == (const float *)scratch->base &&
+    htp_router_handoff_shape(M, K) && inter == 1536u && N_out == 2048u &&
+    act == HVX_GLU_SILU && !use_m1 && !pre_gamma && !out_direct &&
+    n_with_rows && n_compact_tl2 == n_with_rows && need <= scratch->cap;
   uint64_t p_alloc = 0;
   HEXKL_PROBE_T0(p_alloc);
   rc = hexkl_moe_scratch_reserve(scratch, need);
@@ -2282,7 +2305,10 @@ int hexkl_mm_u8i4_moe_layer_run(
   if (rc != AEE_SUCCESS) {
     return rc;
   }
+  scratch->router_used = router_reuse;
   uint8_t *cur = scratch->base;
+  /* Keep the producer's prefix before slot/order metadata overwrites it. */
+  float *act_c = router_reuse ? (float *)hexkl_moe_carve(&cur, sz_act_c) : NULL;
   float *rq_scale = (float *)hexkl_moe_carve(&cur, sz_scale);
   int32_t *rq_zp = (int32_t *)hexkl_moe_carve(&cur, sz_zp);
   uint8_t *act_ah = (uint8_t *)hexkl_moe_carve(&cur, sz_act_ah);
@@ -2294,7 +2320,8 @@ int hexkl_mm_u8i4_moe_layer_run(
   uint32_t *base_of = (uint32_t *)hexkl_moe_carve(&cur, sz_expert_u32);
   float *scale_all = (float *)hexkl_moe_carve(&cur, sz_mpad_u32);
   int32_t *zp_all = (int32_t *)hexkl_moe_carve(&cur, sz_mpad_u32);
-  float *act_c = (float *)hexkl_moe_carve(&cur, sz_act_c);
+  if (!router_reuse)
+    act_c = (float *)hexkl_moe_carve(&cur, sz_act_c);
   float *out_c =
     out_direct ? out_f32 : (float *)hexkl_moe_carve(&cur, sz_out_c);
   float *pre_rows = (float *)hexkl_moe_carve(&cur, sz_pre);
@@ -2370,7 +2397,9 @@ int hexkl_mm_u8i4_moe_layer_run(
   if (hexkl_probe_on) {
     hexkl_dma_trace_reset(hexkl_probe_now_ticks());
   }
-  if (act_direct) {
+  if (router_reuse) {
+    /* Exact bytes retained by the immediately preceding router. */
+  } else if (act_direct) {
     /* the scan reads act_f32 */
   } else if (pre_gamma) {
     if (hvx_rmsnorm_rows_f32(act_f32, act_c, M, K, K, pre_gamma,

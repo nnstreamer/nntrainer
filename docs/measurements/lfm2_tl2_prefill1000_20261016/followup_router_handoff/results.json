@@ -1,0 +1,220 @@
+{
+  "decision": "retain as opt-in for matching ARM and DSP builds; repeated prefill gain, no new activation allocation",
+  "normal_order": "A1 B1 B2 A2 A3 B3 for each prompt length",
+  "same_binary": true,
+  "medians": {
+    "handoff-remapped": {
+      "0": {
+        "prefill_tps": 812.054,
+        "decode_tps": 17.5103,
+        "max_complete_peak_kib": 2733820.0
+      },
+      "1": {
+        "prefill_tps": 847.682,
+        "decode_tps": 17.6114,
+        "max_complete_peak_kib": 2734356.0
+      }
+    },
+    "handoff-remapped2048": {
+      "0": {
+        "prefill_tps": 778.116,
+        "decode_tps": 16.8687,
+        "max_complete_peak_kib": 3052316.0
+      },
+      "1": {
+        "prefill_tps": 810.768,
+        "decode_tps": 16.7627,
+        "max_complete_peak_kib": 3053300.0
+      }
+    }
+  },
+  "runs": [
+    {
+      "tag": "continue-handoff-remapped-0-r1",
+      "variant": "router-handoff-remapped",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 812.054,
+      "decode_tps": 17.3771,
+      "full_run_sampled_peak_kib": 2733820.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-handoff-remapped-1-r1",
+      "variant": "router-handoff-remapped",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 842.798,
+      "decode_tps": 17.6114,
+      "full_run_sampled_peak_kib": 2734356.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-handoff-remapped-0-r2",
+      "variant": "router-handoff-remapped",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 824.477,
+      "decode_tps": 17.5103,
+      "full_run_sampled_peak_kib": 2733676.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-handoff-remapped-1-r2",
+      "variant": "router-handoff-remapped",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 853.333,
+      "decode_tps": 17.6698,
+      "full_run_sampled_peak_kib": 2731560.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-handoff-remapped-0-r3",
+      "variant": "router-handoff-remapped",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 779.893,
+      "decode_tps": 17.626,
+      "full_run_sampled_peak_kib": 2730768.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-handoff-remapped-1-r3",
+      "variant": "router-handoff-remapped",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 847.682,
+      "decode_tps": 17.5439,
+      "full_run_sampled_peak_kib": 2731956.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-handoff-remapped2048-0-r1",
+      "variant": "router-handoff-remapped",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 778.116,
+      "decode_tps": 16.8687,
+      "full_run_sampled_peak_kib": 3051212.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-handoff-remapped2048-1-r1",
+      "variant": "router-handoff-remapped",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 810.768,
+      "decode_tps": 16.7715,
+      "full_run_sampled_peak_kib": 3050988.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-handoff-remapped2048-0-r2",
+      "variant": "router-handoff-remapped",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 808.527,
+      "decode_tps": 16.7495,
+      "full_run_sampled_peak_kib": 3052316.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-handoff-remapped2048-1-r2",
+      "variant": "router-handoff-remapped",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 788.602,
+      "decode_tps": 16.6061,
+      "full_run_sampled_peak_kib": 3053220.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-handoff-remapped2048-0-r3",
+      "variant": "router-handoff-remapped",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 759.926,
+      "decode_tps": 16.9133,
+      "full_run_sampled_peak_kib": 3052056.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-handoff-remapped2048-1-r3",
+      "variant": "router-handoff-remapped",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 898.64,
+      "decode_tps": 16.7627,
+      "full_run_sampled_peak_kib": 3053300.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-handoff-remapped-trace-model",
+      "variant": "router-handoff-remapped-trace",
+      "model": "model",
+      "profile": true,
+      "prefill_tps": 838.657,
+      "decode_tps": 17.5103,
+      "full_run_sampled_peak_kib": 2733248.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-handoff-remapped-trace-model2048",
+      "variant": "router-handoff-remapped-trace",
+      "model": "model2048",
+      "profile": true,
+      "prefill_tps": 778.707,
+      "decode_tps": 16.1657,
+      "full_run_sampled_peak_kib": 3050456.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-handoff-trace-model",
+      "variant": "router-handoff-trace",
+      "model": "model",
+      "profile": true,
+      "prefill_tps": 822.49,
+      "decode_tps": 17.3583,
+      "full_run_sampled_peak_kib": 2734368.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-handoff-trace-model2048",
+      "variant": "router-handoff-trace",
+      "model": "model2048",
+      "profile": true,
+      "prefill_tps": 776.64,
+      "decode_tps": 16.7058,
+      "full_run_sampled_peak_kib": 3050296.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-handoff-state-model",
+      "variant": "router-handoff-state",
+      "model": "model",
+      "profile": true,
+      "prefill_tps": 841.413,
+      "decode_tps": 17.5391,
+      "full_run_sampled_peak_kib": 2735048.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    }
+  ]
+}

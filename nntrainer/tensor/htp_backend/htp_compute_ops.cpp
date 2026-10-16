@@ -107,6 +107,7 @@
 
 #include <hmx/hexkl_dma_trace.h>
 
+#include "htp_router_handoff.h"
 #include <nntr_hvx.h>
 
 namespace nntrainer {
@@ -1318,6 +1319,7 @@ public:
 
   /** Start an independent prompt; the caller has joined its generation. */
   void beginPrompt() {
+    htp_router_handoff_invalidate(&router_handoff_);
     if (cpu_predictor_)
       cpu_predictor_->drain();
     if (pool_prefetch_)
@@ -1655,6 +1657,7 @@ public:
   // section 9.10: 9.7 ms a call against the CPU dot's 6).
   void release_prefill_scratch() override {
     std::lock_guard<std::mutex> lock(invoke_mutex_);
+    htp_router_handoff_invalidate(&router_handoff_);
     // KEEP_OUT can leave only sampled windows in the host tensor. Publish
     // its complete value while the caller still owns the prefill tensors.
     for (StagingPool *pool : {&act_pool_, &out_pool_, &rope_pool_, &x2_pool_,
@@ -1766,6 +1769,19 @@ public:
       h8 != UINT32_MAX
         ? nullptr
         : routerWeightShared(w, static_cast<size_t>(K) * E * sizeof(float));
+    static const bool handoff_enabled = [] {
+      const char *v = std::getenv("NNTR_LFM2_ROUTER_INPUT_HANDOFF");
+      return v && std::strcmp(v, "1") == 0;
+    }();
+    const uint32_t ticket =
+      handoff_enabled && h8 == UINT32_MAX && !gamma && !top_k && E == 64u &&
+          htp_router_handoff_shape(M, K) &&
+          !htp_router_handoff_overlap(x, x_len * sizeof(float), act,
+                                      x_len * sizeof(float)) &&
+          !htp_router_handoff_overlap(logits, out_len * sizeof(float), act,
+                                      x_len * sizeof(float))
+        ? htp_router_handoff_next(&router_handoff_)
+        : 0u;
     const uint64_t t0 = HtpProfile::nowUs();
     // the selection is small (M x 13 + M x 8 at the softmax router's
     // width) and goes straight to the caller's arrays
@@ -1774,7 +1790,8 @@ public:
       h8 != UINT32_MAX
         ? nntr_hvx_router_logits_u8i8_f32(
             session, M, K, E, eps, gamma, gamma ? static_cast<int>(K) : 0, h8,
-            act, static_cast<int>(x_len), top_k, top_k ? n_sel : 0u, scale,
+            act, static_cast<int>(x_len), top_k,
+            top_k ? n_sel : htp_router_handoff_wire(ticket), scale,
             top_k ? static_cast<int>(E) : 0, out, static_cast<int>(out_len),
             reinterpret_cast<uint32_t *>(sel),
             top_k ? static_cast<int>(M * n_sel) : 0, weight,
@@ -1782,7 +1799,8 @@ public:
         : nntr_hvx_router_logits_f32(
             session, M, K, E, eps, gamma, gamma ? static_cast<int>(K) : 0,
             w_shared, static_cast<int>(static_cast<size_t>(K) * E), act,
-            static_cast<int>(x_len), top_k, top_k ? n_sel : 0u, scale,
+            static_cast<int>(x_len), top_k,
+            top_k ? n_sel : htp_router_handoff_wire(ticket), scale,
             top_k ? static_cast<int>(E) : 0, out, static_cast<int>(out_len),
             reinterpret_cast<uint32_t *>(sel),
             top_k ? static_cast<int>(M * n_sel) : 0, weight,
@@ -1795,6 +1813,8 @@ public:
         " E=" + std::to_string(E) + ")");
     }
     stagedMemcpy(logits, out, out_len * sizeof(float));
+    htp_router_handoff_publish(&router_handoff_, ticket, session, act,
+                               x_len * sizeof(float));
     HtpProfile &profile = HtpProfile::global();
     if (profile.level())
       profile.addInvoke(M, K, E, elapsed, nullptr);
@@ -2172,8 +2192,11 @@ public:
       ion = trueSource(host, bytes);
     if (ion == host)
       throwIfLost(host, bytes, __LINE__);
-    if (ion && ion != host)
+    if (ion && ion != host) {
+      // A caller's host view may alias a pending ION activation.
+      htp_router_handoff_invalidate(&router_handoff_);
       stagedMemcpy(host, ion, bytes);
+    }
   }
 
   bool gemm_qs4cx_res_add_fp32(void *w, float *w_scale, const float *act,
@@ -2198,6 +2221,8 @@ public:
       return v != nullptr && std::strcmp(v, "0") == 0;
     }();
     if (u16_in && u16_off) {
+      std::lock_guard<std::mutex> lock(invoke_mutex_);
+      htp_router_handoff_invalidate(&router_handoff_);
       float *dst = const_cast<float *>(act);
       const unsigned int hd = attn_out16_.head_dim;
       for (unsigned int r = 0; r < M; ++r)
@@ -3703,6 +3728,7 @@ public:
    * The public phase-boundary hook publishes kept outputs first. The token
    * driver calls here after the seed's last reader has completed. */
   void releasePrefillStaging() {
+    htp_router_handoff_invalidate(&router_handoff_);
     constexpr size_t keep_bytes = size_t(64) << 10;
     size_t freed = 0;
     for (StagingPool *pool : {&act_pool_, &out_pool_, &rope_pool_, &x2_pool_,
@@ -5325,6 +5351,21 @@ private:
       cls <<= 1;
     return cls;
   }
+  /** A writable output may first restore a kept host tensor. Reject the
+   * handoff if that restore could overwrite its actual ION input bytes. */
+  static bool stagingRestoreOverlaps(const StagingPool &pool, size_t bytes,
+                                     const void *input, size_t input_bytes) {
+    const size_t cls = stageClass(bytes);
+    for (const auto *m : {&pool.holds, &pool.copied_out}) {
+      auto it = m->find(cls);
+      if (it == m->end() || !it->second.kept)
+        continue;
+      if (htp_router_handoff_overlap(input, input_bytes, it->second.first,
+                                     it->second.second))
+        return true;
+    }
+    return false;
+  }
   /** @brief @a slot made large enough for @a bytes. The class only names
    *  the slot: the buffer is as large as the largest tensor it has held
    *  (plus a page), not the class, because the driver's cache maintenance
@@ -5334,6 +5375,7 @@ private:
   void fit(std::unique_ptr<HtpRpcBuffer> &slot, size_t bytes) {
     if (slot && slot->size() >= bytes)
       return;
+    htp_router_handoff_invalidate(&router_handoff_);
     if (slot) {
       const uint8_t *lo = slot->data(), *hi = lo + slot->size();
       for (IonAlias &a : ion_alias_)
@@ -5345,6 +5387,8 @@ private:
       ((bytes + 4095) & ~static_cast<size_t>(4095)) + 4096);
   }
   HtpRpcBuffer &stage(StagingPool &pool, size_t bytes) {
+    // Handing out a writable buffer ends any pending router ownership.
+    htp_router_handoff_invalidate(&router_handoff_);
     const size_t cls = stageClass(bytes);
     auto &slot = pool.by_class[cls];
     // A tensor a call kept in this buffer (copyOutOf's to_host false) has
@@ -5403,6 +5447,8 @@ private:
     if (it != pool.holds.end() && slot && it->second.first == src &&
         it->second.second == bytes && sampledSame(src, slot->data(), bytes))
       return *slot;
+    // No-write hits above keep their ION epoch. Copies/swaps below do not.
+    htp_router_handoff_invalidate(&router_handoff_);
     if (from) {
       // what from's buffer of this size is: a call's output (copied_out),
       // or an input staged there (holds: the qkv call's activation rows are
@@ -6867,6 +6913,7 @@ private:
     if (!pool_descs_.empty())
       poolSync(); // [plan 201 S1]
     std::lock_guard<std::mutex> lock(invoke_mutex_);
+    htp_router_handoff_invalidate(&router_handoff_);
     std::memcpy(q.act->data(), act, act_bytes);
     const uint32_t tok = e.tok++;
     if (!pool_descs_.empty())
@@ -7025,6 +7072,8 @@ private:
   bool take_decode_token_id(unsigned *id) override {
     if (!have_id_)
       return false;
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    htp_router_handoff_invalidate(&router_handoff_);
     *id = pending_id_;
     have_id_ = false;
     return true;
@@ -7182,6 +7231,17 @@ private:
       via_dspq       ? *dspq_->act
       : host_prenorm ? stage(act_pool_, act_bytes)
                      : stageInput(act_pool_, act, act_bytes, &out_pool_);
+    // Consume before obtaining output staging. That buffer has distinct
+    // ownership; no later operation in this plain path writes act_stage.
+    const uint32_t pending_ticket = router_handoff_.ticket;
+    const uint32_t handoff_ticket = htp_router_handoff_take(
+      &router_handoff_, session, act_stage.data(), act_bytes, pending_ticket);
+    const bool handoff_plain =
+      handoff_ticket && htp_router_handoff_shape(M, K) && inter == 1536u &&
+      N_out == 2048u && kind == 0 && glu == 0u && !with_norms && !add_x2 &&
+      !via_dspq && HtpProfile::global().level() < 2 &&
+      !stagingRestoreOverlaps(out_pool_, out_bytes, act_stage.data(),
+                              act_bytes);
     // The post-FFN epilogue's second addend rides its own staging buffer,
     // staged before out_stage: it may be swapped in from out_pool_.
     float *x2_f32 = nullptr;
@@ -7288,8 +7348,11 @@ private:
                         static_cast<int>(row_weight.size()), act_f32, act_len,
                         out_f32, out_len, rep_stage, HTP_MOE_N_STAGES)
                     : nntr_hvx_mm_u8i4_moe_layer(
-                        session, M, K, inter, N_out, glu, h_gu.data(),
-                        static_cast<int>(h_gu.size()), h_dn.data(),
+                        session, M, K, inter, N_out,
+                        handoff_plain && rep == 0 && &act_stage != &out_stage
+                          ? htp_router_handoff_wire(handoff_ticket)
+                          : glu,
+                        h_gu.data(), static_cast<int>(h_gu.size()), h_dn.data(),
                         static_cast<int>(h_dn.size()), row_index.data(),
                         static_cast<int>(row_index.size()), row_count.data(),
                         static_cast<int>(row_count.size()), row_weight.data(),
@@ -10655,6 +10718,7 @@ private:
   uint64_t fwd_tokens_ = 0;     /**< of them at the first resident op */
   uint64_t cpu_fc_skipped_ = 0; /**< [#132 Part B] decode_row_resident's
                                      true answers: CPU FC calls skipped */
+  htp_router_handoff router_handoff_{};
   StagingPool act_pool_;
   StagingPool out_pool_;
   StagingPool rope_pool_;     /**< the fused projection call's RoPE rows */
@@ -10859,6 +10923,8 @@ public:
          (kv_stride != n_head_kv * head_dim || !k_rows || !v_rows))) {
       return false;
     }
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    htp_router_handoff_invalidate(&router_handoff_);
     const remote_handle64 h = static_cast<remote_handle64>(hb.handle());
     const int q_len = static_cast<int>(n_q * n_head_q * head_dim);
     const int sinks_len = sinks ? static_cast<int>(n_head_q) : 0;
@@ -11161,6 +11227,8 @@ public:
         kv_stride != n_head_kv * head_dim) {
       return false;
     }
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    htp_router_handoff_invalidate(&router_handoff_);
     const remote_handle64 h = static_cast<remote_handle64>(hb.handle());
     const int q_len = static_cast<int>(n_q * n_head_q * head_dim);
     const int kv_len = static_cast<int>(cache_to * n_head_kv * head_dim);

@@ -1,0 +1,30 @@
+{
+  "handoff-remapped": {
+    "0": {
+      "prefill_tps": 812.054,
+      "decode_tps": 17.5103,
+      "max_peak_kib": 2733820.0
+    },
+    "1": {
+      "prefill_tps": 847.682,
+      "decode_tps": 17.6114,
+      "max_peak_kib": 2734356.0
+    },
+    "prefill_percent": 4.387392956626046,
+    "decode_percent": 0.5773744596037744
+  },
+  "handoff-remapped2048": {
+    "0": {
+      "prefill_tps": 778.116,
+      "decode_tps": 16.8687,
+      "max_peak_kib": 3052316.0
+    },
+    "1": {
+      "prefill_tps": 810.768,
+      "decode_tps": 16.7627,
+      "max_peak_kib": 3053300.0
+    },
+    "prefill_percent": 4.196289499252037,
+    "decode_percent": -0.6283827443727241
+  }
+}

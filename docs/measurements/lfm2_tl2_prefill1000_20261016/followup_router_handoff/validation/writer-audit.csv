@@ -1,0 +1,29 @@
+group,entries,write_destination,ownership_boundary,status
+FC family,gemm_q4_0_accel_fp32; gemm_q4_0_batch_fp32; gemm_q4_0_batch_norm_fp32; gemm_qs4cx_accel_fp32; gemm_qs4cx_batch_fp32,RPC out + caller matC/slices,invokeLayer/invokeLayerU8In: stage(out_pool_) before RPC; output copies only afterward,existing-covered
+RMS+residual,rmsnorm_add_fp32,act/res ION and caller out,"stage(act_pool_), stage(out_pool_) before first write",existing-covered
+Router,router_logits_fp32,logits and optional sel/weight,stage(out_pool_) invalidates older stamp; producer excludes raw source/logits overlap; publish occurs after RPC/copy,existing-covered
+LM head,lm_head_q4_0_fp32; lm_head_shared_fp32,caller y,invokeLmHead/invokeLmHeadWh: stage(act/out) before copy/RPC,existing-covered
+MoE/dense,gemm_qs4cx_moe_layer_fp32; gemm_q4_0_dense_ffn_fp32,"caller out, act/out staging",one-shot consume then eligibility + output restore overlap guard; stage output clears state; guarded local ticket used only plain path,existing-covered
+Fused expert,gemm_qs4cx_fused_swiglu_fp32,packed activation + caller out; optional l2Diff shadow memcpy,invokeGateUpSwiglu stage(act) and invokeLayerU8InRaw stage(out) before all writes; l2Diff only called after these,existing-covered
+Conv,gemm_q4_0_conv_block_fp32,caller out/state,invokeConvBlock stage(act/out) before RPC/copies,existing-covered
+O-proj normal,gemm_qs4cx_res_add_fp32 normal path,out ION and caller out,stage(out_pool_) before RPC/output writes,existing-covered
+O-proj debug conversion,gemm_qs4cx_res_add_fp32 u16_in && u16_off,caller act CPU dequantization,explicit invalidate at branch entry recommended; later stage alone leaves pre-write/exception window,covered-final-before-write-reviewed
+Host materialization,sync_to_host,caller host may alias pending act ION,invalidate immediately before actual stagedMemcpy,covered-final-before-write-reviewed
+Public release,release_prefill_scratch,"kept caller host outputs, AttnOut16 float conversion","invalidate immediately after invoke lock, before materialization; private release at end insufficient if profiling allocation throws",covered-final-before-write-reviewed
+Private release,releasePrefillStaging; beginPrompt; destructor,pool destruction/alias state clearing,beginPrompt/release invalidate first; destructor object cannot be reused and joins workers,existing-covered
+Decode ordinary forward,decode_op_fp32 -> runStretchOp -> invokeForward non-e2e,caller out,stage act/out before RPC and copy; pending-only hooks do not write caller data,existing-covered
+Decode token queue,invokeForward e2e -> tokenForward,"q.act, caller out/logits masking",explicit invalidate after invoke lock before queue write/caller output,covered-final-before-write-reviewed
+Decode id,take_decode_token_id,caller *id,invalidate after have_id test before *id write,covered-final-before-write-reviewed
+Attention direct Q8,sdpa_q_kvcache,caller out directly from DSP,invalidate before nntr_hvx_attn_q_step; small shape does not reserve MoE scratch on DSP,covered-final-before-write-reviewed
+Attention direct FP16,sdpa_fp16_kvcache,caller out directly from DSP,invalidate before decode/prefill RPC branch,covered-final-before-write-reviewed
+Attention staged fixed,sdpa_q2_kvcache; sdpa_q2_kvcache_f32; sdpa_q2_kvcache_f32_calib,"out ION, caller out/copy/scales",stage(attn_out_pool_) before RPC/writes even when Q aliases existing ION,existing-covered
+Staging primitive,stage; fit growing; stageInput copying/swapping,pool buffers + kept host restoration,invalidate before writes/ownership replacement; no-write stageInput leaves stamp only with existing sampled match,existing-covered
+Private output helpers,copyOut; copyOutOf; sampledCopy; norm ld scatter,caller output,only reached after covered writable stage or consumed MoE; router post-copy separately guarded before publish,existing-covered
+Read-only aliases,host_view; ionAlias; trueSource; noteIonAlias; throwIfLost,no tensor data writes,"host_view const, host-reader use and valid only until next engine call per ComputeOps API",contract-read-only
+Weight management,register/get_or_register/attach/swap/readMisses/prefetch readers/stable generation,expert arenas + descriptor metadata,distinct owned allocations; never writes act_pool buffers; registration source is read-only weight owner,owner-disjoint
+Weight release,discard_weight_source/releaseArmSource/dropHostFc,owned source weight pages,documented weight ownership; act_pool is not a source-weight allocation,owner-disjoint
+KV seed/append,decode_kv_seed*; kv_cache_q_append; kv_cache_q_set_fixed_scales,DSP KV registry and private staged inputs,KV registry independent; f32 seed staging invalidates; f16 seed only reads caller rows,owner-disjoint
+KV registry/shared,kv_cache_q_register/release; alloc_shared/free_shared/drop_shared,separate caller-owned shared blocks or DSP KV slots,not act_pool ownership; freeing borrowed host_view memory violates alloc_shared ownership API,owner-disjoint
+Configuration/query,"supports_*, set_decode_* data, graph/weights descriptions, has_*, file paths",internal config/metadata only,no caller or act_pool data writes; no need to invalidate for unchanged input,metadata-only
+DSP scratch,"MoE plain/norm/timed, conv, graph MoE/dense/FC, LM head WH, QKV cached path",moe_scratch base/ownership,core entry or hexkl_moe_scratch_reserve before any write; free clears; zero-init on session creation,existing-covered
+Inherited CPU kernels,CpuComputeOps writable outputs,caller-owned CPU tensors,cannot mutate engine-owned const host_view under valid API contract; no universal interception claimed,contract-boundary

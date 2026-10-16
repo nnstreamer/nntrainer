@@ -1,0 +1,3 @@
+Independent reviewer invocation of test/htp/host/lfm2_router_handoff_check.py completed with exit 0. Tool chunk c34205 stdout:
+ROUTER_HANDOFF 176 cases PASS; actual DSP hits=6; all mutations/failures consumed; no new handoff activation allocation
+The actual fixture compile/run argv and extracted source hashes are in commands.json.

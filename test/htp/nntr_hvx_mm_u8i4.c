@@ -1804,11 +1804,16 @@ static void moe_fill_stage_us(uint32 *stage_us, uint32 dsp_total) {
 /** @brief Shared by both entry points so they cannot drift on what they
  *         accept. Lengths are the only thing the skel can check that the
  *         kernel cannot: the kernel sees pointers, not sequence lengths. */
-static int check_moe_layer_args(const nntr_hvx_session *s, uint32 M, uint32 K,
+static int check_moe_layer_args(nntr_hvx_session *s, uint32 M, uint32 K,
                                 uint32 inter, uint32 N_out, int h_guLen,
                                 int h_dnLen, int row_indexLen, int row_countLen,
                                 int row_weightLen, int act_f32Len,
                                 int out_f32Len) {
+  if (s) {
+    htp_router_handoff_scratch_invalidate(&s->moe_scratch.router_handoff);
+    s->moe_scratch.router_act = NULL;
+    s->moe_scratch.router_used = 0;
+  }
   if (!s || M == 0 || K == 0 || inter == 0 || N_out == 0) {
     return AEE_EBADPARM;
   }
@@ -1866,6 +1871,31 @@ int nntr_hvx_mm_u8i4_moe_layer(remote_handle64 handle, uint32 M, uint32 K,
                                const float *act_f32, int act_f32Len,
                                float *out_f32, int out_f32Len) {
   nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  const uint32_t ticket = htp_router_handoff_ticket(act);
+  const size_t input_bytes =
+    htp_router_handoff_shape(M, K) ? (size_t)M * K * sizeof(float) : 0u;
+#if defined(NNTR_LFM2_ROUTER_HANDOFF_TRACE) && NNTR_LFM2_ROUTER_HANDOFF_TRACE
+  if (s && htp_router_handoff_shape(M, K)) {
+    const htp_router_handoff_scratch *saved = &s->moe_scratch.router_handoff;
+    const unsigned match = (saved->ticket != 0u) |
+                           ((saved->ticket == ticket) << 1u) |
+                           ((saved->epoch == saved->published_epoch) << 2u) |
+                           ((saved->owner == s->moe_scratch.base) << 3u) |
+                           ((saved->bytes == input_bytes) << 4u);
+    FARF(ERROR,
+         "[nntr-router-handoff-state] M=%u match=%u request_ticket=%u "
+         "saved_ticket=%u "
+         "epoch=%llu published=%llu bytes=%u saved_bytes=%u input=%p "
+         "owner=%p base=%p source_scope=arm",
+         (unsigned)M, match, (unsigned)ticket, (unsigned)saved->ticket,
+         (unsigned long long)saved->epoch,
+         (unsigned long long)saved->published_epoch, (unsigned)input_bytes,
+         (unsigned)saved->bytes, act_f32, saved->owner, s->moe_scratch.base);
+  }
+#endif
+  const int reuse = s && htp_router_handoff_scratch_take(
+                           &s->moe_scratch.router_handoff, s->moe_scratch.base,
+                           input_bytes, ticket);
   int rc = check_moe_layer_args(s, M, K, inter, N_out, h_gate_upLen, h_downLen,
                                 row_indexLen, row_countLen, row_weightLen,
                                 act_f32Len, out_f32Len);
@@ -1876,14 +1906,30 @@ int nntr_hvx_mm_u8i4_moe_layer(remote_handle64 handle, uint32 M, uint32 K,
   if (rc != AEE_SUCCESS) {
     return rc;
   }
-  if (act > 1u) {
+  if (act > 1u && !ticket) {
     return AEE_EBADPARM;
   }
-  return hexkl_mm_u8i4_moe_layer_run(
+  s->moe_scratch.router_act = reuse ? (const float *)s->moe_scratch.base : NULL;
+#if defined(NNTR_LFM2_ROUTER_HANDOFF_TRACE) && NNTR_LFM2_ROUTER_HANDOFF_TRACE
+  const size_t cap_before = s->moe_scratch.cap;
+#endif
+  rc = hexkl_mm_u8i4_moe_layer_run(
     &s->weights_u8i4, s->vtcm_base, s->vtcm_size, s->config_off, M, K, inter,
     N_out, (uint32_t)h_gate_upLen, h_gate_up, h_down, row_index, row_count,
     row_weight, act_f32, out_f32, s->quant_pool, &s->moe_scratch,
-    s->moe_flags | (act ? HEXKL_MOE_FLAG_GELU_TANH : 0u));
+    s->moe_flags | (!ticket && act ? HEXKL_MOE_FLAG_GELU_TANH : 0u));
+#if defined(NNTR_LFM2_ROUTER_HANDOFF_TRACE) && NNTR_LFM2_ROUTER_HANDOFF_TRACE
+  if (htp_router_handoff_shape(M, K) && inter == 1536u && N_out == 2048u)
+    FARF(ERROR,
+         "[nntr-router-handoff] M=%u ticket=%u request=%u owner=%u used=%u "
+         "fallback=%u bytes=%u cap_before=%u cap_after=%u rc=%d",
+         (unsigned)M, (unsigned)ticket, (unsigned)(ticket != 0u),
+         (unsigned)reuse, (unsigned)s->moe_scratch.router_used,
+         (unsigned)(ticket != 0u && !s->moe_scratch.router_used),
+         (unsigned)input_bytes, (unsigned)cap_before,
+         (unsigned)s->moe_scratch.cap, rc);
+#endif
+  return rc;
 }
 
 int nntr_hvx_router_logits_f32(remote_handle64 handle, uint32 M, uint32 K,
@@ -1897,6 +1943,10 @@ int nntr_hvx_router_logits_f32(remote_handle64 handle, uint32 M, uint32 K,
   if (!s) {
     return AEE_EBADPARM;
   }
+  htp_router_handoff_scratch_invalidate(&s->moe_scratch.router_handoff);
+  s->moe_scratch.router_act = NULL;
+  const float *rpc_input = x;
+  const uint32_t ticket = top_k == 0u ? htp_router_handoff_ticket(n_sel) : 0u;
   if (M == 0u || K == 0u || E == 0u || E % 32u != 0u || E > 128u ||
       (uint64_t)M * K > 0x7FFFFFFFu || (uint64_t)xLen != (uint64_t)M * K ||
       (uint64_t)wLen != (uint64_t)K * E ||
@@ -1951,7 +2001,31 @@ int nntr_hvx_router_logits_f32(remote_handle64 handle, uint32 M, uint32 K,
   if (rpc_logits) {
     hexkl_dma_ring_reset();
     hexkl_moe_dma_copy(rpc_logits, logits, logits_bytes, 0, 0);
+    if (!htp_router_handoff_overlap(rpc_logits, logits_bytes, rpc_input,
+                                    x_bytes))
+      htp_router_handoff_scratch_publish(&s->moe_scratch.router_handoff, ticket,
+                                         s->moe_scratch.base, x_bytes);
   }
+#if defined(NNTR_LFM2_ROUTER_HANDOFF_TRACE) && NNTR_LFM2_ROUTER_HANDOFF_TRACE
+  if (htp_router_handoff_shape(M, K) && E == 64u && top_k == 0u) {
+    const htp_router_handoff_scratch *saved = &s->moe_scratch.router_handoff;
+    FARF(ERROR,
+         "[nntr-router-handoff-publish] M=%u sent=%u saved=%u epoch=%llu "
+         "published=%llu "
+         "bytes=%u input=%p owner=%p base=%p source_scope=arm",
+         (unsigned)M, (unsigned)ticket, (unsigned)saved->ticket,
+         (unsigned long long)saved->epoch,
+         (unsigned long long)saved->published_epoch, (unsigned)saved->bytes,
+         rpc_input, saved->owner, s->moe_scratch.base);
+  }
+#endif
+#if defined(NNTR_LFM2_ROUTER_HANDOFF_TRACE) && NNTR_LFM2_ROUTER_HANDOFF_TRACE
+  if (htp_router_handoff_shape(M, K) && E == 64u && top_k == 0u)
+    FARF(ERROR,
+         "[nntr-router-handoff-producer] M=%u ticket=%u cached=%u bytes=%u",
+         (unsigned)M, (unsigned)ticket, (unsigned)(rpc_logits != NULL),
+         (unsigned)x_bytes);
+#endif
   return AEE_SUCCESS;
 }
 
@@ -1961,6 +2035,10 @@ int nntr_hvx_router_logits_u8i8_f32(
   uint32 top_k, uint32 n_sel, const float *scale, int scaleLen, float *logits,
   int logitsLen, uint32 *sel, int selLen, float *weight, int weightLen) {
   nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  if (s) {
+    htp_router_handoff_scratch_invalidate(&s->moe_scratch.router_handoff);
+    s->moe_scratch.router_act = NULL;
+  }
   if (!s || !s->hmx_locked) {
     return AEE_EBADPARM;
   }
@@ -2177,10 +2255,14 @@ int nntr_hvx_moe_stage_fill(uint32 *stage_us, uint64_t t0, uint64_t t1,
 }
 
 /** @brief The conv block call's lengths; the kernel sees pointers. */
-static int check_conv_block_args(const nntr_hvx_session *s, uint32 M, uint32 K,
+static int check_conv_block_args(nntr_hvx_session *s, uint32 M, uint32 K,
                                  uint32 C, uint32 N_out, int h_inLen,
                                  int conv_wLen, int act_f32Len, int out_f32Len,
                                  int state_f32Len) {
+  if (s) {
+    htp_router_handoff_scratch_invalidate(&s->moe_scratch.router_handoff);
+    s->moe_scratch.router_act = NULL;
+  }
   if (!s || M == 0 || K == 0 || C == 0 || N_out == 0) {
     return AEE_EBADPARM;
   }

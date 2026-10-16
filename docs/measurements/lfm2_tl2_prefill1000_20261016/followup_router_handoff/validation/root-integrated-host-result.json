@@ -1,0 +1,8 @@
+{
+  "command": "bash test/htp/host/run_host_checks.sh",
+  "cwd": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000",
+  "exit_code": 0,
+  "new_fixture_cases": 176,
+  "optional_arm_neon_execution": "skipped: aarch64 g++ or qemu-aarch64 missing",
+  "log": "root-remapped-integrated-host.log.gz"
+}

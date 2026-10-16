@@ -1,0 +1,770 @@
+[
+  {
+    "M": 1024,
+    "experts": 1,
+    "n_rows": 4096,
+    "capacity": 27568256
+  },
+  {
+    "M": 1024,
+    "experts": 2,
+    "n_rows": 4096,
+    "capacity": 27698304
+  },
+  {
+    "M": 1024,
+    "experts": 3,
+    "n_rows": 4096,
+    "capacity": 27828480
+  },
+  {
+    "M": 1024,
+    "experts": 4,
+    "n_rows": 4096,
+    "capacity": 27958528
+  },
+  {
+    "M": 1024,
+    "experts": 5,
+    "n_rows": 4096,
+    "capacity": 28088576
+  },
+  {
+    "M": 1024,
+    "experts": 6,
+    "n_rows": 4096,
+    "capacity": 28218624
+  },
+  {
+    "M": 1024,
+    "experts": 7,
+    "n_rows": 4096,
+    "capacity": 28348800
+  },
+  {
+    "M": 1024,
+    "experts": 8,
+    "n_rows": 4096,
+    "capacity": 28478848
+  },
+  {
+    "M": 1024,
+    "experts": 9,
+    "n_rows": 4096,
+    "capacity": 28608768
+  },
+  {
+    "M": 1024,
+    "experts": 10,
+    "n_rows": 4096,
+    "capacity": 28738816
+  },
+  {
+    "M": 1024,
+    "experts": 11,
+    "n_rows": 4096,
+    "capacity": 28868992
+  },
+  {
+    "M": 1024,
+    "experts": 12,
+    "n_rows": 4096,
+    "capacity": 28999040
+  },
+  {
+    "M": 1024,
+    "experts": 13,
+    "n_rows": 4096,
+    "capacity": 29129088
+  },
+  {
+    "M": 1024,
+    "experts": 14,
+    "n_rows": 4096,
+    "capacity": 29259136
+  },
+  {
+    "M": 1024,
+    "experts": 15,
+    "n_rows": 4096,
+    "capacity": 29389312
+  },
+  {
+    "M": 1024,
+    "experts": 16,
+    "n_rows": 4096,
+    "capacity": 29519360
+  },
+  {
+    "M": 1024,
+    "experts": 17,
+    "n_rows": 4096,
+    "capacity": 29649408
+  },
+  {
+    "M": 1024,
+    "experts": 18,
+    "n_rows": 4096,
+    "capacity": 29779328
+  },
+  {
+    "M": 1024,
+    "experts": 19,
+    "n_rows": 4096,
+    "capacity": 29909504
+  },
+  {
+    "M": 1024,
+    "experts": 20,
+    "n_rows": 4096,
+    "capacity": 30039552
+  },
+  {
+    "M": 1024,
+    "experts": 21,
+    "n_rows": 4096,
+    "capacity": 30169600
+  },
+  {
+    "M": 1024,
+    "experts": 22,
+    "n_rows": 4096,
+    "capacity": 30299648
+  },
+  {
+    "M": 1024,
+    "experts": 23,
+    "n_rows": 4096,
+    "capacity": 30429824
+  },
+  {
+    "M": 1024,
+    "experts": 24,
+    "n_rows": 4096,
+    "capacity": 30559872
+  },
+  {
+    "M": 1024,
+    "experts": 25,
+    "n_rows": 4096,
+    "capacity": 30689920
+  },
+  {
+    "M": 1024,
+    "experts": 26,
+    "n_rows": 4096,
+    "capacity": 30819840
+  },
+  {
+    "M": 1024,
+    "experts": 27,
+    "n_rows": 4096,
+    "capacity": 30950016
+  },
+  {
+    "M": 1024,
+    "experts": 28,
+    "n_rows": 4096,
+    "capacity": 31080064
+  },
+  {
+    "M": 1024,
+    "experts": 29,
+    "n_rows": 4096,
+    "capacity": 31210112
+  },
+  {
+    "M": 1024,
+    "experts": 30,
+    "n_rows": 4096,
+    "capacity": 31340160
+  },
+  {
+    "M": 1024,
+    "experts": 31,
+    "n_rows": 4096,
+    "capacity": 31470336
+  },
+  {
+    "M": 1024,
+    "experts": 32,
+    "n_rows": 4096,
+    "capacity": 31600000
+  },
+  {
+    "M": 1024,
+    "experts": 33,
+    "n_rows": 4096,
+    "capacity": 31730816
+  },
+  {
+    "M": 1024,
+    "experts": 34,
+    "n_rows": 4096,
+    "capacity": 31860864
+  },
+  {
+    "M": 1024,
+    "experts": 35,
+    "n_rows": 4096,
+    "capacity": 31990912
+  },
+  {
+    "M": 1024,
+    "experts": 36,
+    "n_rows": 4096,
+    "capacity": 32120960
+  },
+  {
+    "M": 1024,
+    "experts": 37,
+    "n_rows": 4096,
+    "capacity": 32251008
+  },
+  {
+    "M": 1024,
+    "experts": 38,
+    "n_rows": 4096,
+    "capacity": 32381056
+  },
+  {
+    "M": 1024,
+    "experts": 39,
+    "n_rows": 4096,
+    "capacity": 32511232
+  },
+  {
+    "M": 1024,
+    "experts": 40,
+    "n_rows": 4096,
+    "capacity": 32641280
+  },
+  {
+    "M": 1024,
+    "experts": 41,
+    "n_rows": 4096,
+    "capacity": 32771328
+  },
+  {
+    "M": 1024,
+    "experts": 42,
+    "n_rows": 4096,
+    "capacity": 32901376
+  },
+  {
+    "M": 1024,
+    "experts": 43,
+    "n_rows": 4096,
+    "capacity": 33031424
+  },
+  {
+    "M": 1024,
+    "experts": 44,
+    "n_rows": 4096,
+    "capacity": 33161472
+  },
+  {
+    "M": 1024,
+    "experts": 45,
+    "n_rows": 4096,
+    "capacity": 33291520
+  },
+  {
+    "M": 1024,
+    "experts": 46,
+    "n_rows": 4096,
+    "capacity": 33421568
+  },
+  {
+    "M": 1024,
+    "experts": 47,
+    "n_rows": 4096,
+    "capacity": 33551744
+  },
+  {
+    "M": 1024,
+    "experts": 48,
+    "n_rows": 4096,
+    "capacity": 33681792
+  },
+  {
+    "M": 1024,
+    "experts": 49,
+    "n_rows": 4096,
+    "capacity": 33811840
+  },
+  {
+    "M": 1024,
+    "experts": 50,
+    "n_rows": 4096,
+    "capacity": 33941888
+  },
+  {
+    "M": 1024,
+    "experts": 51,
+    "n_rows": 4096,
+    "capacity": 34072064
+  },
+  {
+    "M": 1024,
+    "experts": 52,
+    "n_rows": 4096,
+    "capacity": 34201984
+  },
+  {
+    "M": 1024,
+    "experts": 53,
+    "n_rows": 4096,
+    "capacity": 34332032
+  },
+  {
+    "M": 1024,
+    "experts": 54,
+    "n_rows": 4096,
+    "capacity": 34462080
+  },
+  {
+    "M": 1024,
+    "experts": 55,
+    "n_rows": 4096,
+    "capacity": 34592256
+  },
+  {
+    "M": 1024,
+    "experts": 56,
+    "n_rows": 4096,
+    "capacity": 34722304
+  },
+  {
+    "M": 1024,
+    "experts": 57,
+    "n_rows": 4096,
+    "capacity": 34852352
+  },
+  {
+    "M": 1024,
+    "experts": 58,
+    "n_rows": 4096,
+    "capacity": 34982400
+  },
+  {
+    "M": 1024,
+    "experts": 59,
+    "n_rows": 4096,
+    "capacity": 35112576
+  },
+  {
+    "M": 1024,
+    "experts": 60,
+    "n_rows": 4096,
+    "capacity": 35242496
+  },
+  {
+    "M": 1024,
+    "experts": 61,
+    "n_rows": 4096,
+    "capacity": 35372544
+  },
+  {
+    "M": 1024,
+    "experts": 62,
+    "n_rows": 4096,
+    "capacity": 35502592
+  },
+  {
+    "M": 1024,
+    "experts": 63,
+    "n_rows": 4096,
+    "capacity": 35632768
+  },
+  {
+    "M": 1024,
+    "experts": 64,
+    "n_rows": 4096,
+    "capacity": 35762432
+  },
+  {
+    "M": 2048,
+    "experts": 1,
+    "n_rows": 8192,
+    "capacity": 54905472
+  },
+  {
+    "M": 2048,
+    "experts": 2,
+    "n_rows": 8192,
+    "capacity": 55035520
+  },
+  {
+    "M": 2048,
+    "experts": 3,
+    "n_rows": 8192,
+    "capacity": 55165696
+  },
+  {
+    "M": 2048,
+    "experts": 4,
+    "n_rows": 8192,
+    "capacity": 55295744
+  },
+  {
+    "M": 2048,
+    "experts": 5,
+    "n_rows": 8192,
+    "capacity": 55425792
+  },
+  {
+    "M": 2048,
+    "experts": 6,
+    "n_rows": 8192,
+    "capacity": 55555840
+  },
+  {
+    "M": 2048,
+    "experts": 7,
+    "n_rows": 8192,
+    "capacity": 55686016
+  },
+  {
+    "M": 2048,
+    "experts": 8,
+    "n_rows": 8192,
+    "capacity": 55816064
+  },
+  {
+    "M": 2048,
+    "experts": 9,
+    "n_rows": 8192,
+    "capacity": 55945984
+  },
+  {
+    "M": 2048,
+    "experts": 10,
+    "n_rows": 8192,
+    "capacity": 56076032
+  },
+  {
+    "M": 2048,
+    "experts": 11,
+    "n_rows": 8192,
+    "capacity": 56206208
+  },
+  {
+    "M": 2048,
+    "experts": 12,
+    "n_rows": 8192,
+    "capacity": 56336256
+  },
+  {
+    "M": 2048,
+    "experts": 13,
+    "n_rows": 8192,
+    "capacity": 56466304
+  },
+  {
+    "M": 2048,
+    "experts": 14,
+    "n_rows": 8192,
+    "capacity": 56596352
+  },
+  {
+    "M": 2048,
+    "experts": 15,
+    "n_rows": 8192,
+    "capacity": 56726528
+  },
+  {
+    "M": 2048,
+    "experts": 16,
+    "n_rows": 8192,
+    "capacity": 56856576
+  },
+  {
+    "M": 2048,
+    "experts": 17,
+    "n_rows": 8192,
+    "capacity": 56986624
+  },
+  {
+    "M": 2048,
+    "experts": 18,
+    "n_rows": 8192,
+    "capacity": 57116544
+  },
+  {
+    "M": 2048,
+    "experts": 19,
+    "n_rows": 8192,
+    "capacity": 57246720
+  },
+  {
+    "M": 2048,
+    "experts": 20,
+    "n_rows": 8192,
+    "capacity": 57376768
+  },
+  {
+    "M": 2048,
+    "experts": 21,
+    "n_rows": 8192,
+    "capacity": 57506816
+  },
+  {
+    "M": 2048,
+    "experts": 22,
+    "n_rows": 8192,
+    "capacity": 57636864
+  },
+  {
+    "M": 2048,
+    "experts": 23,
+    "n_rows": 8192,
+    "capacity": 57767040
+  },
+  {
+    "M": 2048,
+    "experts": 24,
+    "n_rows": 8192,
+    "capacity": 57897088
+  },
+  {
+    "M": 2048,
+    "experts": 25,
+    "n_rows": 8192,
+    "capacity": 58027136
+  },
+  {
+    "M": 2048,
+    "experts": 26,
+    "n_rows": 8192,
+    "capacity": 58157056
+  },
+  {
+    "M": 2048,
+    "experts": 27,
+    "n_rows": 8192,
+    "capacity": 58287232
+  },
+  {
+    "M": 2048,
+    "experts": 28,
+    "n_rows": 8192,
+    "capacity": 58417280
+  },
+  {
+    "M": 2048,
+    "experts": 29,
+    "n_rows": 8192,
+    "capacity": 58547328
+  },
+  {
+    "M": 2048,
+    "experts": 30,
+    "n_rows": 8192,
+    "capacity": 58677376
+  },
+  {
+    "M": 2048,
+    "experts": 31,
+    "n_rows": 8192,
+    "capacity": 58807552
+  },
+  {
+    "M": 2048,
+    "experts": 32,
+    "n_rows": 8192,
+    "capacity": 58937216
+  },
+  {
+    "M": 2048,
+    "experts": 33,
+    "n_rows": 8192,
+    "capacity": 59068032
+  },
+  {
+    "M": 2048,
+    "experts": 34,
+    "n_rows": 8192,
+    "capacity": 59198080
+  },
+  {
+    "M": 2048,
+    "experts": 35,
+    "n_rows": 8192,
+    "capacity": 59328128
+  },
+  {
+    "M": 2048,
+    "experts": 36,
+    "n_rows": 8192,
+    "capacity": 59458176
+  },
+  {
+    "M": 2048,
+    "experts": 37,
+    "n_rows": 8192,
+    "capacity": 59588224
+  },
+  {
+    "M": 2048,
+    "experts": 38,
+    "n_rows": 8192,
+    "capacity": 59718272
+  },
+  {
+    "M": 2048,
+    "experts": 39,
+    "n_rows": 8192,
+    "capacity": 59848448
+  },
+  {
+    "M": 2048,
+    "experts": 40,
+    "n_rows": 8192,
+    "capacity": 59978496
+  },
+  {
+    "M": 2048,
+    "experts": 41,
+    "n_rows": 8192,
+    "capacity": 60108544
+  },
+  {
+    "M": 2048,
+    "experts": 42,
+    "n_rows": 8192,
+    "capacity": 60238592
+  },
+  {
+    "M": 2048,
+    "experts": 43,
+    "n_rows": 8192,
+    "capacity": 60368640
+  },
+  {
+    "M": 2048,
+    "experts": 44,
+    "n_rows": 8192,
+    "capacity": 60498688
+  },
+  {
+    "M": 2048,
+    "experts": 45,
+    "n_rows": 8192,
+    "capacity": 60628736
+  },
+  {
+    "M": 2048,
+    "experts": 46,
+    "n_rows": 8192,
+    "capacity": 60758784
+  },
+  {
+    "M": 2048,
+    "experts": 47,
+    "n_rows": 8192,
+    "capacity": 60888960
+  },
+  {
+    "M": 2048,
+    "experts": 48,
+    "n_rows": 8192,
+    "capacity": 61019008
+  },
+  {
+    "M": 2048,
+    "experts": 49,
+    "n_rows": 8192,
+    "capacity": 61149056
+  },
+  {
+    "M": 2048,
+    "experts": 50,
+    "n_rows": 8192,
+    "capacity": 61279104
+  },
+  {
+    "M": 2048,
+    "experts": 51,
+    "n_rows": 8192,
+    "capacity": 61409280
+  },
+  {
+    "M": 2048,
+    "experts": 52,
+    "n_rows": 8192,
+    "capacity": 61539200
+  },
+  {
+    "M": 2048,
+    "experts": 53,
+    "n_rows": 8192,
+    "capacity": 61669248
+  },
+  {
+    "M": 2048,
+    "experts": 54,
+    "n_rows": 8192,
+    "capacity": 61799296
+  },
+  {
+    "M": 2048,
+    "experts": 55,
+    "n_rows": 8192,
+    "capacity": 61929472
+  },
+  {
+    "M": 2048,
+    "experts": 56,
+    "n_rows": 8192,
+    "capacity": 62059520
+  },
+  {
+    "M": 2048,
+    "experts": 57,
+    "n_rows": 8192,
+    "capacity": 62189568
+  },
+  {
+    "M": 2048,
+    "experts": 58,
+    "n_rows": 8192,
+    "capacity": 62319616
+  },
+  {
+    "M": 2048,
+    "experts": 59,
+    "n_rows": 8192,
+    "capacity": 62449792
+  },
+  {
+    "M": 2048,
+    "experts": 60,
+    "n_rows": 8192,
+    "capacity": 62579712
+  },
+  {
+    "M": 2048,
+    "experts": 61,
+    "n_rows": 8192,
+    "capacity": 62709760
+  },
+  {
+    "M": 2048,
+    "experts": 62,
+    "n_rows": 8192,
+    "capacity": 62839808
+  },
+  {
+    "M": 2048,
+    "experts": 63,
+    "n_rows": 8192,
+    "capacity": 62969984
+  },
+  {
+    "M": 2048,
+    "experts": 64,
+    "n_rows": 8192,
+    "capacity": 63099648
+  }
+]

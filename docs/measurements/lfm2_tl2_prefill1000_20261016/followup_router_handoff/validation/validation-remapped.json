@@ -1,0 +1,147 @@
+[
+  {
+    "name": "compile-0",
+    "returncode": 0,
+    "log": "/tmp/nntr-lfm2-router-handoff-20261016/compile-remapped-0.log"
+  },
+  {
+    "name": "compile-1",
+    "returncode": 0,
+    "log": "/tmp/nntr-lfm2-router-handoff-20261016/compile-remapped-1.log"
+  },
+  {
+    "name": "compile-2",
+    "returncode": 0,
+    "log": "/tmp/nntr-lfm2-router-handoff-20261016/compile-remapped-2.log"
+  },
+  {
+    "name": "stage",
+    "caught_intended_assert": true,
+    "returncode": 1,
+    "log": "/tmp/nntr-lfm2-router-handoff-20261016/checks/remapped-mutants/stage/run.log",
+    "assert": "FAIL: ARM lifecycle guard"
+  },
+  {
+    "name": "copy",
+    "caught_intended_assert": true,
+    "returncode": 1,
+    "log": "/tmp/nntr-lfm2-router-handoff-20261016/checks/remapped-mutants/copy/run.log",
+    "assert": "FAIL: ARM lifecycle guard"
+  },
+  {
+    "name": "reserve",
+    "caught_intended_assert": true,
+    "returncode": 1,
+    "log": "/tmp/nntr-lfm2-router-handoff-20261016/checks/remapped-mutants/reserve/run.log",
+    "assert": "FAIL: DSP fallback/mutation reused old scratch"
+  },
+  {
+    "name": "take",
+    "caught_intended_assert": true,
+    "returncode": 1,
+    "log": "/tmp/nntr-lfm2-router-handoff-20261016/checks/remapped-mutants/take/run.log",
+    "assert": "FAIL: mismatch did not consume"
+  },
+  {
+    "name": "ticket",
+    "caught_intended_assert": true,
+    "returncode": 1,
+    "log": "/tmp/nntr-lfm2-router-handoff-20261016/checks/remapped-mutants/ticket/run.log",
+    "assert": "FAIL: wrong ticket accepted"
+  },
+  {
+    "name": "prefix",
+    "caught_intended_assert": true,
+    "returncode": 1,
+    "log": "/tmp/nntr-lfm2-router-handoff-20261016/checks/remapped-mutants/prefix/run.log",
+    "assert": "FAIL: carve total differs from same reserve sum"
+  },
+  {
+    "name": "restore",
+    "caught_intended_assert": true,
+    "returncode": 1,
+    "log": "/tmp/nntr-lfm2-router-handoff-20261016/checks/remapped-mutants/restore/run.log",
+    "assert": "FAIL: ARM lifecycle guard"
+  },
+  {
+    "name": "source_alias",
+    "caught_intended_assert": true,
+    "returncode": 1,
+    "log": "/tmp/nntr-lfm2-router-handoff-20261016/checks/remapped-mutants/source_alias/run.log",
+    "assert": "FAIL: retained input changed"
+  },
+  {
+    "name": "sync",
+    "caught_intended_assert": true,
+    "returncode": 1,
+    "log": "/tmp/nntr-lfm2-router-handoff-20261016/checks/remapped-mutants/sync/run.log",
+    "assert": "FAIL: retained input changed"
+  },
+  {
+    "name": "attn_q",
+    "caught_intended_assert": true,
+    "returncode": 1,
+    "log": "/tmp/nntr-lfm2-router-handoff-20261016/checks/remapped-mutants/attn_q/run.log",
+    "assert": "FAIL: retained input changed"
+  },
+  {
+    "name": "attn_f16",
+    "caught_intended_assert": true,
+    "returncode": 1,
+    "log": "/tmp/nntr-lfm2-router-handoff-20261016/checks/remapped-mutants/attn_f16/run.log",
+    "assert": "FAIL: retained input changed"
+  },
+  {
+    "name": "id",
+    "caught_intended_assert": true,
+    "returncode": 1,
+    "log": "/tmp/nntr-lfm2-router-handoff-20261016/checks/remapped-mutants/id/run.log",
+    "assert": "FAIL: retained input changed"
+  },
+  {
+    "name": "arm_source",
+    "caught_intended_assert": true,
+    "returncode": 1,
+    "log": "/tmp/nntr-lfm2-router-handoff-20261016/checks/remapped-mutants/arm_source/run.log",
+    "assert": "FAIL: ARM lifecycle guard"
+  },
+  {
+    "name": "scratch_take",
+    "caught_intended_assert": true,
+    "returncode": 1,
+    "log": "/tmp/nntr-lfm2-router-handoff-20261016/checks/remapped-mutants/scratch_take/run.log",
+    "assert": "FAIL: DSP scratch mismatch did not consume"
+  },
+  {
+    "name": "scratch_ticket",
+    "caught_intended_assert": true,
+    "returncode": 1,
+    "log": "/tmp/nntr-lfm2-router-handoff-20261016/checks/remapped-mutants/scratch_ticket/run.log",
+    "assert": "FAIL: DSP scratch mismatch accepted"
+  },
+  {
+    "name": "scratch_epoch",
+    "caught_intended_assert": true,
+    "returncode": 1,
+    "log": "/tmp/nntr-lfm2-router-handoff-20261016/checks/remapped-mutants/scratch_epoch/run.log",
+    "assert": "FAIL: DSP scratch mismatch accepted"
+  },
+  {
+    "name": "scratch_owner",
+    "caught_intended_assert": true,
+    "returncode": 1,
+    "log": "/tmp/nntr-lfm2-router-handoff-20261016/checks/remapped-mutants/scratch_owner/run.log",
+    "assert": "FAIL: DSP scratch mismatch accepted"
+  },
+  {
+    "name": "scratch_bytes",
+    "caught_intended_assert": true,
+    "returncode": 1,
+    "log": "/tmp/nntr-lfm2-router-handoff-20261016/checks/remapped-mutants/scratch_bytes/run.log",
+    "assert": "FAIL: DSP scratch mismatch accepted"
+  },
+  {
+    "name": "existing swap RPC",
+    "returncode": 0
+  }
+]
