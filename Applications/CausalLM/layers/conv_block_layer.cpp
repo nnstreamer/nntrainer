@@ -10,6 +10,23 @@
  * @bug    No known bugs except for NYI items
  */
 
+// Intrinsics are inline definitions: include them under precise arithmetic
+// before another header can include them with the app's fast-math defaults.
+#if defined(__aarch64__)
+#if defined(__clang__)
+#pragma float_control(precise, on, push)
+#elif defined(__GNUC__)
+#pragma GCC push_options
+#pragma GCC optimize("no-fast-math")
+#endif
+#include <arm_neon.h>
+#if defined(__clang__)
+#pragma float_control(pop)
+#elif defined(__GNUC__)
+#pragma GCC pop_options
+#endif
+#endif
+
 #include "htp_decode_hook.h"
 #include <conv_block_layer.h>
 
@@ -22,6 +39,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -57,6 +75,71 @@ static double snrDb(const float *ref, const float *got, size_t n) {
   }
   return err == 0.0 ? 999.0 : 10.0 * std::log10(sig / err);
 }
+
+// The app enables fast-math, while the core convolution preserves each
+// rounding step. Limit precise arithmetic to this helper and its row lambda.
+#if defined(__clang__)
+#pragma float_control(precise, on, push)
+#elif defined(__GNUC__)
+#pragma GCC push_options
+#pragma GCC optimize("no-fast-math")
+#endif
+/** Preserve the wide ARM convolution's multiply/two-FMA order, then apply
+ *  the post gate before storing. The existing pre-gate barrier makes all
+ *  previous rows immutable, so separate rows can run on the same pool. */
+static bool lfmConvPostGatePrefill(const float *gated, const float *weights,
+                                   const float *projection, float *output,
+                                   unsigned int rows, unsigned int channels) {
+#if defined(__aarch64__)
+  if (rows < 16 || channels != 2048)
+    return false;
+  const size_t bytes = static_cast<size_t>(rows) * channels * sizeof(float);
+  const uintptr_t dst = reinterpret_cast<uintptr_t>(output);
+  const auto overlaps = [&](const float *input, size_t size) {
+    const uintptr_t src = reinterpret_cast<uintptr_t>(input);
+    return dst <= src ? src - dst < bytes : dst - src < size;
+  };
+  if (!gated || !weights || !projection || !output || overlaps(gated, bytes) ||
+      overlaps(projection, 3u * bytes) ||
+      overlaps(weights, 3u * channels * sizeof(float)))
+    return false;
+  nntrainer::ThreadManager::Global().parallel_for(
+    0, static_cast<size_t>(rows), [&](size_t r) {
+#if defined(__clang__)
+#pragma clang fp exceptions(strict)
+#endif
+      const float *cur = gated + r * channels;
+      const float *prev1 = r >= 1 ? cur - channels : nullptr;
+      const float *prev2 = r >= 2 ? cur - 2u * channels : nullptr;
+      const float *gate = projection + r * 3u * channels + channels;
+      float *dst_row = output + r * channels;
+      const float32x4_t zero = vdupq_n_f32(0.0f);
+      for (unsigned int c = 0; c < channels; c += 4) {
+        float32x4_t v = vmulq_f32(vld1q_f32(cur + c), vld1q_f32(weights + c));
+        v = vfmaq_f32(v, prev1 ? vld1q_f32(prev1 + c) : zero,
+                      vld1q_f32(weights + channels + c));
+        v = vfmaq_f32(v, prev2 ? vld1q_f32(prev2 + c) : zero,
+                      vld1q_f32(weights + 2u * channels + c));
+        vst1q_f32(dst_row + c, vmulq_f32(v, vld1q_f32(gate + c)));
+      }
+    });
+  return true;
+#else
+  (void)gated;
+  (void)weights;
+  (void)projection;
+  (void)output;
+  (void)rows;
+  (void)channels;
+  return false;
+#endif
+}
+
+#if defined(__clang__)
+#pragma float_control(pop)
+#elif defined(__GNUC__)
+#pragma GCC pop_options
+#endif
 
 ConvBlockLayer::ConvBlockLayer() :
   LayerImpl(), conv_props(nntrainer::props::Unit()) {
@@ -274,13 +357,24 @@ void ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
          "(NNTR_HTP_FORWARD=1 supports one prompt per process)";
     nntrainer::ThreadManager::Global().parallel_for(
       0, static_cast<size_t>(rows), gate_pre);
-    nntrainer::causal_depthwise_conv1d_k3(g, w_ptr, nullptr, y, 1, rows, C);
+    const auto affine = nntrainer::Tdatatype::QS4CX_WH_AFFINE;
+    const auto fp32 = nntrainer::Tdatatype::FP32;
+    const bool lfm_prefill =
+      !compare && K == 2048 && N == 2048 && in_w.getDataType() == affine &&
+      out_w.getDataType() == affine && proj.getDataType() == fp32 &&
+      gated.getDataType() == fp32 && conv_out.getDataType() == fp32 &&
+      proj.getContiguous() && gated.getContiguous() && conv_out.getContiguous();
+    const bool post_gated =
+      lfm_prefill && lfmConvPostGatePrefill(g, w_ptr, p, y, rows, C);
+    if (!post_gated)
+      nntrainer::causal_depthwise_conv1d_k3(g, w_ptr, nullptr, y, 1, rows, C);
     std::memcpy(state, g + static_cast<size_t>(rows - 2) * C,
                 C * sizeof(float));
     std::memcpy(state + C, g + static_cast<size_t>(rows - 1) * C,
                 C * sizeof(float));
-    nntrainer::ThreadManager::Global().parallel_for(
-      0, static_cast<size_t>(rows), gate_post);
+    if (!post_gated)
+      nntrainer::ThreadManager::Global().parallel_for(
+        0, static_cast<size_t>(rows), gate_post);
   }
 
   if (compare) {
