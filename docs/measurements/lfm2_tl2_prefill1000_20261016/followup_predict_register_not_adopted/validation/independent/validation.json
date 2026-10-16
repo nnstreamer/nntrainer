@@ -1,0 +1,38 @@
+{
+  "verdict": "no_blocker",
+  "production": {
+    "nntrainer/tensor/htp_backend/htp_router_predict.h": "cb9d5e9ac8fd04844b02652e8a782ac69805c93df3aa5c7511935fb54f4e0836",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "1c470ac6a9edcc1cbb91f9c1ccd85a5a18132ead41921636dfca4bbf4bf83418",
+    "production.patch": "ba6055d746a37aecbb98f38a260ba0671071c285f6a3d426ebf5ec3a6c364f3d"
+  },
+  "host_cases": 130,
+  "raw_score_arrays": 125,
+  "actual_callback_jobs": 144,
+  "env_shape_guards": 12,
+  "host_sanitizers": [
+    "ASan",
+    "UBSan"
+  ],
+  "non_arm_fallback_pass": true,
+  "mutants": 9,
+  "whole_core_compile": [
+    "baseline",
+    "candidate"
+  ],
+  "candidate_object_sha256": "2acc8f766cc130ad6758107451fc95fd4d4298503cce58159671b6dc187c9f7c",
+  "author_final_object_equal": true,
+  "frames": {
+    "baseline": [
+      "/tmp/nntr-lfm2-predict-register-20261017/baseline/nntrainer/tensor/htp_backend/htp_compute_ops.cpp:8562:_ZN9nntrainer13HtpComputeOps16initCpuPredictorERKNSt6__ndk16vectorIiNS1_9allocatorIiEEEE\t288\tstatic",
+      "/tmp/nntr-lfm2-predict-register-20261017/baseline/nntrainer/tensor/htp_backend/htp_compute_ops.cpp:8618:_ZZN9nntrainer13HtpComputeOps16initCpuPredictorERKNSt6__ndk16vectorIiNS1_9allocatorIiEEEEENKUlRNS0_13PredictionJobEE_clES9_\t336\tstatic",
+      "/tmp/nntr-lfm2-predict-register-20261017/baseline/nntrainer/tensor/htp_backend/htp_router_predict.h:114:_ZN9nntrainer17htpPredictExpertsEPKfS1_jjjS1_\t192\tstatic"
+    ],
+    "candidate": [
+      "/tmp/nntr-lfm2-predict-register-20261017/candidate/nntrainer/tensor/htp_backend/htp_compute_ops.cpp:8562:_ZN9nntrainer13HtpComputeOps16initCpuPredictorERKNSt6__ndk16vectorIiNS1_9allocatorIiEEEE\t288\tstatic",
+      "/tmp/nntr-lfm2-predict-register-20261017/candidate/nntrainer/tensor/htp_backend/htp_compute_ops.cpp:8626:_ZZN9nntrainer13HtpComputeOps16initCpuPredictorERKNSt6__ndk16vectorIiNS1_9allocatorIiEEEEENKUlRNS0_13PredictionJobEE_clES9_\t336\tstatic",
+      "/tmp/nntr-lfm2-predict-register-20261017/candidate/nntrainer/tensor/htp_backend/htp_router_predict.h:178:_ZN9nntrainer17htpPredictExpertsEPKfS1_jjjS1_b\t192\tstatic"
+    ]
+  },
+  "review_sha256": "67efb6b550091c8f35093733d92572d1bd95e00428eef3e102db61181c69bfd6",
+  "scope": "No device/root edits; queue/pinning stand-ins; native results were root runs."
+}

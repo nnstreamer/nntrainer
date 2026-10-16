@@ -1,0 +1,166 @@
+{
+  "decision": "not_adopted",
+  "reason": "No consistent end-to-end decode TPS improvement. Prefill variation is observed but not causally attributed to the decode-only hint kernel.",
+  "normal": [
+    {
+      "tokens": 1024,
+      "prefill_tps": {
+        "control": [
+          848.384,
+          854.758,
+          842.105
+        ],
+        "candidate": [
+          818.545,
+          827.141,
+          829.15
+        ],
+        "median_control": 848.384,
+        "median_candidate": 827.141,
+        "median_pct": -2.5039368964997033,
+        "pairs_faster": 0,
+        "paired_deltas_pct": [
+          -3.517157324984921,
+          -3.230972977146762,
+          -1.5384067307521065
+        ]
+      },
+      "decode_tps": {
+        "control": [
+          17.7138,
+          17.5824,
+          17.6066
+        ],
+        "candidate": [
+          17.704,
+          17.5872,
+          17.4577
+        ],
+        "median_control": 17.6066,
+        "median_candidate": 17.5872,
+        "median_pct": -0.11018595299490119,
+        "pairs_faster": 1,
+        "paired_deltas_pct": [
+          -0.055324097596221034,
+          0.027300027300025675,
+          -0.8457055876773589
+        ]
+      },
+      "control_max_peak_kib": 2733764.0,
+      "candidate_max_peak_kib": 2734112.0
+    },
+    {
+      "tokens": 2048,
+      "prefill_tps": {
+        "control": [
+          852.978,
+          933.881,
+          785.577
+        ],
+        "candidate": [
+          918.386,
+          785.276,
+          787.995
+        ],
+        "median_control": 852.978,
+        "median_candidate": 787.995,
+        "median_pct": -7.61836764840359,
+        "pairs_faster": 2,
+        "paired_deltas_pct": [
+          7.668193083526198,
+          -15.912626983523603,
+          0.30779923546642163
+        ]
+      },
+      "decode_tps": {
+        "control": [
+          16.3474,
+          16.4271,
+          16.3683
+        ],
+        "candidate": [
+          16.7539,
+          16.4187,
+          16.024
+        ],
+        "median_control": 16.3683,
+        "median_candidate": 16.4187,
+        "median_pct": 0.3079122450101668,
+        "pairs_faster": 1,
+        "paired_deltas_pct": [
+          2.486633960140461,
+          -0.05113501470130899,
+          -2.103456070575449
+        ]
+      },
+      "control_max_peak_kib": 3036256.0,
+      "candidate_max_peak_kib": 3037628.0
+    }
+  ],
+  "normal_run_count": 12,
+  "all_65_ids_exact": true,
+  "all_seven_binaries_identical_off_on": true,
+  "runtime_binaries": {
+    "lfm-predict-register-0": {
+      "libnntrainer.so": "297c9ff9b6a91b332eb98aaab67a4af28ab22c0275ef4521bcd215c5df2ada3a",
+      "libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+      "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+      "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+      "libcausallm.so": "c9efd4428d5644389f0d7b76f5d5c0e6ad274a5309d1475fc6fd9e8da8656ba4",
+      "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76",
+      "libnntr_hvx_skel.so": "3baddb92d14d1d23fe9b6c6a7cacfe3a6cd4708001c110bb8b15e1b0b7276f7c"
+    },
+    "lfm-predict-register-1": {
+      "libnntrainer.so": "297c9ff9b6a91b332eb98aaab67a4af28ab22c0275ef4521bcd215c5df2ada3a",
+      "libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+      "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+      "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+      "libcausallm.so": "c9efd4428d5644389f0d7b76f5d5c0e6ad274a5309d1475fc6fd9e8da8656ba4",
+      "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76",
+      "libnntr_hvx_skel.so": "3baddb92d14d1d23fe9b6c6a7cacfe3a6cd4708001c110bb8b15e1b0b7276f7c"
+    }
+  },
+  "diagnostic_actual_dispatch": [
+    {
+      "status": "PASS",
+      "enabled": 0,
+      "callbacks": 2368,
+      "dots": 2368,
+      "qualified": 2368,
+      "fast": 0,
+      "scope": "Actual helper dispatch count only; no timing or numerical result proof."
+    },
+    {
+      "status": "PASS",
+      "enabled": 1,
+      "callbacks": 2368,
+      "dots": 2368,
+      "qualified": 2368,
+      "fast": 2368,
+      "scope": "Actual helper dispatch count only; no timing or numerical result proof."
+    }
+  ],
+  "diagnostic_tps_excluded": true,
+  "isolated_cpu_micro": [
+    {
+      "mode": "warm",
+      "pairs": 31,
+      "off_median_us": 18.882242,
+      "on_median_us": 9.527586,
+      "scope": "CPU0 only; synthetic input, no real queue/I/O/DSP/concurrent model"
+    },
+    {
+      "mode": "37layers",
+      "pairs": 31,
+      "off_median_us": 21.877459,
+      "on_median_us": 14.139568,
+      "scope": "CPU0 only; synthetic input, no real queue/I/O/DSP/concurrent model"
+    }
+  ],
+  "cpu_micro_does_not_predict_model_gain": true,
+  "two_sources_and_four_core_binaries_restored": true,
+  "original_seven_binary_phone_runtime_verified": true,
+  "live_root_app_restored_claim": false,
+  "independent_agent_review_performed": true,
+  "new_tests_or_phone_runs_during_curation": false
+}

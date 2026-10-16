@@ -1,0 +1,5 @@
+{
+  "nntrainer/tensor/htp_backend/htp_router_predict.h": "cb9d5e9ac8fd04844b02652e8a782ac69805c93df3aa5c7511935fb54f4e0836",
+  "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "1c470ac6a9edcc1cbb91f9c1ccd85a5a18132ead41921636dfca4bbf4bf83418",
+  "production.patch": "ba6055d746a37aecbb98f38a260ba0671071c285f6a3d426ebf5ec3a6c364f3d"
+}

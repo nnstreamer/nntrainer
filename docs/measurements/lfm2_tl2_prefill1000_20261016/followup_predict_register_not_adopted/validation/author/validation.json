@@ -1,0 +1,104 @@
+{
+  "status": "host_and_native_correctness_pass_device_model_pending",
+  "production_sha256": "ba6055d746a37aecbb98f38a260ba0671071c285f6a3d426ebf5ec3a6c364f3d",
+  "source_hashes": {
+    "nntrainer/tensor/htp_backend/htp_router_predict.h": "cb9d5e9ac8fd04844b02652e8a782ac69805c93df3aa5c7511935fb54f4e0836",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "1c470ac6a9edcc1cbb91f9c1ccd85a5a18132ead41921636dfca4bbf4bf83418",
+    "production.patch": "ba6055d746a37aecbb98f38a260ba0671071c285f6a3d426ebf5ec3a6c364f3d"
+  },
+  "tests_patch_sha256": "7c24b11915f44d30ed6933ce42ee79b19f0122b643741135c7f329970c32401e",
+  "test_files": {
+    "test/htp/host/lfm2_predict_register_check.cpp": "eea86b5f89a8a65c5b4ee5f2418b7c1e3fea2cd8585a0efd3ccfd5fdaf75080d",
+    "test/htp/host/lfm2_predict_register_micro.cpp": "d82d6160428315b099db0eb302dad8aac49b303d83455c4cd1c9ee7e8de8521d",
+    "test/htp/host/run_lfm2_predict_register_check.py": "d10f22efd3d0ed1c10807f34ef89bb2b4d0815026eb62529b042eb180ba2663f",
+    "test/htp/host/run_lfm2_predict_register_mutations.py": "fce04eed4285cd2341a1c9ff6b23dde94704804003a452fec60fab1c7de667f8"
+  },
+  "host": {
+    "latest_log": "host-final.log",
+    "cases": 130,
+    "raw_score_sets": 125,
+    "actual_callback_jobs": 144,
+    "env_shape_guards": 12,
+    "asan_ubsan": "PASS, no suppressions"
+  },
+  "fallback": {
+    "log": "fallback-san.log",
+    "status": "PASS, actual non-AArch64 fallback"
+  },
+  "mutations": {
+    "log": "mutations-final.log",
+    "runtime_killed": 9,
+    "note": "Helper/guard/callback extracts identical across final capture-order-only change; whole final core and capture layout separately compiled."
+  },
+  "existing_prefetch": {
+    "log": "checks/existing/run.log",
+    "status": "PASS ASan/UBSan"
+  },
+  "native": {
+    "runs": [
+      {
+        "name": "check",
+        "sha256": "b234cbf2609e99cdfe972deaa59d8f23421cc9ea1a293e7be1bb666c953730c6",
+        "command": "env LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated:/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/tile-ion NNTR_HTP_PAGE_CACHE=0 NNTR_NUM_THREADS=8 timeout 60 /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/predict-register-check",
+        "returncode": 0,
+        "seconds": 0.13281168998219073,
+        "log_sha256": "e5ea953513d502639e4fcfb5d8096a0a1251920aaef2f8314f4a3c67b9e4843c"
+      },
+      {
+        "name": "micro",
+        "sha256": "a8ce781f704a3a8d2b2f877885aea6c8e989f4b2270dc6b2ad9c383fc4d74625",
+        "command": "env LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated:/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/tile-ion NNTR_HTP_PAGE_CACHE=0 NNTR_NUM_THREADS=8 timeout 60 /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/predict-register-micro --cpu 0",
+        "returncode": 0,
+        "seconds": 0.3738341660355218,
+        "log_sha256": "0a513f0b1b3cac66c52113883768bf3d47169721468ff03c8d949e4c385f55df"
+      }
+    ],
+    "scope": "CPU predictor fixture and isolated micro on CPU0; no concurrent model or expert I/O."
+  },
+  "codegen": {
+    "directory": "codegen/candidate-final",
+    "whole_core": "PASS",
+    "predictor_stack_before_after": [
+      192,
+      192
+    ],
+    "callback_stack_before_after": [
+      336,
+      336
+    ],
+    "initializer_stack_before_after": [
+      288,
+      288
+    ],
+    "callback_size_before_after": [
+      72,
+      72
+    ],
+    "hot_loop_instructions_per_h": 29,
+    "fmla_per_h": 16,
+    "weight_ldp_per_h": 8,
+    "input_ldr_per_h": 1,
+    "hot_score_load_store": 0,
+    "hot_stack_spills": 0,
+    "initializer_stack_note": "Final candidate-final/htp_compute_ops.su; earlier appended-capture draft was304B and is archived."
+  },
+  "micro": {
+    "runner": "root only, S26 CPU0",
+    "pairs_each": 31,
+    "warm_off_on_us": [
+      18.882242,
+      9.527586
+    ],
+    "sweep37_off_on_us": [
+      21.877459,
+      14.139568
+    ],
+    "model_tps_claim": false,
+    "note": "Medians per hint include dot, finite checks, sigmoid, partial sort and existing allocations. No callback residual/filtering, queue, disk, DSP or concurrent model."
+  },
+  "diagnostic": {
+    "patch_sha256": "ee1879fb1f398fad0b425f1dd29c93a9aa15bd1a11c146796c7a44f0d10983b4",
+    "parser_sha256": "e5c687e89f3616cdb625f7cf2cdcfe81a2e46b0aa3d5fd0c88c755e26edf59fc",
+    "normal_overhead": "No extra state/instructions when macro undefined; see diagnostic README for logging line constants."
+  }
+}

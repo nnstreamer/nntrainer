@@ -1,0 +1,66 @@
+{
+  "valid": 2,
+  "invalid": 10,
+  "cases": [
+    {
+      "name": "off",
+      "expected_success": true,
+      "returncode": 0
+    },
+    {
+      "name": "on",
+      "expected_success": true,
+      "returncode": 0
+    },
+    {
+      "name": "missing",
+      "expected_success": false,
+      "returncode": 1
+    },
+    {
+      "name": "duplicate",
+      "expected_success": false,
+      "returncode": 1
+    },
+    {
+      "name": "truncated",
+      "expected_success": false,
+      "returncode": 1
+    },
+    {
+      "name": "callbacks",
+      "expected_success": false,
+      "returncode": 1
+    },
+    {
+      "name": "dots",
+      "expected_success": false,
+      "returncode": 1
+    },
+    {
+      "name": "qualified",
+      "expected_success": false,
+      "returncode": 1
+    },
+    {
+      "name": "fast",
+      "expected_success": false,
+      "returncode": 1
+    },
+    {
+      "name": "negative",
+      "expected_success": false,
+      "returncode": 1
+    },
+    {
+      "name": "extra",
+      "expected_success": false,
+      "returncode": 1
+    },
+    {
+      "name": "garbage",
+      "expected_success": false,
+      "returncode": 1
+    }
+  ]
+}

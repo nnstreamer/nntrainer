@@ -1,0 +1,74 @@
+Predictor register accumulation: independent review, 2026-10-17
+
+Verdict: no blocking finding for the frozen opt-in candidate. No root source,
+phone or author candidate was modified. Actual model timing remains a root task.
+
+Frozen production: ba6055d746a37aecbb98f38a260ba0671071c285f6a3d426ebf5ec3a6c364f3d
+Core: 1c470ac6a9edcc1cbb91f9c1ccd85a5a18132ead41921636dfca4bbf4bf83418
+Header: cb9d5e9ac8fd04844b02652e8a782ac69805c93df3aa5c7511935fb54f4e0836
+
+Arithmetic and bounds
+- The 64 scores remain independent; each is initialized to +0 and receives h=0
+  through 2047 in order. The new 16 vector FMA instructions per h use the same
+  multiply/add contraction as the actual Android baseline. No horizontal sum,
+  regrouped h reduction, fast-math flag change, or changed sigmoid/top-k occurs.
+- Last weight load is weights + 2047*64 + 60, four float lanes: exactly the
+  original 2048*64 extent. Input[2047] is the last input. All output stores are
+  within the existing scores[64] vector. NEON loads permit float alignment;
+  the fixture also checks 4-byte-but-not-16-byte aligned inputs/weights.
+- This is a hint only. Original finite-score and finite-bias rejection and
+  tie-breaking by ascending expert ID remain after the dot. NaN raw payloads
+  are not an exposed contract: both original and new rankers reject them.
+
+Dispatch, callback and lifetime
+- The exact environment value 1 and uniformly validated native TL2 expert
+  shape K2048/I1536/N2048 enable a captured bool. The header independently
+  requires ARM64, K2048, E64, a sigmoid bias, valid inputs and a nonzero top.
+  Gemma/softmax, unsupported sizes, nonnative experts, OFF and non-ARM use the
+  original loop. Windows ARM without __aarch64__ also takes that fallback.
+- initPoolPrefetch rejects empty pool data and checks all descriptor geometries
+  before initCpuPredictor. The existing router setup recognizes LFM only at
+  eps=0/K2048/E64/top4; per-router sigmoid_bias supplies the second guard.
+- The new capture is a value, not a reference. No new buffer, cache, pointer
+  ownership, queue, reader or slot capacity is introduced. Corrected/scores
+  vectors and residual ownership were already present and are unchanged.
+- Existing job input moves into its owned slot before submission; one predictor
+  worker serializes residual history. The callback retains the same residual
+  and trace shared_ptrs, borrows the same model weights, then takes the same
+  handle_mutex before resident filtering/submission/confidence updates.
+- poolDisarm expires and joins the predictor before prefetch drain and before
+  propagating errors. beginPrompt, stopWorkers and atClose also drain it. The
+  delta does not move any of these boundaries or introduce a pointer into the
+  new score registers. Failed/expired jobs retain the original lifetime rules.
+
+Independent execution
+- Actual header/raw-score prefix and actual callback extraction: ASan/UBSan
+  PASS, 130 score/rank cases (125 nonempty raw-score arrays), 144 callback jobs,
+  12 environment/shape guards. Native special behavior remains root-tested.
+- Explicit non-ARM fallback: same 130/144/12 PASS with ASan/UBSan.
+- Nine mutations all rejected at runtime: h order, omitted lane group, wrong
+  weight stride, hidden/expert/bias/option guards, exact env and native guard.
+- Whole baseline and candidate core translation units compiled independently
+  with the recorded Android NDK production command. Candidate object SHA
+  2acc8f766cc130ad6758107451fc95fd4d4298503cce58159671b6dc187c9f7c is byte-identical
+  to the author's final object. Commands, logs, asm and .su are under codegen/.
+- Final record-layout evidence places the bool at offset 36 in old padding:
+  closure remains 72 bytes. Final .su says initCpuPredictor 288 bytes (the
+  earlier author message saying 304 was stale); predictor frame remains 192
+  bytes. The callback remains 336 bytes. No new persistent allocation.
+
+Scope limits
+- Host fixtures substitute the queue/pinning and record prefetch submissions;
+  they do not model real disk/DSP concurrency or performance. Native 130-case
+  and micro results supplied by root were inspected, not independently run on
+  a device here. Root's 2368 callback/dot dispatch and model A/B are separate.
+- Keeping vector scores in registers removes repeated score loads/stores in
+  the generated loop. It is not an end-to-end gain claim. Existing fallback
+  source paths are preserved; Gemma performance has not been remeasured.
+
+Reproduction
+python3 AUTHOR/test/htp/host/run_lfm2_predict_register_check.py --source AUTHOR/candidate --reference AUTHOR/baseline --output OWN/host --simde-include SIMDE --sanitize
+python3 AUTHOR/test/htp/host/run_lfm2_predict_register_check.py --source AUTHOR/candidate --reference AUTHOR/baseline --output OWN/fallback --fallback --sanitize
+python3 AUTHOR/test/htp/host/run_lfm2_predict_register_mutations.py --source AUTHOR/candidate --reference AUTHOR/baseline --output OWN/mutations --simde-include SIMDE
+AUTHOR=/tmp/nntr-lfm2-predict-register-20261017
+SIMDE=/tmp/nntr-lfm2-conv-chunk-view-20261016/deps/simde-0.8.2

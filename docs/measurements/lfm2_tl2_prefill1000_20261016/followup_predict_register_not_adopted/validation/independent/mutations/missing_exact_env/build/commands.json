@@ -1,0 +1,53 @@
+{
+  "hashes": {
+    "baseline": {
+      "header": "69d4b11f0999378cd6102bb32d68cf39a84518a344cb80e2e102b8ace32160d5",
+      "core": "5e75571e5433132d8c9d17691882cbddea73ebbf651e2e8e0b3b6957ac3566df"
+    },
+    "candidate": {
+      "header": "cb9d5e9ac8fd04844b02652e8a782ac69805c93df3aa5c7511935fb54f4e0836",
+      "core": "827e4edbba3f4edbc0b52ae6354af21a1b6114df059059361b981f9419411cfc"
+    }
+  },
+  "compile": [
+    [
+      "g++",
+      "-std=c++17",
+      "-O3",
+      "-g",
+      "-pthread",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-ffp-contract=fast",
+      "-DPREDICT_SIMDE",
+      "-mfma",
+      "-I/tmp/nntr-lfm2-conv-chunk-view-20261016/deps/simde-0.8.2",
+      "-fsanitize=address,undefined",
+      "-fno-omit-frame-pointer",
+      "/tmp/nntr-lfm2-predict-register-review-20261017/mutations/missing_exact_env/build/lfm2_predict_register_check.cpp",
+      "-o",
+      "/tmp/nntr-lfm2-predict-register-review-20261017/mutations/missing_exact_env/build/check"
+    ],
+    [
+      "g++",
+      "-std=c++17",
+      "-O3",
+      "-g",
+      "-pthread",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-ffp-contract=fast",
+      "-DPREDICT_SIMDE",
+      "-mfma",
+      "-I/tmp/nntr-lfm2-conv-chunk-view-20261016/deps/simde-0.8.2",
+      "-fsanitize=address,undefined",
+      "-fno-omit-frame-pointer",
+      "/tmp/nntr-lfm2-predict-register-review-20261017/mutations/missing_exact_env/build/lfm2_predict_register_micro.cpp",
+      "-o",
+      "/tmp/nntr-lfm2-predict-register-review-20261017/mutations/missing_exact_env/build/micro"
+    ]
+  ],
+  "scope": "Actual predictor header, raw-score prefix and prediction callback. Queue and pin are stand-ins; no real DSP, file I/O or scheduling overlap is modeled."
+}

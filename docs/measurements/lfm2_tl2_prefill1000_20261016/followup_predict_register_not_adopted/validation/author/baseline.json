@@ -1,0 +1,7 @@
+{
+  "head": "f7b16e48ca01a650160d823141e86e67c7993a7c",
+  "files": {
+    "nntrainer/tensor/htp_backend/htp_router_predict.h": "69d4b11f0999378cd6102bb32d68cf39a84518a344cb80e2e102b8ace32160d5",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "5e75571e5433132d8c9d17691882cbddea73ebbf651e2e8e0b3b6957ac3566df"
+  }
+}

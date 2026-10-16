@@ -1,0 +1,10 @@
+{
+  "text_sections": 1020,
+  "identical": 1017,
+  "different": [
+    ".text._ZN9nntrainer13HtpComputeOps15sdpa_q2_kvcacheEijjjPKtS2_S2_PKfjjjjjjjjPtS4_j",
+    ".text._ZN9nntrainer13HtpComputeOps25sdpa_q2_kvcache_f32_calibEijjjPKtS2_PKfjjjjjjjjPfS5_S5_S5_S5_j",
+    ".text._ZN9nntrainer13HtpComputeOps19sdpa_q2_kvcache_f32EijjjPKtS2_PKfS4_S4_jjjjjjjjPfPtS4_j"
+  ],
+  "note": "Only existing __LINE__ operands move by 11 lines in three sdpa functions; no added instruction. Predictor/helper/callback/initializer text sections exact."
+}

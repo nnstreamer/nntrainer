@@ -1,0 +1,15 @@
+{
+  "production.patch": "ba6055d746a37aecbb98f38a260ba0671071c285f6a3d426ebf5ec3a6c364f3d",
+  "tests.patch": "7c24b11915f44d30ed6933ce42ee79b19f0122b643741135c7f329970c32401e",
+  "README.txt": "397c29999b7e3a17e0e27cfd33d6dd40d806ffcb2f042581c513bf9ecc31386c",
+  "validation.json": "5ae38d27445a9b59f64e29484ceeaff9624312d8e2ca4bb000d6c324f6a945b8",
+  "production-hashes.json": "9bb651e4f67a8942047a5edf0da4ed44d2c8ba7a016c4945af0eb3be11703723",
+  "test/htp/host/lfm2_predict_register_micro.cpp": "d82d6160428315b099db0eb302dad8aac49b303d83455c4cd1c9ee7e8de8521d",
+  "test/htp/host/run_lfm2_predict_register_mutations.py": "fce04eed4285cd2341a1c9ff6b23dde94704804003a452fec60fab1c7de667f8",
+  "test/htp/host/lfm2_predict_register_check.cpp": "eea86b5f89a8a65c5b4ee5f2418b7c1e3fea2cd8585a0efd3ccfd5fdaf75080d",
+  "test/htp/host/run_lfm2_predict_register_check.py": "d10f22efd3d0ed1c10807f34ef89bb2b4d0815026eb62529b042eb180ba2663f",
+  "diagnostic/diagnostic.patch": "ee1879fb1f398fad0b425f1dd29c93a9aa15bd1a11c146796c7a44f0d10983b4",
+  "diagnostic/parse.py": "e5c687e89f3616cdb625f7cf2cdcfe81a2e46b0aa3d5fd0c88c755e26edf59fc",
+  "diagnostic/parser_check.py": "600f724e7153387dfd274b69bf16dd5a5ce70a8e017acf1be13aa288502cea7c",
+  "diagnostic/README.txt": "fe08b197668fdaf036fb5e7dbc1b122a09cb667c1499cf7bdb520f6452d92db3"
+}

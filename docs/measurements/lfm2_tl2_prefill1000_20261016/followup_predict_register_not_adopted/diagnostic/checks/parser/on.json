@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "enabled": 1,
+  "callbacks": 2368,
+  "dots": 2368,
+  "qualified": 2368,
+  "fast": 2368,
+  "scope": "Actual helper dispatch count only; no timing or numerical result proof."
+}

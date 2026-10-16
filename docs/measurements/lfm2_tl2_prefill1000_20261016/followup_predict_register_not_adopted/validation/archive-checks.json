@@ -1,0 +1,290 @@
+{
+  "normal_runs_validated": 12,
+  "normal_summary_recomputed": true,
+  "all_raw_memory_hashes_exact": true,
+  "65_ids_each": true,
+  "fixed_c16_page0_preload128": true,
+  "all_seven_binaries_identical_off_on": true,
+  "author_and_integrated_patches_replayed": true,
+  "tests_patch_replayed": true,
+  "live_root_state_not_used": true,
+  "no_device_actions": true,
+  "restoration_verified": true,
+  "source_sha256": {
+    "nntrainer/tensor/htp_backend/htp_router_predict.h": "cb9d5e9ac8fd04844b02652e8a782ac69805c93df3aa5c7511935fb54f4e0836",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "1c470ac6a9edcc1cbb91f9c1ccd85a5a18132ead41921636dfca4bbf4bf83418"
+  },
+  "production_patch_sha256": "ba6055d746a37aecbb98f38a260ba0671071c285f6a3d426ebf5ec3a6c364f3d",
+  "tests_patch_sha256": "7c24b11915f44d30ed6933ce42ee79b19f0122b643741135c7f329970c32401e",
+  "memory_sampling": [
+    {
+      "tag": "continue-predict-register-0-r1",
+      "requested_period_ms": 20,
+      "sample_count": 293,
+      "composite_samples": 292,
+      "interval_ms": {
+        "count": 292,
+        "min": 20.127813,
+        "mean": 20.9646439726,
+        "p50": 21.105,
+        "p95": 21.382969,
+        "max": 23.543854
+      },
+      "scan_ms": {
+        "mean": 0.885224088737,
+        "max": 3.395468
+      },
+      "dma_identity_verified": false,
+      "peak_kib": 2733764.0,
+      "peak_dedup_complete": true,
+      "peak_error_fields_zero": true
+    },
+    {
+      "tag": "continue-predict-register-1-r1",
+      "requested_period_ms": 20,
+      "sample_count": 293,
+      "composite_samples": 291,
+      "interval_ms": {
+        "count": 292,
+        "min": 20.095729,
+        "mean": 20.9655927055,
+        "p50": 21.115521,
+        "p95": 21.386771,
+        "max": 22.868594
+      },
+      "scan_ms": {
+        "mean": 0.890096904437,
+        "max": 2.739636
+      },
+      "dma_identity_verified": false,
+      "peak_kib": 2734112.0,
+      "peak_dedup_complete": true,
+      "peak_error_fields_zero": true
+    },
+    {
+      "tag": "continue-predict-register-1-r2",
+      "requested_period_ms": 20,
+      "sample_count": 295,
+      "composite_samples": 294,
+      "interval_ms": {
+        "count": 294,
+        "min": 20.129844,
+        "mean": 20.9635574252,
+        "p50": 21.099062,
+        "p95": 21.415208,
+        "max": 22.63
+      },
+      "scan_ms": {
+        "mean": 0.888072010169,
+        "max": 2.50349
+      },
+      "dma_identity_verified": false,
+      "peak_kib": 2733628.0,
+      "peak_dedup_complete": true,
+      "peak_error_fields_zero": true
+    },
+    {
+      "tag": "continue-predict-register-0-r2",
+      "requested_period_ms": 20,
+      "sample_count": 290,
+      "composite_samples": 289,
+      "interval_ms": {
+        "count": 289,
+        "min": 20.12901,
+        "mean": 21.0100086436,
+        "p50": 21.104531,
+        "p95": 21.42474,
+        "max": 24.467656
+      },
+      "scan_ms": {
+        "mean": 0.901787182759,
+        "max": 3.355208
+      },
+      "dma_identity_verified": false,
+      "peak_kib": 2733120.0,
+      "peak_dedup_complete": true,
+      "peak_error_fields_zero": true
+    },
+    {
+      "tag": "continue-predict-register-0-r3",
+      "requested_period_ms": 20,
+      "sample_count": 294,
+      "composite_samples": 293,
+      "interval_ms": {
+        "count": 293,
+        "min": 20.128438,
+        "mean": 20.9551258464,
+        "p50": 21.106667,
+        "p95": 21.34625,
+        "max": 23.526718
+      },
+      "scan_ms": {
+        "mean": 0.877380962585,
+        "max": 3.384218
+      },
+      "dma_identity_verified": false,
+      "peak_kib": 2733268.0,
+      "peak_dedup_complete": true,
+      "peak_error_fields_zero": true
+    },
+    {
+      "tag": "continue-predict-register-1-r3",
+      "requested_period_ms": 20,
+      "sample_count": 297,
+      "composite_samples": 296,
+      "interval_ms": {
+        "count": 296,
+        "min": 20.126823,
+        "mean": 20.9643053108,
+        "p50": 21.094948,
+        "p95": 21.384063,
+        "max": 23.579635
+      },
+      "scan_ms": {
+        "mean": 0.887471208754,
+        "max": 3.479063
+      },
+      "dma_identity_verified": false,
+      "peak_kib": 2733292.0,
+      "peak_dedup_complete": true,
+      "peak_error_fields_zero": true
+    },
+    {
+      "tag": "continue-predict-register2048-0-r1",
+      "requested_period_ms": 20,
+      "sample_count": 363,
+      "composite_samples": 361,
+      "interval_ms": {
+        "count": 362,
+        "min": 20.127656,
+        "mean": 21.0828966602,
+        "p50": 21.204896,
+        "p95": 21.486615,
+        "max": 23.884636
+      },
+      "scan_ms": {
+        "mean": 0.994153292011,
+        "max": 2.628906
+      },
+      "dma_identity_verified": false,
+      "peak_kib": 3034360.0,
+      "peak_dedup_complete": true,
+      "peak_error_fields_zero": true
+    },
+    {
+      "tag": "continue-predict-register2048-1-r1",
+      "requested_period_ms": 20,
+      "sample_count": 351,
+      "composite_samples": 350,
+      "interval_ms": {
+        "count": 350,
+        "min": 20.128854,
+        "mean": 21.0686269257,
+        "p50": 21.198333,
+        "p95": 21.485208,
+        "max": 22.815938
+      },
+      "scan_ms": {
+        "mean": 0.974689005698,
+        "max": 2.571562
+      },
+      "dma_identity_verified": false,
+      "peak_kib": 3036668.0,
+      "peak_dedup_complete": true,
+      "peak_error_fields_zero": true
+    },
+    {
+      "tag": "continue-predict-register2048-1-r2",
+      "requested_period_ms": 20,
+      "sample_count": 374,
+      "composite_samples": 372,
+      "interval_ms": {
+        "count": 373,
+        "min": 20.131197,
+        "mean": 21.0896289839,
+        "p50": 21.217188,
+        "p95": 21.496458,
+        "max": 23.330885
+      },
+      "scan_ms": {
+        "mean": 0.999491278075,
+        "max": 2.598021
+      },
+      "dma_identity_verified": false,
+      "peak_kib": 3037628.0,
+      "peak_dedup_complete": true,
+      "peak_error_fields_zero": true
+    },
+    {
+      "tag": "continue-predict-register2048-0-r2",
+      "requested_period_ms": 20,
+      "sample_count": 352,
+      "composite_samples": 351,
+      "interval_ms": {
+        "count": 351,
+        "min": 20.12849,
+        "mean": 21.0919352365,
+        "p50": 21.198125,
+        "p95": 21.485052,
+        "max": 24.386354
+      },
+      "scan_ms": {
+        "mean": 0.978024389205,
+        "max": 3.256302
+      },
+      "dma_identity_verified": false,
+      "peak_kib": 3035736.0,
+      "peak_dedup_complete": true,
+      "peak_error_fields_zero": true
+    },
+    {
+      "tag": "continue-predict-register2048-0-r3",
+      "requested_period_ms": 20,
+      "sample_count": 374,
+      "composite_samples": 372,
+      "interval_ms": {
+        "count": 373,
+        "min": 20.138021,
+        "mean": 21.1232695121,
+        "p50": 21.213386,
+        "p95": 21.517917,
+        "max": 24.811406
+      },
+      "scan_ms": {
+        "mean": 1.02000015241,
+        "max": 2.87198
+      },
+      "dma_identity_verified": false,
+      "peak_kib": 3036256.0,
+      "peak_dedup_complete": true,
+      "peak_error_fields_zero": true
+    },
+    {
+      "tag": "continue-predict-register2048-1-r3",
+      "requested_period_ms": 20,
+      "sample_count": 383,
+      "composite_samples": 382,
+      "interval_ms": {
+        "count": 382,
+        "min": 20.151718,
+        "mean": 21.1031477618,
+        "p50": 21.202865,
+        "p95": 21.476979,
+        "max": 23.760573
+      },
+      "scan_ms": {
+        "mean": 1.00977033681,
+        "max": 3.504427
+      },
+      "dma_identity_verified": false,
+      "peak_kib": 3037012.0,
+      "peak_dedup_complete": true,
+      "peak_error_fields_zero": true
+    }
+  ],
+  "diagnostics_parsed_from_raw_app_logs": true,
+  "native_log_hashes_verified": true,
+  "cpu_micro_medians_recomputed": true,
+  "independent_review_hash_verified": true,
+  "validation_scope": "Read-only evidence validation; existing author/reviewer/root checks were not rerun."
+}

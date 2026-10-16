@@ -1,0 +1,12 @@
+{
+  "baseline": [
+    "/tmp/nntr-lfm2-predict-register-20261017/baseline/nntrainer/tensor/htp_backend/htp_compute_ops.cpp:8562:_ZN9nntrainer13HtpComputeOps16initCpuPredictorERKNSt6__ndk16vectorIiNS1_9allocatorIiEEEE\t288\tstatic",
+    "/tmp/nntr-lfm2-predict-register-20261017/baseline/nntrainer/tensor/htp_backend/htp_compute_ops.cpp:8618:_ZZN9nntrainer13HtpComputeOps16initCpuPredictorERKNSt6__ndk16vectorIiNS1_9allocatorIiEEEEENKUlRNS0_13PredictionJobEE_clES9_\t336\tstatic",
+    "/tmp/nntr-lfm2-predict-register-20261017/baseline/nntrainer/tensor/htp_backend/htp_router_predict.h:114:_ZN9nntrainer17htpPredictExpertsEPKfS1_jjjS1_\t192\tstatic"
+  ],
+  "candidate": [
+    "/tmp/nntr-lfm2-predict-register-20261017/candidate/nntrainer/tensor/htp_backend/htp_compute_ops.cpp:8562:_ZN9nntrainer13HtpComputeOps16initCpuPredictorERKNSt6__ndk16vectorIiNS1_9allocatorIiEEEE\t288\tstatic",
+    "/tmp/nntr-lfm2-predict-register-20261017/candidate/nntrainer/tensor/htp_backend/htp_compute_ops.cpp:8626:_ZZN9nntrainer13HtpComputeOps16initCpuPredictorERKNSt6__ndk16vectorIiNS1_9allocatorIiEEEEENKUlRNS0_13PredictionJobEE_clES9_\t336\tstatic",
+    "/tmp/nntr-lfm2-predict-register-20261017/candidate/nntrainer/tensor/htp_backend/htp_router_predict.h:178:_ZN9nntrainer17htpPredictExpertsEPKfS1_jjjS1_b\t192\tstatic"
+  ]
+}

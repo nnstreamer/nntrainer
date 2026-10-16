@@ -1,0 +1,40 @@
+[
+  {
+    "variant": "lfm-predict-register-diagnostic",
+    "tag": "continue-predict-register-diagnostic-0",
+    "model": "model",
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1,
+      "NNTR_LFM2_PREDICT_REGISTER_ACCUM": 0
+    },
+    "profile": true,
+    "require_log": [
+      "[LFM-PREDICT-REG] callbacks=2368 dots=2368 qualified=2368 fast=0 E"
+    ]
+  },
+  {
+    "variant": "lfm-predict-register-diagnostic",
+    "tag": "continue-predict-register-diagnostic-1",
+    "model": "model",
+    "env": {
+      "NNTR_HTP_PREDICT": 2,
+      "NNTR_MOE_PREFETCH_RESIDUAL": 0.5,
+      "NNTR_HTP_TL2_STABLE_SLOTS": 1,
+      "NNTR_LFM2_PREFILL_EARLY": 1,
+      "NNTR_LFM2_DECODE_PAIR_READ": 1,
+      "NNTR_LFM2_DECODE_DEMAND_HANDOFF": 1,
+      "NNTR_LFM2_ROUTER_INPUT_HANDOFF": 1,
+      "NNTR_LFM2_PREDICT_REGISTER_ACCUM": 1
+    },
+    "profile": true,
+    "require_log": [
+      "[LFM-PREDICT-REG] callbacks=2368 dots=2368 qualified=2368 fast=2368 E"
+    ]
+  }
+]

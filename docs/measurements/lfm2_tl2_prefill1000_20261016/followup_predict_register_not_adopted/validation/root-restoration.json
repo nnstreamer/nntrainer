@@ -1,0 +1,28 @@
+{
+  "decision": "not_adopted_no_consistent_decode_TPS_improvement",
+  "sources": {
+    "htp_compute_ops.cpp": "5e75571e5433132d8c9d17691882cbddea73ebbf651e2e8e0b3b6957ac3566df",
+    "htp_router_predict.h": "69d4b11f0999378cd6102bb32d68cf39a84518a344cb80e2e102b8ace32160d5"
+  },
+  "all_four_restored_core_binaries": {
+    "libnntrainer.so": "072b5ca2700aaf10fb5b38ebd244d54691efd7ba96bf0dd699fd907bc6e42c09",
+    "libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+    "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+    "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe"
+  },
+  "original_seven_binary_phone_runtime": {
+    "libnntrainer.so": "072b5ca2700aaf10fb5b38ebd244d54691efd7ba96bf0dd699fd907bc6e42c09",
+    "libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+    "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+    "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+    "libcausallm.so": "c9efd4428d5644389f0d7b76f5d5c0e6ad274a5309d1475fc6fd9e8da8656ba4",
+    "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76",
+    "libnntr_hvx_skel.so": "3baddb92d14d1d23fe9b6c6a7cacfe3a6cd4708001c110bb8b15e1b0b7276f7c"
+  },
+  "phone_variant": "lfm-moe-row-norm-restored",
+  "phone_seven_hashes_verified": true,
+  "app_scope": "Predictor changed only core. Root app now contains the separate ARM-router candidate for next experiment; original baseline app is frozen in predictor/root-frozen and verified on baseline phone variant. No claim that root current app was restored.",
+  "all_model_IDs_and_memory_checks_pass": true,
+  "prefill_result_scope": "Observed prefill variation is not attributed to the decode-only hint kernel.",
+  "normal_summary": "root-normal-summary.json"
+}

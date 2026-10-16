@@ -1,0 +1,14 @@
+{
+  "normal": {
+    "asm_sha256": "17756fa9ce464459c49cec380d801fb3bb1c8aa18c92c9443a43da6733b31365",
+    "instruction_text_sha256": "15bba495d063ba359dbe775815d383209013b3077e28f3fa1386bb0ea2559502"
+  },
+  "off": {
+    "asm_sha256": "80cf13b0e8a37ab8a52ac8b88ea5f0161d6171484d0369f2bee08a984c7fdac0",
+    "instruction_text_sha256": "0d44c5e670316e56978a5a7beda22c91d0b2d5263f1be3bd0ee760de3cafce22"
+  },
+  "on": {
+    "asm_sha256": "e2336fec13b6f3aab151e2c336de6d44e753c218633f10e515553c4fa095d06a",
+    "instruction_text_sha256": "c6d919abc65b001b17a1d5c60aea0b45472199d790a770be91598306b3e9f8fa"
+  }
+}

@@ -1,0 +1,173 @@
+[
+  {
+    "name": "reverse_h",
+    "command": [
+      "python3",
+      "/tmp/nntr-lfm2-predict-register-20261017/test/htp/host/run_lfm2_predict_register_check.py",
+      "--source",
+      "/tmp/nntr-lfm2-predict-register-20261017/checks/mutations-final/reverse_h/source",
+      "--reference",
+      "/tmp/nntr-lfm2-predict-register-20261017/baseline",
+      "--output",
+      "/tmp/nntr-lfm2-predict-register-20261017/checks/mutations-final/reverse_h/build",
+      "--simde-include",
+      "/tmp/nntr-lfm2-conv-chunk-view-20261016/deps/simde-0.8.2",
+      "--sanitize"
+    ],
+    "exit_code": 1,
+    "expected": "score mismatch",
+    "runtime_killed": true
+  },
+  {
+    "name": "skip_lane_group",
+    "command": [
+      "python3",
+      "/tmp/nntr-lfm2-predict-register-20261017/test/htp/host/run_lfm2_predict_register_check.py",
+      "--source",
+      "/tmp/nntr-lfm2-predict-register-20261017/checks/mutations-final/skip_lane_group/source",
+      "--reference",
+      "/tmp/nntr-lfm2-predict-register-20261017/baseline",
+      "--output",
+      "/tmp/nntr-lfm2-predict-register-20261017/checks/mutations-final/skip_lane_group/build",
+      "--simde-include",
+      "/tmp/nntr-lfm2-conv-chunk-view-20261016/deps/simde-0.8.2",
+      "--sanitize"
+    ],
+    "exit_code": 1,
+    "expected": "score mismatch|Assertion",
+    "runtime_killed": true
+  },
+  {
+    "name": "wrong_weight_stride",
+    "command": [
+      "python3",
+      "/tmp/nntr-lfm2-predict-register-20261017/test/htp/host/run_lfm2_predict_register_check.py",
+      "--source",
+      "/tmp/nntr-lfm2-predict-register-20261017/checks/mutations-final/wrong_weight_stride/source",
+      "--reference",
+      "/tmp/nntr-lfm2-predict-register-20261017/baseline",
+      "--output",
+      "/tmp/nntr-lfm2-predict-register-20261017/checks/mutations-final/wrong_weight_stride/build",
+      "--simde-include",
+      "/tmp/nntr-lfm2-conv-chunk-view-20261016/deps/simde-0.8.2",
+      "--sanitize"
+    ],
+    "exit_code": 1,
+    "expected": "score mismatch|Assertion",
+    "runtime_killed": true
+  },
+  {
+    "name": "missing_hidden_guard",
+    "command": [
+      "python3",
+      "/tmp/nntr-lfm2-predict-register-20261017/test/htp/host/run_lfm2_predict_register_check.py",
+      "--source",
+      "/tmp/nntr-lfm2-predict-register-20261017/checks/mutations-final/missing_hidden_guard/source",
+      "--reference",
+      "/tmp/nntr-lfm2-predict-register-20261017/baseline",
+      "--output",
+      "/tmp/nntr-lfm2-predict-register-20261017/checks/mutations-final/missing_hidden_guard/build",
+      "--simde-include",
+      "/tmp/nntr-lfm2-conv-chunk-view-20261016/deps/simde-0.8.2",
+      "--sanitize"
+    ],
+    "exit_code": 1,
+    "expected": "AddressSanitizer",
+    "runtime_killed": true
+  },
+  {
+    "name": "missing_expert_guard",
+    "command": [
+      "python3",
+      "/tmp/nntr-lfm2-predict-register-20261017/test/htp/host/run_lfm2_predict_register_check.py",
+      "--source",
+      "/tmp/nntr-lfm2-predict-register-20261017/checks/mutations-final/missing_expert_guard/source",
+      "--reference",
+      "/tmp/nntr-lfm2-predict-register-20261017/baseline",
+      "--output",
+      "/tmp/nntr-lfm2-predict-register-20261017/checks/mutations-final/missing_expert_guard/build",
+      "--simde-include",
+      "/tmp/nntr-lfm2-conv-chunk-view-20261016/deps/simde-0.8.2",
+      "--sanitize"
+    ],
+    "exit_code": 1,
+    "expected": "AddressSanitizer",
+    "runtime_killed": true
+  },
+  {
+    "name": "missing_bias_guard",
+    "command": [
+      "python3",
+      "/tmp/nntr-lfm2-predict-register-20261017/test/htp/host/run_lfm2_predict_register_check.py",
+      "--source",
+      "/tmp/nntr-lfm2-predict-register-20261017/checks/mutations-final/missing_bias_guard/source",
+      "--reference",
+      "/tmp/nntr-lfm2-predict-register-20261017/baseline",
+      "--output",
+      "/tmp/nntr-lfm2-predict-register-20261017/checks/mutations-final/missing_bias_guard/build",
+      "--simde-include",
+      "/tmp/nntr-lfm2-conv-chunk-view-20261016/deps/simde-0.8.2",
+      "--sanitize"
+    ],
+    "exit_code": 1,
+    "expected": "Assertion",
+    "runtime_killed": true
+  },
+  {
+    "name": "missing_option_guard",
+    "command": [
+      "python3",
+      "/tmp/nntr-lfm2-predict-register-20261017/test/htp/host/run_lfm2_predict_register_check.py",
+      "--source",
+      "/tmp/nntr-lfm2-predict-register-20261017/checks/mutations-final/missing_option_guard/source",
+      "--reference",
+      "/tmp/nntr-lfm2-predict-register-20261017/baseline",
+      "--output",
+      "/tmp/nntr-lfm2-predict-register-20261017/checks/mutations-final/missing_option_guard/build",
+      "--simde-include",
+      "/tmp/nntr-lfm2-conv-chunk-view-20261016/deps/simde-0.8.2",
+      "--sanitize"
+    ],
+    "exit_code": 1,
+    "expected": "Assertion",
+    "runtime_killed": true
+  },
+  {
+    "name": "missing_exact_env",
+    "command": [
+      "python3",
+      "/tmp/nntr-lfm2-predict-register-20261017/test/htp/host/run_lfm2_predict_register_check.py",
+      "--source",
+      "/tmp/nntr-lfm2-predict-register-20261017/checks/mutations-final/missing_exact_env/source",
+      "--reference",
+      "/tmp/nntr-lfm2-predict-register-20261017/baseline",
+      "--output",
+      "/tmp/nntr-lfm2-predict-register-20261017/checks/mutations-final/missing_exact_env/build",
+      "--simde-include",
+      "/tmp/nntr-lfm2-conv-chunk-view-20261016/deps/simde-0.8.2",
+      "--sanitize"
+    ],
+    "exit_code": 1,
+    "expected": "Assertion",
+    "runtime_killed": true
+  },
+  {
+    "name": "missing_native_guard",
+    "command": [
+      "python3",
+      "/tmp/nntr-lfm2-predict-register-20261017/test/htp/host/run_lfm2_predict_register_check.py",
+      "--source",
+      "/tmp/nntr-lfm2-predict-register-20261017/checks/mutations-final/missing_native_guard/source",
+      "--reference",
+      "/tmp/nntr-lfm2-predict-register-20261017/baseline",
+      "--output",
+      "/tmp/nntr-lfm2-predict-register-20261017/checks/mutations-final/missing_native_guard/build",
+      "--simde-include",
+      "/tmp/nntr-lfm2-conv-chunk-view-20261016/deps/simde-0.8.2",
+      "--sanitize"
+    ],
+    "exit_code": 1,
+    "expected": "Assertion",
+    "runtime_killed": true
+  }
+]

@@ -1,0 +1,21 @@
+{
+  "runs": [
+    {
+      "name": "check",
+      "sha256": "b234cbf2609e99cdfe972deaa59d8f23421cc9ea1a293e7be1bb666c953730c6",
+      "command": "env LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated:/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/tile-ion NNTR_HTP_PAGE_CACHE=0 NNTR_NUM_THREADS=8 timeout 60 /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/predict-register-check",
+      "returncode": 0,
+      "seconds": 0.13281168998219073,
+      "log_sha256": "e5ea953513d502639e4fcfb5d8096a0a1251920aaef2f8314f4a3c67b9e4843c"
+    },
+    {
+      "name": "micro",
+      "sha256": "a8ce781f704a3a8d2b2f877885aea6c8e989f4b2270dc6b2ad9c383fc4d74625",
+      "command": "env LD_LIBRARY_PATH=/data/local/tmp/nntr_lfm2_prefill1000_20261016/lfm-conv-chunk-isolated:/data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/tile-ion NNTR_HTP_PAGE_CACHE=0 NNTR_NUM_THREADS=8 timeout 60 /data/local/tmp/nntr_lfm2_prefill1000_20261016/validation/predict-register-micro --cpu 0",
+      "returncode": 0,
+      "seconds": 0.3738341660355218,
+      "log_sha256": "0a513f0b1b3cac66c52113883768bf3d47169721468ff03c8d949e4c385f55df"
+    }
+  ],
+  "scope": "CPU predictor fixture and isolated micro on CPU0; no concurrent model or expert I/O."
+}

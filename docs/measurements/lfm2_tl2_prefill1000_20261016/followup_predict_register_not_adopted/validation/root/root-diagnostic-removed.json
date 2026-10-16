@@ -1,0 +1,5 @@
+{
+  "all_four_core_binaries_byte_identical_to_normal_frozen": true,
+  "normal_libnntrainer_sha256": "297c9ff9b6a91b332eb98aaab67a4af28ab22c0275ef4521bcd215c5df2ada3a",
+  "note": "Restoring with copy2 preserved old timestamps; no-op rebuild detected by SHA mismatch. Touched restored source and rebuilt before normal deployment."
+}
