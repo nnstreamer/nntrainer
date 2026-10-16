@@ -1226,6 +1226,19 @@ static void moe_tl2_down_worker(uint32_t threads, uint32_t id, void *v) {
     const uint32_t panel = u % panels;
     hvx_gemv_u8tl2_panel(e->dn_wh + (size_t)panel * blocks * 640u, c->inter,
                          e->tl2_down, acc);
+    if (c->native_tl2 && c->k_tiles == 64u && c->inter == 1536u &&
+        c->N_out == 2048u && e->m == 1u &&
+        htp_tl2_palette_magnitude(e->g->pal) == 1u &&
+        htp_tl2_palette_magnitude(e->d->pal) == 1u) {
+      /** LFM2's native panel contains four full tiles. Preserve each
+       * column's FP32 operations while sharing the row parameter broadcasts
+       * and scheduling four independent dequantization chains together. */
+      const uint32_t col = panel * 128u;
+      hvx_dequant_acc_4tiles_m1_f32(acc, e->rq_scale[0], e->rq_zp[0],
+                                    e->d->colsum_w + col, e->d->w_scale + col,
+                                    e->d->bias + col, e->res + col);
+      continue;
+    }
     for (uint32_t j = 0; j < 128u && panel * 128u + j < c->N_out; j += 32u) {
       const uint32_t col = panel * 128u + j;
       moe_tl2_restore_magnitude(acc + j, e->d->pal);

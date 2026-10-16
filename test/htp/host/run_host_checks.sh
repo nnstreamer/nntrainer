@@ -617,6 +617,17 @@ done
   "$BACKEND/hvx/hvx_rmsnorm_rows_f32.c" "$BACKEND/hvx/hvx_worker_pool.c" -lm
 "$OUT/fc_m1_epilogue_host_check"
 
+# The production native TL2 down worker uses the exact four-tile epilogue
+# only for LFM2 M=1. Compare its real GEMV/dequant sources and dispatch guards.
+"$cc" -std=gnu11 -O2 -Wall -Wextra -Wno-unused-parameter -ffp-contract=off \
+  -Wno-format-truncation -ffunction-sections -fdata-sections -include malloc.h \
+  -I "$HERE/hvx_emu" -I "$HERE/stub" -I "$BACKEND/.." -I "$BACKEND" \
+  -I "$BACKEND/hmx" -I "$BACKEND/hvx" \
+  -o "$OUT/tl2_dn_dequant_check" "$HERE/tl2_dn_dequant_check.c" \
+  "$BACKEND/hvx/hvx_dequant_i32.c" "$BACKEND/hvx/hvx_gemv_u8tl2.c" \
+  -Wl,--gc-sections -lm
+"$OUT/tl2_dn_dequant_check"
+
 # The prefill-shape RMSNorm rows (doc 57 section 5 step 4): the real HVX
 # source on the lane emulation against a double reference, at the hidden
 # width, per head, gamma-less and in place (RMSNORM ROWS OK).
