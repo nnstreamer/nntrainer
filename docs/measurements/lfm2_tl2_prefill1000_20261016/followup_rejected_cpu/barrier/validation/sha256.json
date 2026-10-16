@@ -1,0 +1,21 @@
+{
+  "nntrainer/tensor/htp_backend/htp_expert_read_pool.h": {
+    "before": "fd692224c43e80a3f548a87d7af9f01aeb796618b95b62ead8ba66ed37f45b08",
+    "after": "268ce65cb4f6fec5c3c68008cac39ea639a54175ddd9c80f2a2badc791cf769c"
+  },
+  "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": {
+    "before": "9335c0ab80a038a35156e87d9e6eda71deac51a95c564e45427ef98c9756282c",
+    "after": "2c37dd6ebec824828a011c8e47f3d91d05e1b211e19e8ffc599c791c5490868f"
+  },
+  "test/htp/host/tl2_pair_read_check.cpp": {
+    "before": "247532063f3f58af85704f6cac667866721bc9accf5de5902d337035eaaf896c",
+    "after": "457eaaef3497aed56f7cf074b52fd898c71e340e94af445d7f1e4bb4ae3ea860"
+  },
+  "test/htp/host/expert_read_pool_check.cpp": {
+    "before": "81f152b58664d6988ee06f08532794174bf4aa7a6cb05dd4c886112fa5c82271",
+    "after": "fc49815bffab695fffbe98a1ef0cc26c5e7f86c01b21df138c3edbf676d7529f"
+  },
+  "production.patch": "1e0bf00c68ecd617ad97cb8ee79cedd62d45605541fab3f7bcad53db387b4c94",
+  "tests.patch": "1c48f8073d2de683d62daccb8f78aac6a0c36a67b207109cc14a90af51ae5392",
+  "complete.patch": "a06064360504a4bcac1b17cbdac6190a8793742aeb3999876a364a34895ec14e"
+}

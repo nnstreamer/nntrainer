@@ -1,0 +1,56 @@
+[
+  {
+    "workers": 3,
+    "old_sum": 288321132,
+    "new_sum": 281664132,
+    "sum_change_pct": -2.3088838316575377,
+    "old_critical": 101063568,
+    "new_critical": 98430432,
+    "critical_change_pct": -2.605425527822247
+  },
+  {
+    "workers": 4,
+    "old_sum": 283910826,
+    "new_sum": 280680159,
+    "sum_change_pct": -1.1379161004589466,
+    "old_critical": 74128296,
+    "new_critical": 72508221,
+    "critical_change_pct": -2.1855014716647525
+  },
+  {
+    "workers": 5,
+    "old_sum": 303032478,
+    "new_sum": 289846392,
+    "sum_change_pct": -4.35137714842565,
+    "old_critical": 67807887,
+    "new_critical": 61135362,
+    "critical_change_pct": -9.840337599665949
+  },
+  {
+    "workers": 6,
+    "old_sum": 313604949,
+    "new_sum": 309984591,
+    "sum_change_pct": -1.154432674466499,
+    "old_critical": 57116148,
+    "new_critical": 55611978,
+    "critical_change_pct": -2.6335284375269885
+  },
+  {
+    "workers": 7,
+    "old_sum": 322779498,
+    "new_sum": 303370413,
+    "sum_change_pct": -6.0131096058647415,
+    "old_critical": 52022493,
+    "new_critical": 49345518,
+    "critical_change_pct": -5.145802989487647
+  },
+  {
+    "workers": 8,
+    "old_sum": 301640424,
+    "new_sum": 296749977,
+    "sum_change_pct": -1.6212836910745043,
+    "old_critical": 41110749,
+    "new_critical": 39919557,
+    "critical_change_pct": -2.8975195757197203
+  }
+]

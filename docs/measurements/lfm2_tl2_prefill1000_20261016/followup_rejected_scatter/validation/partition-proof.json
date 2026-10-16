@@ -1,0 +1,50 @@
+{
+  "partition_property_cases": 4160,
+  "range": "m0..64, lanes1..64",
+  "exact_lane_row_counts": true,
+  "disjoint_complete_row_coverage": true,
+  "load_groups": {
+    "3": {
+      "old": 59039,
+      "new": 52301,
+      "reduction_pct": 11.412794932163486,
+      "old_single": 26836,
+      "new_single": 17852
+    },
+    "4": {
+      "old": 54500,
+      "new": 51116,
+      "reduction_pct": 6.209174311926605,
+      "old_single": 20784,
+      "new_single": 16272
+    },
+    "5": {
+      "old": 70436,
+      "new": 57725,
+      "reduction_pct": 18.04616957237776,
+      "old_single": 42032,
+      "new_single": 25084
+    },
+    "6": {
+      "old": 78926,
+      "new": 74114,
+      "reduction_pct": 6.096850214124623,
+      "old_single": 53352,
+      "new_single": 46936
+    },
+    "7": {
+      "old": 86207,
+      "new": 67520,
+      "reduction_pct": 21.676893987727215,
+      "old_single": 63060,
+      "new_single": 38144
+    },
+    "8": {
+      "old": 67190,
+      "new": 62231,
+      "reduction_pct": 7.380562583717815,
+      "old_single": 37704,
+      "new_single": 31092
+    }
+  }
+}

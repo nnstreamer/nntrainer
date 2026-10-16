@@ -1,0 +1,48 @@
+{
+  "decision": "reject; no reproduced reduction of exposed miss wait, small end-to-end change within run variation",
+  "rows": [
+    {
+      "tag": "continue-barrier-0-r1",
+      "prefill_tps": 817.239,
+      "decode_tps": 17.6893,
+      "full_run_sampled_peak_kib": 2731476.0,
+      "ids_match_reference": true
+    },
+    {
+      "tag": "continue-barrier-0-r2",
+      "prefill_tps": 827.809,
+      "decode_tps": 17.6066,
+      "full_run_sampled_peak_kib": 2733600.0,
+      "ids_match_reference": true
+    },
+    {
+      "tag": "continue-barrier-0-r3",
+      "prefill_tps": 848.384,
+      "decode_tps": 17.5728,
+      "full_run_sampled_peak_kib": 2731228.0,
+      "ids_match_reference": true
+    },
+    {
+      "tag": "continue-barrier-1-r1",
+      "prefill_tps": 846.281,
+      "decode_tps": 17.7285,
+      "full_run_sampled_peak_kib": 2732576.0,
+      "ids_match_reference": true
+    },
+    {
+      "tag": "continue-barrier-1-r2",
+      "prefill_tps": 837.971,
+      "decode_tps": 17.6747,
+      "full_run_sampled_peak_kib": 2730956.0,
+      "ids_match_reference": true
+    },
+    {
+      "tag": "continue-barrier-1-r3",
+      "prefill_tps": 823.813,
+      "decode_tps": 17.5439,
+      "full_run_sampled_peak_kib": 2732304.0,
+      "ids_match_reference": true
+    }
+  ],
+  "baseline_commit": "03d652fc0b8e7785385d08bafd0ca51845b5bdb6"
+}

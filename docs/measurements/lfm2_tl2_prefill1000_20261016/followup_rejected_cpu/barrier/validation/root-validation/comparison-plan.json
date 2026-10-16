@@ -1,0 +1,25 @@
+{
+  "scope": "two-pair same-binary opt-in pilot; no adoption from synthetic timing alone",
+  "order": [
+    [
+      0,
+      1
+    ],
+    [
+      1,
+      1
+    ],
+    [
+      1,
+      2
+    ],
+    [
+      0,
+      2
+    ]
+  ],
+  "C": 16,
+  "page_cache": 0,
+  "preload": 128,
+  "readers": "unchanged: four demand readers including caller"
+}

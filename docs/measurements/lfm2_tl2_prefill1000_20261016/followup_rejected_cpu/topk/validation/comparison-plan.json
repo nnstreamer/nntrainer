@@ -1,0 +1,20 @@
+{
+  "control": "metadata-pair",
+  "candidate": "topk-prefix",
+  "normal_order": [
+    "A1",
+    "B1",
+    "B2",
+    "A2",
+    "A3",
+    "B3"
+  ],
+  "input_tokens": 1024,
+  "decode_tokens": 64,
+  "C": 16,
+  "page_cache": 0,
+  "cache_grow": 0,
+  "preload": 128,
+  "isolated_check": "one PROFILE1 M0 diagnostic; excludes diagnostic TPS from normal comparison",
+  "scope": "No Gemma benchmark; softmax router short-circuits to original selection."
+}

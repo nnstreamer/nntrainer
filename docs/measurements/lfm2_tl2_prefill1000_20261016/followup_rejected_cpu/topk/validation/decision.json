@@ -1,0 +1,14 @@
+{
+  "decision": "rejected",
+  "reason": "All three normal paired prefill runs slower; standalone synthetic and actual-score selection timings do not establish whole-model gain.",
+  "normal_control_prefill_median": 828.479,
+  "normal_candidate_prefill_median": 819.856,
+  "stage_topk_us_single_control": 24839,
+  "stage_topk_us_single_candidate": 27658,
+  "actual_score_replay_rows": 38912,
+  "actual_score_bytes": 19922944,
+  "actual_score_sha256": "9f03b51dd45566ab7e64bd2109c4bed8631e203a26c68d6929d3a4b863c9d2cc",
+  "actual_score_data_published": false,
+  "production_reverted": true,
+  "output_ids_1024_and_2048_exact": true
+}

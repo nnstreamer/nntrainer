@@ -1,0 +1,10 @@
+{
+  "baseline_commit": "03d652fc0b8e7785385d08bafd0ca51845b5bdb6",
+  "order": "A1 B1 B2 A2 A3 B3",
+  "models": "1024+64 pilot; 2048 correctness afterward",
+  "primary": "prefill TPS with identical IDs and no increase in cache/weight buffers",
+  "memory": "full child lifetime sampled anon + dedup fd sizes, 20 ms period",
+  "candidate": "scatter-balanced",
+  "baseline": "metadata-pair",
+  "no_normal_Gemma_runs": true
+}

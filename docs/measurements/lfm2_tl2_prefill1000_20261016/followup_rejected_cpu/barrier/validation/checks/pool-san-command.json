@@ -1,0 +1,17 @@
+[
+  "g++",
+  "-std=c++17",
+  "-O1",
+  "-g",
+  "-Wall",
+  "-Wextra",
+  "-Werror",
+  "-pthread",
+  "-fsanitize=address,undefined",
+  "-fno-omit-frame-pointer",
+  "-I",
+  "/tmp/nntr-lfm2-demand-barrier-20261016/candidate/nntrainer/tensor/htp_backend",
+  "/tmp/nntr-lfm2-demand-barrier-20261016/candidate/test/htp/host/expert_read_pool_check.cpp",
+  "-o",
+  "/tmp/nntr-lfm2-demand-barrier-20261016/checks/pool_san"
+]

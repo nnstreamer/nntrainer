@@ -1,0 +1,9 @@
+{
+  "base_commit": "03d652fc0",
+  "source_sha256": "5f1410cbda1495c390bf8823a48b35dfe8f9d577ecf2c508cf443e21c5f9519d",
+  "reference_source_sha256": "5b10b86181c3b6cb307c518d7aa84a035b55d03d671cf20d9e1f2d66e053a151",
+  "fixture_sha256": "3035220adc2f5ebfbb8d3efb3c4035166aeceb66b1c1c89ffe472713bf1deccf",
+  "generated_sha256": "57a188349a6e7dda8a6fb1a3e520543137345f3841a10279f8c6e41a1a7b76ae",
+  "binary_sha256": "d6dbd44ee1b7b5617ccc41080fd2694892a06342e8cab25cfddd2d36f1c01f8c",
+  "requantization": "unchanged function mocked for lane ownership only"
+}

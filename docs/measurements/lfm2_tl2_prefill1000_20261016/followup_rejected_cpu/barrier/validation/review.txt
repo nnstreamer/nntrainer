@@ -1,0 +1,56 @@
+Bounded LFM demand reader barrier
+Base: 03d652fc0b8e7785385d08bafd0ca51845b5bdb6
+
+A/B: same ARM binary, NNTR_LFM2_DECODE_READ_BARRIER=0 or 1.
+The new mode is default off and applies only to native TL2 2048/1536/2048
+miss batches with PAGE_CACHE=0 and the existing dedicated demand pool.
+No DSP/IDL/mailbox change, no altered prediction claim/adopt/eviction behavior,
+no reader/cache/preload/weight-buffer increase. Gemma passes the original
+all-worker mode. Only 8 bytes of pool bookkeeping are added (one size_t; the
+bool fits existing padding on the tested x86_64 ABI), not model storage.
+
+The existing caller reads too. For a two-job batch, old run() wakes and joins
+all three background workers; new run() publishes only one worker permit and
+notifies once. Three jobs use two permits. An available worker may consume
+another bounded permit; a delayed thread cannot access a callback after its
+permits are exhausted. pending counts only granted permits and drops after
+readJobs returns. read_ is cleared after every granted callback has joined.
+Default mode still grants one permit per worker/generation and notify_all.
+Both modes serialize dispatch and rethrow only after all jobs finish.
+
+Validation: expert_read_pool_check passes normal and ASan/UBSan/leak builds.
+It covers 1/2/4/8 readers, 0/1/2/3/9/64 jobs, repeated mixed modes, callback
+exceptions, all-readers-busy error joins and serialized concurrent callers.
+A gated initializer test keeps two unused workers unavailable; two useful
+reads complete and new run returns, while old run remains blocked. The gated
+threads subsequently join after 500 newer short batches, checking stale
+callback lifetime and generation reuse. Actual native direct-I/O pair fixture
+also passes ASan/UBSan for LFM and Gemma shape, EOF/EBADF, retired/claimed
+ownership, queued-demand handoff and reuse, with both barrier settings.
+clang-format 14 applied. Root checkout and phone untouched by this agent.
+
+Evidence and expected gain: host same-binary alternating timing shows a
+zero-work two-job median 12.123 -> 6.432 us, but realistic delay mocks show no
+benefit: 100 us sleep 167.439 -> 168.894 us and 500 us sleep 594.972 -> 605.641
+us. Do not claim these are device storage timings. Device's ~1 ms reads may
+already hide unnecessary worker wake acknowledgements, so this is a low
+priority opt-in pilot, not evidence for a large TPS improvement. Even assigning
+~6 us to every one of ~32 rounds/token is only ~0.2 ms/token, and only a subset
+has multiple demand jobs after prefetch claims. No promised gain.
+
+Artifacts:
+production.patch: pool header + guarded ARM call site.
+tests.patch: existing host fixtures expanded.
+complete.patch: both. base.json and sha256.json record base/source hashes.
+checks/pool-san-{command.json,compile.log,run.log}
+checks/pair/{command.json,compile.log,run.log}
+checks/pool_timing.cpp and pool-timing.log (host microbenchmark only).
+
+Portable commands after applying the delta to a checkout:
+  c++ -std=c++17 -O2 -Wall -Wextra -Werror -pthread \
+    -I nntrainer/tensor/htp_backend test/htp/host/expert_read_pool_check.cpp \
+    -o /tmp/expert-pool-check
+  /tmp/expert-pool-check
+ASan/UBSan: add -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer.
+The existing test/htp/host/run_host_checks.sh already runs both changed checks.
+Actual pair I/O is Linux-guarded; the pool uses standard C++ only.

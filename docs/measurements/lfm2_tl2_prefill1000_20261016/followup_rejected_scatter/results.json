@@ -1,0 +1,196 @@
+{
+  "decision": "rejected; 2048 median regresses and exposed scatter wait does not improve",
+  "medians": {
+    "scatter": {
+      "0": {
+        "prefill_tps": 825.141,
+        "decode_tps": 17.4244,
+        "max_complete_peak_kib": 2733236.0
+      },
+      "1": {
+        "prefill_tps": 846.281,
+        "decode_tps": 17.704,
+        "max_complete_peak_kib": 2733124.0
+      }
+    },
+    "scatter2048": {
+      "0": {
+        "prefill_tps": 824.809,
+        "decode_tps": 16.732,
+        "max_complete_peak_kib": 3052332.0
+      },
+      "1": {
+        "prefill_tps": 782.277,
+        "decode_tps": 16.7145,
+        "max_complete_peak_kib": 3052584.0
+      }
+    }
+  },
+  "runs": [
+    {
+      "tag": "continue-scatter-0-r1",
+      "variant": "metadata-pair",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 763.609,
+      "decode_tps": 17.5246,
+      "full_run_sampled_peak_kib": 2733128.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-scatter-1-r1",
+      "variant": "scatter-balanced",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 851.205,
+      "decode_tps": 17.7877,
+      "full_run_sampled_peak_kib": 2733124.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-scatter-0-r2",
+      "variant": "metadata-pair",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 825.141,
+      "decode_tps": 17.3771,
+      "full_run_sampled_peak_kib": 2733048.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-scatter-1-r2",
+      "variant": "scatter-balanced",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 793.184,
+      "decode_tps": 17.704,
+      "full_run_sampled_peak_kib": 2731348.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-scatter-0-r3",
+      "variant": "metadata-pair",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 837.971,
+      "decode_tps": 17.4244,
+      "full_run_sampled_peak_kib": 2733236.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-scatter-1-r3",
+      "variant": "scatter-balanced",
+      "model": "model",
+      "profile": false,
+      "prefill_tps": 846.281,
+      "decode_tps": 17.5294,
+      "full_run_sampled_peak_kib": 2733024.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-scatter2048-0-r1",
+      "variant": "metadata-pair",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 824.809,
+      "decode_tps": 16.82,
+      "full_run_sampled_peak_kib": 3052332.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-scatter2048-1-r1",
+      "variant": "scatter-balanced",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 746.084,
+      "decode_tps": 16.7145,
+      "full_run_sampled_peak_kib": 3050372.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-scatter2048-0-r2",
+      "variant": "metadata-pair",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 801.566,
+      "decode_tps": 16.658,
+      "full_run_sampled_peak_kib": 3050840.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-scatter2048-1-r2",
+      "variant": "scatter-balanced",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 782.277,
+      "decode_tps": 16.8465,
+      "full_run_sampled_peak_kib": 3052532.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-scatter2048-0-r3",
+      "variant": "metadata-pair",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 889.661,
+      "decode_tps": 16.732,
+      "full_run_sampled_peak_kib": 3050780.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-scatter2048-1-r3",
+      "variant": "scatter-balanced",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 890.822,
+      "decode_tps": 16.6623,
+      "full_run_sampled_peak_kib": 3052584.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-scatter-2048",
+      "variant": "scatter-balanced",
+      "model": "model2048",
+      "profile": false,
+      "prefill_tps": 753.218,
+      "decode_tps": 17.2182,
+      "full_run_sampled_peak_kib": 3052284.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-scatter-trace0",
+      "variant": "scatter-trace0",
+      "model": "model",
+      "profile": true,
+      "prefill_tps": 812.698,
+      "decode_tps": 17.3207,
+      "full_run_sampled_peak_kib": 2732424.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    },
+    {
+      "tag": "continue-scatter-trace1",
+      "variant": "scatter-trace1",
+      "model": "model",
+      "profile": true,
+      "prefill_tps": 846.281,
+      "decode_tps": 17.5439,
+      "full_run_sampled_peak_kib": 2731188.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "peak_scan_complete": true
+    }
+  ]
+}
