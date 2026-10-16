@@ -1,0 +1,41 @@
+{
+  "scope": "Read-only source/previous-device-evidence audit; no source changes, builds or device execution. Raw QK candidate not adopted per root predeclared decision.",
+  "files": {
+    "actual_dispatch.json": {
+      "sha256": "e574eb6d822b8b0c16b28a65eeb5462cccd1fb984564e469287e690255130ace",
+      "bytes": 5373
+    },
+    "analyze_stages.py": {
+      "sha256": "a57cf42dd4cbd48c75eeb3d8c70e2cde5159f799e539d6d623c16acaf37f6b48",
+      "bytes": 6001
+    },
+    "confirmation_plan.json": {
+      "sha256": "4b586e9f731ebed58d3772df6633ffbad271e43be4b1a29a88677b1ee2f92116",
+      "bytes": 930
+    },
+    "initial_normal_summary.json": {
+      "sha256": "0d7916d8e4e14db96a933e86d266cebfbae994ba4599d437bd4d9e2caf9c417b",
+      "bytes": 6851
+    },
+    "prefill-io-followup.txt": {
+      "sha256": "232a0268923e93fa6edffe5aa593c39a9a8f96dce0b91481e969a895b399887b",
+      "bytes": 5569
+    },
+    "review.txt": {
+      "sha256": "052b111acd77b9d0211b9e6b9f204405e6197d4463322561bf6377e1fc79079b",
+      "bytes": 10484
+    },
+    "source-and-input-hashes.json": {
+      "sha256": "4351a0627c7f017c17bbd514a925fa4ed49836fedc05f6f5f1c97cce7ca68683",
+      "bytes": 2761
+    },
+    "stage-analysis.json": {
+      "sha256": "08c8927de1f4a664c4885810520f0f22cd00f036b00334e71f736efce4a11523",
+      "bytes": 41286
+    },
+    "stage_executions.json": {
+      "sha256": "aa93563b6f70e73c47b918ca95346ebf92994e385bf35d7bdd2a76e9ba1819f2",
+      "bytes": 6715
+    }
+  }
+}

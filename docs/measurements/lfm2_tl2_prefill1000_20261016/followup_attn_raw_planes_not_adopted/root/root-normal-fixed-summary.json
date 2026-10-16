@@ -1,0 +1,224 @@
+{
+  "control": "lfm-attn-raw-planes-fixed-control",
+  "candidate": "lfm-attn-raw-planes-fixed",
+  "runs": [
+    {
+      "tag": "continue-attn-raw-planes-fixed-0-r1",
+      "variant": "lfm-attn-raw-planes-fixed-control",
+      "prefill_tokens": 1024,
+      "prefill_tps": 831.844,
+      "decode_tps": 17.6357,
+      "full_run_sampled_peak_kib": 2714740.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 1
+    },
+    {
+      "tag": "continue-attn-raw-planes-fixed-1-r1",
+      "variant": "lfm-attn-raw-planes-fixed",
+      "prefill_tokens": 1024,
+      "prefill_tps": 826.473,
+      "decode_tps": 17.6503,
+      "full_run_sampled_peak_kib": 2715736.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 1
+    },
+    {
+      "tag": "continue-attn-raw-planes-fixed-1-r2",
+      "variant": "lfm-attn-raw-planes-fixed",
+      "prefill_tokens": 1024,
+      "prefill_tps": 812.054,
+      "decode_tps": 17.5535,
+      "full_run_sampled_peak_kib": 2714452.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 2
+    },
+    {
+      "tag": "continue-attn-raw-planes-fixed-0-r2",
+      "variant": "lfm-attn-raw-planes-fixed-control",
+      "prefill_tokens": 1024,
+      "prefill_tps": 782.277,
+      "decode_tps": 17.5776,
+      "full_run_sampled_peak_kib": 2714424.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 2
+    },
+    {
+      "tag": "continue-attn-raw-planes-fixed-0-r3",
+      "variant": "lfm-attn-raw-planes-fixed-control",
+      "prefill_tokens": 1024,
+      "prefill_tps": 842.105,
+      "decode_tps": 17.5824,
+      "full_run_sampled_peak_kib": 2714300.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 3
+    },
+    {
+      "tag": "continue-attn-raw-planes-fixed-1-r3",
+      "variant": "lfm-attn-raw-planes-fixed",
+      "prefill_tokens": 1024,
+      "prefill_tps": 781.083,
+      "decode_tps": 17.5151,
+      "full_run_sampled_peak_kib": 2714252.0,
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "repetition": 3
+    },
+    {
+      "tag": "continue-attn-raw-planes-fixed2048-0-r1",
+      "variant": "lfm-attn-raw-planes-fixed-control",
+      "prefill_tokens": 2048,
+      "prefill_tps": 826.473,
+      "decode_tps": 16.5546,
+      "full_run_sampled_peak_kib": 3018084.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 1
+    },
+    {
+      "tag": "continue-attn-raw-planes-fixed2048-1-r1",
+      "variant": "lfm-attn-raw-planes-fixed",
+      "prefill_tokens": 2048,
+      "prefill_tps": 866.695,
+      "decode_tps": 16.851,
+      "full_run_sampled_peak_kib": 3018972.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 1
+    },
+    {
+      "tag": "continue-attn-raw-planes-fixed2048-1-r2",
+      "variant": "lfm-attn-raw-planes-fixed",
+      "prefill_tokens": 2048,
+      "prefill_tps": 836.943,
+      "decode_tps": 16.7145,
+      "full_run_sampled_peak_kib": 3019288.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 2
+    },
+    {
+      "tag": "continue-attn-raw-planes-fixed2048-0-r2",
+      "variant": "lfm-attn-raw-planes-fixed-control",
+      "prefill_tokens": 2048,
+      "prefill_tps": 829.15,
+      "decode_tps": 16.658,
+      "full_run_sampled_peak_kib": 3018800.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 2
+    },
+    {
+      "tag": "continue-attn-raw-planes-fixed2048-0-r3",
+      "variant": "lfm-attn-raw-planes-fixed-control",
+      "prefill_tokens": 2048,
+      "prefill_tps": 964.673,
+      "decode_tps": 16.5631,
+      "full_run_sampled_peak_kib": 3016248.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 3
+    },
+    {
+      "tag": "continue-attn-raw-planes-fixed2048-1-r3",
+      "variant": "lfm-attn-raw-planes-fixed",
+      "prefill_tokens": 2048,
+      "prefill_tps": 916.741,
+      "decode_tps": 16.5889,
+      "full_run_sampled_peak_kib": 3018696.0,
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "repetition": 3
+    }
+  ],
+  "summary": [
+    {
+      "tokens": 1024,
+      "prefill_tps": {
+        "control": [
+          831.844,
+          782.277,
+          842.105
+        ],
+        "candidate": [
+          826.473,
+          812.054,
+          781.083
+        ],
+        "median_control": 831.844,
+        "median_candidate": 812.054,
+        "median_pct": -2.379051841451052,
+        "pairs_faster": 1,
+        "paired_deltas_pct": [
+          -0.6456739484807406,
+          3.806452190208831,
+          -7.246364764489
+        ]
+      },
+      "decode_tps": {
+        "control": [
+          17.6357,
+          17.5776,
+          17.5824
+        ],
+        "candidate": [
+          17.6503,
+          17.5535,
+          17.5151
+        ],
+        "median_control": 17.5824,
+        "median_candidate": 17.5535,
+        "median_pct": -0.16436891436891754,
+        "pairs_faster": 1,
+        "paired_deltas_pct": [
+          0.08278662032128459,
+          -0.13710631713089727,
+          -0.38276913276913405
+        ]
+      },
+      "control_max_peak_kib": 2714740.0,
+      "candidate_max_peak_kib": 2715736.0
+    },
+    {
+      "tokens": 2048,
+      "prefill_tps": {
+        "control": [
+          826.473,
+          829.15,
+          964.673
+        ],
+        "candidate": [
+          866.695,
+          836.943,
+          916.741
+        ],
+        "median_control": 829.15,
+        "median_candidate": 866.695,
+        "median_pct": 4.528131218717979,
+        "pairs_faster": 2,
+        "paired_deltas_pct": [
+          4.86670465943837,
+          0.9398781885062935,
+          -4.968730336601112
+        ]
+      },
+      "decode_tps": {
+        "control": [
+          16.5546,
+          16.658,
+          16.5631
+        ],
+        "candidate": [
+          16.851,
+          16.7145,
+          16.5889
+        ],
+        "median_control": 16.5631,
+        "median_candidate": 16.7145,
+        "median_pct": 0.9140800937022853,
+        "pairs_faster": 3,
+        "paired_deltas_pct": [
+          1.790438911239156,
+          0.33917637171327897,
+          0.15576794199154698
+        ]
+      },
+      "control_max_peak_kib": 3018800.0,
+      "candidate_max_peak_kib": 3019288.0
+    }
+  ],
+  "all_checks_pass": true,
+  "memory_scope": "Sampled whole child lifetime RssAnon + deduplicated fdinfo allocation sizes. Not total device physical memory; unreported DSP/driver/VTCM and between-sample spikes excluded."
+}

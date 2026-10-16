@@ -1,0 +1,102 @@
+{
+  "schema": "raw4plane-corrected-device-readback-v1",
+  "scope": "Independent existing-record correctness and actual-dispatch audit; sampled-memory caveats",
+  "files": {
+    "README.txt": {
+      "sha256": "968989594f796c5f6a8f3ad667c27216d7fe03a25e92a1c2be3af52a6cd9af5f",
+      "bytes": 1403
+    },
+    "device-readback.json": {
+      "sha256": "481037694ed8f500605235b0670eb79582e21094f48b43f5271a8502487a9165",
+      "bytes": 13375
+    },
+    "dispatch-readback.json": {
+      "sha256": "94118564936cbfd486728486f5e287c94446f07d1498669a13ec62f7bba67897",
+      "bytes": 324
+    },
+    "preflight.json": {
+      "sha256": "260a02fd0f6bc5ad53b3b17052e56eb4d91b19796e7f4a8e4bf5c7bfd74d9f03",
+      "bytes": 2424
+    },
+    "raw/candidate.execution.json.gz": {
+      "sha256": "94354604c21e6413ff01c918ec27a5af2482522a2214d2593155bc2554ba764a",
+      "bytes": 834
+    },
+    "raw/candidate.log.gz": {
+      "sha256": "01012bb9f85959369dec23809526cc78045c6c83b827264bbdb7ec3768bdf494",
+      "bytes": 1412
+    },
+    "raw/candidate.memory.json.gz": {
+      "sha256": "03e08c85ed767122a62a442eec89c9bc8ce5f0f5b2ee01d1fb78940e7035c811",
+      "bytes": 5135
+    },
+    "raw/control.execution.json.gz": {
+      "sha256": "fa49f89d943cf5a1b1c153acdc360be2036a5ebf447bfb78d16b52aedbc2d2f6",
+      "bytes": 836
+    },
+    "raw/control.log.gz": {
+      "sha256": "01012bb9f85959369dec23809526cc78045c6c83b827264bbdb7ec3768bdf494",
+      "bytes": 1412
+    },
+    "raw/control.memory.json.gz": {
+      "sha256": "84b3ec5a7e5434eaa9e8c084e2963c6d7ccd16d2281d1d8eb7237a673c50d646",
+      "bytes": 5282
+    },
+    "raw/diagnostic.collector.stderr.gz": {
+      "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "bytes": 20
+    },
+    "raw/diagnostic.execution.json.gz": {
+      "sha256": "109618856a10855c40ace4ea332a17d5949c984d79e051e8c8db10636ea117a6",
+      "bytes": 838
+    },
+    "raw/diagnostic.live.logcat.txt.gz": {
+      "sha256": "0ebb87140a9e69382257ba107572a0f9316485648342b81bac314cd47a6f03a3",
+      "bytes": 419
+    },
+    "raw/diagnostic.log.gz": {
+      "sha256": "01012bb9f85959369dec23809526cc78045c6c83b827264bbdb7ec3768bdf494",
+      "bytes": 1412
+    },
+    "raw/diagnostic.memory.json.gz": {
+      "sha256": "0f2a798a9017035363eb7f6f8e8133f17f0fce545174ed39d4a6cbdcfe048c07",
+      "bytes": 5054
+    },
+    "raw/executions.json.gz": {
+      "sha256": "a738a928afdafa78baea93f0f34b151b31b43210128d2ba993775814e0f9b3c9",
+      "bytes": 1452
+    },
+    "repro/compare_device.py": {
+      "sha256": "0813a47856bd83a1962d21cc2d611edd44175ec37765fc6bd49ea8f7272bb401",
+      "bytes": 13209
+    },
+    "repro/device-trace-derivation.json": {
+      "sha256": "d740452cbdfac709be20cebc0633357a2009c5dee1cbf552e3bb93a42781ab5d",
+      "bytes": 7668
+    },
+    "repro/device-trace-expected.json": {
+      "sha256": "ce5d463acfd309432b9327d0c0a45783c9fc29dc723f697bdf24cbf31ca85bcf",
+      "bytes": 3693
+    },
+    "repro/frozen-device/caseplan.json": {
+      "sha256": "1b4e71037ba58ac219edbf8edd9f85981cd65a5060b42040b3c47f7c0f102d8d",
+      "bytes": 5719
+    },
+    "repro/trace-review/parse.py": {
+      "sha256": "3aed26a458c9eeb6fda1573f8d97ac060a626c55f90330081d30a35616b9685c",
+      "bytes": 3801
+    },
+    "repro/verify_fixed_results.py": {
+      "sha256": "a407f57d5f8d93c43627f53db6f6cb1d5860c0b898b8b69916778eb355d748d7",
+      "bytes": 11311
+    },
+    "review.txt": {
+      "sha256": "c0cbbc93737549c39cf871c9fb85b6034a4b9997392faaf73d2ef86a2efeab25",
+      "bytes": 5429
+    },
+    "validation.json": {
+      "sha256": "90bb4a60b87327a24d1b7d539076eb05a7a56c008fd1a5249b44a42eead446cd",
+      "bytes": 20386
+    }
+  }
+}

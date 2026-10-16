@@ -1,0 +1,12 @@
+{
+  "base": "73a4ab7baf30aa96fcdf7dbca3d7c86f899bca3a",
+  "version": 2,
+  "production_patch_sha256": "d8d1827242aab3e698e7c69eefb73711305d37b843ba3798ba2b2e251e75fbb3",
+  "sources": {
+    "baseline/nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c": "4b71749ac993c1ae165550f0d182ea748fa6106543e1904ce498a19ac59e478a",
+    "candidate/nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c": "8c54a3c86509c17b0c5cda01c0a2de6abf3de335fca6e268cb74b7dfed26d4e5"
+  },
+  "status": "production frozen; host/device validation pending",
+  "format14_second_pass_noop": true,
+  "scope": "v81 only; QK only; generic dequant source preserved. PV/layout/allocation/pool/error order retained."
+}

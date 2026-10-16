@@ -1,0 +1,21 @@
+[
+  "python3",
+  "-B",
+  "/tmp/nntr-lfm2-attn-planes-fixed-objects-20261017/build_fixed_objects.py",
+  "--repo",
+  "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000",
+  "--revision",
+  "0735ccd2192a6231709436f8376123d280e77e1f",
+  "--candidate-patch",
+  "/tmp/nntr-lfm2-attn-raw-planes-20261017/production.patch",
+  "--candidate-config",
+  "/tmp/nntr-lfm2-attn-planes-fixed-objects-20261017/candidate-config.json",
+  "--sdk-root",
+  "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1",
+  "--tools-root",
+  "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04",
+  "--hexkl-root",
+  "/home/jungone-lee/workspace/nntrainer/Qualcomm/hexkl-1.0-beta.2/hexkl_addon",
+  "--output",
+  "/tmp/nntr-lfm2-attn-planes-fixed-objects-20261017/build"
+]

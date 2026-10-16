@@ -1,0 +1,34 @@
+{
+  "dequant_s_at": {
+    "byte_identical_source": true,
+    "sha256": "0e94bb53e1087845e73016d7f4edb668065b0fcc626897c327235937d420c2b7"
+  },
+  "qx_dequant_available": {
+    "byte_identical_source": true,
+    "sha256": "73a298ec9897ed6ba76345237886ddee005cd2d5948aa367048f223e1f86608a"
+  },
+  "run_q_block": {
+    "byte_identical_source": true,
+    "sha256": "73a0c68179113d5f01e1744400f61ecfc3b57c34b8be853da14fa51e37dab89f"
+  },
+  "phase_qprep": {
+    "byte_identical_source": true,
+    "sha256": "004af0c09cf3132bd5dc633daae6626a678ab3427326e95116579dd9796f760b"
+  },
+  "softmax_worker": {
+    "byte_identical_source": true,
+    "sha256": "5e39b92abc39e7ba24664cad9cbfe6c8d9e2e6729f3b870526951baa413fd266"
+  },
+  "pquant_worker": {
+    "byte_identical_source": true,
+    "sha256": "458fc0513a0feeb09d4f478a3fb747d39ffaa76fba767a0a67f84fa98c8ef981"
+  },
+  "phase_pv": {
+    "byte_identical_source": true,
+    "sha256": "7a9458c86437e694783dd6235396dbce5ea489b960495c2931ab31da95c96a23"
+  },
+  "store_worker": {
+    "byte_identical_source": true,
+    "sha256": "e4e5b1dd4519f18a560068a74080286409663e239943a136220eca2fb431a76e"
+  }
+}

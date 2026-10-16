@@ -1,0 +1,27 @@
+{
+  "command": [
+    "/home/jungone-lee/workspace/nntrainer/android-ndk-r30/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang++",
+    "-std=c++17",
+    "-O2",
+    "-fno-fast-math",
+    "-ffp-contract=off",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-DENABLE_HEXKL",
+    "-static-libstdc++",
+    "-Wl,-z,max-page-size=16384",
+    "-I/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/nntrainer/tensor/htp_backend",
+    "-I/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/test/htp/generated",
+    "-I/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/incs",
+    "-I/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/incs/stddef",
+    "-I/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/ipc/fastrpc/incs",
+    "/tmp/nntr-lfm2-attn-raw-planes-20261017/device/attention_raw_planes_device_check.cpp",
+    "-L/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/builddir/android_build_result/lib/arm64-v8a",
+    "-lnntrainer",
+    "-Wl,-rpath,$ORIGIN",
+    "-o",
+    "/tmp/nntr-lfm2-attn-raw-planes-20261017/device/attention_raw_planes_device_check"
+  ],
+  "returncode": 0
+}

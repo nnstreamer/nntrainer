@@ -1,0 +1,14 @@
+{
+  "reason": "Four targeted stage traces reduce total DSP attention time by about13ms at each length, while the original whole-model triples are mixed and much noisier. Resolve this discrepancy with a bounded confirmation, not a source/shape change.",
+  "new_pairs_per_length": 3,
+  "new_pair_order": [
+    "BA",
+    "AB",
+    "BA"
+  ],
+  "total_pairs_per_length": 6,
+  "overall_first_second_order_balanced": true,
+  "binary_or_source_changes": false,
+  "conditions": "same C16/pagecache0/preload128/directIO/memory20ms; every raw result retained; profile data excluded from normal TPS",
+  "decision": "Report the first series, confirmation series and pooled six pairs separately. Adopt only if both lengths have nonnegative pooled prefill medians and at least4/6 paired wins, IDs and memory checks pass. Otherwise archive as end-to-end benefit not established; do not retest this frozen candidate further just to seek a win."
+}

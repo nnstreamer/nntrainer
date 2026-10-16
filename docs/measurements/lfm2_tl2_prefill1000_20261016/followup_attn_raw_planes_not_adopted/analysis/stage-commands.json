@@ -1,0 +1,94 @@
+[
+  {
+    "command": [
+      "/usr/bin/python3",
+      "/tmp/nntr-lfm2-attn-raw-planes-device-review-20261017/model-stage-review/parse_stages.py",
+      "--logcat",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-attn-raw-planes-fixed-stage1024-control.logcat.txt",
+      "--log",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-attn-raw-planes-fixed-stage1024-control.log",
+      "--metadata",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-attn-raw-planes-fixed-stage1024-control.json",
+      "--memory",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-attn-raw-planes-fixed-stage1024-control.memory.json",
+      "--ids",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-attn-raw-planes-fixed-stage1024-control.ids",
+      "--tokens",
+      "1024",
+      "--output",
+      "/tmp/nntr-lfm2-attn-raw-planes-device-review-20261017/model-stage-review/continue-attn-raw-planes-fixed-stage1024-control.parsed.json"
+    ],
+    "returncode": 0,
+    "stdout": "{\"tag\": \"continue-attn-raw-planes-fixed-stage1024-control\", \"pid\": 21172, \"calls\": 10, \"totals\": {\"wrapper_us\": {\"wall_us\": 222001, \"dsp_us\": 187426, \"append_us\": 32619, \"attn_us\": 154807, \"quant_us\": 28246, \"stage_us\": 0, \"bake_us\": 0}, \"stages_us\": {\"qprep\": 25324, \"dma\": 1930, \"qk\": 23423, \"dequant\": 44740, \"softmax\": 15537, \"pquant\": 20449, \"pv\": 6859, \"oupd\": 6642, \"store\": 2980, \"total\": 151201}, \"blocks\": 1600, \"kcycles\": 319334, \"layer_profile_ns\": 239876457, \"wall_minus_dsp_us\": 34575, \"attn_minus_inner_us\": 3606, \"layer_minus_wrapper_ns\": 17875457}, \"passed\": true}\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/usr/bin/python3",
+      "/tmp/nntr-lfm2-attn-raw-planes-device-review-20261017/model-stage-review/parse_stages.py",
+      "--logcat",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-attn-raw-planes-fixed-stage1024-candidate.logcat.txt",
+      "--log",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-attn-raw-planes-fixed-stage1024-candidate.log",
+      "--metadata",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-attn-raw-planes-fixed-stage1024-candidate.json",
+      "--memory",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-attn-raw-planes-fixed-stage1024-candidate.memory.json",
+      "--ids",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-attn-raw-planes-fixed-stage1024-candidate.ids",
+      "--tokens",
+      "1024",
+      "--output",
+      "/tmp/nntr-lfm2-attn-raw-planes-device-review-20261017/model-stage-review/continue-attn-raw-planes-fixed-stage1024-candidate.parsed.json"
+    ],
+    "returncode": 0,
+    "stdout": "{\"tag\": \"continue-attn-raw-planes-fixed-stage1024-candidate\", \"pid\": 21340, \"calls\": 10, \"totals\": {\"wrapper_us\": {\"wall_us\": 197815, \"dsp_us\": 174000, \"append_us\": 32808, \"attn_us\": 141192, \"quant_us\": 28244, \"stage_us\": 0, \"bake_us\": 0}, \"stages_us\": {\"qprep\": 25647, \"dma\": 1967, \"qk\": 5817, \"dequant\": 48580, \"softmax\": 15508, \"pquant\": 20451, \"pv\": 6988, \"oupd\": 6584, \"store\": 2945, \"total\": 137643}, \"blocks\": 1600, \"kcycles\": 290693, \"layer_profile_ns\": 215701926, \"wall_minus_dsp_us\": 23815, \"attn_minus_inner_us\": 3549, \"layer_minus_wrapper_ns\": 17886926}, \"passed\": true}\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/usr/bin/python3",
+      "/tmp/nntr-lfm2-attn-raw-planes-device-review-20261017/model-stage-review/parse_stages.py",
+      "--logcat",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-attn-raw-planes-fixed-stage2048-candidate.logcat.txt",
+      "--log",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-attn-raw-planes-fixed-stage2048-candidate.log",
+      "--metadata",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-attn-raw-planes-fixed-stage2048-candidate.json",
+      "--memory",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-attn-raw-planes-fixed-stage2048-candidate.memory.json",
+      "--ids",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-attn-raw-planes-fixed-stage2048-candidate.ids",
+      "--tokens",
+      "2048",
+      "--output",
+      "/tmp/nntr-lfm2-attn-raw-planes-device-review-20261017/model-stage-review/continue-attn-raw-planes-fixed-stage2048-candidate.parsed.json"
+    ],
+    "returncode": 0,
+    "stdout": "{\"tag\": \"continue-attn-raw-planes-fixed-stage2048-candidate\", \"pid\": 21505, \"calls\": 10, \"totals\": {\"wrapper_us\": {\"wall_us\": 477450, \"dsp_us\": 428016, \"append_us\": 70506, \"attn_us\": 357510, \"quant_us\": 61381, \"stage_us\": 0, \"bake_us\": 0}, \"stages_us\": {\"qprep\": 49575, \"dma\": 7590, \"qk\": 21387, \"dequant\": 39404, \"softmax\": 93080, \"pquant\": 72514, \"pv\": 24845, \"oupd\": 25876, \"store\": 5949, \"total\": 350656}, \"blocks\": 5760, \"kcycles\": 740578, \"layer_profile_ns\": 507345832, \"wall_minus_dsp_us\": 49434, \"attn_minus_inner_us\": 6854, \"layer_minus_wrapper_ns\": 29895832}, \"passed\": true}\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/usr/bin/python3",
+      "/tmp/nntr-lfm2-attn-raw-planes-device-review-20261017/model-stage-review/parse_stages.py",
+      "--logcat",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-attn-raw-planes-fixed-stage2048-control.logcat.txt",
+      "--log",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-attn-raw-planes-fixed-stage2048-control.log",
+      "--metadata",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-attn-raw-planes-fixed-stage2048-control.json",
+      "--memory",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-attn-raw-planes-fixed-stage2048-control.memory.json",
+      "--ids",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-attn-raw-planes-fixed-stage2048-control.ids",
+      "--tokens",
+      "2048",
+      "--output",
+      "/tmp/nntr-lfm2-attn-raw-planes-device-review-20261017/model-stage-review/continue-attn-raw-planes-fixed-stage2048-control.parsed.json"
+    ],
+    "returncode": 0,
+    "stdout": "{\"tag\": \"continue-attn-raw-planes-fixed-stage2048-control\", \"pid\": 21692, \"calls\": 10, \"totals\": {\"wrapper_us\": {\"wall_us\": 511818, \"dsp_us\": 441521, \"append_us\": 70743, \"attn_us\": 370778, \"quant_us\": 61824, \"stage_us\": 0, \"bake_us\": 0}, \"stages_us\": {\"qprep\": 50691, \"dma\": 7991, \"qk\": 84276, \"dequant\": 36459, \"softmax\": 44322, \"pquant\": 72731, \"pv\": 24611, \"oupd\": 25991, \"store\": 6017, \"total\": 363843}, \"blocks\": 5760, \"kcycles\": 768432, \"layer_profile_ns\": 545163071, \"wall_minus_dsp_us\": 70297, \"attn_minus_inner_us\": 6935, \"layer_minus_wrapper_ns\": 33345071}, \"passed\": true}\n",
+    "stderr": ""
+  }
+]

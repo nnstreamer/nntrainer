@@ -1,0 +1,11 @@
+{
+  "version": 0,
+  "use-external-names": false,
+  "roots": [
+    {
+      "type": "file",
+      "name": "/tmp/nntr-lfm2-attn-planes-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c",
+      "external-contents": "/tmp/nntr-lfm2-attn-planes-fixed-objects-20261017/diagnostic/source/nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c"
+    }
+  ]
+}

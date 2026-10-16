@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "independently_read_runs": 24,
+  "root_all_summary_sha256": "f0c0e39ca4e26989706f9df1828f9339cb802ea50cfa0167a23193926f35a249",
+  "independent_summary_sha256": "eb6023186b2594127a29cf05e7cd310ba34d2d8b950734adf9bad48fc54c74c0",
+  "prespecified_plan_sha256": "4b586e9f731ebed58d3772df6633ffbad271e43be4b1a29a88677b1ee2f92116",
+  "prespecified_adoption_metric_pass": false
+}

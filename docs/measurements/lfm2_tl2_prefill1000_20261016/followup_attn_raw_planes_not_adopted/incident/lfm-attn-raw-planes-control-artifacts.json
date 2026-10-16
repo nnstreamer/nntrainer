@@ -1,0 +1,14 @@
+{
+  "parent": "lfm-router-arm-1",
+  "binaries": {
+    "libnntrainer.so": "072b5ca2700aaf10fb5b38ebd244d54691efd7ba96bf0dd699fd907bc6e42c09",
+    "libccapi-nntrainer.so": "f387c00a70072e2b75d8bc5da0a175194aaf88a1c9df368f936a9e76f656ab6d",
+    "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+    "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+    "libcausallm.so": "c34aa784141ce3c3d8cda2d8ccfd12ed759757284ee916ee4fac7f75f6197c05",
+    "nntr_causallm": "25b95c2083a2f333a3d5263be766ae73492f58222599a0aa48660b4f9cf2da76",
+    "libnntr_hvx_skel.so": "0b526995ae0346134eb5433d9d5bf86025b10b62c5d1e461fa85460205625fbb"
+  },
+  "source_patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "base_commit": "0735ccd2192a6231709436f8376123d280e77e1f"
+}

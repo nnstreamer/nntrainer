@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "script_sha256": "7ec8ff198c094a0e97b656ab880e8d6be47c9544fe6cc5ec6a94773f7ed05f03",
+  "syntax": "PASS",
+  "scope": "Preparation only; no build or device use. Static and shared libraries from every -L directory and explicit absolute shared-library arguments are inventoried before and after linking.",
+  "previous_preparation": {
+    "status": "prepared_not_run",
+    "parent_harness_sha256": "78e59ed360f36c34fd32db531548a50230838c7b065e23d527c899a98682cc93",
+    "new_harness_sha256": "5dc1e8c883f253906c680672ec4d803a1c29fd486fa610208f27bdfb8a2ad900",
+    "change": "Include discovered shared libraries as well as static archives in pre/post link dependency hashes; no flags, source, object count or phone behavior changed. Candidate config and output build not created."
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "status": "host/compile complete; root-only device pending",
+  "production_sha256": "d8d1827242aab3e698e7c69eefb73711305d37b843ba3798ba2b2e251e75fbb3",
+  "source_sha256": "8c54a3c86509c17b0c5cda01c0a2de6abf3de335fca6e268cb74b7dfed26d4e5",
+  "host": {
+    "attn_raw_planes_check": "Raw4plane actual helpers: 2064 signed four-row blocks, 4129 guard/config negatives, read/fallback order PASS\n",
+    "attn_raw_planes_overlap_check": "Raw4plane Qx overlap: exact original-HVX scores, poisoned async PV accumulator,\n  568 pipeline/tail/error cases + repeated 18-guard sets PASS\n",
+    "source_sha256": "8c54a3c86509c17b0c5cda01c0a2de6abf3de335fca6e268cb74b7dfed26d4e5",
+    "fixture_sha256": {
+      "attn_raw_planes_check.c": "3c670cf21c58642f5ef5422a8f50e6149aa61580eca051258df63742af30da9f",
+      "attn_raw_planes_overlap_check.c": "a2ecd02f06044ac7017123c0122bdc4e20f5f69713360cea3d5f8e99cbe1e43e"
+    },
+    "sanitizers": "ASan/UBSan with halt_on_error, no suppression"
+  },
+  "mutants": {
+    "wrong_byte_order": {
+      "caught": true,
+      "returncode": 1,
+      "source_sha256": "db856b6a980a19d4c9d3829afc44e0bbe24bc5baff3499fde3026df4fbc4a681",
+      "command": [
+        "python3",
+        "/tmp/nntr-lfm2-attn-raw-planes-20261017/candidate/tools/lfm2_attn_raw_planes_check.py",
+        "--repo",
+        "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000",
+        "--source",
+        "/tmp/nntr-lfm2-attn-raw-planes-20261017/checks/mutants/wrong_byte_order/hexkl_attn_q.c",
+        "--hexagon-tools",
+        "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04",
+        "--output",
+        "/tmp/nntr-lfm2-attn-raw-planes-20261017/checks/mutants/wrong_byte_order/run",
+        "--sanitize"
+      ]
+    },
+    "missing_reserved_config": {
+      "caught": true,
+      "returncode": 1,
+      "source_sha256": "7dfa9b0629cd0fe9443f2403e2dfb9fa348e058d1ab72bae259275a9fc16c5fb",
+      "command": [
+        "python3",
+        "/tmp/nntr-lfm2-attn-raw-planes-20261017/candidate/tools/lfm2_attn_raw_planes_check.py",
+        "--repo",
+        "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000",
+        "--source",
+        "/tmp/nntr-lfm2-attn-raw-planes-20261017/checks/mutants/missing_reserved_config/hexkl_attn_q.c",
+        "--hexagon-tools",
+        "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04",
+        "--output",
+        "/tmp/nntr-lfm2-attn-raw-planes-20261017/checks/mutants/missing_reserved_config/run",
+        "--sanitize"
+      ]
+    },
+    "wrong_deferred_address": {
+      "caught": true,
+      "returncode": 1,
+      "source_sha256": "d082b390d665586e321d834c9188c22378cd1a965cc34ef496c48b61149285e4",
+      "command": [
+        "python3",
+        "/tmp/nntr-lfm2-attn-raw-planes-20261017/candidate/tools/lfm2_attn_raw_planes_check.py",
+        "--repo",
+        "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000",
+        "--source",
+        "/tmp/nntr-lfm2-attn-raw-planes-20261017/checks/mutants/wrong_deferred_address/hexkl_attn_q.c",
+        "--hexagon-tools",
+        "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04",
+        "--output",
+        "/tmp/nntr-lfm2-attn-raw-planes-20261017/checks/mutants/wrong_deferred_address/run",
+        "--sanitize"
+      ]
+    }
+  },
+  "source_proof": {
+    "dequant_s_at": true,
+    "phase_qprep": true,
+    "phase_pv": true,
+    "run_q_block": true,
+    "qx_dequant_available": true,
+    "softmax_row_pair": true,
+    "softmax_worker": true,
+    "pquant_worker": true,
+    "store_worker": true,
+    "raw_float_body_tokens_equal": true
+  },
+  "diagnostic_parser": {
+    "valid": 3,
+    "negative_rejected": 65,
+    "exact_c_formatter_max_payload": 114,
+    "counter_expected": {
+      "calls": 33,
+      "raw_records": 33,
+      "transport_duplicates": 0,
+      "selected": 6,
+      "raw_serial": 55296,
+      "raw_deferred": 86016,
+      "sdk_qk": 170472,
+      "blocks": 17004,
+      "pid": null,
+      "expected_complete": true,
+      "scope": "Actual successful QK readout calls only; PV excluded. No timing, bandwidth or speedup claim."
+    }
+  },
+  "diagnostic_off_object_exact": true,
+  "device_binary_sha256": "351ca73b417e7b908790e9e041389aee662e9ba719a19e765e4d6a09aaadef2c"
+}

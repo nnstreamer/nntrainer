@@ -1,0 +1,18 @@
+{
+  "cause": "Reviewer objcopy --dump-section calls omitted the output ELF and rewrote both input ELF files.",
+  "device_executions_before_detection": 0,
+  "variants": {
+    "control": {
+      "rewritten_sha256": "0b526995ae0346134eb5433d9d5bf86025b10b62c5d1e461fa85460205625fbb",
+      "restored_sha256": "38557678906ece709db0b5bc773bf1c90675accc722a14e6c49ce75ca14e68bc",
+      "repeat_source": "/tmp/nntr-lfm2-attn-planes-fixed-objects-20261017/build/control/repeat.so",
+      "recompiled": false
+    },
+    "candidate": {
+      "rewritten_sha256": "de2391679da7e320cc0ab578ac0ef6daea84dd3f24063d2f17f69014a8a0b436",
+      "restored_sha256": "46bf042b2daaf6e3b35ca27d4341160ad55cd9f2ff33f86b84046cb4edfed6bd",
+      "repeat_source": "/tmp/nntr-lfm2-attn-planes-fixed-objects-20261017/build/candidate/repeat.so",
+      "recompiled": false
+    }
+  }
+}

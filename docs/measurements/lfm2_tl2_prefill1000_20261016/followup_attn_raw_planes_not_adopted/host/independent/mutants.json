@@ -1,0 +1,56 @@
+{
+  "wrong_byte_order": {
+    "caught": true,
+    "returncode": 1,
+    "source_sha256": "db856b6a980a19d4c9d3829afc44e0bbe24bc5baff3499fde3026df4fbc4a681",
+    "command": [
+      "python3",
+      "/tmp/nntr-lfm2-attn-raw-planes-review-20261017/candidate-v2/frozen/candidate/tools/lfm2_attn_raw_planes_check.py",
+      "--repo",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000",
+      "--source",
+      "/tmp/nntr-lfm2-attn-raw-planes-review-20261017/candidate-v2/checks/mutants/wrong_byte_order/hexkl_attn_q.c",
+      "--hexagon-tools",
+      "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04",
+      "--output",
+      "/tmp/nntr-lfm2-attn-raw-planes-review-20261017/candidate-v2/checks/mutants/wrong_byte_order/run",
+      "--sanitize"
+    ]
+  },
+  "missing_reserved_config": {
+    "caught": true,
+    "returncode": 1,
+    "source_sha256": "7dfa9b0629cd0fe9443f2403e2dfb9fa348e058d1ab72bae259275a9fc16c5fb",
+    "command": [
+      "python3",
+      "/tmp/nntr-lfm2-attn-raw-planes-review-20261017/candidate-v2/frozen/candidate/tools/lfm2_attn_raw_planes_check.py",
+      "--repo",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000",
+      "--source",
+      "/tmp/nntr-lfm2-attn-raw-planes-review-20261017/candidate-v2/checks/mutants/missing_reserved_config/hexkl_attn_q.c",
+      "--hexagon-tools",
+      "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04",
+      "--output",
+      "/tmp/nntr-lfm2-attn-raw-planes-review-20261017/candidate-v2/checks/mutants/missing_reserved_config/run",
+      "--sanitize"
+    ]
+  },
+  "wrong_deferred_address": {
+    "caught": true,
+    "returncode": 1,
+    "source_sha256": "d082b390d665586e321d834c9188c22378cd1a965cc34ef496c48b61149285e4",
+    "command": [
+      "python3",
+      "/tmp/nntr-lfm2-attn-raw-planes-review-20261017/candidate-v2/frozen/candidate/tools/lfm2_attn_raw_planes_check.py",
+      "--repo",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000",
+      "--source",
+      "/tmp/nntr-lfm2-attn-raw-planes-review-20261017/candidate-v2/checks/mutants/wrong_deferred_address/hexkl_attn_q.c",
+      "--hexagon-tools",
+      "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04",
+      "--output",
+      "/tmp/nntr-lfm2-attn-raw-planes-review-20261017/candidate-v2/checks/mutants/wrong_deferred_address/run",
+      "--sanitize"
+    ]
+  }
+}

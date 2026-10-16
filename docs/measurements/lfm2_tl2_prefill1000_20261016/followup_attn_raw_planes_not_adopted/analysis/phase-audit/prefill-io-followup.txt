@@ -1,0 +1,88 @@
+Bounded source follow-up: same-capacity prefill scheduling, 2026-10-17
+
+No implementation, benchmark, build, root edit or old queue-fixture replay.
+The earlier fully occupied FIFO analysis is retained at
+/tmp/nntr-lfm2-prefill-recency-archive-20261017/
+followup_prefill_recency_not_adopted/queue/README.txt. Its 99.8% occupied read
+bodies are not a storage hardware limit or proof about every later execution.
+
+The new stage runs have aggregate prefetch counters, not individual BATCH/READ
+records. 1024 control/candidate both read 2304 experts, but exposed wait is
+20.7/150.3 ms, ready count 2263/2005, reader service 3.07/3.27 ms, registration
+bracket 2.3/1.9 ms. 2048 both read 2304, ready2304, wait0.1/0.0 ms, service
+3.14/3.27 ms, registration3.0/1.9 ms. The registration label includes the host
+stable-slot publication path; it does not mean every expert invokes an RPC.
+These are single diagnostic pairs, not a causal attribution to raw QK.
+
+The recorded CPU sets also differ: 1024 control caller{0}/reader{1,4,5}, candidate
+caller{1}/reader{0,2,3,4,5}. startPrefetchReaders chooses an exclusion mask from
+the caller CPU when it starts; the profile's reader set is sampled at read entry.
+That set is neither the reader count nor complete time-on-core telemetry. It is
+an uncontrolled observation, not evidence of an affinity or thermal cause.
+
+Current source still acquires every actual arena slot before enqueue, pops
+individual FIFO jobs without a batch barrier, and lets a reader immediately
+start a job in the following batch. Completed stable-TL2 slots are published
+without a payload copy or reused-slot registration RPC. Phase switching returns
+immediately for native files without the optional prepared-file object. There
+is no new scheduling gap or redundant full copy identified by this source read.
+Submitting more scope earlier cannot repair a persistently occupied FIFO; the
+new aggregate-only logs cannot establish whether that condition held throughout
+these particular runs. No new trace or scheduling change is recommended here.
+
+Unmeasured inactive-expert hypothesis, NOT a recommendation
+
+lfm2_moe_layer.cpp creates `active` from nonempty assignments at 1434, but queues
+all missing experts in a future layer at 1626 and waits/registers the complete
+due batch at 1580 before stage(active). Thus prefetch can load experts that this
+prompt never routes to. A separate older compact-call diagnostic had 2283 active
+expert entries out of 38*64=2432. This is not the active set of the new stage run,
+nor the number of physically cancellable reads.
+
+The inactive set becomes known only after that layer's router/top-k. Reads
+already completed or in progress cannot be saved. Cancelling unstarted entries
+would require new per-entry queue/slot retirement and error ownership, would
+change the got-vector's acquire/LRFU score/clock/residency transitions, and could
+move cost into decode. Skipping the whole-batch wait only for inactive entries
+has similar lifetime and registration-order implications. Preserve this as an
+unmeasured idea, not a small exact-order optimization or a predicted TPS gain.
+
+One smaller real repeated operation exists: prefetchReaderLoop:9443-9447 calls
+prefetch_done_cv_.notify_all after every expert, although the only waiter
+(:4887) asks for a complete batch. In the older 2304-read/65-batch stream this
+means 2304 notification calls for at most 65 terminal transitions. An eventual
+completion-only notification would still need the shared-mutex predicate and
+final-error completion intact. No cost/wakeup count is measured, many calls have
+no waiter, and this is not proposed as a solution to the 130-ms wait difference.
+No patch or new experiment is prepared.
+
+Actual native file ranges: already coalesced, do not repeat
+
+htp_tl2_opts.h gives native bytes = ceil(K/24)*ceil(N/128)*640.
+For K2048/I1536/N2048 one expert is:
+  GU codes1,320,960 + scales/colsum24,576 = 1,345,536 bytes;
+  DN codes655,360 + scales/colsum16,384 = 671,744 bytes;
+  contiguous GU+DN/file-next-expert stride = 2,017,280 bytes.
+The file has these adjacent expert records, not separate distant GU/DN arrays.
+The arena adds GU page padding: GU stride1,347,584, DN stride671,744.
+
+canReadExpertTogether:8833 verifies DN-GU offset exactly1,345,536, native type,
+PAGE0, legal shapes and fit in the existing 2-MiB direct window. readExpertTogether
+:8852 supplies four destination slices (GU codes/tail, DN codes/tail) to one
+weightPreadScatter, then validates/converts the small tails. No extra full expert
+copy is introduced. At 9431 native LFM prefill selects this path; the accepted
+decode-pair option similarly covers speculative reads, and native demand reads
+already use the combined range.
+
+Actual continue-router-arm-io1024-1.log: 2304 reads, all calls=1, 2304 distinct
+offsets, total requested4,656,726,016 bytes. Aligned request lengths are
+2,019,328 bytes (1280 reads) or2,023,424 bytes (1024 reads). First adjacent offsets
+909055232,911072512,913089792 differ by2,017,280. Both GU/DN record sizes and this
+stride are independent of the arena's page padding.
+
+Previously measured pair/split diagnostic evidence is E/prefill-pair-trace-r1.log
+and E/prefill-split-trace-r1.log: pair2304 calls versus split4608; requested
+4,656,726,016 versus4,665,638,912 bytes; reader3.21 versus3.55 ms/expert; exposed
+wait26.5 versus121.3 ms. This coalescing is already retained. These old profiles
+are mechanism evidence, not a fresh performance claim. No model-file rewrite,
+larger read window, capacity change or repeat coalescing experiment is needed.

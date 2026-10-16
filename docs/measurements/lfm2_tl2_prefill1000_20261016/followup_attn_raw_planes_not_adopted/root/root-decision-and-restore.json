@@ -1,0 +1,14 @@
+{
+  "adopted_attention_candidate": false,
+  "reason": "Predeclared end-to-end criterion fails at1024: median -2.3969%,1/6 wins. All24normal retained; no candidate narrowing or further outcome-chasing measurements.",
+  "attention_source_sha256": "4b71749ac993c1ae165550f0d182ea748fa6106543e1904ce498a19ac59e478a",
+  "kv_source_sha256": "fa750e41854303b716990c5d722e8b14a0c85e1776e26096ff880acaf007c291",
+  "original_accepted_dsp_sha256": "3baddb92d14d1d23fe9b6c6a7cacfe3a6cd4708001c110bb8b15e1b0b7276f7c",
+  "new_accepted_dsp_sha256": "2d693821c60863c530508cd9249c285be0df18311923eeda0081e21401fe0bd5",
+  "new_accepted_variant": "lfm-kv-tail-fix-1",
+  "base_commit": "e3eed8f40b504caa314b5329775e82d831f3b903",
+  "source_delta_empty": true,
+  "original_phone_variant_unchanged": "lfm-router-arm-1",
+  "new_runtime_equivalent_to_six_tested_control_runs": true,
+  "notes": "The KV correctness fix is retained. Dynamic-Q8 LFM does not use the corrected helper. All six ARM runtime files are unchanged."
+}

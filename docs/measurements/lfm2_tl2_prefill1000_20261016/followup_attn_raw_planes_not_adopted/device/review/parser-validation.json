@@ -1,0 +1,169 @@
+{
+  "status": "PASS",
+  "scope": "Synthetic parser-only records and bytes; no RPC/device execution.",
+  "valid_full_records": 41,
+  "valid_case_outputs": 36,
+  "logical_dump_bytes": 231908352,
+  "negatives": [
+    {
+      "name": "case_n_q",
+      "rejected": "Case identity/order/metadata"
+    },
+    {
+      "name": "case_mode",
+      "rejected": "Actual block count/mode"
+    },
+    {
+      "name": "case_blocks",
+      "rejected": "Actual block count/mode"
+    },
+    {
+      "name": "case_offset",
+      "rejected": "Byte offset/gap"
+    },
+    {
+      "name": "case_count",
+      "rejected": "Output count"
+    },
+    {
+      "name": "case_seed",
+      "rejected": "Repetition/seed"
+    },
+    {
+      "name": "case_rc",
+      "rejected": "RPC/summary failure"
+    },
+    {
+      "name": "case_finite",
+      "rejected": "Finite/replay self-check"
+    },
+    {
+      "name": "case_same_repeat",
+      "rejected": "Finite/replay self-check"
+    },
+    {
+      "name": "case_fixed",
+      "rejected": "Case identity/order/metadata"
+    },
+    {
+      "name": "case_input_fnv64",
+      "rejected": "Input digest format"
+    },
+    {
+      "name": "missing_case",
+      "rejected": "Repetition/seed"
+    },
+    {
+      "name": "duplicate_case",
+      "rejected": "Repetition/seed"
+    },
+    {
+      "name": "swapped_case",
+      "rejected": "Repetition/seed"
+    },
+    {
+      "name": "changed_aba_input",
+      "rejected": "A/B/A input fingerprint"
+    },
+    {
+      "name": "unchanged_ab_input",
+      "rejected": "A/B/A input fingerprint"
+    },
+    {
+      "name": "missing_summary",
+      "rejected": "Missing successful SUMMARY"
+    },
+    {
+      "name": "duplicate_summary",
+      "rejected": "Record after SUMMARY"
+    },
+    {
+      "name": "extra_field",
+      "rejected": "Unknown/missing fixture fields"
+    },
+    {
+      "name": "early_probe",
+      "rejected": "PROBE before all CASE records"
+    },
+    {
+      "name": "probe_layout",
+      "rejected": "Actual accumulator layout"
+    },
+    {
+      "name": "probe_sdk_equal",
+      "rejected": "Probe parity failure"
+    },
+    {
+      "name": "probe_host_dot_equal",
+      "rejected": "Probe parity failure"
+    },
+    {
+      "name": "probe_planes_equal",
+      "rejected": "Probe parity failure"
+    },
+    {
+      "name": "probe_negative_count",
+      "rejected": "Probe signed cohort counts"
+    },
+    {
+      "name": "probe_rc",
+      "rejected": "RPC/summary failure"
+    },
+    {
+      "name": "probe_probe_id",
+      "rejected": "Probe identity/order"
+    },
+    {
+      "name": "probe_missing_negative_count",
+      "rejected": "Probe signed cohort counts"
+    },
+    {
+      "name": "probe_missing_positive_count",
+      "rejected": "Probe signed cohort counts"
+    },
+    {
+      "name": "probe_missing_zero_count",
+      "rejected": "Probe signed cohort counts"
+    },
+    {
+      "name": "summary_bytes",
+      "rejected": "Incomplete summary"
+    },
+    {
+      "name": "summary_cases",
+      "rejected": "Incomplete summary"
+    },
+    {
+      "name": "summary_probes",
+      "rejected": "Incomplete summary"
+    },
+    {
+      "name": "summary_rc",
+      "rejected": "RPC/summary failure"
+    },
+    {
+      "name": "truncated",
+      "rejected": "Malformed/interleaved fixture JSON at line 42: Expecting property name enclosed in double quotes: line 1 column 118 (char 117)"
+    },
+    {
+      "name": "interleaved",
+      "rejected": "Malformed/interleaved fixture JSON at line 1: Expecting value: line 1 column 1 (char 0)"
+    },
+    {
+      "name": "duplicate_json_key",
+      "rejected": "Malformed/interleaved fixture JSON at line 2: Duplicate JSON key: case_id"
+    },
+    {
+      "name": "nonfinite_json",
+      "rejected": "Malformed/interleaved fixture JSON at line 2: Non-finite JSON constant: NaN"
+    },
+    {
+      "name": "nonfinite_dump",
+      "rejected": "Non-finite or poisoned output"
+    },
+    {
+      "name": "truncated_dump",
+      "rejected": "Dump size/truncation/trailer"
+    }
+  ]
+}

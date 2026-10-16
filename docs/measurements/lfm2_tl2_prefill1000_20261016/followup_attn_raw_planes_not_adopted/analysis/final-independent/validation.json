@@ -1,0 +1,206 @@
+{
+  "status": "PASS_INDEPENDENT_READBACK_CANDIDATE_NOT_ADOPTED",
+  "scope": "Existing records only; no phone, model, build, linker, ELF write, root/source edits or sample exclusions.",
+  "normal_runs": 24,
+  "normal_ids65_and_memory_pass": true,
+  "initial_and_confirmation_summaries_match_root": true,
+  "pooled_summary_matches_root": true,
+  "prespecified_adoption_metric_pass": false,
+  "pooled": [
+    {
+      "tokens": 1024,
+      "pairs": 6,
+      "repetitions": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "prefill_tps": {
+        "control": [
+          831.844,
+          782.277,
+          842.105,
+          849.793,
+          846.981,
+          821.171
+        ],
+        "candidate": [
+          826.473,
+          812.054,
+          781.083,
+          817.239,
+          834.556,
+          816.587
+        ],
+        "median_control": 836.9745,
+        "median_candidate": 816.913,
+        "median_pct": -2.3969069547519095,
+        "pairs_faster": 1,
+        "paired_deltas_pct": [
+          -0.6456739484807406,
+          3.806452190208831,
+          -7.246364764489,
+          -3.830815269130239,
+          -1.4669750561110528,
+          -0.5582272145509326
+        ]
+      },
+      "decode_tps": {
+        "control": [
+          17.6357,
+          17.5776,
+          17.5824,
+          17.6844,
+          17.6211,
+          17.5151
+        ],
+        "candidate": [
+          17.6503,
+          17.5535,
+          17.5151,
+          17.4816,
+          17.5872,
+          17.3536
+        ],
+        "median_control": 17.60175,
+        "median_candidate": 17.5343,
+        "median_pct": -0.3832005340377975,
+        "pairs_faster": 1,
+        "paired_deltas_pct": [
+          0.08278662032128459,
+          -0.13710631713089727,
+          -0.38276913276913405,
+          -1.146773427427561,
+          -0.19238299538620884,
+          -0.9220615354751049
+        ]
+      },
+      "control_max_peak_kib": 2714740.0,
+      "candidate_max_peak_kib": 2724868.0
+    },
+    {
+      "tokens": 2048,
+      "pairs": 6,
+      "repetitions": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "prefill_tps": {
+        "control": [
+          826.473,
+          829.15,
+          964.673,
+          809.806,
+          811.089,
+          786.18
+        ],
+        "candidate": [
+          866.695,
+          836.943,
+          916.741,
+          983.67,
+          800.939,
+          942.042
+        ],
+        "median_control": 818.781,
+        "median_candidate": 891.7180000000001,
+        "median_pct": 8.90799859791569,
+        "pairs_faster": 4,
+        "paired_deltas_pct": [
+          4.86670465943837,
+          0.9398781885062935,
+          -4.968730336601112,
+          21.469833515681525,
+          -1.251403976628962,
+          19.825230863161124
+        ]
+      },
+      "decode_tps": {
+        "control": [
+          16.5546,
+          16.658,
+          16.5631,
+          16.2519,
+          16.285,
+          16.6667
+        ],
+        "candidate": [
+          16.851,
+          16.7145,
+          16.5889,
+          16.4187,
+          16.2148,
+          16.314
+        ],
+        "median_control": 16.55885,
+        "median_candidate": 16.5038,
+        "median_pct": -0.3324506230807156,
+        "pairs_faster": 4,
+        "paired_deltas_pct": [
+          1.790438911239156,
+          0.33917637171327897,
+          0.15576794199154698,
+          1.0263415354512473,
+          -0.43107153822535826,
+          -2.116195767608453
+        ]
+      },
+      "control_max_peak_kib": 3018984.0,
+      "candidate_max_peak_kib": 3065796.0
+    }
+  ],
+  "model_dispatch_runs": 2,
+  "model_dispatch_calls": [
+    {
+      "calls": 10,
+      "raw_records": 10,
+      "transport_duplicates": 0,
+      "selected": 10,
+      "raw_serial": 102400,
+      "raw_deferred": 0,
+      "sdk_qk": 0,
+      "blocks": 1600,
+      "pid": 20609,
+      "expected_complete": true,
+      "scope": "Actual successful QK readout calls only; PV excluded. No timing, bandwidth or speedup claim."
+    },
+    {
+      "calls": 10,
+      "raw_records": 10,
+      "transport_duplicates": 0,
+      "selected": 10,
+      "raw_serial": 81920,
+      "raw_deferred": 286720,
+      "sdk_qk": 0,
+      "blocks": 5760,
+      "pid": 20935,
+      "expected_complete": true,
+      "scope": "Actual successful QK readout calls only; PV excluded. No timing, bandwidth or speedup claim."
+    }
+  ],
+  "normal_binary_stage_runs": 4,
+  "stage_calls_per_run": 10,
+  "parser_valid_cases": 4,
+  "parser_rejected_cases": 54,
+  "stage_parser_sha256": "6b82a38eaeea0582186c36e270c9aad7ccbde53bdc3b408190fbbdf356c017d3",
+  "normal_audit_script_sha256": "5c8b9fc7e7eff95ccca540281bd9c93c85fd0f1a3b53f8a35c0b971d7c570c46",
+  "diagnostic_audit_script_sha256": "6c4792d4c33ff1570fd3b6317945c9408822ce8deef43f4715ad4a166e7fd407",
+  "frozen_raw4_parser_sha256": "3aed26a458c9eeb6fda1573f8d97ac060a626c55f90330081d30a35616b9685c",
+  "common_corrected_kv_build_validation_sha256": "558a5abcdb1505efcf8a34463da48de0c12d613b49dc6d3c4fac268d8d6a04e5",
+  "prespecified_plan_sha256": "4b586e9f731ebed58d3772df6633ffbad271e43be4b1a29a88677b1ee2f92116",
+  "corrected_fixture_readback": {
+    "review_sha256": "c0cbbc93737549c39cf871c9fb85b6034a4b9997392faaf73d2ef86a2efeab25",
+    "validation_sha256": "90bb4a60b87327a24d1b7d539076eb05a7a56c008fd1a5249b44a42eead446cd",
+    "manifest_sha256": "84657570362000f260c1993c0823e7c1f62bb512a5f0f2bb613990c64fd74e24"
+  },
+  "memory_outliers_retained": true,
+  "error_scope": "Highlighted peak error fields zero; nonpeak fdinfo read errors retained, monitor exclusions remain.",
+  "timing_scope": "Stage fields overlap; softmax exposed joins are not total worker time. Separate dispatch builds and stage profiles are excluded from normal TPS."
+}

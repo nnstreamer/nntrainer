@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "files": {
+    "audit_diagnostics.py": {
+      "sha256": "6c4792d4c33ff1570fd3b6317945c9408822ce8deef43f4715ad4a166e7fd407",
+      "bytes": 7334
+    },
+    "audit_model_records.py": {
+      "sha256": "5c8b9fc7e7eff95ccca540281bd9c93c85fd0f1a3b53f8a35c0b971d7c570c46",
+      "bytes": 12071
+    },
+    "check_stage_parser.py": {
+      "sha256": "6fc7a2f726fb77b998d91e5bf9e6175596338d80fa8089e66e66e59e0560c483",
+      "bytes": 5208
+    },
+    "continue-attn-raw-planes-fixed-stage1024-candidate.parsed.json": {
+      "sha256": "3b3cec1659e5001007949217171e9eb032540d5995f781d968913ef196765ebe",
+      "bytes": 13502
+    },
+    "continue-attn-raw-planes-fixed-stage1024-control.parsed.json": {
+      "sha256": "d8450d64256723c3dffb19d3cf3788736a5020561f9b11818967fa1aaf54d64d",
+      "bytes": 13509
+    },
+    "continue-attn-raw-planes-fixed-stage2048-candidate.parsed.json": {
+      "sha256": "cb858848a7b88d29d74d6bf4f5d8f53494857c4ddd8b4eb56066d56fd43af5f5",
+      "bytes": 13536
+    },
+    "continue-attn-raw-planes-fixed-stage2048-control.parsed.json": {
+      "sha256": "606a956f5b947685f05f782e6ce3fa59f859d0f2e575b3ac497d8cf82390db0a",
+      "bytes": 13532
+    },
+    "diagnostic-audit-command.json": {
+      "sha256": "400b0708ab3a4548cc6658842d95a6b5fd59919e4627c8254ef51badfbb5d082",
+      "bytes": 2931
+    },
+    "initial-normal-readback.json": {
+      "sha256": "1557170586458d8c2c3dcdb68950b3e04091813af922e1094f57650a5fa3a488",
+      "bytes": 50245
+    },
+    "memory-outlier-readback.json": {
+      "sha256": "b278205d8e67837fe8223b5390733838574945ecf1b65a7d5bc63ac79fe86a7e",
+      "bytes": 47041
+    },
+    "model-audit-commands.json": {
+      "sha256": "756ee18bec9285ec42dadee960d2bbc05c5b3e5e49ac05605d5a9761b1cdc53d",
+      "bytes": 4925
+    },
+    "model-dispatch-readback.json": {
+      "sha256": "bd1a91fbaff53e872ffbf4742df5e5e845aac00fc0c4bd877d70a4f41ba3bdc9",
+      "bytes": 9527
+    },
+    "parse_stages.py": {
+      "sha256": "6b82a38eaeea0582186c36e270c9aad7ccbde53bdc3b408190fbbdf356c017d3",
+      "bytes": 9902
+    },
+    "parser-checks.json": {
+      "sha256": "e702ed2e64594ed0f690c3d2542eac6cd1b9ae712d7a8be87e7461ae987266ff",
+      "bytes": 9097
+    },
+    "pooled-normal-readback.json": {
+      "sha256": "eb6023186b2594127a29cf05e7cd310ba34d2d8b950734adf9bad48fc54c74c0",
+      "bytes": 102814
+    },
+    "review.txt": {
+      "sha256": "e98b792a2109db7e7ea8e2f9e55322f864924046e78cf3a460939b02290605b7",
+      "bytes": 6919
+    },
+    "root-pooled-crosscheck.json": {
+      "sha256": "1e07ecb8166f1cbd3ebbee1d895b48b15dc3f928dba1acfaa9977bdf774ac9be",
+      "bytes": 395
+    },
+    "source-timing-boundaries.json": {
+      "sha256": "9fac371ff0338dd54dc76cd338d7ff4ff78229a5a5f94317052dd8b9480b8602",
+      "bytes": 1279
+    },
+    "stage-commands.json": {
+      "sha256": "388673912e66b1df8173d01c0b5b5b7668cbc3fc99318af4728dd683a76a1411",
+      "bytes": 8022
+    },
+    "stage-readback.json": {
+      "sha256": "77637c2e6f1707d0ad429c75761e37aca8df8d91a3574a0f603d86dc5079210e",
+      "bytes": 87620
+    },
+    "validation.json": {
+      "sha256": "87ed17c4536fb97df53f9dc4a49bc5e08a64a416805161234a3705675571aec3",
+      "bytes": 5792
+    }
+  },
+  "payload_count": 21,
+  "payload_bytes": 425201,
+  "scope": "Portable relative payload manifest; raw parent inputs are referenced by each readback SHA and are archived separately by parent curator."
+}

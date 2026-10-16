@@ -1,0 +1,20 @@
+{
+  "README.txt": "ca22bd3c9bb8c4c8cb82971616a41445a9b25a7d3c77a41a6db1ad24a9ff5afa",
+  "validation.json": "211e654395a10621ad4e5c7987260a79e5d753fcbe86456b89351d58da1eb7f9",
+  "production.patch": "d8d1827242aab3e698e7c69eefb73711305d37b843ba3798ba2b2e251e75fbb3",
+  "source-hashes.json": "73a8c62922a572cd21e3fbe2f649176e898d859a2d5b57ef436b25f8084c073d",
+  "source-proof.json": "654817ca95f1ae998eb334ed51fa98730a6d1d9e630ccd22055a88919645ce3b",
+  "test-hashes.json": "794bc176dd08c4132d71b180d8f7e6e280980b3f1f278308773ec0e74bbf8f63",
+  "check_mutations.py": "341a5b32c422563eb32c2d92e53222f370101004bcb3adbaaf8f3fcee4f75598",
+  "diagnostic/diagnostic.patch": "0028568503122041a908d448404da84cbcae775bb9ba25f2c0bc6be867cad311",
+  "diagnostic/parse.py": "3aed26a458c9eeb6fda1573f8d97ac060a626c55f90330081d30a35616b9685c",
+  "diagnostic/check.py": "2b08d714b09d3f53f24b3533e95780f8fcbbb740449b02450a08cbf63615d9d2",
+  "diagnostic/parser_check.py": "4090f5fe8162d17f7a5ca6254a999f841148fcab87b6ad7eb1309458ea565012",
+  "diagnostic/parser-validation.json": "5d140e13115fa13dbf764150e7764a0b5b17135a1f71b61eb6577f992b09f989",
+  "diagnostic/device-trace-expected.json": "ce5d463acfd309432b9327d0c0a45783c9fc29dc723f697bdf24cbf31ca85bcf",
+  "device/attention_raw_planes_device_check.cpp": "e82cdcc4e58fb6a18f448836b18d7509acede7b4bd6bdc5b385839b741db4939",
+  "device/caseplan.json": "1b4e71037ba58ac219edbf8edd9f85981cd65a5060b42040b3c47f7c0f102d8d",
+  "device/caseplan.inc": "44b72de10ceb53d62b629122cbface21aca32e878b4e2f7b49dafdfea7a8da17",
+  "device/build.py": "a27b615b0e85cce7c3199030fb0d00f9c40e360f64b6b04f4bb4694855326d52",
+  "tests.patch": "817338a6618a181f0eff14e52e588315d78a96ffb40a61e603f1fb80d52b9fdc"
+}

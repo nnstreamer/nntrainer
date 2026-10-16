@@ -1,0 +1,19 @@
+{
+  "command": [
+    "/usr/bin/python3",
+    "/tmp/nntr-lfm2-attn-raw-planes-device-review-20261017/model-stage-review/audit_diagnostics.py",
+    "--evidence",
+    "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016",
+    "--results",
+    "/tmp/nntr-lfm2-attn-raw-planes-root-20261017",
+    "--fixed-build",
+    "/tmp/nntr-lfm2-attn-planes-kv-fixed-objects-20261017/build",
+    "--trace-parser",
+    "/tmp/nntr-lfm2-attn-raw-planes-device-review-20261017/trace-review/parse.py",
+    "--output",
+    "/tmp/nntr-lfm2-attn-raw-planes-device-review-20261017/model-stage-review"
+  ],
+  "returncode": 0,
+  "stdout": "{\"model_dispatch_runs\": 2, \"stage_runs\": 4, \"passed\": true, \"comparisons\": [{\"tokens\": 1024, \"control_tag\": \"continue-attn-raw-planes-fixed-stage1024-control\", \"candidate_tag\": \"continue-attn-raw-planes-fixed-stage1024-candidate\", \"stage_delta_us\": {\"qprep\": 323, \"dma\": 37, \"qk\": -17606, \"dequant\": 3840, \"softmax\": -29, \"pquant\": 2, \"pv\": 129, \"oupd\": -58, \"store\": -35, \"total\": -13558}, \"wrapper_delta_us\": {\"wall_us\": -24186, \"dsp_us\": -13426, \"append_us\": 189, \"attn_us\": -13615, \"quant_us\": -2, \"stage_us\": 0, \"bake_us\": 0}, \"layer_profile_delta_ns\": -24174531, \"expert_prefetch_context\": {\"control\": {\"experts\": 2304, \"exposed_wait_ms\": 20.7, \"register_rpc_ms\": 2.3, \"ready_experts\": 2263, \"ready_percent_logged\": 98, \"caller_cpus_logged\": \"{0}\", \"reader_cpus_logged\": \"{1,4,5}\", \"reader_ms_per_expert\": 3.07}, \"candidate\": {\"experts\": 2304, \"exposed_wait_ms\": 150.3, \"register_rpc_ms\": 1.9, \"ready_experts\": 2005, \"ready_percent_logged\": 87, \"caller_cpus_logged\": \"{1}\", \"reader_cpus_logged\": \"{0,2,3,4,5}\", \"reader_ms_per_expert\": 3.27}}}, {\"tokens\": 2048, \"control_tag\": \"continue-attn-raw-planes-fixed-stage2048-control\", \"candidate_tag\": \"continue-attn-raw-planes-fixed-stage2048-candidate\", \"stage_delta_us\": {\"qprep\": -1116, \"dma\": -401, \"qk\": -62889, \"dequant\": 2945, \"softmax\": 48758, \"pquant\": -217, \"pv\": 234, \"oupd\": -115, \"store\": -68, \"total\": -13187}, \"wrapper_delta_us\": {\"wall_us\": -34368, \"dsp_us\": -13505, \"append_us\": -237, \"attn_us\": -13268, \"quant_us\": -443, \"stage_us\": 0, \"bake_us\": 0}, \"layer_profile_delta_ns\": -37817239, \"expert_prefetch_context\": {\"candidate\": {\"experts\": 2304, \"exposed_wait_ms\": 0.0, \"register_rpc_ms\": 1.9, \"ready_experts\": 2304, \"ready_percent_logged\": 100, \"caller_cpus_logged\": \"{0}\", \"reader_cpus_logged\": \"{1,2,3,4,5,7}\", \"reader_ms_per_expert\": 3.27}, \"control\": {\"experts\": 2304, \"exposed_wait_ms\": 0.1, \"register_rpc_ms\": 3.0, \"ready_experts\": 2304, \"ready_percent_logged\": 100, \"caller_cpus_logged\": \"{0}\", \"reader_cpus_logged\": \"{1,2,3,4,5}\", \"reader_ms_per_expert\": 3.14}}}]}\n",
+  "stderr": ""
+}

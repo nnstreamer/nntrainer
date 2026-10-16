@@ -1,0 +1,20 @@
+{
+  "control": {
+    "sha256": "e64b0a2342d8132bd09e23763ca8958270c62a8e2a99dd720e1cb27f4478c394",
+    "bytes": 231908352,
+    "archived": false,
+    "basis": "Root transfer SHA and independent complete-byte readback"
+  },
+  "candidate": {
+    "sha256": "e64b0a2342d8132bd09e23763ca8958270c62a8e2a99dd720e1cb27f4478c394",
+    "bytes": 231908352,
+    "archived": false,
+    "basis": "Root transfer SHA and independent complete-byte readback"
+  },
+  "diagnostic": {
+    "sha256": "e64b0a2342d8132bd09e23763ca8958270c62a8e2a99dd720e1cb27f4478c394",
+    "bytes": 231908352,
+    "archived": false,
+    "basis": "Root transfer SHA and independent complete-byte readback"
+  }
+}

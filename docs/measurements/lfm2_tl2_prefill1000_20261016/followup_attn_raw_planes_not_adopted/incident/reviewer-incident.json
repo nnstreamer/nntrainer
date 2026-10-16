@@ -1,0 +1,66 @@
+{
+  "status": "REVIEWER_ARTIFACT_MUTATION_DETECTED_BEFORE_DEVICE_EXECUTION",
+  "commands": [
+    {
+      "command": [
+        "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/hexagon-llvm-objcopy",
+        "--dump-section",
+        ".text=/tmp/nntr-lfm2-attn-raw-planes-review-20261017/candidate-v2/fixed-object-review/control-parent.text",
+        "/tmp/nntr-lfm2-attn-planes-fixed-objects-20261017/build/control/libnntr_hvx_skel.so"
+      ],
+      "elf_output_argument_omitted": true,
+      "dump_mtime_utc": "2026-10-16T18:00:59.349552+00:00",
+      "dump_sha256": "0e7fde9c8f49c8ea806723a03d05afca20b01d8974d0f5de9aea20d270fbc7b1"
+    },
+    {
+      "command": [
+        "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/hexagon-llvm-objcopy",
+        "--dump-section",
+        ".text=/tmp/nntr-lfm2-attn-raw-planes-review-20261017/candidate-v2/fixed-object-review/control-reviewer.text",
+        "/tmp/nntr-lfm2-attn-raw-planes-review-20261017/candidate-v2/fixed-object-review/control/libnntr_hvx_skel.so"
+      ],
+      "elf_output_argument_omitted": true,
+      "dump_mtime_utc": "2026-10-16T18:00:59.356552+00:00",
+      "dump_sha256": "0e7fde9c8f49c8ea806723a03d05afca20b01d8974d0f5de9aea20d270fbc7b1"
+    },
+    {
+      "command": [
+        "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/hexagon-llvm-objcopy",
+        "--dump-section",
+        ".text=/tmp/nntr-lfm2-attn-raw-planes-review-20261017/candidate-v2/fixed-object-review/candidate-parent.text",
+        "/tmp/nntr-lfm2-attn-planes-fixed-objects-20261017/build/candidate/libnntr_hvx_skel.so"
+      ],
+      "elf_output_argument_omitted": true,
+      "dump_mtime_utc": "2026-10-16T18:00:59.363552+00:00",
+      "dump_sha256": "159ca0bf6fcccd215b8865095cdadb022d8b313ca3f4ff2ff75c42bf9fec4c8f"
+    },
+    {
+      "command": [
+        "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/hexagon-llvm-objcopy",
+        "--dump-section",
+        ".text=/tmp/nntr-lfm2-attn-raw-planes-review-20261017/candidate-v2/fixed-object-review/candidate-reviewer.text",
+        "/tmp/nntr-lfm2-attn-raw-planes-review-20261017/candidate-v2/fixed-object-review/candidate/libnntr_hvx_skel.so"
+      ],
+      "elf_output_argument_omitted": true,
+      "dump_mtime_utc": "2026-10-16T18:00:59.369552+00:00",
+      "dump_sha256": "159ca0bf6fcccd215b8865095cdadb022d8b313ca3f4ff2ff75c42bf9fec4c8f"
+    }
+  ],
+  "error": "llvm-objcopy was invoked without a distinct output ELF; dumping a section also rewrote its input ELF. Reviewer intended read-only inspection but violated it.",
+  "affected_parent_paths": [
+    "/tmp/nntr-lfm2-attn-planes-fixed-objects-20261017/build/control/libnntr_hvx_skel.so",
+    "/tmp/nntr-lfm2-attn-planes-fixed-objects-20261017/build/candidate/libnntr_hvx_skel.so"
+  ],
+  "not_invoked_on": [
+    "repeat.so",
+    "source files",
+    "object files",
+    "SDK files",
+    "phone"
+  ],
+  "device_model_or_fixture_executions_before_detection": 0,
+  "detection": "Parent deployment SHA check rejected altered control SHA 0b526995ae0346134eb5433d9d5bf86025b10b62c5d1e461fa85460205625fbb instead of 38557678906ece709db0b5bc773bf1c90675accc722a14e6c49ce75ca14e68bc.",
+  "parent_restore": "Completed: parent restored both original ELF byte-exact from untouched repeat.so and verified phone seven-file manifests; actual model/fixture executions before recovery remained zero. See parent-elf-recovery.json.",
+  "valid_scope_retained": "Independent source/codegen/strict host fixtures remain valid. The earlier fixed-pair hash audit predates this command; do not cite it as proof that the originals remained unchanged afterward.",
+  "next_inspection_policy": "Only reviewer-owned copied artifacts; Python ELF parsing/readelf. If objcopy is needed, provide a distinct output ELF and never target parent inputs."
+}

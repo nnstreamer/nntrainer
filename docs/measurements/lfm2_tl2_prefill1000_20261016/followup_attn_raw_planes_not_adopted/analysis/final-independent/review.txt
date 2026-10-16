@@ -1,0 +1,112 @@
+Independent raw4plane model readback — NOT ADOPTED under the prespecified rule
+
+Scope
+Read only existing host records. No phone/model/compiler/linker execution, ELF
+mutation, source edits, or sample exclusions. This extends the separate frozen
+fixed-readback correctness report; it does not replace its original failed
+fixed-Q8 control run or the unchanged corrected 36-output/4-probe fixture proof.
+
+Normal model results
+All 24 recorded runs pass independent raw log/metadata TPS, exact 65-ID,
+configuration/environment, supervised full-lifetime sampled-memory, and seven
+fresh runtime hash checks. The 12 initial runs and 12 confirmation runs remain
+separate in pooled-normal-readback.json, as do all six paired observations.
+Confirmation order BA/AB/BA balances initial AB/BA/AB at each length. Initial,
+confirmation, and pooled summaries independently match root summaries.
+
+1024 prefill TPS:
+  Initial:      831.844 -> 812.054, -2.379%, 1/3 paired wins.
+  Confirmation: 846.981 -> 817.239, -3.512%, 0/3 paired wins.
+  Pooled:       836.9745 -> 816.913, -2.397%, 1/6 paired wins.
+2048 prefill TPS:
+  Initial:      829.150 -> 866.695, +4.528%, 2/3 paired wins.
+  Confirmation: 809.806 -> 942.042, +16.329%, 2/3 paired wins.
+  Pooled:       818.781 -> 891.718, +8.908%, 4/6 paired wins.
+
+The frozen plan requires nonnegative pooled prefill median change and at least
+4/6 paired wins at BOTH lengths, with correctness/memory checks passing. 1024
+fails this rule. The candidate is therefore not adopted. The wide 2048 range,
+including control 964.673 and candidate 983.670/942.042, remains in the evidence.
+It does not establish a universal gain. Pooled decode changes are -0.383% and
+-0.332%; a prefill-only attention change does not establish a decode-kernel
+effect. No additional outcome-seeking test is implied by this report.
+
+Runtime binding
+Normal control DSP 2d693821..., candidate f3992913..., and actual-dispatch DSP
+97501948... all include the same corrected KV object. Six non-DSP runtime hashes
+are identical (core 072b5ca2..., accepted ARM-router app c34aa784...). The fixed
+object build is separate from the historical 3baddb92 DSP. Earlier ELF rewrite
+accidents are not represented as model results; immutable restored inputs and
+the build manifest bind these runs. This readback does not rebuild any object.
+C16, page cache off, preload128, eight host threads, and normal environment are
+unchanged in all 24 runs. The model/config hash is constant per prompt length.
+
+Actual model selection
+Two separate diagnostic runs pass a strict independent expected-geometry check:
+  1024 PID20609: ten selected calls, 102400 serial readouts, zero deferred.
+  2048 PID20935: ten selected calls, 81920 serial, 286720 deferred readouts.
+Each complete QK readout is four planes, not four separately counted tiles.
+The independent derivation is 8 KV heads times the causal sum
+ceil((query_block+1)*128/256), with 16*4 tiles per block. Both run traces start at
+sequence1, are contiguous through10, and have no duplicates. IDs and sampled
+memory pass. There are ten real model layers, not inferred extra warmups.
+
+Stage evidence and limits
+parse_stages.py accepts exactly ten wrapper/stage pairs for one supervised PID,
+matching cache0..N, appendN, error0, N1024/2048, and blocks160/576. It checks the
+RPC time identity, nested bounds, and exactly layer2/6/.../38 attention entries.
+Four actual runs pass. Four valid parser cases and 54 malformed mutations pass
+the sensitivity check. Since these tags lack a unique sequence/layer ID, no
+ambiguous within-stream deduplication is performed. A mirrored stdout stream
+is accepted only if all20 payloads equal canonical logcat in order. Layer
+association is by serialized call order; that limitation remains explicit.
+
+Ten-layer totals (milliseconds, control -> candidate):
+  1024 inner: 151.201 -> 137.643; wrapper DSP187.426 -> 174.000.
+       QK23.423 -> 5.817; dequant44.740 -> 48.580;
+       softmax15.537 -> 15.508; wrapper wall222.001 -> 197.815.
+  2048 inner: 363.843 -> 350.656; wrapper DSP441.521 -> 428.016.
+       QK84.276 -> 21.387; dequant36.459 -> 39.404;
+       softmax44.322 -> 93.080; wrapper wall511.818 -> 477.450.
+
+QK includes accumulator clear/issue/readout, not pure HMX arithmetic. Softmax
+contains submit and exposed join; shortening next-QK can reveal work formerly
+hidden by that overlap. Deferred dequant starts AFTER softmax/pquant join and
+overlaps PV, so this is not direct softmax/dequant worker contention. Do not add
+overlapping stage or worker times or equate the QK delta with model savings.
+These are single profile1/attention-trace runs using the normal binaries; they
+are excluded from the normal TPS sample set.
+
+The same 1024 stage pair records expert-prefetch exposed wait20.7 -> 150.3ms,
+ready2263 -> 2005 of2304, reader time3.07 -> 3.27ms/expert. At2048 wait0.1 -> 0ms
+and ready2304/2304 both; reader time3.14 -> 3.27. These provide context for the
+whole-model/stage discrepancy, not proof of causation or a basis to adjust TPS.
+
+Memory outliers remain included
+Pooled maximum sampled peak KiB: 1024 control2714740/candidate2724868;
+2048 control3018984/candidate3065796. Both highlighted candidate peak samples
+have zero read/identity/conflict/overflow errors; other scans do have read
+errors and are reported separately.
+2048 candidate r6 peak sample77 at1585.520ms is RssAnon1124356KiB plus fd sizes
+1988034560B. Compared with its paired control peak, fd sizes are +49MiB and
+RssAnon -3364KiB. Adjacent samples have fd totals1923022848/1924071424B and61
+identified buffers versus62 at the peak. This one observed transient aggregate
+cannot identify an allocator or prove extra persistent storage. Seven fd-read
+errors occur elsewhere in the run and are preserved.
+1024 candidate r5 peak sample57 at1172.806ms is RssAnon926284KiB plus fd sizes
+1841750016B. Against its paired control peak, anonymous RSS is +16748KiB and fd
+sizes -6MiB. Five fd-read errors occur elsewhere. This observation is retained.
+The full lifetime monitor has one or two contiguous terminal RSS-less samples;
+there is no missing mid-run composite sample in these records. Sampling is
+about20ms, status/fd scans are not atomic, fd allocation sizes are not verified
+resident DMA bytes, and unreported DSP/driver/VTCM memory or between-sample
+peaks may be absent. Do not add VmRSS/VmHWM to this composite.
+
+Reproduction
+Use parse_stages.py with explicit --logcat --log --metadata --memory --ids
+--tokens --output paths; stage-commands.json contains the exact four commands.
+Run audit_model_records.py --evidence E --results P --fixed-build KF/build
+--output OUT [--include-confirmation]. Run audit_diagnostics.py with the same
+paths plus --trace-parser frozen_raw4_parse.py. Both scripts require only
+existing files and write their reports into OUT. The sibling archive curator
+will package raw inputs; this report's hashes make every readback traceable.

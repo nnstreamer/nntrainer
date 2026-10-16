@@ -1,0 +1,22 @@
+{
+  "control": [
+    {
+      "section": ".comment",
+      "first_diff": 435,
+      "parent_len": 7515,
+      "reviewer_len": 7551,
+      "parent_context": "b'-call_shared -G0 -o /tmp/nntr-lfm2-attn-planes-fixed-objects-20261017/build/source/test/htp/build/libnntr_hvx_skel.so /local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/../target/hexa'",
+      "reviewer_context": "b'-call_shared -G0 -o /tmp/nntr-lfm2-attn-raw-planes-review-20261017/candidate-v2/fixed-object-review/control/libnntr_hvx_skel.so /local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/../t'"
+    }
+  ],
+  "candidate": [
+    {
+      "section": ".comment",
+      "first_diff": 435,
+      "parent_len": 7520,
+      "reviewer_len": 7558,
+      "parent_context": "b'-call_shared -G0 -o /tmp/nntr-lfm2-attn-planes-fixed-objects-20261017/build/source/test/htp/build/libnntr_hvx_skel.so /local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/../target/hexa'",
+      "reviewer_context": "b'-call_shared -G0 -o /tmp/nntr-lfm2-attn-raw-planes-review-20261017/candidate-v2/fixed-object-review/candidate/libnntr_hvx_skel.so /local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/..'"
+    }
+  ]
+}

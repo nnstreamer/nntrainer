@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "source": "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c",
+  "source_sha256": "8c54a3c86509c17b0c5cda01c0a2de6abf3de335fca6e268cb74b7dfed26d4e5",
+  "production_patch_sha256": "d8d1827242aab3e698e7c69eefb73711305d37b843ba3798ba2b2e251e75fbb3",
+  "formatter": "/tmp/lfm2-prefill1000-20261013/format/clang_format/data/bin/clang-format",
+  "formatter_version": "clang-format version 14.0.6 (https://github.com/ssciwr/clang-format-wheel e79d44a98fc6eeb3e9751220e441da03812564c1)",
+  "format_noop": true,
+  "git_base": "0735ccd2192a6231709436f8376123d280e77e1f"
+}

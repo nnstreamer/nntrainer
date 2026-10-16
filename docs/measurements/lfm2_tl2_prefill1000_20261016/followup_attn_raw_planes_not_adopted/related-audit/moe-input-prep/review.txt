@@ -1,0 +1,120 @@
+LFM MoE input-quantization / TL2 setup source audit, 2026-10-17
+
+Result: the proposed top-4 duplicate input quantization is already removed.
+No new high-impact, kernel-only duplicate-work candidate is established here.
+The genuine resident/arrived cross-call repetition is the previously audited
+operation-local reuse topic; the parent explicitly excluded pursuing it now.
+No code, test, build, device, cache, worker or capacity change was made.
+
+Prefill actual path
+-------------------
+Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp:1430-1668 compacts active
+experts, stages them, and sends one whole MoE call. Current C16 means 608 shared
+slots, not a 16-expert maximum for this call; <=64 active experts fit. The split
+branch at 1543 is an explicit capacity/debug fallback, not this measured route.
+The matched accepted ARM-router PROFILE1/IO trace has 38 main M1024 calls after
+the LFM2-PREFILL early-queue marker. A separate same-M startup warmup is excluded.
+LAYERPROF stdout is buffered: its first input record appears after the first
+main compute record, so it is not a reliable boundary for this count.
+
+hexkl_mm_u8i4_moe.c:2538 calls hvx_quant_rows_u8_params_rm once for all M source
+rows, writing one row-major uint8 matrix in existing scratch. The native LFM
+prefill path then selects hexkl_moe_pack_bg_worker:1798's act_u8 gather, not its
+FP32 quantize/pack fallback. Thus each original row has one min/max scan and one
+quantization pass, not four. At M1024 this is 38,912 GU row quantizations over
+38 layers; the routed DN rows are 155,648 distinct expert/token intermediates.
+
+The row-major u8 input lives through the background gather and all joins; AH
+slots have each expert's ordered token rows interleaved in groups of four. A
+token selected by four experts needs four AH placements, but those are copies
+of already quantized bytes. Different row neighbors/64-row blocks prevent
+sharing the same whole AH buffer by a pointer substitution. Identical adjacent
+expert row lists already share slots (2427-2443). Reconsidering gather padding,
+scatter or a different HMX layout would repeat excluded topics or change scope.
+
+Prefill native weights use expanded HMX slabs; hvx_tl2_prepare's activation
+lookup tables are an M1-only path. There are zero such GU/DN activation-LUT
+preparations in these main prefill calls. Palette expansion tables for weights
+are a different object and must not be counted as input activation reuse.
+
+Decode within a call
+--------------------
+The same quantizer at 2538 produces one dense u8 K2048 row in existing act_ah.
+The all-native M1 guard already avoids 64-row padding setup. At 2605 one
+hvx_tl2_prepare constructs the 44,032-byte GU lookup table, shared by ALL active
+experts. Their GU workers point at c->tl2_gate (1183); the expert loop skips AH
+packing and legacy QS2 palette tables for every native TL2 expert (2614-2633).
+The large legacy per-expert palette arrays exist in the context layout but are
+not rebuilt for native TL2. There is no per-expert GU-quant/LUT duplication to
+remove without changing the actual two-call grouping.
+
+moe_m1_requant_worker:1449 quantizes each expert's distinct SwiGLU output once,
+straight into the idle mid_ah allocation as a dense 1536-byte row; it then builds
+that expert's 32,768-byte DN LUT. No AH-repeat/copy-back occurs. DN inputs differ
+because gate/up weights differ. Reusing them across experts changes results.
+The DN tables occupy disjoint existing VTCM after GU and are live through each
+down computation. The single-row quant call uses pool=NULL and the existing
+worker-pool inline path; no worker publication/barrier is hidden in this call.
+The min/max scan followed by quantization is a true dependency, not two copies
+of the same computation: the scale requires the complete row before packing.
+
+Decode across calls: real repetition, old topic, not pursued
+-----------------------------------------------------------
+hexkl_graph.c:183-259 posts misses, computes all resident experts together,
+waits, then computes all arrived experts together. Both receive the same `in`.
+NNTR_MOE_MERGE_HITS already removes the former three-call split. Each of the
+two successful native calls still recopies/requantizes that row and rebuilds
+GU lookup. The matched PROFILE1 log's 67.89 calls/token over 64 tokens uniquely
+means 4,345 calls, versus 2,432 layer/token pairs: 1,913 duplicate preparations,
+29.890625/token. This profile has 9.615 ms net MoE and 30.776 ms exposed miss wait;
+neither isolates input preparation, so no time/TPS gain is inferred.
+
+The source-operation maximum per token is 244,864 repeated input-copy bytes,
+61,216 dense-u8 stores, and 1,316,144 GU-LUT stores plus corresponding arithmetic.
+These are cached-heap/VTCM operations, not storage traffic. They are the same
+op-local reuse hypothesis documented in the prior 2026-10-16 M1 preparation
+audit, not a new discovery or a new performance proposal. A viable future
+handoff needs explicit per-operation ownership, scalar scale/zp publication,
+stable VTCM layout, successful drain and miss callback preservation; scratch
+carving pointers change between group sizes. Gemma's graph_dense_early can run
+another kernel between groups and overwrite scratch/VTCM. Pointer equality or
+a session-global last-input flag is insufficient. No such reuse is added here.
+
+TL2 lookup details / possible tiny future primitive question
+----------------------------------------------------------
+hvx_tl2_prepare:264-326 has 81 vector-window iterations plus five scalar-tail
+blocks for K2048, and 59 plus five for K1536. The 128-byte window is loaded every
+24 bytes, but only 24 relevant bytes feed the four tables. Those overlapping
+loads are real source work over a tiny cached row, not repeated quantization.
+The old M1 audit already noted the general window reuse question.
+
+One narrowly distinguishable question would be whether the five scalar-tail
+blocks can use a single bounded final 128-byte load, register rotations and
+explicit end masking. It needs no padding read or new buffer. However, the
+existing scalar accesses, new vector lookups/rotates, instruction pressure and
+exposure have not been compared; table stores and most arithmetic remain. This
+is not an established speedup or recommendation to start a device experiment.
+No build was justified solely by this small source hypothesis. Per-panel LUT
+pairing, already rejected end-to-end, was not reopened.
+
+Gemma comparison
+----------------
+Gemma4HtpTransformer::createMoe (gemma4_htp_causallm.cpp:643-669) creates the SAME
+lfm2_moe layer, with GeGLU, softmax_scale, input/router/output norms and optional
+dense residual. Therefore Gemma already shares the same once-per-row prefill
+quantization, AH gather and identical-row-list slot reuse. Its residual path can
+fuse input RMSNorm into the quantizer using existing per-lane row scratch
+(moe.c:2280,2538; quant_u8.c:116-122). LFM's standalone input norm and sigmoid
+router are not the same contract, and this is not a missing expert reuse trick.
+For native TL2 M1, GU sharing and expert-specific DN preparation are likewise
+common. The conditional legacy QS2 AH/palette work does not execute for native
+LFM. No Gemma-specific duplicate work should be ported by changing its math.
+
+Scope and reproducibility
+-------------------------
+audit.json freezes source hashes, profile hash and integer count derivation;
+source/ stores only the actual relevant files read. Shared R HEAD was 0735ccd2
+with unrelated pending raw-attention and KV-tail fixes; neither is part of this
+audit. Existing profile timings are diagnostic observations, not normal speed
+claims. No new correctness or performance tests were run, and no const input
+was modified or proposed as mutable storage.

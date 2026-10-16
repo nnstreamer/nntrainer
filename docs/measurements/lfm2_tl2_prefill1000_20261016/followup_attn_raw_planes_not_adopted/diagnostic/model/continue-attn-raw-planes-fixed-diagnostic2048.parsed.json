@@ -1,0 +1,13 @@
+{
+  "calls": 10,
+  "raw_records": 10,
+  "transport_duplicates": 0,
+  "selected": 10,
+  "raw_serial": 81920,
+  "raw_deferred": 286720,
+  "sdk_qk": 0,
+  "blocks": 5760,
+  "pid": 20935,
+  "expected_complete": true,
+  "scope": "Actual successful QK readout calls only; PV excluded. No timing, bandwidth or speedup claim."
+}

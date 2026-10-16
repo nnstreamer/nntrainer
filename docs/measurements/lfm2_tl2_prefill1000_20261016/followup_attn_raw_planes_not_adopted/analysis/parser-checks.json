@@ -1,0 +1,353 @@
+{
+  "passed": true,
+  "valid_cases": 4,
+  "rejected_cases": 54,
+  "parser_sha256": "6b82a38eaeea0582186c36e270c9aad7ccbde53bdc3b408190fbbdf356c017d3",
+  "cases": [
+    {
+      "tokens": 1024,
+      "check": "original",
+      "passed": true
+    },
+    {
+      "tokens": 1024,
+      "check": "complete_stdout_mirror",
+      "passed": true
+    },
+    {
+      "tokens": 1024,
+      "check": "missing_wrapper",
+      "rejected": true,
+      "reason": "Malformed or out-of-order wrapper at line 1919"
+    },
+    {
+      "tokens": 1024,
+      "check": "missing_final_stage",
+      "rejected": true,
+      "reason": "Expected exactly 10 wrapper/stage pairs; found 19 records"
+    },
+    {
+      "tokens": 1024,
+      "check": "extra_pair",
+      "rejected": true,
+      "reason": "Canonical attention timestamps went backwards"
+    },
+    {
+      "tokens": 1024,
+      "check": "duplicate_single_record",
+      "rejected": true,
+      "reason": "Canonical attention timestamps went backwards"
+    },
+    {
+      "tokens": 1024,
+      "check": "wrong_expected_pid",
+      "rejected": true,
+      "reason": "Unexpected attention PID/TID at line 1919"
+    },
+    {
+      "tokens": 1024,
+      "check": "mixed_pid",
+      "rejected": true,
+      "reason": "Unexpected attention PID/TID at line 1919"
+    },
+    {
+      "tokens": 1024,
+      "check": "wrong_tid",
+      "rejected": true,
+      "reason": "Unexpected attention PID/TID at line 1919"
+    },
+    {
+      "tokens": 1024,
+      "check": "error",
+      "rejected": true,
+      "reason": "Layer 0: RPC failed"
+    },
+    {
+      "tokens": 1024,
+      "check": "wrong_length",
+      "rejected": true,
+      "reason": "Wrong wrapper prompt length at line 1919"
+    },
+    {
+      "tokens": 1024,
+      "check": "wrong_cache",
+      "rejected": true,
+      "reason": "Layer 0: unexpected cache/append geometry"
+    },
+    {
+      "tokens": 1024,
+      "check": "wrong_append",
+      "rejected": true,
+      "reason": "Layer 0: unexpected cache/append geometry"
+    },
+    {
+      "tokens": 1024,
+      "check": "wrong_block_count",
+      "rejected": true,
+      "reason": "Layer 0: unexpected causal block count"
+    },
+    {
+      "tokens": 1024,
+      "check": "counter_overflow",
+      "rejected": true,
+      "reason": "Counter outside uint32 range"
+    },
+    {
+      "tokens": 1024,
+      "check": "negative_counter",
+      "rejected": true,
+      "reason": "Malformed or out-of-order stages at line 1920"
+    },
+    {
+      "tokens": 1024,
+      "check": "time_identity",
+      "rejected": true,
+      "reason": "Layer 0: RPC time identity failed"
+    },
+    {
+      "tokens": 1024,
+      "check": "inner_exceeds_wrapper",
+      "rejected": true,
+      "reason": "Layer 0: invalid nested time bounds"
+    },
+    {
+      "tokens": 1024,
+      "check": "zero_stage",
+      "rejected": true,
+      "reason": "Layer 0: missing stage counters"
+    },
+    {
+      "tokens": 1024,
+      "check": "truncated",
+      "rejected": true,
+      "reason": "Malformed or out-of-order stages at line 2244"
+    },
+    {
+      "tokens": 1024,
+      "check": "trailing_unrecognized_field",
+      "rejected": true,
+      "reason": "Malformed or out-of-order stages at line 2244"
+    },
+    {
+      "tokens": 1024,
+      "check": "wrong_layer",
+      "rejected": true,
+      "reason": "Expected layer2/6/10/14/18/22/26/30/34/38 once in order"
+    },
+    {
+      "tokens": 1024,
+      "check": "missing_layer",
+      "rejected": true,
+      "reason": "Expected layer2/6/10/14/18/22/26/30/34/38 once in order"
+    },
+    {
+      "tokens": 1024,
+      "check": "duplicate_layer",
+      "rejected": true,
+      "reason": "Expected layer2/6/10/14/18/22/26/30/34/38 once in order"
+    },
+    {
+      "tokens": 1024,
+      "check": "layer_time_too_small",
+      "rejected": true,
+      "reason": "Layer 0: layer time smaller than RPC wrapper"
+    },
+    {
+      "tokens": 1024,
+      "check": "partial_stdout_mirror",
+      "rejected": true,
+      "reason": "Stdout mirror is not the complete identical canonical ordered stream"
+    },
+    {
+      "tokens": 1024,
+      "check": "mismatched_stdout_mirror",
+      "rejected": true,
+      "reason": "Stdout mirror is not the complete identical canonical ordered stream"
+    },
+    {
+      "tokens": 1024,
+      "check": "mixed_other_attention_path",
+      "rejected": true,
+      "reason": "Malformed or out-of-order wrapper at line 1919"
+    },
+    {
+      "tokens": 1024,
+      "check": "reported_fallback_error",
+      "rejected": true,
+      "reason": "Attention error in canonical run at line 2935"
+    },
+    {
+      "tokens": 2048,
+      "check": "original",
+      "passed": true
+    },
+    {
+      "tokens": 2048,
+      "check": "complete_stdout_mirror",
+      "passed": true
+    },
+    {
+      "tokens": 2048,
+      "check": "missing_wrapper",
+      "rejected": true,
+      "reason": "Malformed or out-of-order wrapper at line 1934"
+    },
+    {
+      "tokens": 2048,
+      "check": "missing_final_stage",
+      "rejected": true,
+      "reason": "Expected exactly 10 wrapper/stage pairs; found 19 records"
+    },
+    {
+      "tokens": 2048,
+      "check": "extra_pair",
+      "rejected": true,
+      "reason": "Canonical attention timestamps went backwards"
+    },
+    {
+      "tokens": 2048,
+      "check": "duplicate_single_record",
+      "rejected": true,
+      "reason": "Canonical attention timestamps went backwards"
+    },
+    {
+      "tokens": 2048,
+      "check": "wrong_expected_pid",
+      "rejected": true,
+      "reason": "Unexpected attention PID/TID at line 1934"
+    },
+    {
+      "tokens": 2048,
+      "check": "mixed_pid",
+      "rejected": true,
+      "reason": "Unexpected attention PID/TID at line 1934"
+    },
+    {
+      "tokens": 2048,
+      "check": "wrong_tid",
+      "rejected": true,
+      "reason": "Unexpected attention PID/TID at line 1934"
+    },
+    {
+      "tokens": 2048,
+      "check": "error",
+      "rejected": true,
+      "reason": "Layer 0: RPC failed"
+    },
+    {
+      "tokens": 2048,
+      "check": "wrong_length",
+      "rejected": true,
+      "reason": "Wrong wrapper prompt length at line 1934"
+    },
+    {
+      "tokens": 2048,
+      "check": "wrong_cache",
+      "rejected": true,
+      "reason": "Layer 0: unexpected cache/append geometry"
+    },
+    {
+      "tokens": 2048,
+      "check": "wrong_append",
+      "rejected": true,
+      "reason": "Layer 0: unexpected cache/append geometry"
+    },
+    {
+      "tokens": 2048,
+      "check": "wrong_block_count",
+      "rejected": true,
+      "reason": "Layer 0: unexpected causal block count"
+    },
+    {
+      "tokens": 2048,
+      "check": "counter_overflow",
+      "rejected": true,
+      "reason": "Counter outside uint32 range"
+    },
+    {
+      "tokens": 2048,
+      "check": "negative_counter",
+      "rejected": true,
+      "reason": "Malformed or out-of-order stages at line 1935"
+    },
+    {
+      "tokens": 2048,
+      "check": "time_identity",
+      "rejected": true,
+      "reason": "Layer 0: RPC time identity failed"
+    },
+    {
+      "tokens": 2048,
+      "check": "inner_exceeds_wrapper",
+      "rejected": true,
+      "reason": "Layer 0: invalid nested time bounds"
+    },
+    {
+      "tokens": 2048,
+      "check": "zero_stage",
+      "rejected": true,
+      "reason": "Layer 0: missing stage counters"
+    },
+    {
+      "tokens": 2048,
+      "check": "truncated",
+      "rejected": true,
+      "reason": "Malformed or out-of-order stages at line 2406"
+    },
+    {
+      "tokens": 2048,
+      "check": "trailing_unrecognized_field",
+      "rejected": true,
+      "reason": "Malformed or out-of-order stages at line 2406"
+    },
+    {
+      "tokens": 2048,
+      "check": "wrong_layer",
+      "rejected": true,
+      "reason": "Expected layer2/6/10/14/18/22/26/30/34/38 once in order"
+    },
+    {
+      "tokens": 2048,
+      "check": "missing_layer",
+      "rejected": true,
+      "reason": "Expected layer2/6/10/14/18/22/26/30/34/38 once in order"
+    },
+    {
+      "tokens": 2048,
+      "check": "duplicate_layer",
+      "rejected": true,
+      "reason": "Expected layer2/6/10/14/18/22/26/30/34/38 once in order"
+    },
+    {
+      "tokens": 2048,
+      "check": "layer_time_too_small",
+      "rejected": true,
+      "reason": "Layer 0: layer time smaller than RPC wrapper"
+    },
+    {
+      "tokens": 2048,
+      "check": "partial_stdout_mirror",
+      "rejected": true,
+      "reason": "Stdout mirror is not the complete identical canonical ordered stream"
+    },
+    {
+      "tokens": 2048,
+      "check": "mismatched_stdout_mirror",
+      "rejected": true,
+      "reason": "Stdout mirror is not the complete identical canonical ordered stream"
+    },
+    {
+      "tokens": 2048,
+      "check": "mixed_other_attention_path",
+      "rejected": true,
+      "reason": "Malformed or out-of-order wrapper at line 1934"
+    },
+    {
+      "tokens": 2048,
+      "check": "reported_fallback_error",
+      "rejected": true,
+      "reason": "Attention error in canonical run at line 3115"
+    }
+  ],
+  "scope": "Strict parser sensitivity using existing logs only; no new model/DSP execution."
+}

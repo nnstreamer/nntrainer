@@ -1,0 +1,344 @@
+{
+  "schema": "attn-raw4plane-v1",
+  "offset_unit": "bytes",
+  "count_unit": "float32_elements",
+  "cases": [
+    {
+      "case_id": 0,
+      "name": "full1024",
+      "kind": 0,
+      "fixed": false,
+      "n_q": 1024,
+      "cache_from": 0,
+      "cache_to": 1024,
+      "qh": 32,
+      "kvh": 8,
+      "hd": 64,
+      "window": 0,
+      "softcap": 0,
+      "sinks": false,
+      "seeds": [
+        1056816,
+        1056817,
+        1056816
+      ],
+      "replay_of": [
+        null,
+        null,
+        0
+      ],
+      "expected_raw": true
+    },
+    {
+      "case_id": 1,
+      "name": "full2048",
+      "kind": 0,
+      "fixed": false,
+      "n_q": 2048,
+      "cache_from": 0,
+      "cache_to": 2048,
+      "qh": 32,
+      "kvh": 8,
+      "hd": 64,
+      "window": 0,
+      "softcap": 0,
+      "sinks": false,
+      "seeds": [
+        1056833,
+        1056834,
+        1056833
+      ],
+      "replay_of": [
+        null,
+        null,
+        0
+      ],
+      "expected_raw": true
+    },
+    {
+      "case_id": 2,
+      "name": "q4",
+      "kind": 1,
+      "fixed": false,
+      "n_q": 1024,
+      "cache_from": 0,
+      "cache_to": 1024,
+      "qh": 32,
+      "kvh": 8,
+      "hd": 64,
+      "window": 0,
+      "softcap": 0,
+      "sinks": false,
+      "seeds": [
+        1056850,
+        1056851,
+        1056850
+      ],
+      "replay_of": [
+        null,
+        null,
+        0
+      ],
+      "expected_raw": false
+    },
+    {
+      "case_id": 3,
+      "name": "fixed_q8",
+      "kind": 0,
+      "fixed": true,
+      "n_q": 1024,
+      "cache_from": 0,
+      "cache_to": 1024,
+      "qh": 32,
+      "kvh": 8,
+      "hd": 64,
+      "window": 0,
+      "softcap": 0,
+      "sinks": false,
+      "seeds": [
+        1056867,
+        1056868,
+        1056867
+      ],
+      "replay_of": [
+        null,
+        null,
+        0
+      ],
+      "expected_raw": false
+    },
+    {
+      "case_id": 4,
+      "name": "shifted_prefix",
+      "kind": 0,
+      "fixed": false,
+      "n_q": 1024,
+      "cache_from": 37,
+      "cache_to": 1061,
+      "qh": 32,
+      "kvh": 8,
+      "hd": 64,
+      "window": 0,
+      "softcap": 0,
+      "sinks": false,
+      "seeds": [
+        1056884,
+        1056885,
+        1056884
+      ],
+      "replay_of": [
+        null,
+        null,
+        0
+      ],
+      "expected_raw": false
+    },
+    {
+      "case_id": 5,
+      "name": "window",
+      "kind": 0,
+      "fixed": false,
+      "n_q": 1024,
+      "cache_from": 0,
+      "cache_to": 1024,
+      "qh": 32,
+      "kvh": 8,
+      "hd": 64,
+      "window": 37,
+      "softcap": 0,
+      "sinks": false,
+      "seeds": [
+        1056901,
+        1056902,
+        1056901
+      ],
+      "replay_of": [
+        null,
+        null,
+        0
+      ],
+      "expected_raw": false
+    },
+    {
+      "case_id": 6,
+      "name": "softcap",
+      "kind": 0,
+      "fixed": false,
+      "n_q": 1024,
+      "cache_from": 0,
+      "cache_to": 1024,
+      "qh": 32,
+      "kvh": 8,
+      "hd": 64,
+      "window": 0,
+      "softcap": 8,
+      "sinks": false,
+      "seeds": [
+        1056918,
+        1056919,
+        1056918
+      ],
+      "replay_of": [
+        null,
+        null,
+        0
+      ],
+      "expected_raw": false
+    },
+    {
+      "case_id": 7,
+      "name": "sinks",
+      "kind": 0,
+      "fixed": false,
+      "n_q": 1024,
+      "cache_from": 0,
+      "cache_to": 1024,
+      "qh": 32,
+      "kvh": 8,
+      "hd": 64,
+      "window": 0,
+      "softcap": 0,
+      "sinks": true,
+      "seeds": [
+        1056935,
+        1056936,
+        1056935
+      ],
+      "replay_of": [
+        null,
+        null,
+        0
+      ],
+      "expected_raw": false
+    },
+    {
+      "case_id": 8,
+      "name": "tail65",
+      "kind": 0,
+      "fixed": false,
+      "n_q": 65,
+      "cache_from": 0,
+      "cache_to": 65,
+      "qh": 32,
+      "kvh": 8,
+      "hd": 64,
+      "window": 0,
+      "softcap": 0,
+      "sinks": false,
+      "seeds": [
+        1056952,
+        1056953,
+        1056952
+      ],
+      "replay_of": [
+        null,
+        null,
+        0
+      ],
+      "expected_raw": false
+    },
+    {
+      "case_id": 9,
+      "name": "gemma_local_fixed",
+      "kind": 0,
+      "fixed": true,
+      "n_q": 65,
+      "cache_from": 0,
+      "cache_to": 65,
+      "qh": 16,
+      "kvh": 8,
+      "hd": 256,
+      "window": 0,
+      "softcap": 0,
+      "sinks": false,
+      "seeds": [
+        1056969,
+        1056970,
+        1056969
+      ],
+      "replay_of": [
+        null,
+        null,
+        0
+      ],
+      "expected_raw": false
+    },
+    {
+      "case_id": 10,
+      "name": "generic_g4_hd96",
+      "kind": 0,
+      "fixed": false,
+      "n_q": 65,
+      "cache_from": 0,
+      "cache_to": 65,
+      "qh": 8,
+      "kvh": 2,
+      "hd": 96,
+      "window": 0,
+      "softcap": 0,
+      "sinks": false,
+      "seeds": [
+        1056986,
+        1056987,
+        1056986
+      ],
+      "replay_of": [
+        null,
+        null,
+        0
+      ],
+      "expected_raw": false
+    },
+    {
+      "case_id": 11,
+      "name": "decode1",
+      "kind": 0,
+      "fixed": false,
+      "n_q": 1,
+      "cache_from": 0,
+      "cache_to": 1,
+      "qh": 32,
+      "kvh": 8,
+      "hd": 64,
+      "window": 0,
+      "softcap": 0,
+      "sinks": false,
+      "seeds": [
+        1057003,
+        1057004,
+        1057003
+      ],
+      "replay_of": [
+        null,
+        null,
+        0
+      ],
+      "expected_raw": false
+    }
+  ],
+  "probe_plan": {
+    "count": 4,
+    "ids": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "hd": 64,
+    "rows": 64,
+    "kvh": 1,
+    "columns": [
+      0,
+      1,
+      0,
+      1
+    ],
+    "patterns": [
+      0,
+      0,
+      1,
+      1
+    ],
+    "length": 2048
+  }
+}

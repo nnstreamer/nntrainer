@@ -1,0 +1,50 @@
+[
+  {
+    "file": "/tmp/nntr-lfm2-attn-planes-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/htp_compute_ops.cpp",
+    "sha256": "5e75571e5433132d8c9d17691882cbddea73ebbf651e2e8e0b3b6957ac3566df",
+    "anchors": {
+      "HTP attn trace q:": [
+        10940
+      ],
+      "HTP attn stages q:": [
+        10946
+      ]
+    }
+  },
+  {
+    "file": "/tmp/nntr-lfm2-attn-planes-fixed-objects-20261017/build/source/test/htp/nntr_hvx_attn_q.c",
+    "sha256": "f0824e113b5b5ac72846e56faadaede273afa90375aa01b82bb27e8e7453c410",
+    "anchors": {
+      "stats_us[0] = (uint32)(t1 - t0);": [
+        509,
+        1084
+      ],
+      "stats_us[1] = (uint32)(t2 - t1);": [
+        510,
+        1085
+      ],
+      "stats_us[3] = (uint32)(t2 - t0);": [
+        512,
+        1087
+      ]
+    }
+  },
+  {
+    "file": "/tmp/nntr-lfm2-attn-planes-fixed-objects-20261017/build/source/nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c",
+    "sha256": "8c54a3c86509c17b0c5cda01c0a2de6abf3de335fca6e268cb74b7dfed26d4e5",
+    "anchors": {
+      "static int qx_dequant_available": [
+        500
+      ],
+      "static int phase_qk": [
+        543
+      ],
+      "static void softmax_finish_pquant": [
+        721
+      ],
+      "static int run_q_block": [
+        846
+      ]
+    }
+  }
+]

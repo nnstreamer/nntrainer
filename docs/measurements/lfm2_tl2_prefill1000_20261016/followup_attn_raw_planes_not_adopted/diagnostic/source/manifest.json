@@ -1,0 +1,10 @@
+{
+  "device-trace-expected.json": "ce5d463acfd309432b9327d0c0a45783c9fc29dc723f697bdf24cbf31ca85bcf",
+  "parser-validation.json": "5d140e13115fa13dbf764150e7764a0b5b17135a1f71b61eb6577f992b09f989",
+  "format_check.c": "c78c106e80d79404e797069fc4e461244055ec7ae07b621bd916a4eaff8a3591",
+  "parser_check.py": "4090f5fe8162d17f7a5ca6254a999f841148fcab87b6ad7eb1309458ea565012",
+  "check.py": "2b08d714b09d3f53f24b3533e95780f8fcbbb740449b02450a08cbf63615d9d2",
+  "parse.py": "3aed26a458c9eeb6fda1573f8d97ac060a626c55f90330081d30a35616b9685c",
+  "diagnostic.patch": "0028568503122041a908d448404da84cbcae775bb9ba25f2c0bc6be867cad311",
+  "source/nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c": "c2532039c6cc6b4e4a8f6631d34607c72d2ec7eed51f8d48730b4627a7e4bffd"
+}

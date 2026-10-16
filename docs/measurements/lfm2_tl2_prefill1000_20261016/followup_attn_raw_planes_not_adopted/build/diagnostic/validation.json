@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "production_patch_sha256": "d8d1827242aab3e698e7c69eefb73711305d37b843ba3798ba2b2e251e75fbb3",
+  "diagnostic_patch_sha256": "0028568503122041a908d448404da84cbcae775bb9ba25f2c0bc6be867cad311",
+  "diagnostic_source_sha256": "c2532039c6cc6b4e4a8f6631d34607c72d2ec7eed51f8d48730b4627a7e4bffd",
+  "macro_off_object_exact": true,
+  "diagnostic_so_sha256": "6520db0645b13486fcdb927667281428704065fd8000a0881be9a4aa7af2f9a0",
+  "repeat_link_identical": true,
+  "runtime_imports_identical": true,
+  "source_and_all_objects_unchanged": true,
+  "arch": "v81",
+  "external_link_inputs_unchanged": true,
+  "diagnostic_static_metadata_bytes": 4,
+  "diagnostic_call_local_metadata_bytes": 12,
+  "scope": "One completion marker after every prefill call; successful raw serial/deferred and SDK QK readouts are counted. Not normal performance."
+}

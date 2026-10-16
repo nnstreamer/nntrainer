@@ -1,0 +1,49 @@
+{
+  "status": "PASS_AFTER_PARENT_RECOVERY",
+  "parent_recovery_sha256": "f31b539644ddc0ef3c77e1ba1aa675c3df829609231b315bdab123e2a72d21fc",
+  "sides": {
+    "control": {
+      "restored_sha256": "38557678906ece709db0b5bc773bf1c90675accc722a14e6c49ce75ca14e68bc",
+      "repeat_sha256": "38557678906ece709db0b5bc773bf1c90675accc722a14e6c49ce75ca14e68bc",
+      "copied_source_sha256": "38557678906ece709db0b5bc773bf1c90675accc722a14e6c49ce75ca14e68bc",
+      "own_relink_sha256": "7733f2296bbe239b53cbb8612999b1b3501a6c8814f6437ac67e7b7da708fa2d",
+      "only_differing_section": ".comment",
+      "cause": "linker records distinct -o path in .comment",
+      "all_other_section_payloads_identical": true
+    },
+    "candidate": {
+      "restored_sha256": "46bf042b2daaf6e3b35ca27d4341160ad55cd9f2ff33f86b84046cb4edfed6bd",
+      "repeat_sha256": "46bf042b2daaf6e3b35ca27d4341160ad55cd9f2ff33f86b84046cb4edfed6bd",
+      "copied_source_sha256": "46bf042b2daaf6e3b35ca27d4341160ad55cd9f2ff33f86b84046cb4edfed6bd",
+      "own_relink_sha256": "9bdb800b80e4fbec140dca517bcec719a913eb3f8e35750641c67711a4be4ac9",
+      "only_differing_section": ".comment",
+      "cause": "linker records distinct -o path in .comment",
+      "all_other_section_payloads_identical": true
+    }
+  },
+  "frozen-object-hashes.json": {
+    "entries": 63,
+    "all_hashes_match": true
+  },
+  "link-tool-input-hashes.json": {
+    "entries": 45,
+    "all_hashes_match": true
+  },
+  "prior_build_audit": "validation-before-inspection-incident.json",
+  "frozen_objects": 63,
+  "common_objects": 62,
+  "only_recompiled_tu": "nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c",
+  "dependency_entries_checked": 1206,
+  "source_files_checked": 656,
+  "imports_each": 68,
+  "shared_inputs": {
+    "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/target/hexagon/lib/v81/G0/pic/libc++.so.1.0": "d6dc402cb6cccb31490b952cef18ec610c863d50545ec93b0fb4f4a74e106a9a",
+    "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/target/hexagon/lib/v81/G0/pic/libc++abi.so.1.0": "c28832fbfab3af277e0e3cf2a7e9bb0652a615aacfc220bc705d3cd2440aeb78",
+    "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/target/hexagon/lib/v81/G0/pic/libc.so": "b5c7cfa8c84a11dd306d283680698096a5bb2b6048bf10baa503c8f2e9976f8d",
+    "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/target/hexagon/lib/v81/G0/pic/libgcc.so": "1e761686ff01495e4f6eec17cf9533d05a4fa482272da4ee2261173dc2dc0063",
+    "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/target/hexagon/lib/v81/G0/pic/libhexagon.so": "e8a3de15c05532948b13b8d1b553f7e362a1af84731b1aa808580acee093e4cd",
+    "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/target/hexagon/lib/v81/G0/pic/libqcc.so": "4ae02bfb44c7127a1d35b334015bae7861760373dc8d1865acaefff2afec0c91",
+    "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/target/hexagon/lib/v81/G0/pic/libstdc++.so": "3c32c703f1526241206a4b56a2f0d890531c6698e8fa762da4eaa60d18061765"
+  },
+  "incident": "Reviewer objcopy rewrote parent control/candidate ELF during subsequent inspection. Deployment hash check rejected before any device execution; parent restored repeat.so originals. Initial blanket immutability statement withdrawn."
+}

@@ -1,0 +1,115 @@
+Independent raw4plane device fixture review — frozen, no unresolved source/parser blocker
+
+Scope and identities
+Author device CPP e82cdcc4e58fb6a18f448836b18d7509acede7b4bd6bdc5b385839b741db4939;
+fixture binary 351ca73b417e7b908790e9e041389aee662e9ba719a19e765e4d6a09aaadef2c;
+case plan 1b4e71037ba58ac219edbf8edd9f85981cd65a5060b42040b3c47f7c0f102d8d.
+All six author device-manifest hashes were read back independently. All twelve
+caseplan.inc rows exactly match caseplan.json. The recorded NDK command has
+fno-fast-math, ffp-contract=off, Wall/Wextra/Werror, static C++ runtime and exits0.
+This review did not recompile or execute the Android fixture. Root owns those
+runs, runtime-manifest verification, child PID/exit capture and device memory.
+Production v2 is d8d1827242aab3e698e7c69eefb73711305d37b843ba3798ba2b2e251e75fbb3,
+source8c54a3c86509c17b0c5cda01c0a2de6abf3de335fca6e268cb74b7dfed26d4e5.
+Production kernel review is separate; this report covers the device evidence.
+No root/author source, SDK, phone, commit or model benchmark was modified/run.
+
+API, inputs and output checks
+Current attn_q_step appends full FP16 K/V, accepts FP32 Q/output, and the20stats
+contract returns actual decode/prefill mode at[2], prefill block count at[17].
+All dimensions/lengths fit signed API int. Shared inputs/output are allocated
+through HtpBackend; cache handles are released after successful cases. Exceptions
+exit unsuccessfully without SUMMARY. Root must check child exit independently.
+Each case holds one session/cache for A/B/A, rewrites every K/V row fromrow0,
+uses deterministic seeds(A,B=A+1,A), and poisons the complete output before each
+RPC. All output FP32 exponent bits are checked finite (not std::isfinite under
+fastmath). A2 must match A0 bitwise; B must differ. Dumps contain all36 outputs,
+231908352B per arm. The host comparator independently rechecks every byte,
+finite value, A/B/A relationship, logical extent and contiguous offset.
+Q/K/V input FNV64 binds records to the deterministic inputs across arms, but is
+a fingerprint, not a cryptographic equality proof. Same frozen fixture binary
+and runtime identity are therefore separate prerequisites. Sinks are generated
+deterministically and included in case metadata, not input FNV64.
+
+Current coverage, not historical coverage
+The12 groups are full dynamicQ8 1024 and2048, Q4, fixedQ8, true shifted
+from37/to1061, window37, softcap8, sinks, tail65, Gemma-local fixed16Q/8KV/hd256,
+generic G4/hd96 and decode1. Each runs3 times =>36attention RPCs/arm.
+Gemma geometry fallback is not a Gemma model benchmark or all Gemma variants.
+The old81-shape fixture is provenance only: its old entry is not current IDL;
+its old prefix was not shifted; historical removed-toggle300cases are excluded.
+
+A full2048 RPC exercises9+7 query chunks and repeated Qx/PV overlap. At1024,
+qx_dequant_available is false, so full1024 covers only immediate readout.
+At2048, first KV block of each query block is serial; subsequent QK output is
+in the old Qx raw bank, then workers dequantize while PV uses L.acc. Existing
+join precedes reuse and is retained on PV/read-error exits. A/B/A additionally
+exercises cross-call cached scratch replacement; it is not a substitute for
+within-call overlap. Strict actual dispatch is required because v81 SDKconfig,
+layout and capacity guards can decline even for full target geometry.
+
+Four signed plane comparisons (eight probe_cvt RPCs plus supporting APIs)
+Each uses dynamicQ8,64rows,hd64,KVH1 with column tile0/1 and sign-inverted
+patterns. Activation values include0/1/128/254/255, alternating and mixed bytes;
+actual K is obtained from kv_dump_q. The actual wrapper requires dumpedK/V4096
+and s_k/s_v/colsum64 (the stale IDL s_v grouping comment is not used).
+The layout API must report[usable1,base0,stride32]. Two calls at scales
+(0x6000,0x4000) and(0x2000,0), bias0,n_rep1 produce four2048B planes and the
+same2048-element SDK int32 accumulator. SDK arrays are first required equal.
+Then unsigned byte shifts + memcpy reconstruct int32 without signed-shift UB.
+Every value is checked against SDK and an int64 dot over actual quantized K;
+each probe must contain negative,positive,zero accumulators. This independently
+observes the signed high byte; a scalar floating-scale model does not prove it.
+The existing probe helper uses its own issue/read sequence. Its results do not
+alone prove the new four-pass drain or deferred Qx ownership; full attention
+bit parity plus actual branch diagnostics provide that separate evidence.
+
+Strict host comparison
+compare_device.py (0813a47856bd83a1962d21cc2d611edd44175ec37765fc6bd49ea8f7272bb401)
+requires36 CASE ->4 PROBE ->1 terminal SUMMARY, closed fields, integer/boolean
+types, exact plan order, seeds, offsets, counts, actual mode/blocks and A/B/A
+input fingerprint. It rejects duplicate JSON keys, malformed/interleaved tagged
+records, nonfinite JSON/output, short/extra bytes and parity failures. An
+optional trace-fixture-log binds all third-run CASE/PROBE metadata to normal
+control; it does not claim a third dump was byte-compared. Untagged SDK messages
+are ignored. Exit/runtime/PID checks remain root responsibility.
+Independent synthetic parser rerun:41records/36outputs/40negative cases PASS.
+Synthetic bytes are not hardware evidence; they were removed after testing.
+
+Separate actual mode/readout trace
+Diagnostic patch0028568503122041a908d448404da84cbcae775bb9ba25f2c0bc6be867cad311,
+sourcec2532039c6cc6b4e4a8f6631d34607c72d2ec7eed51f8d48730b4627a7e4bffd,
+parser3aed26a458c9eeb6fda1573f8d97ac060a626c55f90330081d30a35616b9685c.
+Counters increment only after successful QK readout on the issue thread. No
+per-worker logging. Terminal records follow run_q_block's worker drains;
+failed completed entries carry nonzero rc and are rejected, earlier validation
+returns emit nothing and cause missing expected records. Sequence uses inline
+unsigned32 memw_locked add; wrap0 is rejected. PID and unique contiguous1..33
+sequence are mandatory; exact transport duplicates are reported, conflicting
+ones rejected. Expected records are independently derived before the run.
+Our snapshot rerun:3valid/65negative trace parser cases PASS. Actual C snprintf
+maximum payload114B. Read-only object comparison proves macroOFF whole object
+identical to author normal candidate; ON has no atomic runtime import. Context
+counters add12B and a global sequence4B only; observed prefill frame1536B stays
+unchanged. No new activation/weight buffer. Trace timings are not normal TPS.
+No new compiler invocation was used for the object-identity/import inspection.
+
+Expected trace rows and unit
+33prefill rows =6raw target rows +27SDK fallback rows. Decode1's three calls
+bypass HMX prefill and produce no marker. Unit is one complete8KiB QK readout,
+not a plane/pass, and PV readouts are excluded.
+Per full1024: blocks160; raw serial10240,deferred0.
+Per full2048: blocks576; raw serial8192,deferred28672.
+Total33rows: raw serial55296,deferred86016,SDK170472,blocks17004.
+The precise per-case table and33 expected entries are frozen separately.
+Nonempty workerpool and wide-plan fit are prerequisites verified by actual
+counts; shape alone is never counted as a hit. This fixture has no model load
+warmup cohort. Any unexpected trace rows, process reuse, decline or truncation
+must be investigated rather than relaxing the expected count.
+
+Result at freeze
+No unresolved blocker in the frozen device source/API use and strict parsers.
+No actual device PASS is asserted by this report. Root will execute two normal
+arms and one trace arm with the same fixture and verify manifests/exit0. Model
+accuracy, model performance, speedup and all-input mathematical equivalence are
+not established by these finite correctness/coverage cases.

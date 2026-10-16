@@ -1,0 +1,18 @@
+{
+  "valid": 3,
+  "negative_rejected": 65,
+  "exact_c_formatter_max_payload": 114,
+  "counter_expected": {
+    "calls": 33,
+    "raw_records": 33,
+    "transport_duplicates": 0,
+    "selected": 6,
+    "raw_serial": 55296,
+    "raw_deferred": 86016,
+    "sdk_qk": 170472,
+    "blocks": 17004,
+    "pid": null,
+    "expected_complete": true,
+    "scope": "Actual successful QK readout calls only; PV excluded. No timing, bandwidth or speedup claim."
+  }
+}

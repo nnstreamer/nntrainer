@@ -1,0 +1,13 @@
+{
+  "audit.json": "c5c0062eaf9e5cc1e585424ab5bd79fe69e428d86c63b1cb9381a90a3c9eae9e",
+  "review.txt": "beb0d2153960288fc203b393d3fda968e7881e69d1995bd12da5a16379008f7e",
+  "source/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c": "4ba981dbf465340639d5eda1b7e275dc8b90d3ccbc2c63dd606a2e140f8b49b7",
+  "source/nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c": "f0544c1cb13422e63d72526f54cd9dab7ce5f1db4e611f714c31bfde8b857813",
+  "source/nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8tl2.c": "e6d36c146ad665405eb9cb3b2a226d7eddb7779b806e8a65bd2be732d93c6f48",
+  "source/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea",
+  "source/nntrainer/tensor/htp_backend/hmx/hexkl_token.c": "7bc99d4feff53e61c5ad5f322d7ba3bb99fc9cd0bd561365355bb5031264ae0e",
+  "source/nntrainer/tensor/htp_backend/hmx/hexkl_graph.c": "eccc514374ff56d27f2cbd2e56f7cddc726ec9cbeb09210a6d138ec5d4c076c0",
+  "source/Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp": "103b1e1df18efe8de8085f01167f29f2a4502178ac22e5c1aaab68dc38c036a8",
+  "source/Applications/CausalLM/models/gemma4/gemma4_htp_causallm.cpp": "760a2fa3ef95fb769f88360f8ff6b4e1a1c1e0e9aebdbb7224d4852bcb89df3b",
+  "source/Applications/CausalLM/models/gemma4/gemma4_htp_moe_causallm.cpp": "f391daa6057df6ddf629849bdb627e36c8cf7174b02524acbb59feb8da1c1697"
+}

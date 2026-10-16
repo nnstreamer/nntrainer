@@ -1,0 +1,13 @@
+[
+  "python3",
+  "-B",
+  "/tmp/nntr-lfm2-attn-raw-planes-root-20261017/build_common_kv_fix.py",
+  "--parent",
+  "/tmp/nntr-lfm2-attn-planes-fixed-objects-20261017",
+  "--fix-patch",
+  "/tmp/nntr-fixed-q8-copy-tail-20261017/production.patch",
+  "--fix-config",
+  "/tmp/nntr-lfm2-attn-planes-kv-fixed-objects-20261017/common-fix-config.json",
+  "--output",
+  "/tmp/nntr-lfm2-attn-planes-kv-fixed-objects-20261017/build"
+]

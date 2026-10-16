@@ -1,0 +1,6 @@
+{
+  "commit": "e3eed8f40b504caa314b5329775e82d831f3b903",
+  "path": "docs/measurements/lfm2_tl2_prefill1000_20261016/followup_fixed_q8_copy_tail",
+  "scope": "Separate committed fixed-Q8 copy-tail repair; original failed control and corrected KV source/tests are retained there. No duplication of that full archive here.",
+  "source_sha256": "fa750e41854303b716990c5d722e8b14a0c85e1776e26096ff880acaf007c291"
+}

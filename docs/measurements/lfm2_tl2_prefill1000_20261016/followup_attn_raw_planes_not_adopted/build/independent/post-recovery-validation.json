@@ -1,0 +1,32 @@
+{
+  "status": "PASS_AFTER_PARENT_RECOVERY",
+  "parent_recovery_sha256": "f31b539644ddc0ef3c77e1ba1aa675c3df829609231b315bdab123e2a72d21fc",
+  "sides": {
+    "control": {
+      "restored_sha256": "38557678906ece709db0b5bc773bf1c90675accc722a14e6c49ce75ca14e68bc",
+      "repeat_sha256": "38557678906ece709db0b5bc773bf1c90675accc722a14e6c49ce75ca14e68bc",
+      "copied_source_sha256": "38557678906ece709db0b5bc773bf1c90675accc722a14e6c49ce75ca14e68bc",
+      "own_relink_sha256": "7733f2296bbe239b53cbb8612999b1b3501a6c8814f6437ac67e7b7da708fa2d",
+      "only_differing_section": ".comment",
+      "cause": "linker records distinct -o path in .comment",
+      "all_other_section_payloads_identical": true
+    },
+    "candidate": {
+      "restored_sha256": "46bf042b2daaf6e3b35ca27d4341160ad55cd9f2ff33f86b84046cb4edfed6bd",
+      "repeat_sha256": "46bf042b2daaf6e3b35ca27d4341160ad55cd9f2ff33f86b84046cb4edfed6bd",
+      "copied_source_sha256": "46bf042b2daaf6e3b35ca27d4341160ad55cd9f2ff33f86b84046cb4edfed6bd",
+      "own_relink_sha256": "9bdb800b80e4fbec140dca517bcec719a913eb3f8e35750641c67711a4be4ac9",
+      "only_differing_section": ".comment",
+      "cause": "linker records distinct -o path in .comment",
+      "all_other_section_payloads_identical": true
+    }
+  },
+  "frozen-object-hashes.json": {
+    "entries": 63,
+    "all_hashes_match": true
+  },
+  "link-tool-input-hashes.json": {
+    "entries": 45,
+    "all_hashes_match": true
+  }
+}

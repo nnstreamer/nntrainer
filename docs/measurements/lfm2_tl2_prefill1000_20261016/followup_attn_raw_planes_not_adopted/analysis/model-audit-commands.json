@@ -1,0 +1,37 @@
+[
+  {
+    "command": [
+      "/usr/bin/python3",
+      "/tmp/nntr-lfm2-attn-raw-planes-device-review-20261017/model-stage-review/audit_model_records.py",
+      "--evidence",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016",
+      "--results",
+      "/tmp/nntr-lfm2-attn-raw-planes-root-20261017",
+      "--fixed-build",
+      "/tmp/nntr-lfm2-attn-planes-kv-fixed-objects-20261017/build",
+      "--output",
+      "/tmp/nntr-lfm2-attn-raw-planes-device-review-20261017/model-stage-review"
+    ],
+    "returncode": 0,
+    "stdout": "{\"all_runs\": 12, \"summary\": [{\"tokens\": 1024, \"pairs\": 3, \"repetitions\": [1, 2, 3], \"prefill_tps\": {\"control\": [831.844, 782.277, 842.105], \"candidate\": [826.473, 812.054, 781.083], \"median_control\": 831.844, \"median_candidate\": 812.054, \"median_pct\": -2.379051841451052, \"pairs_faster\": 1, \"paired_deltas_pct\": [-0.6456739484807406, 3.806452190208831, -7.246364764489]}, \"decode_tps\": {\"control\": [17.6357, 17.5776, 17.5824], \"candidate\": [17.6503, 17.5535, 17.5151], \"median_control\": 17.5824, \"median_candidate\": 17.5535, \"median_pct\": -0.16436891436891754, \"pairs_faster\": 1, \"paired_deltas_pct\": [0.08278662032128459, -0.13710631713089727, -0.38276913276913405]}, \"control_max_peak_kib\": 2714740.0, \"candidate_max_peak_kib\": 2715736.0}, {\"tokens\": 2048, \"pairs\": 3, \"repetitions\": [1, 2, 3], \"prefill_tps\": {\"control\": [826.473, 829.15, 964.673], \"candidate\": [866.695, 836.943, 916.741], \"median_control\": 829.15, \"median_candidate\": 866.695, \"median_pct\": 4.528131218717979, \"pairs_faster\": 2, \"paired_deltas_pct\": [4.86670465943837, 0.9398781885062935, -4.968730336601112]}, \"decode_tps\": {\"control\": [16.5546, 16.658, 16.5631], \"candidate\": [16.851, 16.7145, 16.5889], \"median_control\": 16.5631, \"median_candidate\": 16.7145, \"median_pct\": 0.9140800937022853, \"pairs_faster\": 3, \"paired_deltas_pct\": [1.790438911239156, 0.33917637171327897, 0.15576794199154698]}, \"control_max_peak_kib\": 3018800.0, \"candidate_max_peak_kib\": 3019288.0}], \"prespecified_adoption_metric_pass\": null}\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/usr/bin/python3",
+      "/tmp/nntr-lfm2-attn-raw-planes-device-review-20261017/model-stage-review/audit_model_records.py",
+      "--evidence",
+      "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016",
+      "--results",
+      "/tmp/nntr-lfm2-attn-raw-planes-root-20261017",
+      "--fixed-build",
+      "/tmp/nntr-lfm2-attn-planes-kv-fixed-objects-20261017/build",
+      "--output",
+      "/tmp/nntr-lfm2-attn-raw-planes-device-review-20261017/model-stage-review",
+      "--include-confirmation"
+    ],
+    "returncode": 0,
+    "stdout": "{\"all_runs\": 24, \"summary\": [{\"tokens\": 1024, \"pairs\": 6, \"repetitions\": [1, 2, 3, 4, 5, 6], \"prefill_tps\": {\"control\": [831.844, 782.277, 842.105, 849.793, 846.981, 821.171], \"candidate\": [826.473, 812.054, 781.083, 817.239, 834.556, 816.587], \"median_control\": 836.9745, \"median_candidate\": 816.913, \"median_pct\": -2.3969069547519095, \"pairs_faster\": 1, \"paired_deltas_pct\": [-0.6456739484807406, 3.806452190208831, -7.246364764489, -3.830815269130239, -1.4669750561110528, -0.5582272145509326]}, \"decode_tps\": {\"control\": [17.6357, 17.5776, 17.5824, 17.6844, 17.6211, 17.5151], \"candidate\": [17.6503, 17.5535, 17.5151, 17.4816, 17.5872, 17.3536], \"median_control\": 17.60175, \"median_candidate\": 17.5343, \"median_pct\": -0.3832005340377975, \"pairs_faster\": 1, \"paired_deltas_pct\": [0.08278662032128459, -0.13710631713089727, -0.38276913276913405, -1.146773427427561, -0.19238299538620884, -0.9220615354751049]}, \"control_max_peak_kib\": 2714740.0, \"candidate_max_peak_kib\": 2724868.0}, {\"tokens\": 2048, \"pairs\": 6, \"repetitions\": [1, 2, 3, 4, 5, 6], \"prefill_tps\": {\"control\": [826.473, 829.15, 964.673, 809.806, 811.089, 786.18], \"candidate\": [866.695, 836.943, 916.741, 983.67, 800.939, 942.042], \"median_control\": 818.781, \"median_candidate\": 891.7180000000001, \"median_pct\": 8.90799859791569, \"pairs_faster\": 4, \"paired_deltas_pct\": [4.86670465943837, 0.9398781885062935, -4.968730336601112, 21.469833515681525, -1.251403976628962, 19.825230863161124]}, \"decode_tps\": {\"control\": [16.5546, 16.658, 16.5631, 16.2519, 16.285, 16.6667], \"candidate\": [16.851, 16.7145, 16.5889, 16.4187, 16.2148, 16.314], \"median_control\": 16.55885, \"median_candidate\": 16.5038, \"median_pct\": -0.3324506230807156, \"pairs_faster\": 4, \"paired_deltas_pct\": [1.790438911239156, 0.33917637171327897, 0.15576794199154698, 1.0263415354512473, -0.43107153822535826, -2.116195767608453]}, \"control_max_peak_kib\": 3018984.0, \"candidate_max_peak_kib\": 3065796.0}], \"prespecified_adoption_metric_pass\": false}\n",
+    "stderr": ""
+  }
+]

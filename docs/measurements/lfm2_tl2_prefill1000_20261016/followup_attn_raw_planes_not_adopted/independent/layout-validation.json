@@ -1,0 +1,12 @@
+{
+  "baseline": {
+    "review_attn_ctx_bytes": 768,
+    "review_attn_ctx_alignment": 128,
+    "review_attn_ctx_qi_offset": 644
+  },
+  "candidate": {
+    "review_attn_ctx_bytes": 768,
+    "review_attn_ctx_alignment": 128,
+    "review_attn_ctx_qi_offset": 648
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "status": "PASS_NO_UNRESOLVED_SOURCE_OR_HOST_BLOCKER",
+  "production_patch_sha256": "d8d1827242aab3e698e7c69eefb73711305d37b843ba3798ba2b2e251e75fbb3",
+  "production_source_sha256": "8c54a3c86509c17b0c5cda01c0a2de6abf3de335fca6e268cb74b7dfed26d4e5",
+  "independent_strict_host": {
+    "signed_four_row_blocks": 2064,
+    "config_guard_negatives": 4129,
+    "pipeline_cases": 568,
+    "intended_mutants": 3,
+    "sanitizers": "ASan+UBSan fatal, no suppression",
+    "runtime_errors_unmutated": 0
+  },
+  "independent_v81_compiles": {
+    "baseline_object": true,
+    "baseline_assembly": true,
+    "candidate_object": true,
+    "candidate_assembly": true
+  },
+  "context_size_bytes": {
+    "baseline": 768,
+    "candidate": 768
+  },
+  "main_stack_bytes": {
+    "baseline": 1536,
+    "candidate": 1536
+  },
+  "phase_qk_stack_bytes": {
+    "baseline": 512,
+    "candidate": 512
+  },
+  "worker_stack_bytes": {
+    "baseline": 384,
+    "candidate": 384
+  },
+  "new_qualifier_stack_bytes": 32,
+  "diagnostic_parser": {
+    "valid": 3,
+    "negative_rejected": 65,
+    "actual_c_format_max_payload_bytes": 114,
+    "independent_counter_overlay_compile": false
+  },
+  "fixed_pair": {
+    "objects": 63,
+    "common": 62,
+    "shared_inputs": 7,
+    "imports_each": 68,
+    "repeat_equal": true,
+    "post_recovery_control_sha256": "38557678906ece709db0b5bc773bf1c90675accc722a14e6c49ce75ca14e68bc",
+    "post_recovery_candidate_sha256": "46bf042b2daaf6e3b35ca27d4341160ad55cd9f2ff33f86b84046cb4edfed6bd"
+  },
+  "artifact_incident": {
+    "occurred": true,
+    "actor": "reviewer",
+    "cause": "objcopy --dump-section omitted distinct output ELF and rewrote two parent input files",
+    "detected_by": "parent deployment SHA guard",
+    "device_runs_before_recovery": 0,
+    "restored": true,
+    "normal_accepted_runtime_unchanged_per_parent": true,
+    "report": "artifact-rewrite-incident.json",
+    "parent_recovery": "parent-elf-recovery.json"
+  },
+  "limits": [
+    "HMX conversion/fence, DMA, softmax/PV math are host stand-ins; device parity required.",
+    "No full-model performance or Gemma performance verdict.",
+    "Qualification scan precedes existing phase timers.",
+    "The rebuilt controlled pair is not the older accepted 3b binary."
+  ],
+  "review_file": "review.txt"
+}

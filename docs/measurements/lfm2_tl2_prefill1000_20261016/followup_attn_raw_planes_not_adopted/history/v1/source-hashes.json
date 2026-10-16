@@ -1,0 +1,10 @@
+{
+  "base": "73a4ab7baf30aa96fcdf7dbca3d7c86f899bca3a",
+  "production_patch_sha256": "b20f2864d65ce5f410af801f4a41596f14b8da519bbed002f71a02b810e8ae4b",
+  "sources": {
+    "baseline/nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c": "4b71749ac993c1ae165550f0d182ea748fa6106543e1904ce498a19ac59e478a",
+    "candidate/nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c": "a3b53d54545efe8b80f5d7851bc4e354674a282afb8d0b89624a8e591fddfa05"
+  },
+  "status": "production frozen; host/device validation pending",
+  "scope": "QK only. PV, layout, allocation, worker scheduling, joins and error paths retained."
+}

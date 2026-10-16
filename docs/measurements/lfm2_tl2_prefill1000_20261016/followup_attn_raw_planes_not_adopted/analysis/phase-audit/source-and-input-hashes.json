@@ -1,0 +1,62 @@
+{
+  "attention_baseline": {
+    "path": "/tmp/nntr-lfm2-attn-raw-planes-20261017/baseline/nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c",
+    "sha256": "4b71749ac993c1ae165550f0d182ea748fa6106543e1904ce498a19ac59e478a",
+    "bytes": 35377
+  },
+  "attention_candidate": {
+    "path": "/tmp/nntr-lfm2-attn-raw-planes-20261017/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_attn_q.c",
+    "sha256": "8c54a3c86509c17b0c5cda01c0a2de6abf3de335fca6e268cb74b7dfed26d4e5",
+    "bytes": 41636
+  },
+  "production_patch": {
+    "path": "/tmp/nntr-lfm2-attn-raw-planes-20261017/production.patch",
+    "sha256": "d8d1827242aab3e698e7c69eefb73711305d37b843ba3798ba2b2e251e75fbb3",
+    "bytes": 8682
+  },
+  "attention_baseline_v81": {
+    "path": "/tmp/nntr-lfm2-attn-raw-planes-20261017/codegen/baseline/hexkl_attn_q.s",
+    "sha256": "72720f0eeadf3e42873a32c3c43be2762ee4ccc58ab80b035a6da5cfbd63fdb2",
+    "bytes": 202664
+  },
+  "attention_candidate_v81": {
+    "path": "/tmp/nntr-lfm2-attn-raw-planes-20261017/codegen/candidate/hexkl_attn_q.s",
+    "sha256": "7189779ba2757c82ed6be07a9eb65166f8966b3e391970b0d0cdab4fb752a02d",
+    "bytes": 233283
+  },
+  "worker_pool": {
+    "path": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/nntrainer/tensor/htp_backend/hvx/hvx_worker_pool.c",
+    "sha256": "4ba981dbf465340639d5eda1b7e275dc8b90d3ccbc2c63dd606a2e140f8b49b7",
+    "bytes": 19537
+  },
+  "rpc_wrapper": {
+    "path": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/test/htp/nntr_hvx_attn_q.c",
+    "sha256": "f0824e113b5b5ac72846e56faadaede273afa90375aa01b82bb27e8e7453c410",
+    "bytes": 44012
+  },
+  "arm_trace": {
+    "path": "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/nntrainer/tensor/htp_backend/htp_compute_ops.cpp",
+    "sha256": "5e75571e5433132d8c9d17691882cbddea73ebbf651e2e8e0b3b6957ac3566df",
+    "bytes": 519103
+  },
+  "initial_normal_summary": {
+    "path": "/tmp/nntr-lfm2-attn-raw-planes-root-20261017/root-normal-fixed-summary.json",
+    "sha256": "0d7916d8e4e14db96a933e86d266cebfbae994ba4599d437bd4d9e2caf9c417b",
+    "bytes": 6851
+  },
+  "stage_executions": {
+    "path": "/tmp/nntr-lfm2-attn-raw-planes-root-20261017/root-stage-fixed-executions.json",
+    "sha256": "aa93563b6f70e73c47b918ca95346ebf92994e385bf35d7bdd2a76e9ba1819f2",
+    "bytes": 6715
+  },
+  "actual_dispatch": {
+    "path": "/tmp/nntr-lfm2-attn-raw-planes-root-20261017/root-model-diagnostic-fixed-summary.json",
+    "sha256": "e574eb6d822b8b0c16b28a65eeb5462cccd1fb984564e469287e690255130ace",
+    "bytes": 5373
+  },
+  "confirmation_plan": {
+    "path": "/tmp/nntr-lfm2-attn-raw-planes-root-20261017/root-confirmation-plan.json",
+    "sha256": "4b586e9f731ebed58d3772df6633ffbad271e43be4b1a29a88677b1ee2f92116",
+    "bytes": 930
+  }
+}

@@ -1,0 +1,195 @@
+{
+  "baseline": {
+    "frames": {
+      "hexkl_attn_q_prefill": 1536,
+      "hexkl_attn_q_widen_prefill": 112,
+      "hexkl_attn_q_plan": 0,
+      "phase_qprep": 512,
+      "hexkl_attn_q_tiling_init": 24,
+      "phase_qk": 512,
+      "dequant_worker": 384,
+      "softmax_worker": 1920,
+      "pquant_worker": 32,
+      "store_worker": 40
+    },
+    "functions": {
+      "hexkl_attn_q_prefill": {
+        "stack_bytes": 1536,
+        "lines": 3961,
+        "scalar_calls": [
+          "hexkl_attn_q_widen_prefill",
+          "memset",
+          "__hexagon_udivsi3",
+          "__hexagon_udivsi3",
+          "hexkl_attn_q_plan",
+          "hexkl_attn_q_plan",
+          "hexkl_acc_layout_get",
+          "sqrtf",
+          "malloc",
+          "__truncsfhf2",
+          "__truncsfhf2",
+          "hexkl_dma_ring_reset",
+          "memset",
+          "memset",
+          "free",
+          "phase_qprep",
+          "__hexagon_udivsi3",
+          "__hexagon_udivsi3",
+          "__hexagon_udivsi3",
+          "__truncsfhf2",
+          "hvx_worker_pool_workers",
+          "hexkl_dma_ring_push2d",
+          "hexkl_dma_ring_push2d",
+          "hexkl_dma_ring_drain",
+          "phase_qk",
+          "hexkl_dma_ring_push2d",
+          "hexkl_dma_ring_push2d",
+          "hvx_worker_pool_submit",
+          "hexkl_dma_ring_drain",
+          "phase_qk",
+          "hvx_worker_pool_wait",
+          "__extendhfsf2",
+          "hvx_worker_pool_run",
+          "hvx_worker_pool_submit",
+          "hexkl_micro_hmx_acc_clear_int32",
+          "hexkl_micro_hmx_acc_read_int32",
+          "hvx_worker_pool_wait",
+          "__hexagon_udivsi3",
+          "hvx_worker_pool_run",
+          "hvx_worker_pool_wait"
+        ],
+        "hmx_convert_asm_count": 0,
+        "mode_field_loads": 0
+      },
+      "phase_qk": {
+        "stack_bytes": 512,
+        "lines": 1547,
+        "scalar_calls": [
+          "hexkl_micro_hmx_acc_clear_int32",
+          "hexkl_micro_hmx_acc_read_int32",
+          "hexkl_micro_hmx_acc_read_int32"
+        ],
+        "hmx_convert_asm_count": 0,
+        "mode_field_loads": 0
+      },
+      "dequant_worker": {
+        "stack_bytes": 384,
+        "lines": 741,
+        "scalar_calls": [
+          "__hexagon_udivdi3",
+          "__hexagon_udivdi3",
+          "__hexagon_udivsi3"
+        ],
+        "hmx_convert_asm_count": 0,
+        "mode_field_loads": 0
+      }
+    },
+    "source_sha256": "4b71749ac993c1ae165550f0d182ea748fa6106543e1904ce498a19ac59e478a"
+  },
+  "candidate": {
+    "frames": {
+      "hexkl_attn_q_prefill": 1536,
+      "hexkl_attn_q_widen_prefill": 112,
+      "hexkl_attn_q_plan": 0,
+      "qk_planes_available": 32,
+      "phase_qprep": 512,
+      "hexkl_attn_q_tiling_init": 24,
+      "phase_qk": 512,
+      "dequant_worker": 384,
+      "softmax_worker": 1920,
+      "pquant_worker": 32,
+      "store_worker": 40
+    },
+    "functions": {
+      "hexkl_attn_q_prefill": {
+        "stack_bytes": 1536,
+        "lines": 3970,
+        "scalar_calls": [
+          "hexkl_attn_q_widen_prefill",
+          "memset",
+          "__hexagon_udivsi3",
+          "__hexagon_udivsi3",
+          "hexkl_attn_q_plan",
+          "hexkl_attn_q_plan",
+          "hexkl_acc_layout_get",
+          "qk_planes_available",
+          "sqrtf",
+          "malloc",
+          "__truncsfhf2",
+          "__truncsfhf2",
+          "hexkl_dma_ring_reset",
+          "memset",
+          "memset",
+          "free",
+          "phase_qprep",
+          "__hexagon_udivsi3",
+          "__hexagon_udivsi3",
+          "__hexagon_udivsi3",
+          "__truncsfhf2",
+          "hvx_worker_pool_workers",
+          "hexkl_dma_ring_push2d",
+          "hexkl_dma_ring_push2d",
+          "hexkl_dma_ring_drain",
+          "phase_qk",
+          "hexkl_dma_ring_push2d",
+          "hexkl_dma_ring_push2d",
+          "hvx_worker_pool_submit",
+          "hexkl_dma_ring_drain",
+          "phase_qk",
+          "hvx_worker_pool_wait",
+          "__extendhfsf2",
+          "hvx_worker_pool_run",
+          "hvx_worker_pool_submit",
+          "hexkl_micro_hmx_acc_clear_int32",
+          "hexkl_micro_hmx_acc_read_int32",
+          "hvx_worker_pool_wait",
+          "__hexagon_udivsi3",
+          "hvx_worker_pool_run",
+          "hvx_worker_pool_wait"
+        ],
+        "hmx_convert_asm_count": 0,
+        "mode_field_loads": 3
+      },
+      "phase_qk": {
+        "stack_bytes": 512,
+        "lines": 2320,
+        "scalar_calls": [
+          "hexkl_micro_hmx_acc_clear_int32",
+          "hexkl_micro_hmx_acc_read_int32"
+        ],
+        "hmx_convert_asm_count": 4,
+        "mode_field_loads": 3
+      },
+      "dequant_worker": {
+        "stack_bytes": 384,
+        "lines": 1186,
+        "scalar_calls": [
+          "__hexagon_udivdi3",
+          "__hexagon_udivdi3",
+          "__hexagon_udivsi3",
+          "__hexagon_udivsi3"
+        ],
+        "hmx_convert_asm_count": 0,
+        "mode_field_loads": 1
+      },
+      "qk_planes_available": {
+        "stack_bytes": 32,
+        "lines": 507,
+        "scalar_calls": [
+          "hexkl_micro_hmx_config_size"
+        ],
+        "hmx_convert_asm_count": 0,
+        "mode_field_loads": 0
+      }
+    },
+    "source_sha256": "8c54a3c86509c17b0c5cda01c0a2de6abf3de335fca6e268cb74b7dfed26d4e5"
+  },
+  "interpretation": {
+    "generic": "Original dequant_s_at source preserved. Inlined raw/generic bodies; no per-four-row mode branch. Generic still has one readout-mode and one immediate-dequant-mode check per score tile, or one worker mode decision outside the deferred unit loop. Code placement/offset changes remain; no Gemma performance claim.",
+    "new_context": "qk_planes int4B occupies existing context padding; independent v81 object probe: size768/alignment128 unchanged; qi offset644->648.",
+    "setup": "32 HVX config loads + OR/reduction once per qualifying call, before current us_total/phase timers; wrapper/model timing includes it.",
+    "fence": "Four ordered volatile HMX converts and a final volatile vector read at dst+8064 retained in assembly; host cannot prove hardware completion semantics.",
+    "capacity": "No persistent allocation/VTCM/meta-heap capacity changes; qualifier frame32B new leaf, main1536/phase512/worker384 unchanged.",
+    "vector_stack_operations": "phase_qk baseline2/candidate3 static SP-vector instructions; candidate has a shared zero spill and mutually exclusive raw/generic zero reloads. dequant_worker baseline2/candidate4 static instructions, one zero spill/reload pair per mutually exclusive branch. No new direct-SP vector operations in the four-row arithmetic loops. Frames remain equal."
+  }
+}
