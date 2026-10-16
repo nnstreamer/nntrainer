@@ -86,10 +86,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         host = urllib.parse.urlsplit('http://' + self.headers.get('Host','')).hostname
         return host in {'localhost','127.0.0.1','[::1]','::1'}
 
+    def end_headers(self):
+        # Page files change while the demo is being tuned; never serve a stale copy.
+        self.send_header('Cache-Control','no-store')
+        super().end_headers()
+
     def reply(self, code, value):
         raw = json.dumps(value,ensure_ascii=False,allow_nan=False).encode()
         self.send_response(code); self.send_header('Content-Type','application/json; charset=utf-8')
-        self.send_header('Cache-Control','no-store'); self.send_header('Content-Length',str(len(raw)))
+        self.send_header('Content-Length',str(len(raw)))
         self.end_headers(); self.wfile.write(raw)
 
     def do_GET(self):
