@@ -1,0 +1,72 @@
+[
+  {
+    "mutation": "alignment_guard",
+    "returncode": -6,
+    "assertion": "check: /tmp/nntr-lfm2-moe-fast-issue-review-20261016/frozen/fixture/whole_check.c:114: guard_checks: Assertion `review_guard(fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6], fields[7], fields[8], fields[9], &layout, 8u << 20) == (0)' failed."
+  },
+  {
+    "mutation": "prefill_guard",
+    "returncode": -6,
+    "assertion": "check: /tmp/nntr-lfm2-moe-fast-issue-review-20261016/frozen/fixture/whole_check.c:114: guard_checks: Assertion `review_guard(fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6], fields[7], fields[8], fields[9], &layout, 8u << 20) == (0)' failed."
+  },
+  {
+    "mutation": "dimension_guard",
+    "returncode": -6,
+    "assertion": "check: /tmp/nntr-lfm2-moe-fast-issue-review-20261016/frozen/fixture/whole_check.c:114: guard_checks: Assertion `review_guard(fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6], fields[7], fields[8], fields[9], &layout, 8u << 20) == (0)' failed."
+  },
+  {
+    "mutation": "expert_upper_guard",
+    "returncode": -6,
+    "assertion": "check: /tmp/nntr-lfm2-moe-fast-issue-review-20261016/frozen/fixture/whole_check.c:114: guard_checks: Assertion `review_guard(fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6], fields[7], fields[8], fields[9], &layout, 8u << 20) == (0)' failed."
+  },
+  {
+    "mutation": "expert_lower_guard",
+    "returncode": -6,
+    "assertion": "check: /tmp/nntr-lfm2-moe-fast-issue-review-20261016/frozen/fixture/whole_check.c:118: guard_checks: Assertion `review_guard(fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6], fields[7], fields[8], fields[9], &layout, 8u << 20) == (0)' failed."
+  },
+  {
+    "mutation": "native_guard",
+    "returncode": -6,
+    "assertion": "check: /tmp/nntr-lfm2-moe-fast-issue-review-20261016/frozen/fixture/whole_check.c:114: guard_checks: Assertion `review_guard(fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6], fields[7], fields[8], fields[9], &layout, 8u << 20) == (0)' failed."
+  },
+  {
+    "mutation": "activation_guard",
+    "returncode": -6,
+    "assertion": "check: /tmp/nntr-lfm2-moe-fast-issue-review-20261016/frozen/fixture/whole_check.c:114: guard_checks: Assertion `review_guard(fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6], fields[7], fields[8], fields[9], &layout, 8u << 20) == (0)' failed."
+  },
+  {
+    "mutation": "act_span",
+    "returncode": -6,
+    "assertion": "check: /tmp/nntr-lfm2-moe-fast-issue-review-20261016/frozen/fixture/whole_check.c:128: guard_checks: Assertion `review_guard(fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6], fields[7], fields[8], fields[9], &layout, 8u << 20) == (0)' failed."
+  },
+  {
+    "mutation": "gu_span",
+    "returncode": -6,
+    "assertion": "check: /tmp/nntr-lfm2-moe-fast-issue-review-20261016/frozen/fixture/whole_check.c:131: guard_checks: Assertion `review_guard(fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6], fields[7], fields[8], fields[9], &layout, 8u << 20) == (0)' failed."
+  },
+  {
+    "mutation": "dn_span",
+    "returncode": -6,
+    "assertion": "check: /tmp/nntr-lfm2-moe-fast-issue-review-20261016/frozen/fixture/whole_check.c:134: guard_checks: Assertion `review_guard(fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6], fields[7], fields[8], fields[9], &layout, 8u << 20) == (0)' failed."
+  },
+  {
+    "mutation": "gate_mid_span",
+    "returncode": -6,
+    "assertion": "check: /tmp/nntr-lfm2-moe-fast-issue-review-20261016/frozen/fixture/whole_check.c:137: guard_checks: Assertion `review_guard(fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6], fields[7], fields[8], fields[9], &layout, 8u << 20) == (0)' failed."
+  },
+  {
+    "mutation": "mid_span",
+    "returncode": -6,
+    "assertion": "check: /tmp/nntr-lfm2-moe-fast-issue-review-20261016/frozen/fixture/whole_check.c:140: guard_checks: Assertion `review_guard(fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6], fields[7], fields[8], fields[9], &layout, 8u << 20) == (0)' failed."
+  },
+  {
+    "mutation": "arena_bound",
+    "returncode": -6,
+    "assertion": "check: /tmp/nntr-lfm2-moe-fast-issue-review-20261016/frozen/fixture/whole_check.c:158: guard_checks: Assertion `review_guard(fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6], fields[7], fields[8], fields[9], &layout, 8u << 20) == (0)' failed."
+  },
+  {
+    "mutation": "packet_order",
+    "returncode": -6,
+    "assertion": "check: /tmp/nntr-lfm2-moe-fast-issue-review-20261016/frozen/fixture/whole_check.c:55: review_packet: Assertion `ao == current_layout.act_off + kt * 2048u' failed."
+  }
+]

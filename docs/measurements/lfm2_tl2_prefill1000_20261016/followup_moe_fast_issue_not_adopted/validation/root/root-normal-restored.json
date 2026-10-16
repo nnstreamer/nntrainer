@@ -1,0 +1,19 @@
+{
+  "head": "7a6f088c13f80f2e6975d76c2cc35416babd8abe",
+  "tracked_clean": true,
+  "normal_dsp_sha256": "3baddb92d14d1d23fe9b6c6a7cacfe3a6cd4708001c110bb8b15e1b0b7276f7c",
+  "normal_moe_source_sha256": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea",
+  "trace_capture_validation": {
+    "1024": {
+      "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+      "raw_sha256": "4ab94ad7497d68343913ae49455cec246194d259611d839ae95f4095f41f60b9",
+      "status": "capture and fixed settings/memory/IDs validated; initial parser rejects unseparated warmup"
+    },
+    "2048": {
+      "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+      "raw_sha256": "7d3a20cdc7df8e6b0fe56742c4140cd7fe2dc433a109f7ebac4e03b08c125845",
+      "status": "capture and fixed settings/memory/IDs validated; initial parser rejects unseparated warmup"
+    }
+  },
+  "status": "MoE issue candidate and trace removed; retained GU normal source and DSP restored. Final strict warmup parser validation is recorded separately."
+}

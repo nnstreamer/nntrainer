@@ -1,0 +1,14 @@
+{
+  "production.patch": "e8bbf0ae2e746acfe6ae006f6f15fff5fa4fb942276d6bb1f58fa7d7b1c960f0",
+  "source-hashes.json": "e638e82b310d769fecb63d98267ce5df12a0775c9aead6d3722f471414eae918",
+  "codegen/baseline-command.json": "d8eed4881e2812ddbd631ba02a50dc273c2d09746a7e856cc23497fb5f615616",
+  "codegen/candidate-command.json": "f725cd6c859f23f9aad0eebb139d7a3da9473f2c4a9ae00c2edd03f212c653cc",
+  "baseline/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea",
+  "baseline/nntrainer/tensor/htp_backend/htp_tl2_opts.h": "db52b9524de2db0ec6ba141afb59233b6c0079193658d65978456a3b550b49ac",
+  "candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "7ddbe17b22a1082bf14b721dec0d71a1bb8198a0aaa2a7eb52992800e1fb5fdc",
+  "candidate/nntrainer/tensor/htp_backend/htp_tl2_opts.h": "db52b9524de2db0ec6ba141afb59233b6c0079193658d65978456a3b550b49ac",
+  "fixture/run_mutants.py": "6f81ba07faa5dfb43ece9f1ec7ff20128d7f48810495a2afc5da4d1e115cd9f2",
+  "fixture/run_whole.py": "53cca8050f4cbd84468d5a77182aa211e9d5e577b25e97a5b41a8ca3e039eb97",
+  "fixture/whole_check.c": "97b3b3052f3a739a3a668fc9c157958cb460d9f5c5970eed6ccdd396dd914f67",
+  "fixture/hexkl_hmx_mm.h": "93dc82abc8cfe506ae81e6ea5c053433ae060ba3af7593dc05b61d2f05fe3fd9"
+}

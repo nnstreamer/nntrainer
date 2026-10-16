@@ -1,0 +1,53 @@
+MoE fast-issue actual-branch diagnostic: final independent review
+
+No implementation or parser blocker found. Diagnostic patch
+f07996247e909ff8fd87fde5fc24db5392d0720ff219f267bc4cbb361f8b73ca
+and source 84bc0e5196d414a0c3d1e243e01ccd8150e8bee09d8556267e025f5631ca4d7e
+are unchanged. Final parser 464ba98bb96d725c0d829f01f13c6c12d9d147ea25390ae71ed29c6bcfc971fa
+is frozen separately in final-parser-frozen/. Initial c29fec and its rejection
+of 39 observed versus 38 expected records remain in frozen/ and pre-device evidence.
+
+The extra record is not discarded by merely changing expected count. Actual
+Lfm2HtpMoECausalLM inherits the shared Gemma4 HTP loader.
+gemma4_htp_weights.cpp:468-491 makes one warmup at M=max(512, INIT_SEQ_LEN),
+64 experts and 64 rows per expert: 64 blocks, GU 6144 and DN 4096 leaf calls.
+The parser requires exactly this seq1 record, then exactly 38 requested-M main
+records. A missing, reordered, mutated or second startup is rejected. The main
+cohort keeps every logical call, even one with coincident geometry.
+
+Independently reran final parser: 8 positive/replay cases and 288 negative cases,
+including 182 prefix truncations. PID/mixed prefix, sequence contiguity, positive
+strictly increasing tick, conflicting delivery, bounds, rc, GU/DN ratio,
+selected=1 and full fast counts are checked. Sequence validation allocates by
+record count, never by maximum sequence value. Final actual whole-TU host counter
+check also passed: 11 calls emit 6 records (5 success and readout37 error),
+688128 output bytes exact; errors reject. Existing source compile proof remains
+valid: normal/off/on whole v81 TU PASS; OFF full object exact SHA
+6dc09e9add886c8939d73e87a227aab8500d89efcdf81c74892bbbc229ef9e67,
+caller 17152B / leaf 0, enabled diagnostic 4B atomic state only, no atomic runtime.
+Actual worst formatter 146B plus 64B prefix + NUL = 211B.
+
+Both actual raw files independently passed the final parser AND a separate
+token-field audit that imports no parser helpers. Each has 39 unique records,
+seq1..39, one PID, no replay, monotonic ticks: one exact startup plus 38 main calls.
+1024: PID12699, E50..64, sum 2283 experts, 3776 blocks,
+      GU362496 / DN241664 leaf calls; GU23199744 / DN11599872 HMX issues.
+2048: PID13083, E53..64, sum 2328 experts, 6168 blocks,
+      GU592128 / DN394752 leaf calls; GU37896192 / DN18948096 HMX issues.
+Every main call has selected=1, fast==total and rc=0. Model-specific bounds
+ceil(4*M/64) <= blocks <= floor((4*M+63*E)/64) also pass independently.
+Each 65-ID file matches the driver's expected hash/count; the parent driver
+reports canonical IDs exact. C16/PRELOAD128/PAGE0/GROW0 remain explicit in
+metadata. Full process sampled peaks: 1024=2734180KiB, 2048=3064956KiB.
+These are diagnostic metadata, not normal performance comparisons.
+
+Counters have one foreground writer and precede each leaf; valid rc=0 logs
+occur after existing successful chunk DMA waits and final worker joins. There
+are no new drains or math, ownership or buffer changes. Error records reject;
+host mocks do not prove hardware DMA retirement, visibility or concurrency.
+The 4B sequence is diagnostic-only. Added counters/logging alter timing, so no
+normal TPS claim is made. These logs prove intended branch coverage at both
+prompts: missing dispatch cannot explain the normal A/B results, but this does
+not overturn the lack of resolved overall gain.
+
+All work used own /tmp and read-only source/raw logs. Root and phone untouched.

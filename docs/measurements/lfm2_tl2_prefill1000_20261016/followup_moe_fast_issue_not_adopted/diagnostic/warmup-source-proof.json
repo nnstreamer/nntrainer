@@ -1,0 +1,73 @@
+{
+  "contract": "Fresh single model-load process, single seq1 load warmup, then exactly38 native LFM main prefill calls. INIT_SEQ_LEN is bound by each captured model config.",
+  "source_files": {
+    "Applications/CausalLM/models/lfm2_moe/lfm2_htp_moe_causallm.h": {
+      "sha256": "3c5130f03035de0820b054ad1320f1eb3f44ddc7a21702262a0bd3e18c35b45e",
+      "excerpts": [
+        [
+          10,
+          24
+        ]
+      ]
+    },
+    "Applications/CausalLM/models/lfm2_moe/lfm2_htp_moe_causallm.cpp": {
+      "sha256": "157292d8e8c8095dda287c8c53eebb1b4001326cb515559bdf45a4cf50274bf9",
+      "excerpts": [
+        [
+          208,
+          232
+        ]
+      ]
+    },
+    "Applications/CausalLM/models/gemma4/gemma4_htp_weights.cpp": {
+      "sha256": "3d9ab44b7faf8040215ea0d5c58fb64fc7552ad019772ace6210ba52c1cbcd90",
+      "excerpts": [
+        [
+          400,
+          428
+        ],
+        [
+          466,
+          492
+        ]
+      ]
+    },
+    "Applications/CausalLM/models/transformer.cpp": {
+      "sha256": "c89dab741a20c8fadee117af354b30b8cbd07b50f6fb3e0a8aa3fd0a9b8a05ff",
+      "excerpts": [
+        [
+          204,
+          214
+        ]
+      ]
+    }
+  },
+  "configs": {
+    "1024": {
+      "filename": "nntr_config.json",
+      "sha256": "25e976ccca0d49737bc9097a8212086036bbb9dd6ca999d318e6add06b95f79c",
+      "init_seq_len": 1024,
+      "warmup_M": 1024
+    },
+    "2048": {
+      "filename": "nntr_config_2048.json",
+      "sha256": "c877d7792cf8830898f49c87b535724d26ce18d62daf5d8c185756cae49f9c71",
+      "init_seq_len": 2048,
+      "warmup_M": 2048
+    }
+  },
+  "warmup": {
+    "M": "max(512, INIT_SEQ_LEN)",
+    "E": 64,
+    "rows_per_expert": 64,
+    "blocks": 64,
+    "gu": 6144,
+    "dn": 4096,
+    "first_sequence": 1
+  },
+  "main_sequences": [
+    2,
+    39
+  ],
+  "initial_error": "v1 filtered all records by M and therefore misclassified the same-M warmup as a 39th main call. Original rejected parser and raw rejection are retained in rejected-parser-v1; DSP logging did not change."
+}

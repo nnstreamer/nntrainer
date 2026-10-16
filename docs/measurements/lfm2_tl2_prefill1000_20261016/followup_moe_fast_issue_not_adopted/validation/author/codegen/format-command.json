@@ -1,0 +1,8 @@
+[
+  "/tmp/lfm2-prefill1000-20261013/format/clang_format/data/bin/clang-format",
+  "--lines=1957:1994",
+  "--lines=3004:3006",
+  "--lines=3172:3180",
+  "--lines=3416:3424",
+  "/tmp/nntr-lfm2-moe-fast-issue-20261016/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c"
+]

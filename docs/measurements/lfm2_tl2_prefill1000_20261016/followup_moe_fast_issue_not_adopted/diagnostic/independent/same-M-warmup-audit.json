@@ -1,0 +1,25 @@
+{
+  "status": "Expected strict rejection, not corrupt device data",
+  "original_parser_sha256": "c29fec42585ed4c037c59007d52fb21701e9c9fae60bc2255452e40c054c1201",
+  "raw_sha256": "4ab94ad7497d68343913ae49455cec246194d259611d839ae95f4095f41f60b9",
+  "rejection": "Expected 38 main calls, got 39",
+  "source_files": {
+    "Applications/CausalLM/models/gemma4/gemma4_htp_weights.cpp": "3d9ab44b7faf8040215ea0d5c58fb64fc7552ad019772ace6210ba52c1cbcd90",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_htp_moe_causallm.h": "3c5130f03035de0820b054ad1320f1eb3f44ddc7a21702262a0bd3e18c35b45e",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp": "4ed12667f11b5886648c18faf367ce1a1022b9baf81274f76045d028dd9dd5ec"
+  },
+  "first_record": {
+    "seq": 1,
+    "id": 2195935630153,
+    "M": 1024,
+    "E": 64,
+    "selected": 1,
+    "gu": 6144,
+    "dn": 4096,
+    "fast_gu": 6144,
+    "fast_dn": 4096,
+    "rc": 0
+  },
+  "explanation": "One shared Gemma4 load-time MoE warmup calls M=max(512,INIT_SEQ_LEN), E64,64 rows per expert,zero inputs and row weights. Same-M warmup must be isolated by seq1 and exact expected geometry/count signature before validating remaining38 main calls.",
+  "production_diagnostic_change_needed": false
+}

@@ -1,0 +1,192 @@
+{
+  "pass": true,
+  "adopted": false,
+  "normal_runs": 12,
+  "normal": [
+    {
+      "tokens": 1024,
+      "prefill_tps": {
+        "control": [
+          852.623,
+          779.893,
+          838.657
+        ],
+        "candidate": [
+          842.798,
+          819.2,
+          803.768
+        ],
+        "median_control": 838.657,
+        "median_candidate": 819.2,
+        "median_pct": -2.3200187919495074,
+        "pairs_faster": 1,
+        "paired_deltas_pct": [
+          -1.1523264092101693,
+          5.0400503658835305,
+          -4.160103594198816
+        ]
+      },
+      "decode_tps": {
+        "control": [
+          17.5969,
+          17.626,
+          17.6357
+        ],
+        "candidate": [
+          17.7877,
+          17.4482,
+          17.5294
+        ],
+        "median_control": 17.626,
+        "median_candidate": 17.5294,
+        "median_pct": -0.5480540111199472,
+        "pairs_faster": 1,
+        "paired_deltas_pct": [
+          1.084281890560268,
+          -1.0087370929309003,
+          -0.6027546397364469
+        ]
+      },
+      "control_max_peak_kib": 2733264.0,
+      "candidate_max_peak_kib": 2733368.0
+    },
+    {
+      "tokens": 2048,
+      "prefill_tps": {
+        "control": [
+          803.452,
+          888.503,
+          826.473
+        ],
+        "candidate": [
+          868.533,
+          781.679,
+          844.188
+        ],
+        "median_control": 826.473,
+        "median_candidate": 844.188,
+        "median_pct": 2.143445702400437,
+        "pairs_faster": 2,
+        "paired_deltas_pct": [
+          8.10017275456405,
+          -12.0229194499062,
+          2.143445702400437
+        ]
+      },
+      "decode_tps": {
+        "control": [
+          16.8111,
+          16.8111,
+          16.5803
+        ],
+        "candidate": [
+          16.5417,
+          16.6018,
+          16.632
+        ],
+        "median_control": 16.8111,
+        "median_candidate": 16.6018,
+        "median_pct": -1.2450107369535557,
+        "pairs_faster": 1,
+        "paired_deltas_pct": [
+          -1.6025126255866717,
+          -1.2450107369535557,
+          0.31181582962913623
+        ]
+      },
+      "control_max_peak_kib": 3052252.0,
+      "candidate_max_peak_kib": 3051360.0
+    }
+  ],
+  "diagnostic": {
+    "1024": {
+      "pass": true,
+      "rows": 1024,
+      "main_calls": 38,
+      "unique_calls": 39,
+      "identical_duplicate_packets": 0,
+      "load_warmup_calls": 1,
+      "load_warmup": {
+        "seq": 1,
+        "id": 2195935630153,
+        "M": 1024,
+        "E": 64,
+        "selected": 1,
+        "gu": 6144,
+        "dn": 4096,
+        "fast_gu": 6144,
+        "fast_dn": 4096,
+        "rc": 0
+      },
+      "android_pids": [
+        12699
+      ],
+      "cohorts_by_M": {
+        "1024": 39
+      },
+      "main_compacted_experts": 2283,
+      "main_gu_calls": 362496,
+      "main_dn_calls": 241664,
+      "main_gu_hmx_issues": 23199744,
+      "main_dn_hmx_issues": 11599872,
+      "main_blocks": 3776,
+      "all_main_leaf_used": true,
+      "limit": "Diagnostic dispatch counts only; not timing or normal TPS"
+    },
+    "2048": {
+      "pass": true,
+      "rows": 2048,
+      "main_calls": 38,
+      "unique_calls": 39,
+      "identical_duplicate_packets": 0,
+      "load_warmup_calls": 1,
+      "load_warmup": {
+        "seq": 1,
+        "id": 2200026228721,
+        "M": 2048,
+        "E": 64,
+        "selected": 1,
+        "gu": 6144,
+        "dn": 4096,
+        "fast_gu": 6144,
+        "fast_dn": 4096,
+        "rc": 0
+      },
+      "android_pids": [
+        13083
+      ],
+      "cohorts_by_M": {
+        "2048": 39
+      },
+      "main_compacted_experts": 2328,
+      "main_gu_calls": 592128,
+      "main_dn_calls": 394752,
+      "main_gu_hmx_issues": 37896192,
+      "main_dn_hmx_issues": 18948096,
+      "main_blocks": 6168,
+      "all_main_leaf_used": true,
+      "limit": "Diagnostic dispatch counts only; not timing or normal TPS"
+    }
+  },
+  "parser_sha256": "464ba98bb96d725c0d829f01f13c6c12d9d147ea25390ae71ed29c6bcfc971fa",
+  "restored_normal": {
+    "head": "7a6f088c13f80f2e6975d76c2cc35416babd8abe",
+    "tracked_clean": true,
+    "normal_dsp_sha256": "3baddb92d14d1d23fe9b6c6a7cacfe3a6cd4708001c110bb8b15e1b0b7276f7c",
+    "normal_moe_source_sha256": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea",
+    "trace_capture_validation": {
+      "1024": {
+        "ids_sha256": "b6c1b801f95caded5399ec685cce0f900a20c3f9df760482dd7b5c9a62a5b92e",
+        "raw_sha256": "4ab94ad7497d68343913ae49455cec246194d259611d839ae95f4095f41f60b9",
+        "status": "capture and fixed settings/memory/IDs validated; initial parser rejects unseparated warmup"
+      },
+      "2048": {
+        "ids_sha256": "2bc7afc3c7d8e4387c8d9c7378d6792a1ef0fb56c2635f73b95e8650ac7fef33",
+        "raw_sha256": "7d3a20cdc7df8e6b0fe56742c4140cd7fe2dc433a109f7ebac4e03b08c125845",
+        "status": "capture and fixed settings/memory/IDs validated; initial parser rejects unseparated warmup"
+      }
+    },
+    "status": "MoE issue candidate and trace removed; retained GU normal source and DSP restored. Final strict warmup parser validation is recorded separately."
+  },
+  "source_files_selected": 355
+}

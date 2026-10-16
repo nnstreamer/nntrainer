@@ -1,0 +1,29 @@
+{
+  "off_full_object_exact": true,
+  "results": [
+    {
+      "variant": "normal",
+      "object_sha256": "6dc09e9add886c8939d73e87a227aab8500d89efcdf81c74892bbbc229ef9e67",
+      "frames": [
+        "frozen/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c:1998:hexkl_mm_u8i4_moe_layer_run\t17152\tstatic",
+        "frozen/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c:1965:lfm2_moe_issue_aligned\t0\tstatic"
+      ]
+    },
+    {
+      "variant": "off",
+      "object_sha256": "6dc09e9add886c8939d73e87a227aab8500d89efcdf81c74892bbbc229ef9e67",
+      "frames": [
+        "diagnostic/frozen/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c:2006:hexkl_mm_u8i4_moe_layer_run\t17152\tstatic",
+        "diagnostic/frozen/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c:1973:lfm2_moe_issue_aligned\t0\tstatic"
+      ]
+    },
+    {
+      "variant": "on",
+      "object_sha256": "c3d2fdbf1e6d2ccdcd1aa9f43b9bd16800d083a53e26c5952189d4bc37d5084b",
+      "frames": [
+        "diagnostic/frozen/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c:2006:hexkl_mm_u8i4_moe_layer_run\t17152\tstatic",
+        "diagnostic/frozen/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c:1973:lfm2_moe_issue_aligned\t0\tstatic"
+      ]
+    }
+  ]
+}

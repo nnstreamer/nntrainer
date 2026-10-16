@@ -1,0 +1,39 @@
+MoE issue actual-branch diagnostic: independent validation before device readback
+
+No blocker found in frozen f07996247e909ff8fd87fde5fc24db5392d0720ff219f267bc4cbb361f8b73ca.
+Source 84bc0e5196d414a0c3d1e243e01ccd8150e8bee09d8556267e025f5631ca4d7e.
+Parser c29fec42585ed4c037c59007d52fb21701e9c9fae60bc2255452e40c054c1201.
+
+Independently reran actual whole-TU counter fixture against the independently
+validated normal candidate. Eleven calls emit six in-scope records: five
+successful, one readout #37 error. Actual GU/DN and fast counters match expected
+loop topology, and all688128 output bytes are identical to normal candidate.
+Error/partial records reject. Bad-row/zero-active/M1/GeGLU/E65 exclusions do not
+consume trace sequences. Maximum actual formatter width146 bytes plus a64-byte
+transport prefix andNUL is211 bytes, within the observed FARF budget.
+
+Independently reran six parser positive cohorts/replays and264 negative cases,
+including180 prefix truncations. PID and mixed-prefix validation, contiguous
+seq1..N, positive/increasing raw qtimer IDs, duplicate/conflicting delivery,
+all unsigned/signed bounds, main38 cohort, selected leaf, GU/DN count ratios,
+full fast counts and rc0 are checked. Sequence range generation is bounded by
+number of parsed records, never by max sequence value. Unprefixed host records
+are supported; Android records must consistently have one PID.
+
+Independently compiled normal/off/on complete MoE v81 C translation units.
+OFF is byte-identical to normal object, SHA6dc09e9add886c8939d73e87a227aab8500d89efcdf81c74892bbbc229ef9e67.
+All variants caller frame17152B, leaf0. Enabled diagnostic has one4-byte BSS
+atomic sequence and no external atomic runtime reference. Normal object has
+no diagnostic state. Exact commands/results are in codegen/.
+
+The call-local counters are foreground-only; no worker writes them. Every
+successful total/fast count is immediately followed by the corresponding
+original issue sequence/leaf call; HMX packet and readout errors cannot create
+a valid rc0 partial record. Successful logging follows the existing per-chunk DMA waits and final
+worker/background joins (plus output DMA drain when an output copy is used).
+The candidate adds no new DMA drain; error records are rejected, and this
+fixture does not independently prove pre-existing hardware DMA error cleanup. No math, ownership, buffer layout or drain changes.
+Early direct validation returns are not logged; the main38 requirement catches
+missing actual model work. Diagnostic-only counters alter issue timing and
+cannot establish throughput. Host primitive/pool/DMA stand-ins do not prove
+silicon visibility or concurrency. Actual1024/2048 raw readback remains pending.

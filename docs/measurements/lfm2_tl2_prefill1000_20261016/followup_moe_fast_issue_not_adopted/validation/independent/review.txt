@@ -1,0 +1,79 @@
+MoE prefill fast-issue independent review (final v2)
+
+Conclusion: no implementation blocker found. The independent tests listed below passed. Device parity, dispatch and performance validation are still the parent's responsibility; this report makes no TPS prediction.
+
+Frozen input
+  Production patch: e8bbf0ae2e746acfe6ae006f6f15fff5fa4fb942276d6bb1f58fa7d7b1c960f0
+  Candidate source: 7ddbe17b22a1082bf14b721dec0d71a1bb8198a0aaa2a7eb52992800e1fb5fdc
+  Baseline source: a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea
+  Baseline is byte-identical to GU commit 36a75df1a3e166c3cd923f668822c486680a5735.
+  Copies, full hashes and exact commands are in frozen/, input-manifest.json,
+  host-san/commands.json, mutants-san/*/commands.json and codegen/commands.json.
+
+Scope and source proof
+  Only the native all-active-TL2, non-affine SILU LFM 2048/1536/2048 M>1
+  HMX route with 1..64 compact expert slots takes the leaf. The existing
+  alignment check covers both activation/weight base pairs. The normal model
+  compacts virtual experts in lfm2_moe_layer.cpp; v1's E==64 guard would have
+  missed most normal calls. That superseded source-only result is archived,
+  and final validation refers only to v2.
+
+  GU uses 64 K tiles x 96 column tiles. Each activation packet is 2048 B,
+  each weight packet 512 B, and the weight step is 49,152 B. Its highest
+  packet endpoint is exactly 131,072 B in activation and 3,145,728 B in GU.
+  DN uses 48 K tiles x 64 columns, a 32,768 B weight step, 98,304 B per mid
+  bank and 1,572,864 B total weights. pp is 0 or 1, so both mid banks fit
+  before result_off. The uint64 guard arithmetic checks ordered, disjoint
+  ranges through result_off<=arena. These small fixed products also fit DSP
+  32-bit size_t. The leaf forms indexed pointers only for actual packets,
+  never the unused final column-offset pointer beyond the region.
+
+  Ascending kt and the existing volatile HMX packet (including its memory
+  clobber) are unchanged. Accumulator clear/readout remain at the original
+  call sites. All DMA/expansion completion waits precede the same consumers;
+  the leaf is synchronous and keeps no pointer. Worker jobs, stage-ring
+  ownership, postprocessing/quantization, expert order, error cleanup and
+  allocations are unchanged. The i24/native-source staging choices change
+  neither these activation/weight offsets nor packet order.
+
+  Gemma's 2816/704 geometry, M1, affine, GeGLU, mixed-native formats and
+  expert counts outside 1..64 retain their old loops. Host builds have
+  hexkl_hmx_mm_aligned()==0 and do not call the production no-op inline
+  primitive. The optional noinline annotation is compiler-guarded; no new
+  platform APIs or headers were added.
+
+Independent execution
+  11 actual whole-caller cases plus 25 exact guard checks, ASan+UBSan PASS.
+  FP32 outputs: 688,128 bytes exact, SHA256 0a05d6c218a60704d99528d06fcd668f27b18c68cd40fb94e825dbf205ce0cf5.
+  Baseline/candidate packet addresses/order and clear/read/control logs exact.
+  Includes M2/M65, two experts spanning four blocks, compact E1/E4/E60,
+  E65 fallback, GeGLU, no active expert, invalid row and readout #37 failure.
+  The error case returns AEE_EFAILED only after queued work is drained; the
+  invalid-row case returns before packet/worker/output work. Scratch is
+  reused across these calls. E60 contains two active experts: actual normal
+  38-call dispatch still requires the parent's diagnostic.
+
+  All 14 separately compiled mutants failed the intended assertion:
+  alignment, prefill, K, expert upper/lower, native, activation, five independent
+  span boundaries, arena bound and reversed activation K packet order.
+  Failure is checked for an intended assertion, not merely any process crash.
+
+  Independently compiled and assembled complete baseline/candidate v81 TUs
+  with -O3, -mhvx, -mhmx, -Wall -Werror. Caller frame 17,152 B unchanged;
+  new leaf frame 0. Baseline GU and DN loops each have six scalar packets
+  for two HMX issues and one 32-bit stack reload. The new leaf has four
+  packets per two HMX issues and no loop stack access. Old fallback loops
+  retain six packets/two issues. This excludes call/prologue overhead and
+  does not prove HMX issue throughput or end-to-end improvement.
+
+Limits
+  The host harness uses scalar HMX/HVX quant/dequant stand-ins. DMA and pool
+  jobs execute immediately; a submitted foreground job remains logically
+  pending until the matching wait. This checks packet/control parity and
+  logical retirement, not real concurrency or silicon DMA/cache visibility.
+  Hexagon-only i24 staging is not run.
+  Existing scalar swiglu_det.h signed exponent shift suppression is limited
+  to standin/hvx_scalar.c; actual kernel TUs retain all sanitizer checks.
+  M1 fixture is HMX fallback (flags0); actual native M1 returns earlier.
+  No new Gemma device comparison was performed. Parent alone owns phone,
+  root changes, normal A/B, exact model IDs and memory/settings validation.

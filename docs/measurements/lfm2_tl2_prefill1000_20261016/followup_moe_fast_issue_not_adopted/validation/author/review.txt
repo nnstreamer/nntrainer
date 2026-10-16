@@ -1,0 +1,82 @@
+Native LFM prefill MoE HMX issue leaf candidate, 2026-10-16
+
+Status: isolated candidate; no device speed claim. Root/device untouched.
+Frozen production.patch e8bbf0ae2e746acfe6ae006f6f15fff5fa4fb942276d6bb1f58fa7d7b1c960f0
+Frozen C 7ddbe17b22a1082bf14b721dec0d71a1bb8198a0aaa2a7eb52992800e1fb5fdc
+Base C a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea
+The base is 207d299c production plus retained decode GU d86b15ae cleanup.
+All source and fixture hashes are in manifest.json. V1 is retained under history/v1;
+its E==64 guard missed the app's compacted virtual-expert calls and is superseded.
+
+Scope and address proof
+- M>1, K2048/inter1536/N2048, 1..64 COMPACTED experts, nonempty all-native TL2,
+  no affine weights, SiLU, existing hmx_inline alignment predicate true.
+- M1, Gemma K2816/inter704, GeGLU, mixed/non-native/affine weights, E>64 and
+  unproven ranges use the original loops. Standard non-Hexagon alignment helper
+  returns false, so its no-op inline packet cannot be selected.
+- GU: 64 increasing kt values, 96 column tiles. The last activation packet ends
+  at act_off+64*2048; the last weight packet ends at w_gu_off+64*96*512.
+- DN: 48 increasing kt values, 64 column tiles. The last weight packet ends at
+  w_dn_off+48*64*512; both existing mid banks together end at mid_off+2*48*2048.
+- Wide uint64 comparisons bound those spans against successive existing layout
+  regions and the arena. Existing hmx_inline validates act/mid 2048-byte and
+  both WH bases 128-byte alignment; all later offsets preserve those alignments.
+- Indexed addresses only form pointers passed to a real packet. No unused
+  increment after the last issue can construct a pointer beyond the allocation.
+- Clear, increasing kt packet order, readout, expansion submit/wait, epilogue
+  submit/wait, output/scatter, error draining and all arithmetic stay in place.
+  No allocation, cache, reader, scratch-size, C16, preload or storage change.
+
+Actual v81 -O3 -Wall -Werror code generation
+- Both original GU/DN inner loops: 6 packets per two HMX issues, one stack load
+  of the WH stride and two descriptor constants per pair.
+- New leaf: 4 packets per two HMX issues, no inner-loop stack access, descriptor
+  constants established outside the loop. Caller frame 17152 B remains 17152 B;
+  leaf frame is 0. Extra heap/VTCM/persistent metadata: 0.
+- Gemma fallback's GU/DN kt loop retains the 6-packet/two-issue structure and one
+  stride reload. However each accumulator tile now has a leaf-condition load
+  and predicate branch, register allocation/code placement also changes. This
+  is NOT a claim of unchanged Gemma performance. No Gemma device run was made.
+- codegen/{baseline,candidate}-command.json records exact full-TU commands.
+  Full asm/.su are baseline.s, candidate.s, baseline.su, candidate.su at this
+  directory's top level. codegen/*-inner.s and *-dispatch.s expose the evidence.
+- 104.642 ms in the older normal MoE MM probe is clear+issue+loop including
+  required HMX work, not removable scalar overhead. Do not multiply it by the
+  packet reduction ratio. HMX stalls can already hide the old scalar packets;
+  call/return and changed overlap can outweigh the reduction (as the separate
+  FC experiment showed). Parent must decide on normal device A/B.
+
+Executed validation
+- Whole baseline and candidate production C translation units, separately built:
+  11 calls, output 688128 bytes SHA256
+  0a05d6c218a60704d99528d06fcd668f27b18c68cd40fb94e825dbf205ce0cf5,
+  identical packet-address/control-event hashes, counts, return codes and
+  pool submissions/runs. ASan+UBSan halt enabled.
+- Actual new guard exported from a test copy: 25 checks, including compact E1,
+  E4/E60 whole calls, E32 positive and E0/E65 negative; single-boundary span
+  violations independently exercise each interval plus wide overflow cases.
+- 14 deliberate mutations are rejected by intended assertions: alignment,
+  prefill/dimension/expert upper+lower/native/activation scope, each of five
+  layout span predicates, final arena boundary, and reversed activation order.
+- Whole calls cover workers0/3, M65 tails/two active experts/two mid banks,
+  E65/M1/GeGLU fallback, invalid rows, zero active experts, and readout failure
+  after work has been submitted. Final pending-job state is empty.
+- Original FP32 output comes from actual whole C caller with existing scalar
+  HMX/HVX/quant stand-ins, NOT silicon arithmetic. Pool jobs execute immediately
+  but remain tracked pending until waits; this is not real parallel execution.
+  Host does not enable the Hexagon-only compact i24 path. The production change
+  leaves those paths' issue addresses/order identical by the above proof.
+- The pre-existing scalar swiglu negative signed shift is excluded only for
+  hvx_scalar.c with -fno-sanitize=shift-base. Both production TUs retain all
+  ASan/UBSan checks. Legacy included fixture warnings are softened only on the
+  fixture object; production objects retain -Werror.
+- Changed production lines and C fixture use clang-format14.
+
+Reproduction (paths are supplied by caller)
+D=/tmp/nntr-lfm2-moe-fast-issue-20261016
+R=/path/to/nntrainer-with-GU-d86
+python3 "$D/fixture/run_whole.py" --repo "$R" --source "$D/candidate" \
+  --reference "$D/baseline" --output /tmp/moe-issue-own-checks --sanitize
+python3 "$D/fixture/run_mutants.py" --checks /tmp/moe-issue-own-checks \
+  --output /tmp/moe-issue-own-mutants
+Logs and machine-readable results: checks/san, checks/mutants, validation.json.

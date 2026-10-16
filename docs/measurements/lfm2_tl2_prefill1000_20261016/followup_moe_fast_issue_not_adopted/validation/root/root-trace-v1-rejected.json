@@ -1,0 +1,8 @@
+{
+  "status": "parser rejected complete device run due to an incorrect initial main-only cohort assumption",
+  "raw_sha256": "4ab94ad7497d68343913ae49455cec246194d259611d839ae95f4095f41f60b9",
+  "observed_raw_records": 39,
+  "original_expected_main_calls": 38,
+  "error": "Expected 38 main calls, got 39",
+  "disposition": "Keep raw and failure log; derive and validate the separate same-M load warmup from source before reusing raw. No performance claim or count-only relaxation."
+}

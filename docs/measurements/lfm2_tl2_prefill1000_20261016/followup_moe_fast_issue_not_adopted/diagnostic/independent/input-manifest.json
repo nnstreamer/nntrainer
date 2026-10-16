@@ -1,0 +1,14 @@
+{
+  "diagnostic.patch": "f07996247e909ff8fd87fde5fc24db5392d0720ff219f267bc4cbb361f8b73ca",
+  "make.py": "38805d38f7deb0edadb674f0bc322fefd9c79a5b2e7de9f680c16968d371b00d",
+  "parse.py": "c29fec42585ed4c037c59007d52fb21701e9c9fae60bc2255452e40c054c1201",
+  "parser_check.py": "5e9210feb62ccee44d6e342de0daecce4bd13e01105dd88f8dd335f86e8176b7",
+  "run_check.py": "bc00c5bf0c1ff64cd0b408e359702c90d29622a91836840f80fe4827ef553836",
+  "manifest.json": "2dddba5293436cb75b90724306f6c05e002ba06d6c6ebbcc6d1d69204b2a9489",
+  "validation.json": "c4885acdcae626c21d6504d00f2dd8127737dc4e4dcb2c82ee4258153fd1d144",
+  "README.txt": "28105b981cd72b3c6a7a864936e2214ab0341cf2b160cae30ef3573e3af95002",
+  "candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "84bc0e5196d414a0c3d1e243e01ccd8150e8bee09d8556267e025f5631ca4d7e",
+  "codegen/normal-command.json": "37300d3628fcb47889113e923adbbb120ad77ecf912e6d7c6c1606a1445315fb",
+  "codegen/off-command.json": "e18109861c621bb7e57dea50049c2a0f0a4d68461207865d9750db20b1343f25",
+  "codegen/on-command.json": "a7a197101aa9f5146262d2596adb466ebc5a31aa57867ab06fe24714ee06febc"
+}

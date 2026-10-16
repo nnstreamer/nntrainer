@@ -1,0 +1,24 @@
+[
+  {
+    "label": ".LBB12_454",
+    "hmx_issues": 2,
+    "packets": 6,
+    "stack_access_lines": [
+      "r5 = memw(r29+#396)"
+    ]
+  },
+  {
+    "label": ".LBB12_557",
+    "hmx_issues": 2,
+    "packets": 6,
+    "stack_access_lines": [
+      "r5 = memw(r29+#432)"
+    ]
+  },
+  {
+    "label": ".LBB31_3",
+    "hmx_issues": 2,
+    "packets": 4,
+    "stack_access_lines": []
+  }
+]

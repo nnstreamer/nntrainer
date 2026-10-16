@@ -1,0 +1,5 @@
+{
+  "baseline/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea",
+  "candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "7ddbe17b22a1082bf14b721dec0d71a1bb8198a0aaa2a7eb52992800e1fb5fdc",
+  "production.patch": "e8bbf0ae2e746acfe6ae006f6f15fff5fa4fb942276d6bb1f58fa7d7b1c960f0"
+}

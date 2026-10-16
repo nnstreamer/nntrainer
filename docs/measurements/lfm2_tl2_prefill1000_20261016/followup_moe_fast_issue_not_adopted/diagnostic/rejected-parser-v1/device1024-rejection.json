@@ -1,0 +1,13 @@
+{
+  "command": [
+    "python3",
+    "/tmp/nntr-lfm2-moe-fast-issue-20261016/diagnostic/rejected-parser-v1/parse.py",
+    "/home/jungone-lee/workspace/nntrainer-lfm2-tl2-prefill1000/docs/measurements/lfm2_tl2_prefill1000_20261016/continue-moe-issue-trace1024.issue.logcat.txt",
+    "--rows",
+    "1024"
+  ],
+  "returncode": 1,
+  "parser_sha256": "c29fec42585ed4c037c59007d52fb21701e9c9fae60bc2255452e40c054c1201",
+  "raw_sha256": "4ab94ad7497d68343913ae49455cec246194d259611d839ae95f4095f41f60b9",
+  "reason": "Source-derived load warmup shares requested M. V1 strict parser correctly rejects 39 as 38; no device source change needed."
+}

@@ -1,0 +1,18 @@
+{
+  "production_parent_patch_sha256": "e8bbf0ae2e746acfe6ae006f6f15fff5fa4fb942276d6bb1f58fa7d7b1c960f0",
+  "flag": "NNTR_LFM2_MOE_ISSUE_TRACE=1",
+  "files": {
+    "diagnostic.patch": "f07996247e909ff8fd87fde5fc24db5392d0720ff219f267bc4cbb361f8b73ca",
+    "candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "84bc0e5196d414a0c3d1e243e01ccd8150e8bee09d8556267e025f5631ca4d7e",
+    "parser_check.py": "bb6f45bd3e7efa31e37ca9d9cc9ae8dfb70a604ea0d9282173b2b70a8f7cec1f",
+    "parse.py": "464ba98bb96d725c0d829f01f13c6c12d9d147ea25390ae71ed29c6bcfc971fa",
+    "run_check.py": "d0f4871e4d0fb3d0df5fcc60cd10ce68aa97c47e522470f02f46f1e76a2f5f13",
+    "make.py": "38805d38f7deb0edadb674f0bc322fefd9c79a5b2e7de9f680c16968d371b00d",
+    "README.txt": "a1f0b3f2fae8b341065821d05434345ca21448251706a023f14876921a0cb284",
+    "warmup-source-proof.json": "48e0585467a887d93c6d5f4f235915d6e75f71316f1095c1ea2243fcf27de06a",
+    "warmup-source-excerpts.txt": "7b8efb2e199d90873083d16cd8eb9c58cb5890981379c5eed086c4fa5c5dde45",
+    "config-source/nntr_config.json": "25e976ccca0d49737bc9097a8212086036bbb9dd6ca999d318e6add06b95f79c",
+    "config-source/nntr_config_2048.json": "c877d7792cf8830898f49c87b535724d26ce18d62daf5d8c185756cae49f9c71"
+  },
+  "parser_contract": "strict one same-M source-derived load warmup then38 main calls"
+}

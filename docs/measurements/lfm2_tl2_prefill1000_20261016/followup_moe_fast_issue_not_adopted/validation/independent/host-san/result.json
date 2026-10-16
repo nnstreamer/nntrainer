@@ -1,0 +1,17 @@
+{
+  "pass": true,
+  "whole_cases": 11,
+  "guard_cases": 25,
+  "source_sha256": {
+    "baseline": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea",
+    "candidate": "7ddbe17b22a1082bf14b721dec0d71a1bb8198a0aaa2a7eb52992800e1fb5fdc"
+  },
+  "output_bytes": 688128,
+  "output_sha256": "0a05d6c218a60704d99528d06fcd668f27b18c68cd40fb94e825dbf205ce0cf5",
+  "limits": [
+    "HMX/HVX/quant use the existing scalar stand-ins",
+    "Host does not enable Hexagon-only i24 staging",
+    "Only pre-existing scalar exponent shift sanitizer is disabled",
+    "No device/cache/timing claim"
+  ]
+}

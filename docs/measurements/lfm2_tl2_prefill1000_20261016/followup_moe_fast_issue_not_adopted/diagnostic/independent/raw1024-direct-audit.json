@@ -1,0 +1,33 @@
+{
+  "pass_": true,
+  "rows": 1024,
+  "raw_packets": 39,
+  "unique_calls": 39,
+  "identical_duplicates": 0,
+  "pid": 12699,
+  "raw_sha256": "4ab94ad7497d68343913ae49455cec246194d259611d839ae95f4095f41f60b9",
+  "load_warmup": {
+    "seq": 1,
+    "start": 2195935630153,
+    "M": 1024,
+    "E": 64,
+    "gu": 6144,
+    "dn": 4096,
+    "fast_gu": 6144,
+    "fast_dn": 4096,
+    "selected": 1,
+    "rc": 0
+  },
+  "main_calls": 38,
+  "main_E_min": 50,
+  "main_E_max": 64,
+  "main_experts": 2283,
+  "main_blocks": 3776,
+  "main_gu_calls": 362496,
+  "main_dn_calls": 241664,
+  "main_gu_issues": 23199744,
+  "main_dn_issues": 11599872,
+  "all_main_leaf_used": true,
+  "independent_method": "Direct token fields; no author parser imported. Exact seq1 source-derived startup; remaining38; top4 row-count block bounds.",
+  "limit": "Actual dispatch counts only; no timing or TPS inference."
+}

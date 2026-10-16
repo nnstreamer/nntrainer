@@ -1,0 +1,18 @@
+{
+  "normal": {
+    "object_sha256": "6dc09e9add886c8939d73e87a227aab8500d89efcdf81c74892bbbc229ef9e67",
+    "text_sha256": "27c5e9acb67b431912ab18d7e748e13cc1ba58c5d86e5a247ab2b67b28ab6101",
+    "frame": 17152
+  },
+  "off": {
+    "object_sha256": "6dc09e9add886c8939d73e87a227aab8500d89efcdf81c74892bbbc229ef9e67",
+    "text_sha256": "27c5e9acb67b431912ab18d7e748e13cc1ba58c5d86e5a247ab2b67b28ab6101",
+    "frame": 17152
+  },
+  "on": {
+    "object_sha256": "6038d169ecc723d0f6bd3d779616f36eebc59885e5ff69e0166747c2278f409b",
+    "text_sha256": "fe94e32cc3a50ffb175edf2273dbb9c63f105773e5d4c717228017c5db4a6452",
+    "frame": 17152
+  },
+  "off_text_identical": true
+}

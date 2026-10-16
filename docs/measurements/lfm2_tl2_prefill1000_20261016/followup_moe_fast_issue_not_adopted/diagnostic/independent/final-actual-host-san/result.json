@@ -1,0 +1,105 @@
+{
+  "pass": true,
+  "actual_whole_calls": 11,
+  "actual_scope_records": 6,
+  "successful_records": 5,
+  "error_records_rejected": 1,
+  "bytes_exact": 688128,
+  "counter_records": [
+    {
+      "seq": 1,
+      "id": 1,
+      "M": 2,
+      "E": 64,
+      "selected": 1,
+      "gu": 96,
+      "dn": 64,
+      "fast_gu": 96,
+      "fast_dn": 64,
+      "rc": 0
+    },
+    {
+      "seq": 2,
+      "id": 2,
+      "M": 65,
+      "E": 64,
+      "selected": 1,
+      "gu": 384,
+      "dn": 256,
+      "fast_gu": 384,
+      "fast_dn": 256,
+      "rc": 0
+    },
+    {
+      "seq": 3,
+      "id": 3,
+      "M": 2,
+      "E": 1,
+      "selected": 1,
+      "gu": 96,
+      "dn": 64,
+      "fast_gu": 96,
+      "fast_dn": 64,
+      "rc": 0
+    },
+    {
+      "seq": 4,
+      "id": 4,
+      "M": 2,
+      "E": 4,
+      "selected": 1,
+      "gu": 192,
+      "dn": 128,
+      "fast_gu": 192,
+      "fast_dn": 128,
+      "rc": 0
+    },
+    {
+      "seq": 5,
+      "id": 5,
+      "M": 2,
+      "E": 60,
+      "selected": 1,
+      "gu": 192,
+      "dn": 128,
+      "fast_gu": 192,
+      "fast_dn": 128,
+      "rc": 0
+    },
+    {
+      "seq": 6,
+      "id": 6,
+      "M": 2,
+      "E": 64,
+      "selected": 1,
+      "gu": 37,
+      "dn": 0,
+      "fast_gu": 37,
+      "fast_dn": 0,
+      "rc": 1
+    }
+  ],
+  "parser_actual_subset": {
+    "pass": true,
+    "rows": 2,
+    "main_calls": 4,
+    "unique_calls": 5,
+    "identical_duplicate_packets": 0,
+    "load_warmup_calls": 0,
+    "load_warmup": null,
+    "android_pids": [],
+    "cohorts_by_M": {
+      "2": 4,
+      "65": 1
+    },
+    "main_compacted_experts": 129,
+    "main_gu_calls": 576,
+    "main_dn_calls": 384,
+    "main_gu_hmx_issues": 36864,
+    "main_dn_hmx_issues": 18432,
+    "main_blocks": 6,
+    "all_main_leaf_used": true,
+    "limit": "Diagnostic dispatch counts only; not timing or normal TPS"
+  },
+  "format": "payload=146 prefix=64 nul=1 total=211\n[LFM-MISSUE] q=4294967295 s=ffffffffffffffff d=4294967295,4294967295 b=-2147483648 t=4294967295,4294967295 f=4294967295,4294967295 r=-2147483648 !\n"
+}

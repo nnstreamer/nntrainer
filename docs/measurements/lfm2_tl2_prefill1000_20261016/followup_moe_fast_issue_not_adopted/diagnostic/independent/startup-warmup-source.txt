@@ -1,0 +1,29 @@
+467:     // layer kernel at load, now after the walk (see PendingMoeWarm).
+468:     if (moe_warm.ops != nullptr) {
+469:       // M as wide as a prefill can be: the kernel's scratch keeps its act
+470:       // and out copies (M x K, M x N_out f32) and the staging pools their
+471:       // size classes, so a 512-row warm-up left the first 1024-row prefill
+472:       // call to grow and touch them, 2.1 ms a call on average over 31
+473:       // (doc 57 section 9.26). The expert slots' bound is the same either way.
+474:       const unsigned int M = std::max(512u, INIT_SEQ_LEN), K = moe_warm.K,
+475:                          N_out = moe_warm.N_out;
+476:       const unsigned int E = static_cast<unsigned int>(moe_warm.gu_data.size());
+477:       const unsigned int per = 64; // one 64-row block per expert
+478:       std::vector<unsigned int> row_index, row_count(E, per);
+479:       std::vector<float> row_weight;
+480:       for (unsigned int e = 0; e < E; ++e) {
+481:         for (unsigned int r = 0; r < per; ++r) {
+482:           row_index.push_back((e * per + r) % M);
+483:           row_weight.push_back(0.0f);
+484:         }
+485:       }
+486:       std::vector<float> act(static_cast<size_t>(M) * K, 0.0f);
+487:       std::vector<float> out(static_cast<size_t>(M) * N_out, 0.0f);
+488:       moe_warm.ops->gemm_qs4cx_moe_layer_fp32(
+489:         moe_warm.gu_data, moe_warm.gu_scale, moe_warm.dn_data,
+490:         moe_warm.dn_scale, row_index, row_count, row_weight, act.data(),
+491:         out.data(), M, K, moe_warm.inter, N_out, moe_warm.w_bits);
+492:       ml_logd("MoE HTP kernel warmed up at load (M=%u, %u experts)", M, E);
+493:     }
+494:     // The deferred FC registrations (see fc_pending above). A CPU-engine
+495:     // layer's ops answer false and cost nothing. One warm-up call per

@@ -1,0 +1,50 @@
+{
+  "baseline": [
+    {
+      "path": "codegen/baseline-gu-inner.s",
+      "packets": 6,
+      "hmx_issues": 2,
+      "stack_loads": 1,
+      "descriptor_constants": 2
+    },
+    {
+      "path": "codegen/baseline-dn-inner.s",
+      "packets": 6,
+      "hmx_issues": 2,
+      "stack_loads": 1,
+      "descriptor_constants": 2
+    }
+  ],
+  "candidate": [
+    {
+      "path": "codegen/candidate-gu-inner.s",
+      "packets": 6,
+      "hmx_issues": 2,
+      "stack_loads": 1,
+      "descriptor_constants": 2
+    },
+    {
+      "path": "codegen/candidate-dn-inner.s",
+      "packets": 6,
+      "hmx_issues": 2,
+      "stack_loads": 1,
+      "descriptor_constants": 2
+    },
+    {
+      "path": "codegen/candidate-leaf-inner.s",
+      "packets": 4,
+      "hmx_issues": 2,
+      "stack_loads": 0,
+      "descriptor_constants": 0
+    }
+  ],
+  "caller_frame_bytes": {
+    "baseline": 17152,
+    "candidate": 17152
+  },
+  "leaf_frame_bytes": 0,
+  "extra_heap_bytes": 0,
+  "extra_vtcm_bytes": 0,
+  "extra_persistent_metadata_bytes": 0,
+  "performance": "unmeasured; candidate only"
+}

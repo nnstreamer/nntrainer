@@ -1,0 +1,8 @@
+{
+  "base_commit": "36a75df1a3e166c3cd923f668822c486680a5735",
+  "source_sha256": "7ddbe17b22a1082bf14b721dec0d71a1bb8198a0aaa2a7eb52992800e1fb5fdc",
+  "applied_patch_sha256": "c9a3ecd3a8f0588cfaba46a72c55a880061133a1b53247caa5e915b9b09a1666",
+  "normal_dsp_sha256": "95496d8d2c9952bbf87e030f9e64fed03f32fd0d8fccb43f7e52987c41b70000",
+  "diagnostic_macros": "none",
+  "format": "clang-format14 whole-file unchanged"
+}

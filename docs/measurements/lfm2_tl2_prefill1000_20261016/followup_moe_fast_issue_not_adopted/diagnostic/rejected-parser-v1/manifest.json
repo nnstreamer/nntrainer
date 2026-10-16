@@ -1,0 +1,13 @@
+{
+  "production_parent_patch_sha256": "e8bbf0ae2e746acfe6ae006f6f15fff5fa4fb942276d6bb1f58fa7d7b1c960f0",
+  "flag": "NNTR_LFM2_MOE_ISSUE_TRACE=1",
+  "files": {
+    "diagnostic.patch": "f07996247e909ff8fd87fde5fc24db5392d0720ff219f267bc4cbb361f8b73ca",
+    "candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "84bc0e5196d414a0c3d1e243e01ccd8150e8bee09d8556267e025f5631ca4d7e",
+    "parser_check.py": "5e9210feb62ccee44d6e342de0daecce4bd13e01105dd88f8dd335f86e8176b7",
+    "parse.py": "c29fec42585ed4c037c59007d52fb21701e9c9fae60bc2255452e40c054c1201",
+    "run_check.py": "bc00c5bf0c1ff64cd0b408e359702c90d29622a91836840f80fe4827ef553836",
+    "make.py": "38805d38f7deb0edadb674f0bc322fefd9c79a5b2e7de9f680c16968d371b00d",
+    "README.txt": "28105b981cd72b3c6a7a864936e2214ab0341cf2b160cae30ef3573e3af95002"
+  }
+}

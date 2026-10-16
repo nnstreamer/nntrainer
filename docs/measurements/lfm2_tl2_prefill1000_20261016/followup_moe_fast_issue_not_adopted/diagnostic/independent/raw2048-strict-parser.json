@@ -1,0 +1,34 @@
+{
+  "pass": true,
+  "rows": 2048,
+  "main_calls": 38,
+  "unique_calls": 39,
+  "identical_duplicate_packets": 0,
+  "load_warmup_calls": 1,
+  "load_warmup": {
+    "seq": 1,
+    "id": 2200026228721,
+    "M": 2048,
+    "E": 64,
+    "selected": 1,
+    "gu": 6144,
+    "dn": 4096,
+    "fast_gu": 6144,
+    "fast_dn": 4096,
+    "rc": 0
+  },
+  "android_pids": [
+    13083
+  ],
+  "cohorts_by_M": {
+    "2048": 39
+  },
+  "main_compacted_experts": 2328,
+  "main_gu_calls": 592128,
+  "main_dn_calls": 394752,
+  "main_gu_hmx_issues": 37896192,
+  "main_dn_hmx_issues": 18948096,
+  "main_blocks": 6168,
+  "all_main_leaf_used": true,
+  "limit": "Diagnostic dispatch counts only; not timing or normal TPS"
+}

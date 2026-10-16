@@ -1,0 +1,80 @@
+{
+  "result": "PASS; no implementation blocker found",
+  "review_scope": "Independent frozen production source review, whole-TU scalar/immediate-pool ASan+UBSan parity, intended-fault mutants and v81 full-TU compile+assembly. No root edits or phone access.",
+  "production_patch_sha256": "e8bbf0ae2e746acfe6ae006f6f15fff5fa4fb942276d6bb1f58fa7d7b1c960f0",
+  "candidate_source_sha256": "7ddbe17b22a1082bf14b721dec0d71a1bb8198a0aaa2a7eb52992800e1fb5fdc",
+  "baseline_source_sha256": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea",
+  "baseline_commit": "36a75df1a3e166c3cd923f668822c486680a5735",
+  "independent_host": {
+    "pass": true,
+    "whole_cases": 11,
+    "guard_cases": 25,
+    "source_sha256": {
+      "baseline": "a19d1ee954f294721d09d2eaf46286d0ee5f3682150938c22169b98f9e7013ea",
+      "candidate": "7ddbe17b22a1082bf14b721dec0d71a1bb8198a0aaa2a7eb52992800e1fb5fdc"
+    },
+    "output_bytes": 688128,
+    "output_sha256": "0a05d6c218a60704d99528d06fcd668f27b18c68cd40fb94e825dbf205ce0cf5",
+    "limits": [
+      "HMX/HVX/quant use the existing scalar stand-ins",
+      "Host does not enable Hexagon-only i24 staging",
+      "Only pre-existing scalar exponent shift sanitizer is disabled",
+      "No device/cache/timing claim"
+    ]
+  },
+  "independent_mutants": {
+    "passed": 14,
+    "result_file": "mutants-san/result.json",
+    "intended_assertions_only": true
+  },
+  "independent_codegen": [
+    {
+      "variant": "baseline",
+      "frames": [
+        "frozen/baseline/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c:1959:hexkl_mm_u8i4_moe_layer_run\t17152\tstatic"
+      ],
+      "object_sha256": "841d7bc231f73242dc496559d1179d1e00e14cee310adfab7037d728d0a00234"
+    },
+    {
+      "variant": "candidate",
+      "frames": [
+        "frozen/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c:1998:hexkl_mm_u8i4_moe_layer_run\t17152\tstatic",
+        "frozen/candidate/nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c:1965:lfm2_moe_issue_aligned\t0\tstatic"
+      ],
+      "object_sha256": "c2cd7fb301b9c6e1d356d4dccbb557ea317bc00e267263a72bee189158b74bdb"
+    }
+  ],
+  "codegen_loop": {
+    "baseline_packets_per_two_issues": 6,
+    "baseline_scalar_stack_loads_per_two_issues": 1,
+    "candidate_leaf_packets_per_two_issues": 4,
+    "candidate_leaf_loop_stack_operations": 0,
+    "fallback_packets_per_two_issues": 6,
+    "caller_frame_bytes": 17152,
+    "new_leaf_frame_bytes": 0
+  },
+  "ranges": {
+    "gu_activation": 131072,
+    "gu_weights": 3145728,
+    "gu_weight_step": 49152,
+    "down_activation_each_bank": 98304,
+    "down_banks": 2,
+    "down_weights": 1572864,
+    "down_weight_step": 32768
+  },
+  "fixed_v1_issue": "Initial expert==64 guard missed application-compacted active expert arrays. V2 uses 1..64; initial source and codegen archived under v1-dispatch-too-narrow.",
+  "device_acceptance_pending": [
+    "Exact model IDs and normal memory/settings on actual S26.",
+    "A diagnostic must show the new leaf selected for all 38 normal all-native LFM prefill calls; warmups separate.",
+    "Only balanced normal binaries can establish throughput; no throughput benefit is inferred from scalar packet counts."
+  ],
+  "limits": [
+    "Whole-caller HMX, HVX dequant and quant use existing scalar stand-ins. Native TL2 expansion/packing and actual production caller are exercised. DMA and worker jobs execute immediately; submit retains a logical pending token until wait. This checks control/retirement structure, not real concurrency, silicon arithmetic, DMA/cache visibility or timing.",
+    "Hexagon-only i24 staging is not enabled in the host fixture; all readout/layout consumers are unchanged by this patch.",
+    "The one pre-existing signed-negative exponent shift in swiglu_det.h is suppressed only while compiling standin/hvx_scalar.c (-fno-sanitize=shift-base); both whole kernel TUs and all other sanitizer classes remain enabled.",
+    "E60 whole-caller case has two nonempty experts, so it proves compact-count dispatch and sparse expert indexing, not a sixty-active-expert numerical model run.",
+    "Whole M1 case omits the M1 GEMV flag and verifies the HMX fallback does not select the new leaf. Actual native decode exits through the existing use_m1 branch before reaching this code.",
+    "Gemma fallback is established from immutable geometry guards and unchanged fallback issue sequence, not a new Gemma device benchmark.",
+    "No new allocation, buffer, cache, reader, preload, RPC, API/ABI, persistent state or output accumulation order."
+  ]
+}
