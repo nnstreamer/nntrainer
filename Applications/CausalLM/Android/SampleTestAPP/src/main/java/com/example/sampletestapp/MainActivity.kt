@@ -387,6 +387,9 @@ class MainActivity : AppCompatActivity() {
         checkAllFilesAccess()
         // Seed the path field so a single Load tap works without typing.
         modelPathText = defaultModelPathFor(selDescriptor, selectedQuant) ?: ""
+        // Train tab fields start from the selected demo user's catalog config,
+        // not the generic defaults (the first command snapshots these fields).
+        loadDemoTrainingSettings()
         rebuildUi()
         startDeviceDemoBridge()
     }

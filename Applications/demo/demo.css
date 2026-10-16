@@ -145,7 +145,7 @@ body[data-layout="1"] .workspace-panel { flex-direction: column; gap: 10px; }
 body[data-layout="1"] .selection-panel { display: block; flex-shrink: 0; }
 .selection-users, .selection-scenarios { min-width: 0; }
 .selection-panel .segmented, .selection-scenarios .scenario-tabs { margin: 7px 0 0; }
-.selection-scenarios .scenario-tabs { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+.selection-scenarios .scenario-tabs { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 5px; }
 .selection-scenarios .scenario-tabs button { padding: 7px 4px; font-size: 11px; }
 body[data-layout="1"] .context-panel { border-top: 1px solid var(--line); border-left: 0; padding: 10px 0 0; margin: 0; }
 .context-layout { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 18px; margin-top: 7px; align-items: start; }

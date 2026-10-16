@@ -32,6 +32,13 @@
       "sha256": "9bf56d614000062a2154d078edc62de268e42c8a39968aef69fb7e295c4f89a9",
       "rows": 80,
       "source_sha256": "077fd4daeda4054e29adefde2a6bdb26428000ad6881984823e6b2df04880231"
+    },
+    "device/u02/train_payment_aug.jsonl": {
+      "sha256": "5bf9d21d21d0c907485bd4a2a6a94609d6b53f6d29dee62e59920a3e483bd1d6",
+      "rows": 328,
+      "base": "device/u02/train.jsonl",
+      "base_rows": 200,
+      "generator": "tools/augment_payment_rows.py"
     }
   },
   "scenario_source": "least-used older-three-app history per fixed validation variant; event_id tie-break; shared B/C events; no native results used"

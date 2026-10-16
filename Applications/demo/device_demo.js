@@ -40,6 +40,7 @@
     token,
     connected = false,
     sending = false;
+  let lastPhoneUser = null;
   let selectedUser = "u03",
     selectedScenario = 0,
     serial = "";
@@ -133,9 +134,9 @@
         !next.app_catalog?.every((row, i) => row.id === ids[i] && row.name === names[i]))
       throw Error("새 B/C 관측 데이터용 Quick.AI 앱과 후보 매핑을 확인하세요.");
     for (const row of next.users) {
-      if (row.data_rows !== 200 || row.data_rows !== row.expected_data_rows || row.data_sha256 !== row.expected_data_sha256 ||
-          row.scenarios.length !== 4 || row.validation_rows !== 80 || row.test_rows !== 80)
-        throw Error("기기 데이터가 원본 B/C 200/80/80개 데이터와 일치하지 않습니다.");
+      if (row.data_rows < 200 || row.data_rows !== row.expected_data_rows || row.data_sha256 !== row.expected_data_sha256 ||
+          !row.scenarios.length || row.scenarios.length > 4 || row.validation_rows !== 80 || row.test_rows !== 80)
+        throw Error("기기 데이터가 B/C 학습·검증 데이터와 일치하지 않습니다.");
       const frequency = row.frequency_baseline;
       if (frequency?.source !== "training_answer_counts" || frequency.total !== row.data_rows ||
           frequency.train_sha256 !== row.data_sha256 || frequency.counts.length !== 14 ||
@@ -169,6 +170,15 @@
             throw Error("기기 확률/입력 연결을 확인할 수 없습니다.");
         }
     next.users = next.users.filter((u) => ["B", "C"].includes(u.label));
+    // Follow the user picked (or being run) on the phone.
+    const phoneUser = next.busy ? next.active_user : next.selected_user;
+    if (phoneUser && phoneUser !== lastPhoneUser && next.users.some((u) => u.id === phoneUser)) {
+      if (phoneUser !== selectedUser) {
+        selectedUser = phoneUser;
+        selectedScenario = visibleScenarios(next.users.find((u) => u.id === phoneUser))[0]?.index || 0;
+      }
+      lastPhoneUser = phoneUser;
+    }
     device = next;
     connected = true;
     serial = value.serial;
@@ -249,9 +259,11 @@
   // Why each user's labelled answer follows from the persona, per scenario variant.
   const reasons = {
     B: {moving_map: "이동 중 길찾기는 항상 네이버지도", moving_video: "직전에 영상을 봤어도 이동 중엔 네이버지도",
-      business_goods: "물품 대금은 사업 송금 → 기업은행", personal_meal: "점심값은 개인 송금 → 카카오페이"},
+      business_goods: "물품 대금은 사업 송금 → 기업은행", personal_meal: "점심값은 개인 송금 → 카카오페이",
+      moving_appointment: "방금 카카오맵을 봤어도, 길찾기는 항상 네이버지도"},
     C: {moving_map: "이동 중엔 카카오맵 길찾기와 YouTube를 함께", moving_video: "보던 YouTube를 이어 보며 카카오맵으로 이동",
-      business_goods: "용도와 상관없이 송금은 토스", personal_meal: "개인 송금도 토스"},
+      business_goods: "용도와 상관없이 송금은 토스", personal_meal: "개인 송금도 토스",
+      moving_appointment: "카카오맵으로 길 확인 후, 이동 중엔 YouTube"},
   };
   function selectUser(row) {
     if (row.id === selectedUser) return;

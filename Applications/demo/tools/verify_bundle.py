@@ -31,9 +31,14 @@ def verify():
         file = BASE / 'data' / name
         assert digest(file) == meta['sha256'], name
         rows = [json.loads(line) for line in file.read_text(encoding='utf-8').splitlines()]
-        _, uid, split = Path(name).parts
-        assert digest(source / 'by_user' / uid / split) == meta['source_sha256']
         assert len(rows) == meta['rows']
+        if 'base' in meta:
+            # Augmented training file: the original rows, unchanged, then generated rows.
+            base = (BASE / 'data' / meta['base']).read_text(encoding='utf-8').splitlines()
+            assert len(base) == meta['base_rows'] and file.read_text(encoding='utf-8').splitlines()[:len(base)] == base, name
+        else:
+            _, uid, split = Path(name).parts
+            assert digest(source / 'by_user' / uid / split) == meta['source_sha256']
         for row in rows:
             assert 0 < len(row['input_ids']) <= 180
             assert all(type(i) is int and i >= 0 for i in row['input_ids'])
@@ -42,10 +47,12 @@ def verify():
             assert row['target_probs'][row['primary_label_index']] == 1
     for user in catalog['users']:
         uid = user['id']
-        assert user['expected_data_rows'] == 200 and user['validation_rows'] == user['test_rows'] == 80
-        for split, key in [('train', 'data_sha256'), ('validation', 'valid_sha256'), ('test', 'test_sha256')]:
+        assert user['validation_rows'] == user['test_rows'] == 80
+        train = BASE / f'data/device/{uid}' / Path(user['data_path']).name
+        assert digest(train) == user['data_sha256'] and len(train.read_text(encoding='utf-8').splitlines()) == user['expected_data_rows']
+        for split, key in [('validation', 'valid_sha256'), ('test', 'test_sha256')]:
             assert digest(BASE / f'data/device/{uid}/{split}.jsonl') == user[key]
-        assert len(user['scenarios']) == 4
+        assert 1 <= len(user['scenarios']) <= 4
     kotlin = REPO / 'Applications/CausalLM/Android/SampleTestAPP/src/main/java/com/example/sampletestapp/ObservedDemoCatalog.kt'
     if kotlin.exists():
         text = kotlin.read_text(encoding='utf-8')
@@ -59,13 +66,13 @@ def verify():
         def handle_starttag(self, tag, attrs):
             for key, value in attrs:
                 if key in ('src', 'href') and value and not value.startswith(('#', 'http:', 'https:', 'data:')):
-                    assert (BASE / value).is_file(), value
+                    assert (BASE / value.split('?')[0]).is_file(), value
     References().feed((BASE / 'demo_combined.html').read_text(encoding='utf-8'))
     for name in re.findall(r'url\(["\']?([^"\')]+)', (BASE / 'demo.css').read_text(encoding='utf-8')):
         assert (BASE / name).is_file(), name
     assert (BASE / 'assets/galaxy_s26_ultra_white.png').is_file()
     return {'passed': True, 'native_files': len(exported['files']), 'users': ['B', 'C'],
-            'rows_per_user': {'train': 200, 'validation': 80, 'test': 80},
+            'rows_per_user': {u['label']: u['expected_data_rows'] for u in catalog['users']},
             'dataset_manifest_sha256': catalog['dataset_manifest_sha256']}
 
 
