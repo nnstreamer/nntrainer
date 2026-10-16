@@ -313,17 +313,67 @@ void ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
   // gate, conv and out_proj; the CONV1D_GATE hook below still binds its
   // weights, and neither projection's result would be read
   const bool row_resident = rows == 1 && htpDecodeRowResident(from);
+  const auto affine = nntrainer::Tdatatype::QS4CX_WH_AFFINE;
+  const auto fp32 = nntrainer::Tdatatype::FP32;
+  const bool lfm_prefill =
+    rows > 1 && !compare && K == 2048 && N == 2048 &&
+    in_w.getDataType() == affine && out_w.getDataType() == affine &&
+    proj.getDataType() == fp32 && gated.getDataType() == fp32 &&
+    conv_out.getDataType() == fp32 && proj.getContiguous() &&
+    gated.getContiguous() && conv_out.getContiguous();
+  const float *p = proj.getData<float>();
+  float *g = gated.getData<float>();
+  float *y = conv_out.getData<float>();
+  // A retained projection is consumed before the next backend call (out_proj).
+  // Its host tensor must remain recognizable, and CPU writes must not overlap
+  // either the tensor or the retained view while the gates read it.
+  const size_t mid_bytes = static_cast<size_t>(rows) * C * sizeof(float);
+  const auto projection_disjoint = [&](const float *src) {
+    if (!src)
+      return false;
+    const uintptr_t begin = reinterpret_cast<uintptr_t>(src);
+    const auto overlaps = [&](const float *dst, size_t bytes) {
+      const uintptr_t other = reinterpret_cast<uintptr_t>(dst);
+      return begin <= other ? other - begin < 3u * mid_bytes
+                            : begin - other < bytes;
+    };
+    return !overlaps(g, mid_bytes) && !overlaps(y, mid_bytes) &&
+           !overlaps(state, 2u * C * sizeof(float)) &&
+           !overlaps(in_step.getData<float>(), mid_bytes);
+  };
+  // Match invokeFc's K=2048 row cap: larger calls would grow its output
+  // staging buffer instead of retaining an already allocated size.
+  const bool retain_projection =
+    lfm_prefill && rows >= 16 && rows <= 1920 && C == 2048 &&
+    in_step.getDataType() == fp32 && in_step.getContiguous() && ops &&
+    ops->supports_gemm_q4_0_batch_norm_fp32() && projection_disjoint(p);
   if (compare) {
     nntrainer::gemm_q4_0<float>(rows, 3 * C, K, in_step.getData<float>(), K,
                                 in_w.getData<char>(), 3 * C,
                                 proj.getData<float>(), 3 * C);
   } else if (!row_resident) {
-    in_step.dot(in_w, proj, false, false);
+    if (retain_projection) {
+      // A nonempty zero post_chunk selects the strided FC output without
+      // applying a norm. Only its sampled windows need a host copy.
+      ops->gemm_q4_0_batch_norm_fp32(
+        {in_w.getData<char>()}, {in_w.getScale<float>()},
+        in_step.getData<float>(), {proj.getData<float>()}, rows, {3u * C}, K,
+        nullptr, {0u}, nullptr, 0.0f, nullptr, 0u, 0u, false);
+      const auto *view = static_cast<const float *>(
+        ops->host_view(proj.getData<float>(), 3u * mid_bytes));
+      if (projection_disjoint(view)) {
+        p = view;
+      } else {
+        // Materialize an unusable or overlapping view before CPU writes;
+        // the sampled host windows alone do not contain the projection.
+        ops->sync_to_host(proj.getData<float>(), 3u * mid_bytes);
+      }
+    } else {
+      in_step.dot(in_w, proj, false, false);
+      p = proj.getData<float>();
+    }
   }
 
-  const float *p = proj.getData<float>();
-  float *g = gated.getData<float>();
-  float *y = conv_out.getData<float>();
   auto gate_pre = [&](size_t r) {
     const float *a = p + r * 3 * C;
     const float *c = a + 2 * C;
@@ -357,13 +407,6 @@ void ConvBlockLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
          "(NNTR_HTP_FORWARD=1 supports one prompt per process)";
     nntrainer::ThreadManager::Global().parallel_for(
       0, static_cast<size_t>(rows), gate_pre);
-    const auto affine = nntrainer::Tdatatype::QS4CX_WH_AFFINE;
-    const auto fp32 = nntrainer::Tdatatype::FP32;
-    const bool lfm_prefill =
-      !compare && K == 2048 && N == 2048 && in_w.getDataType() == affine &&
-      out_w.getDataType() == affine && proj.getDataType() == fp32 &&
-      gated.getDataType() == fp32 && conv_out.getDataType() == fp32 &&
-      proj.getContiguous() && gated.getContiguous() && conv_out.getContiguous();
     const bool post_gated =
       lfm_prefill && lfmConvPostGatePrefill(g, w_ptr, p, y, rows, C);
     if (!post_gated)

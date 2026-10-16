@@ -1,0 +1,46 @@
+LFM convolution projection: retained ION view candidate
+
+Scope and baseline
+- Production diff: conv-ion-view.patch, only Applications/CausalLM/layers/conv_block_layer.cpp.
+- Base is the already validated conv-postgate-v2 source. Its byte hash matches the root candidate at review time; git apply --check passed without changing root.
+- Applies to rows 16..1920, K=C=N=2048, both projection weights QS4CX_WH_AFFINE, FP32 contiguous projection/gated/conv_out/input, supported batch_norm API, non-compare path and disjoint storage.
+- Decode, rows<16, rows>1920, Q4/FP16/other geometry/strides and unsupported backend use the existing dot path. Rows=2048 still use the conv-postgate-v2 CPU helper after the original split projection. Gemma app/builder/backend code is untouched.
+
+Arithmetic and RPC equivalence
+- Old in_step.dot -> gemm_qs4cx_accel_fp32 -> invokeFc -> invokeLayer identifies the LFM 2048x6144 projection, forms row-major OutSlices and calls nntr_hvx_mm_u8i4_layer_norm_ld with no norms.
+- New gemm_q4_0_batch_norm_fp32 uses the same weight pointer, QS4 scales, get_or_register_fc handles, 2048-column slices, activation, output offsets and leading dimensions. post_chunk={0} is deliberately nonempty so FusedNorms::any selects the same strided call. It disables post-normalization; this is NOT the previously rejected gamma=null residual API, which would still run RMSNorm.
+- DSP layer_norm_impl turns both old omitted chunks and new zero chunks into the same all-zero chunk_of array. pre_gamma length, post_gamma length, eps and RoPE are unchanged (zero/null). No quantization or arithmetic policy changes.
+- Difference is output delivery: out_to_host=false copies/checks 33x64-byte windows, then records noteIonAlias. A failed sample comparison materializes the full output in the existing backend. NNTR_HTP_QKV_TO_HOST=1 or PROFILE>=2 likewise force the full host copy.
+
+Ownership and lifetime
+- PROJ is a ConvBlockLayer internal FORWARD_FUNC_LIFESPAN tensor; no downstream model layer reads its host bytes. The tensor continues to exist and carries the sampled windows.
+- After FC return, host_view(proj, rows*6144*4) is acquired immediately. Gate_pre -> its parallel_for completion barrier -> conv/post -> state copy are the only consumers. Then out_proj is the next compute backend call; projection is never read after it. Compare is excluded.
+- The same operations object and staging pool remain alive for the layer. No pointer is retained in a layer member, queue, tensor metadata or across calls.
+- Existing API ownership is exclusive for compute. Early expert reader/registration workers mutate expert arena slots and handle metadata, not act_pool_/out_pool_ or ion_alias_. No asynchronous worker reuses this projection staging during the CPU interval.
+- The logical host projection and returned physical view are checked against input, gated, conv_out and state ranges. If a returned view is null or overlaps those CPU buffers, sync_to_host materializes the full projection before CPU writes; the reader uses the original disjoint host buffer. An ordinary host view from a backend is already supported by the same contract.
+- Exceptions from FC or sync propagate; there is no catch that could silently consume partially written output. Unsupported shape/capability/host alias fails before retained dispatch and uses the old dot. Its projection pointer is reacquired after dot in case the normal tensor implementation changes storage.
+
+Memory
+- No new shared allocation, activation buffer, weight cache, capacity setting or persistent metadata is introduced.
+- For K=2048, current fcMaxRows returns 1920. Old and new paths request exactly M*2048*4 input bytes and M*6144*4 output bytes for every eligible M. At 1024 this is the existing 8 MiB and 24 MiB payload; at 1920 output is the existing 45 MiB payload.
+- Guarding M<=1920 avoids the whole-M 2048 projection request (48 MiB) that would otherwise replace the baseline's 45 MiB + 3 MiB split with a larger allocation. The 2048 staging behavior is unchanged.
+- Batch wrapper creates only short-lived handle/chunk/argument vector metadata for three FC slices. There is no persistent expansion. Allocator bookkeeping/stack effects are not asserted to be zero; root records the actual RssAnon + accelerator-allocation run peak.
+
+Validation completed
+- Actual dispatch block extracted verbatim: ASan+UBSan 48 cases PASS. Covers 16/17/64/1024/1920 rows, direct/host/null/overlapping views, full-data fallback, 1921/2048 cap, decode, Gemma-width geometry, both weight types, all activation dtype/stride guards, unsupported/null ops, logical aliases, dot storage replacement, compare, and RPC/sync error propagation.
+- Android NDK r30 AArch64 full translation unit compiled with the actual app -O3 -ffast-math flags. Android x86_64 Clang and Linux x86_64 GCC full-TU syntax checks PASS. Existing header warnings only. Windows compilation not executed; added code uses portable C++ and existing ComputeOps APIs only.
+- Prior cached ION synthetic fixture: 10 cases x4 copied/direct/core/fused paths passed exact gated/output/state comparisons. Warm1024 copied-fused1690.052us vs direct-fused807.812us; cold2019.584us vs1112.291us (31 alternating repetitions).
+- Actual DSP affine 2048x6144 projection checker: 16/17/64/1024/1920 rows x3 distinct input generations =15 PASS. Full projection, gated, convolution output and state were bit-identical between copied and retained paths, and sync_to_host materialized identical bytes. The fixture poisoned host non-window bytes and required the live rpcmem ION view, so it exercised DSP-to-CPU cache coherency. Device run performed by root; device-projection.log preserved here.
+- Full-model IDs, repeated-prompt behavior, peak allocation and performance remain root's integration checks. No new Gemma device benchmark is required for this LFM-only scope.
+
+Performance interpretation
+- Isolated full gate/conv/state copy savings at1024 are882.240us warm and907.293us cold per conv block. Multiplying by30 is a26.47..27.22ms opportunity, not a measured full-model gain. Concurrent expert I/O and CPU scheduling are absent from the microfixture.
+- Existing conv-postgate-v2 full-model2048 results have two speed modes. Root's same-core/DSP app-only profile showed conv time falling579.944->515.213ms while sparseMoE rose1173.821->1222.509ms and other CPU regions also rose. This is not evidence of a conv kernel regression, nor proof of whole-model gain. The ION experiment is separate from that result.
+
+Reproduction artifacts
+- manifest.json: patch/source/binary hashes.
+- compile-command.json and compile.log: AArch64 production TU.
+- portable-compile-commands.json and platform logs: syntax checks.
+- checks/run_route_check.py --source PATH/conv_block_layer.cpp --output DIR: extracts production dispatch and runs the sanitizer fixture with c++ (or --cxx).
+- checker-build-command.json / checker-build.log: actual DSP checker build arguments.
+- Device checker executable: lfm2_conv_ion_projection_check; use root's deployed current libnntrainer and libomp support paths. Run with NNTR_NUM_THREADS=8 NNTR_HTP_PROFILE=0 NNTR_HTP_QKV_TO_HOST=0. Root alone owns device access.

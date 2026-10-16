@@ -1,0 +1,8 @@
+[HTP-PROFILE] arm staging memcpy:      107.1 ms  (2561.8 MB in+out, 25.1 GB/s) -- outside every host= above
+[HTP-PROFILE] HTP host time     :     1159.4 ms (registration + layer calls + staging)
+[HTP-PROFILE]   staging at htp_compute_ops.cpp:1753:     10.3 ms     304.0 MB  38 copies
+[HTP-PROFILE]   staging at htp_compute_ops.cpp:5728:     23.3 ms     644.5 MB  82 copies
+[HTP-PROFILE]   staging at htp_compute_ops.cpp:5815:     40.9 ms     895.5 MB  90 copies
+[HTP-PROFILE]   staging at htp_compute_ops.cpp:5854:     16.9 ms     347.5 MB  110 copies
+[HTP-PROFILE]   staging at htp_compute_ops.cpp:7184:      1.3 ms      28.0 MB  4 copies
+[HTP-PROFILE]   staging at htp_compute_ops.cpp:7333:     13.9 ms     332.0 MB  42 copies
