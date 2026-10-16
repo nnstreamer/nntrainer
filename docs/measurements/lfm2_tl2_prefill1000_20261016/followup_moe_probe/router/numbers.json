@@ -1,0 +1,265 @@
+{
+  "production_binary_sha256": "19f75c45ed45a8dbe1ea04d39c3a05fc8593779b500dca6b8886e202928357d1",
+  "compile_variants": [
+    {
+      "variant": "aligned_all",
+      "loops": [
+        {
+          "packets": 29,
+          "vmul": 16,
+          "vadd": 16,
+          "qf_to_sf": 34,
+          "stack_vector_ops": 8,
+          "unaligned_vector_ops": 0
+        }
+      ]
+    },
+    {
+      "variant": "aligned_out",
+      "loops": [
+        {
+          "packets": 27,
+          "vmul": 16,
+          "vadd": 16,
+          "qf_to_sf": 32,
+          "stack_vector_ops": 2,
+          "unaligned_vector_ops": 2
+        }
+      ]
+    },
+    {
+      "variant": "aligned_w",
+      "loops": [
+        {
+          "packets": 29,
+          "vmul": 16,
+          "vadd": 16,
+          "qf_to_sf": 34,
+          "stack_vector_ops": 8,
+          "unaligned_vector_ops": 0
+        }
+      ]
+    },
+    {
+      "variant": "barrier_group2",
+      "loops": [
+        {
+          "packets": 54,
+          "vmul": 16,
+          "vadd": 16,
+          "qf_to_sf": 32,
+          "stack_vector_ops": 0,
+          "unaligned_vector_ops": 2
+        }
+      ]
+    },
+    {
+      "variant": "barrier_group4",
+      "loops": [
+        {
+          "packets": 40,
+          "vmul": 16,
+          "vadd": 16,
+          "qf_to_sf": 32,
+          "stack_vector_ops": 0,
+          "unaligned_vector_ops": 2
+        }
+      ]
+    },
+    {
+      "variant": "base",
+      "loops": [
+        {
+          "packets": 27,
+          "vmul": 16,
+          "vadd": 16,
+          "qf_to_sf": 32,
+          "stack_vector_ops": 2,
+          "unaligned_vector_ops": 2
+        }
+      ]
+    },
+    {
+      "variant": "ii25",
+      "loops": [
+        {
+          "packets": 33,
+          "vmul": 16,
+          "vadd": 16,
+          "qf_to_sf": 32,
+          "stack_vector_ops": 0,
+          "unaligned_vector_ops": 2
+        }
+      ]
+    },
+    {
+      "variant": "ii26",
+      "loops": [
+        {
+          "packets": 27,
+          "vmul": 16,
+          "vadd": 16,
+          "qf_to_sf": 32,
+          "stack_vector_ops": 2,
+          "unaligned_vector_ops": 2
+        }
+      ]
+    },
+    {
+      "variant": "ii28",
+      "loops": [
+        {
+          "packets": 33,
+          "vmul": 16,
+          "vadd": 16,
+          "qf_to_sf": 32,
+          "stack_vector_ops": 0,
+          "unaligned_vector_ops": 2
+        }
+      ]
+    },
+    {
+      "variant": "ii29",
+      "loops": [
+        {
+          "packets": 33,
+          "vmul": 16,
+          "vadd": 16,
+          "qf_to_sf": 32,
+          "stack_vector_ops": 0,
+          "unaligned_vector_ops": 2
+        }
+      ]
+    },
+    {
+      "variant": "ii30",
+      "loops": [
+        {
+          "packets": 33,
+          "vmul": 16,
+          "vadd": 16,
+          "qf_to_sf": 32,
+          "stack_vector_ops": 0,
+          "unaligned_vector_ops": 2
+        }
+      ]
+    },
+    {
+      "variant": "ii32",
+      "loops": [
+        {
+          "packets": 33,
+          "vmul": 16,
+          "vadd": 16,
+          "qf_to_sf": 32,
+          "stack_vector_ops": 0,
+          "unaligned_vector_ops": 2
+        }
+      ]
+    },
+    {
+      "variant": "pipeline_off",
+      "loops": [
+        {
+          "packets": 33,
+          "vmul": 16,
+          "vadd": 16,
+          "qf_to_sf": 32,
+          "stack_vector_ops": 0,
+          "unaligned_vector_ops": 2
+        }
+      ]
+    },
+    {
+      "variant": "pipeline_off_unroll2",
+      "loops": [
+        {
+          "packets": 52,
+          "vmul": 32,
+          "vadd": 32,
+          "qf_to_sf": 33,
+          "stack_vector_ops": 10,
+          "unaligned_vector_ops": 4
+        }
+      ]
+    },
+    {
+      "variant": "pipeline_off_unroll4",
+      "loops": [
+        {
+          "packets": 32,
+          "vmul": 16,
+          "vadd": 16,
+          "qf_to_sf": 32,
+          "stack_vector_ops": 8,
+          "unaligned_vector_ops": 2
+        },
+        {
+          "packets": 93,
+          "vmul": 64,
+          "vadd": 64,
+          "qf_to_sf": 38,
+          "stack_vector_ops": 16,
+          "unaligned_vector_ops": 8
+        }
+      ]
+    },
+    {
+      "variant": "unroll2",
+      "loops": [
+        {
+          "packets": 52,
+          "vmul": 32,
+          "vadd": 32,
+          "qf_to_sf": 33,
+          "stack_vector_ops": 10,
+          "unaligned_vector_ops": 4
+        }
+      ]
+    },
+    {
+      "variant": "unroll4",
+      "loops": [
+        {
+          "packets": 32,
+          "vmul": 16,
+          "vadd": 16,
+          "qf_to_sf": 32,
+          "stack_vector_ops": 8,
+          "unaligned_vector_ops": 2
+        },
+        {
+          "packets": 93,
+          "vmul": 64,
+          "vadd": 64,
+          "qf_to_sf": 38,
+          "stack_vector_ops": 16,
+          "unaligned_vector_ops": 8
+        }
+      ]
+    },
+    {
+      "variant": "unroll_off",
+      "loops": [
+        {
+          "packets": 27,
+          "vmul": 16,
+          "vadd": 16,
+          "qf_to_sf": 32,
+          "stack_vector_ops": 2,
+          "unaligned_vector_ops": 2
+        }
+      ]
+    }
+  ],
+  "v81_timing": {
+    "cases_exact": 36,
+    "repeats": 8,
+    "base_cycles": 1002510,
+    "pipeline_off_cycles": 1135482,
+    "pipeline_off_cycle_increase_pct": 13.263907591944225
+  },
+  "recommendation": "keep production kernel; no >=10% gain supported",
+  "root_modified": false,
+  "device_used": false
+}

@@ -1,0 +1,94 @@
+LFM2 FP32 router audit and bounded no-spill schedule comparison
+Decision: retain current production kernel. No >=10% router speedup is
+supported by the bounded code/disassembly/compiler/simulator evidence.
+Root worktree and phone were not modified or used. No candidate was installed.
+
+Measurement scope
+postpush-attn-qprep-profile.log: K2048/N64/M>1,38calls/38912rows,115.4ms host
+(3035.9us/call). This times the RPC, including its cached activation copy,
+weight staging, dot and logits copy. It is NOT a pure kernel timer.
+The same log separately reports router stageInput at htp_compute_ops.cpp:1753:
+10.3ms,304MiB,38copies. That staging is outside the115.4ms figure.
+The profile has no per-router phase timing to safely assign the remaining
+115ms to FP arithmetic versus DSP DMA; no memory-bandwidth extrapolation.
+
+Actual path and existing reuse
+Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp:1869 calls
+routerLogitsOnAccelerator with no gamma and top_k=0 for the LFM sigmoid route.
+ARM buildExpertAssignments at600 applies sigmoid+bias and selection afterward;
+that is outside the router RPC figure. The DSP has no extra output norm or
+softmax/top-k pass for this LFM call. Moving sigmoid to a different math
+implementation is excluded because route/FP32 behavior must be preserved.
+htp_compute_ops.cpp:1690 caches the shared FP32 weight once by address.
+test/htp/nntr_hvx_mm_u8i4.c:1889 checks shape, copies8MiB X into existing cached
+MoE scratch (scalar broadcasts from uncached RPC memory are expensive), and
+returns256KiB logits from that scratch. Weights512KiB are staged once per RPC
+into VTCM by wcopy_worker. There is no per-row DDR weight upload.
+hvx/hvx_router_rows_f32.c:154 dispatches2 output vectors across8rows; each K
+loads2 weight vectors once and reuses them for all8 rows, then loads each
+activation scalar once and reuses its splat for both output vectors.
+The same ascending K loop and stored partial sums every256 K are retained.
+Across one1024-row call the kernel issues64MiB of weight vector loads from
+VTCM and8MiB of scalar X loads from cached heap. These are logical memory
+operations, NOT claimed external DRAM traffic. Logit chunk stores/loads are
+2MiB/1.75MiB logical traffic in cached scratch. Eliminating chunk boundaries
+has limited evidence: setup/store work is small compared with2048 K steps,
+and holding longer K loops alone does not remove the hot-loop spill.
+The pool already splits disjoint row ranges across hardware-reported HVX
+contexts (hvx_add_f32.c:181; hvx_worker_pool_run).1024rows divides cleanly
+into8-row blocks with4 or8 participants; no reduction merge or tail imbalance
+exists in those configurations. Increasing readers/cache is unrelated and
+was not considered.
+
+Production v81 disassembly evidence
+Binary SHA256 is in binary-sha256.txt; production-disasm.txt records the
+actual root-built image inspected. rows_block_2x8 is at0x662f4 in this image.
+Its K loop0x66484..0x665fc has27 VLIW packets,16 vmpy,16 vadd,32 qf32-to-sf
+rounding operations,8 scalar X loads,8 splats,2 unaligned weight vector loads.
+The Q6_Vsf intrinsics deliberately lower through qf32 then round to sf for
+each multiply/add. No fused FMA, reassociation, FP16/INT8 or IEEE-mode compiler
+change was used in this audit.
+One accumulator spills: load v14=vmem(r29+0) at0x6653c and store
+vmem(r29+0)=v15.new at0x66594. Each shares a packet with other work; removing
+the pair therefore does not imply two whole cycles saved. The destination
+is a worker stack on the existing cached heap; no2.5GiB DRAM/model traffic
+claim is made. The whole function's pre/post-loop spills are in disassembly.
+For comparison rows_block_2x4 has14 packets/K and no accumulator spill, so
+splitting8rows into two4row calls would issue28 packets and reload weights.
+
+Bounded schedule comparisons (only own temporary source copies)
+All variants kept8rows,64 outputs, ascending K, separate multiply then add,
+existing dimensions/buffers and the original non-LFM helper definitions.
+Original:27packets/K,1spill load/store pair.
+Disable software pipeline for only2x8:33packets/K,zero spill.
+Explicit empty register barrier after each4/2rows:40/54packets,K spill zero.
+Use aligned weight loads in the private helper:29packets,K4spill pairs.
+Aligned logits alone:original27packets/1pair.
+Unroll2/4 increases spills; unroll disable reproduces original.
+Explicit initiation intervals25/28/29/30/32 fall back to the33packet no-spill
+schedule;26 reproduces original. Compile products/commands are under compile/.
+Aligned-load experiments are analysis-only: a production version would need
+a runtime alignment guard because the general API accepts unaligned buffers.
+No such unverified alignment assumption was proposed for integration.
+
+Actual v81 simulator result
+router_kernel_check.c calls the actual separately compiled2x8 helpers via
+function pointers.36 cases (K1,2,17,255,256,257,511,512,2048;normal,subnormal,
+scaled/cancellation patterns) match all FP32 output bits and output redzones.
+Unchanged8-row/full2048 dot timing,8repeats after warmup:
+  base             1002510cycles
+  pipeline disabled1135482cycles =13.26% more cycles, despite zero spill.
+The baseline test helper has the same27packet K body as production;
+function-section alignment/padding differs outside it. Both are compiled
+with the same v81/-O3/non-IEEE flags. No new production/test patch is advised.
+This isolated single-thread simulator uses ordinary aligned arrays, not the
+full S26 VTCM/RPC/thread/memory workload; it is evidence against this schedule,
+not a direct prediction of model TPS or a measured hardware upper limit.
+
+Remaining limits
+Router X caching and later MoE input caching may read the same logical tensor
+in some paths, but their scratch placements/lifetimes differ and the MoE can
+consume a separate normalized input. Removing one copy is not a local safe
+change without proving exact input identity and ownership across RPCs. The
+current aggregate profile cannot establish a>=10% benefit there. Keep the
+existing cached copy and precision behavior for this bounded optimization.

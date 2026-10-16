@@ -1,0 +1,74 @@
+# Actual LFM dispatch, standalone pre-norm, and known load warmup
+
+Read-only design review after v1 trace produced no lines. Audited LFM caller and shared backend, not inferred solely from backend capability. No root/device changes.
+
+## Dispatch correction
+
+`lfm2_htp_moe_causallm.cpp:171–190` builds each sparse MoE with in_norm=true, sigmoid_bias router, swish, no out_norm, and no out_add. A separate `residual_add` combines h and MoE output. `lfm2_moe_layer.cpp:1843` only sets norm_on_accel when out_add && in_norm. Therefore current LFM normal prefill executes:
+
+1. ARM normRows(raw,input,in_gamma), including gamma multiply.
+2. Router over that same normalized input. router_norm=false, so the router receives gamma=nullptr. FP32 dot is unchanged.
+3. Plain `mm_u8i4_moe_layer`, with no pre/post gamma and no add_x2. It copies activation to cached DSP scratch, quantizes once, runs experts, and copies the cached result out.
+4. Separate residual_add.
+
+`gelu_act` is false, so DSP act=0. Current trace guard's geometry is correct; v1 placement in norm_impl and its pre_gammaLen requirement were wrong for the actual dispatch. V2 wraps the existing plain core call; f=0 is expected. Its initial load warmup is followed by38 real MoE calls.
+
+## Why the pre-norm gate is tied to out_add
+
+The source comment at `lfm2_moe_layer.cpp:1837` records a historical Gemma experiment: pre-norm alone did not help; it was retained with out_add because the DSP then already owns the raw residual rows for Gemma's fused epilogue. This is a historical reason, not evidence that standalone pre-norm cannot help current native LFM.
+
+The gate also matches a data dependency. For LFM, `router_in_` is `input_` (normalized expert input), because router_norm=false and there is only one input. Merely widening norm_on_accel to in_norm would suppress the CPU write to input_ and leave the router reading an uncomputed tensor. Existing error/fallback and debug/shadow paths also depend on the CPU-normalized input.
+
+## Existing norm RPC can express expert-only pre-norm
+
+The API already supports pre_gamma with post_gamma=null and add_x2=null, so no new IDL is required for a standalone expert pre-norm experiment. DSP norm_impl sets scratch.pre_gamma/pre_eps, calls the same core, then clears the flags. The core's act_direct path reads each raw row through per-lane norm scratch and quantizes it, omitting the full activation DMA-to-cached copy. It still uses cached out_c and copies output out because out_heap=false.
+
+But a safe app change must separate three decisions currently represented by one bool:
+
+- expert pre-norm is folded;
+- a CPU normalized tensor is required by the router/debug/fallback;
+- Gemma residual epilogue is folded.
+
+The current code uses norm_on_accel to access x2, add_gamma, add_scale and to synchronize x2 on fallback. With LFM's out_add=false those values/weight indices do not exist. A one-line predicate change is unsafe even if the router is repaired.
+
+Two variants are possible:
+
+| Variant | Preserved / changed work | Main gate |
+|---|---|---|
+| Keep router's exact ARM norm, fold only experts | Routing remains based on existing bytes. DSP redoes RMSNorm for experts, so this duplicates RMSNorm and may require another raw-input staging copy after router. It only potentially avoids the core input DMA. | Replay actual activations and compare quantized codes/scales and final65 IDs; count staging, not just kernel time. |
+| Fold norm into both existing router and existing expert RPCs | Pass raw+in_gamma to router_logits and raw+in_gamma to MoE. Removes CPU full normalized tensor production, but computes RMSNorm twice on DSP. | Router logits/top4/weights may change due arithmetic order. Requires strict route, output-ID and same-handle repeat comparison. |
+
+Neither variant is automatically exact. ARM uses four four-lane FP32 FMA accumulators over16 elements, horizontally sums each, then adds those sums (`neon_impl.cpp:1888`). Current HVX norm accumulates32 lanes using qf32 operations and a different rotation reduction (`hvx_rmsnorm_rows_f32.c:44–80`). Both compute RMSNorm mathematically, but their rounding trees differ. Quantization's row-scale invariance may hide some differences, but it does not prove identical FP32 logits, codes or output IDs. A parity-preserving implementation would need to reproduce the ARM reduction/order or retain its normalized bytes.
+
+Current router also already copies the normalized MxK activation into **the same session's moe_scratch** for its cached FP32 dot (`nntr_hvx_mm_u8i4.c`, router_logits_f32). The later MoE repeats an input copy into a different carved offset. Reusing those cached bytes is an alternative to recomputing RMSNorm, but is not a pointer toggle: the MoE's early scratch metadata and activation-AH carving overlap the router's storage at scratch.base, and another reserve can relocate it. Any reuse needs explicit lifetime/overlap/shape validation and a shared layout that preserves the bytes. No new weight cache is necessary, but zero extra activation allocation is not yet demonstrated.
+
+## out_add=true is not equivalent to LFM residual_add
+
+Gemma's addEpilogue computes:
+
+`out = scale * (raw + gamma * RMSNorm(moe + x2))`.
+
+The DSP norm_add helper implements the same extra sum, RMSNorm, optional gamma and scale. It requires two app inputs plus add_gamma/add_scale weights. LFM expects `out = raw + moe`; it has no parallel dense x2 and no post-FFN norm/gamma/scale. Setting x2=0, gamma=1, scale=1 still leaves RMSNorm(moe), so it is not equivalent. Removing the separate residual and enabling out_add would change the model and weight-loading structure. The decode graph separately binds its FFN RMSNorm and residual operations, so that builder rewrite also requires a graph-schema/binding audit. It should not be used for this optimization.
+
+## Known load warmup: purpose and safe preparation scope
+
+Caller: `gemma4_htp_weights.cpp:402–426,466–492`. It chooses one fully resident MoE layer after preload registration, constructs zero activation, E64 experts, row_count=64 each, row indices `(expert*64+row)%M`, and all row weights0. It invokes the full GEMM through the normal backend and discards output. This is before `load_weight` returns and before the prefill timer.
+
+The current full call has several setup effects:
+
+| Effect | Where / whether full dummy matmul is required |
+|---|---|
+| Expert/FC registration | Preloaded virtual experts are already registered by preloadExperts; get_or_register_wh resolves those handles. Preserve handle checks/binding; no dummy matmul is needed for registration itself. |
+| Options and graph binding | sendMoeOptsOnce plus virtual-pool graph binding/dirty flags run in gemm_qs4cx_moe_layer_fp32. Preserve their explicit initialization if bypassing that wrapper. |
+| ARM ION act/out staging pool growth and first touch | invokeMoeLayer allocates/stages MxK / MxN buffers. Needed preparation can be done without weight matmul; do not just remove the call and leave allocations to first real prefill. |
+| DSP worker pool / HMX lock / config | Already constructed in nntr_hvx_open (hvx_add_f32.c:165–188). Not created by the dummy expert math. |
+| Accumulator layout calibration | hexkl_acc_layout_get performs its once-per-PD ramp + vendor tile copy and validates every tile element. Preserve this small probe; it is not a full expert GEMM. |
+| DSP scratch bound, allocation and first touch | hexkl_mm_u8i4_moe_layer_run computes layout and reserves before expert DMA. This can be factored into a preparation helper; materialization/first-touch must be accounted for honestly. |
+| Full E64 native weight DMA/expand, GU/DN HMX, quant/dequant/SwiGLU/scatter | These compute an ignored result. They are removable from a **caller-explicit preparation operation**, provided the above initialization and error checks remain. Never add a general all-zero-weight skip to production inference. |
+| Warm instruction/data caches | Some first real call may be colder without the dummy computation. Measure whole process/load and first/steady prefill; do not claim only a reduced load timer. |
+
+The dummy's scratch bound is based on E*64 routed rows. For M1024/E64/top4 this equals the real4096 routed rows; its reservation includes64*63 padding slack. For M2048, if INIT_SEQ_LEN is2048, the dummy still requests4096 routed rows while actual top4 needs8192. Thus it is not a general maximum-row preparation plan. Also, allocation capacity and first-touch are different: dummy math only packs the actual4096 slots, not every reserved padded slot. A replacement should document the pages it initializes rather than claiming the old call touched every scratch page.
+
+The correct production direction would be an explicit `prepare` capability called only from this known warmup site, with fallback to today's warmup on unsupported backends. Reuse extracted shape/scratch planning rather than copying formulas. A private, scoped prepare flag over an existing RPC could avoid a new IDL, but then must be serialized and restored on every success/failure path, must not enter decode, and must not become a user-supplied global zero-skip flag. A dedicated preparation RPC is clearer if that broader change is eventually authorized; it is not part of the current diagnostic patch.
+
+This is a **load/startup optimization**, not automatically a prefill TPS improvement. A full removal that shifts required allocations/calibration into the timed first prefill is not an acceptable win. No implementation is proposed before the v2 normal stage data and a narrowly scoped preparation design are reviewed.

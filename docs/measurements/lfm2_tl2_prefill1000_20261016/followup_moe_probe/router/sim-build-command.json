@@ -1,0 +1,16 @@
+[
+  "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04/Tools/bin/hexagon-clang",
+  "-mv81",
+  "-mhvx",
+  "-mhvx-length=128B",
+  "-G0",
+  "-O3",
+  "/tmp/nntr-lfm2-router-audit-20261016/router_kernel_check.c",
+  "/tmp/nntr-lfm2-router-audit-20261016/compile/base/test_router.o",
+  "/tmp/nntr-lfm2-router-audit-20261016/compile/pipeline_off/test_router.o",
+  "-Wl,--gc-sections",
+  "-lhexagon",
+  "-lm",
+  "-o",
+  "/tmp/nntr-lfm2-router-audit-20261016/router_kernel_check"
+]
