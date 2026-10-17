@@ -89,6 +89,7 @@ test_target = [
   'unittest_layers_sine.cpp',
   'unittest_layers_cosine.cpp',
   'unittest_layers_tangent.cpp',
+  'unittest_layers_unary_derivative.cpp',
   'unittest_layers_matmul.cpp',
   'unittest_layers_cast.cpp',
   'unittest_layers_multiout.cpp',
