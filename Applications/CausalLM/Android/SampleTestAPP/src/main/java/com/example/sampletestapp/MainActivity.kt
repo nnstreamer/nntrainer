@@ -2818,6 +2818,9 @@ class MainActivity : AppCompatActivity() {
         text.replace("<|image_strart|>", "<|image_start|>")
 
     private val exampleByModelId: Map<String, String> = mapOf(
+        ModelIds.LFM2_24BA2B_HTP to """[
+  {"role": "user", "content": "Explain three practical ways to conserve water at home. Use a numbered list with two sentences per item."}
+]""",
         ModelIds.GEMMA4 to """[
   {"role": "system", "content": "You are a concise vision assistant."},
   {"role": "user", "content": [{"type": "text", "text": "Describe this image."}, {"type": "image_url", "image_url": {"url": "sampletestapp://selected-image"}}]}
@@ -2850,8 +2853,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadDefaultChatPromptFor(descriptor: ModelDescriptor?) {
-        if (descriptor?.id != ModelIds.GEMMA4_26B_A4B_HTP) return
-        val prompt = Json.parseToJsonElement(gemma4MoeExample).jsonArray[0]
+        val example = when (descriptor?.id) {
+            ModelIds.GEMMA4_26B_A4B_HTP -> gemma4MoeExample
+            ModelIds.LFM2_24BA2B_HTP -> exampleByModelId.getValue(ModelIds.LFM2_24BA2B_HTP)
+            else -> return
+        }
+        val prompt = Json.parseToJsonElement(example).jsonArray[0]
             .jsonObject.getValue("content").jsonPrimitive.content
         chatPromptText = prompt
         if (::chatPromptField.isInitialized) chatPromptField.setText(prompt)
@@ -2915,6 +2922,7 @@ class MainActivity : AppCompatActivity() {
         ModelIds.FUNCTION_GEMMA to "function_gemma",
         ModelIds.GEMMA4_CPU     to "gemma4_cpu",
         ModelIds.GEMMA4_26B_A4B_HTP to "gemma4-26b-a4b-htp-w4a32",
+        ModelIds.LFM2_24BA2B_HTP to "lfm2-24ba2b-htp-w4a32",
         ModelIds.GEMMA4_E2B_QNN to "gemma-4-e2b-qnn",
         ModelIds.VJEPA_QNN      to "vjepa2-qnn",
     )

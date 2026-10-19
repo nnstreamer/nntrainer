@@ -10,19 +10,24 @@ import android.view.WindowManager
 import android.widget.EditText
 import android.widget.TextView
 import androidx.core.widget.NestedScrollView
+import androidx.test.espresso.Espresso.onData
+import androidx.test.espresso.action.ViewActions.click as espressoClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.example.quickdotai.ModelCatalog
+import com.example.quickdotai.ModelIds
 import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executor
 import java.util.concurrent.TimeUnit
 import org.json.JSONObject
+import org.hamcrest.Matchers.hasToString
 import org.junit.Assert.*
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** Opt-in device test: requires the v81 HTP build and a staged Gemma4 model. */
+/** Opt-in device test: requires the v81 HTP build and a staged HTP model. */
 @RunWith(AndroidJUnit4::class)
 class HtpAppLifecycleTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
@@ -59,6 +64,29 @@ class HtpAppLifecycleTest {
     private fun status(): String = ui { field<String>("statusText") }
     private fun output(): String = ui { field<String>("outputText") }
 
+    private fun selectModel(modelId: String, chat: Boolean = false) {
+        val descriptor = requireNotNull(ModelCatalog.byId(modelId))
+        val familyField = if (chat) "chatSelFamily" else "selFamily"
+        ui { field<NestedScrollView>("mainScrollView").scrollTo(0, 0) }
+        instrumentation.waitForIdleSync()
+        val currentFamily = ui { field<String>(familyField) }
+        if (currentFamily != descriptor.family) {
+            ui {
+                val value = views(activity.window.decorView).filterIsInstance<TextView>()
+                    .first { it.text.toString() == currentFamily }
+                assertTrue((value.parent as View).performClick())
+            }
+            onData(hasToString(descriptor.family)).perform(espressoClick())
+        }
+        click(descriptor.runtime.name)
+        click("NPU")
+        assertEquals(descriptor.family, ui { field<String>(familyField) })
+        if (!chat) {
+            assertTrue("Model folder must match the public API",
+                ui { field<String>("modelPathText") }.endsWith("/$modelId-w4a32"))
+        }
+    }
+
     private fun await(label: String, condition: () -> Boolean) {
         val deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(4)
         while (!condition()) {
@@ -90,6 +118,72 @@ class HtpAppLifecycleTest {
         File(report, "$name.txt").writeText(text)
         assertTrue("Missing native token trace", File(report, "trace-$name.json").isFile)
         return text
+    }
+
+    @Test
+    fun lfm2ChatOpensFromDefaultPathAfterActivityRestart() {
+        val args = InstrumentationRegistry.getArguments()
+        assumeTrue("Stage LFM2 under the app's default model base path first",
+            args.getString("htpDefaultPathCheck") == "true")
+        val context = instrumentation.targetContext
+        report = File(context.filesDir, "htp-default-path-validation").apply { mkdirs() }
+        val prompt = "Explain three practical ways to conserve water at home. " +
+            "Use a numbered list with two sentences per item."
+        val messages = org.json.JSONArray().put(JSONObject()
+            .put("role", "user").put("content", prompt)).toString()
+        var firstOutput: String? = null
+        repeat(2) { attempt ->
+            activity = instrumentation.startActivitySync(
+                Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            ) as MainActivity
+            try {
+                ui { activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
+                click("Chat")
+                selectModel(ModelIds.LFM2_24BA2B_HTP, chat = true)
+                // Do not inject a model path: this must work after a normal launch.
+                val base = ui { field<EditText>("chatModelBasePathField").text.toString() }
+                assertTrue("Missing model at the app's default path: $base",
+                    File(base, "lfm2-24ba2b-htp-w4a32/nntr_config.json").isFile)
+                click("+ Open")
+                drainWorker()
+                assertTrue(status(), status().startsWith("Chat session opened:"))
+                Os.setenv("NNTR_HTP_TOKEN_TRACE", File(report, "trace-chat-$attempt.json").path, true)
+                assertEquals("LFM2 must use its own default chat example", prompt,
+                    ui { field<EditText>("chatPromptField").text.toString() })
+                click("▶")
+                drainWorker()
+                assertTrue(status(), status().startsWith("Chat done."))
+                val chatOutput = output()
+                assertTrue("Empty chat output", chatOutput.isNotBlank())
+                File(report, "chat-$attempt.txt").writeText(chatOutput)
+                assertTrue(File(report, "trace-chat-$attempt.json").isFile)
+                if (firstOutput == null) firstOutput = chatOutput
+                else assertEquals(firstOutput, chatOutput)
+                ui { field<NestedScrollView>("mainScrollView").fullScroll(View.FOCUS_DOWN) }
+                instrumentation.waitForIdleSync()
+                File(report, "chat-$attempt.png").outputStream().use {
+                    instrumentation.uiAutomation.takeScreenshot().compress(Bitmap.CompressFormat.PNG, 100, it)
+                }
+                click("Close")
+                drainWorker()
+                click("OpenAI")
+                selectModel(ModelIds.LFM2_24BA2B_HTP)
+                assertEquals(base, ui { field<EditText>("modelBasePathField").text.toString() })
+                assertEquals(org.json.JSONArray(messages).toString(), org.json.JSONArray(
+                    ui { field<EditText>("openAIMessagesField").text.toString() }).toString())
+                assertEquals(chatOutput, run("openai-$attempt", messages))
+                click("Unload")
+                drainWorker()
+                File(report, "base-path.txt").writeText(base)
+            } finally {
+                ui { activity.finish() }
+                instrumentation.waitForIdleSync()
+            }
+        }
+        File(report, "result.json").writeText(JSONObject()
+            .put("status", "passed").put("activityLaunches", 2)
+            .put("pathInjected", false).put("chatPromptInjected", false)
+            .put("chatRuns", 2).put("openAiRuns", 2).toString(2))
     }
 
     @Test
@@ -161,6 +255,7 @@ class HtpAppLifecycleTest {
     @Test
     fun loadGenerateStopRepeatReloadAndReportInvalidPath() {
         val args = InstrumentationRegistry.getArguments()
+        val modelId = args.getString("htpModelId") ?: ModelIds.GEMMA4_26B_A4B_HTP
         val base = args.getString("htpModelBase")
         val messagesPath = args.getString("htpMessages")
         assumeTrue("Supply htpModelBase and htpMessages for the v81 device test",
@@ -173,11 +268,11 @@ class HtpAppLifecycleTest {
         ) as MainActivity
         try {
             ui { activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
-            assertEquals("gemma4-26b-a4b", ui { field<String>("selFamily") })
+            selectModel(modelId)
             ui { field<EditText>("modelBasePathField").setText(base) }
             click("Load model")
             drainWorker()
-            assertTrue(status(), status().startsWith("Loaded gemma4-26b-a4b-htp"))
+            assertTrue(status(), status().startsWith("Loaded $modelId"))
             val first = run("first", messages)
             assertEquals(first, run("repeat", messages))
             val partial = run("cancel", messages, stop = true)
@@ -225,6 +320,7 @@ class HtpAppLifecycleTest {
             File(report, "result.json").writeText(JSONObject().apply {
                 put("status", "passed")
                 put("package", context.packageName)
+                put("modelId", modelId)
                 put("nativeLibraryDir", context.applicationInfo.nativeLibraryDir)
                 put("modelBasePath", base)
                 put("invalidPathError", invalidPathError)
