@@ -731,6 +731,43 @@ public:
 };
 
 /**
+ * @class ActivationDtype
+ * @brief Activation dtype of the layer, overriding the model's
+ * model_tensor_type for this node only.
+ *
+ * A heterogeneous graph runs part of its nodes on the device and part on the
+ * host, and the two sides are not equally fast per dtype: measured on an Adreno
+ * 840 with the 0.6B decision model (200-token prompt, same session, 44-45 C),
+ * the frozen blocks take 82.3 ms with FP16 activations against 128.3 ms with
+ * FP32 (CPU: 167.5 ms). The trainable side must stay FP32 -- its backward,
+ * LoRA fake-quant and loss are FP32-only -- so one dtype for the whole graph
+ * forces the frozen side to pay 56 %. Naming the dtype per node lets the frozen
+ * region run FP16 and the trainable region FP32 in ONE graph, which is what
+ * removes the second model file the two-graph hybrid needs today.
+ *
+ * Applies to the tensors the node requests as output; a downstream node takes
+ * its input dtype from its producer, so the regions meet at an explicit
+ * "cast" node rather than silently.
+ */
+class ActivationDtype final : public EnumProperty<TensorDataTypeInfo> {
+public:
+  using prop_tag = enum_class_prop_tag;
+  static constexpr const char *key = "activation_dtype";
+
+  /**
+   * @brief Constructor
+   */
+  ActivationDtype(){};
+
+  /**
+   * @brief Constructor
+   *
+   * @param value value to set
+   */
+  ActivationDtype(TensorDataTypeInfo::Enum value) { set(value); };
+};
+
+/**
  * @brief Input Data Type Enumeration Information
  *  This property can be used by input layers to preserve a non-default
  *  placeholder dtype instead of inheriting the model activation dtype.

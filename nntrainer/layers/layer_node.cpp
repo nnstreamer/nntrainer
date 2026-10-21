@@ -234,7 +234,8 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   layer_node_props(
     new PropsType(props::Name(), props::Distribute(), props::Trainable(), {},
                   {}, props::SharedFrom(), props::ClipGradByGlobalNorm(),
-                  props::Packed(), props::WeightDtype(), props::InputDtype(),
+                  props::Packed(), props::WeightDtype(),
+                  props::ActivationDtype(), props::InputDtype(),
                   props::LossScaleForMixed(), props::ComputeEngine())),
   layer_node_props_realization(
     new RealizationPropsType(props::Flatten(), props::Activation())),
@@ -733,6 +734,20 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims,
   if (!std::get<props::WeightDtype>(*layer_node_props).empty()) {
     // set weight type = tensor_data_type
     tensor_type[1] = to_string(std::get<props::WeightDtype>(*layer_node_props));
+  }
+
+  // Last, after the packed handling and after weight_dtype, on purpose. An
+  // unpacked layer takes its WEIGHT dtype from its activation dtype above, which
+  // is how an FP16 model gets FP16 norms; a node that only asks to run its
+  // activations in another dtype must not drag the weight dtype with it, because
+  // weight_dtype is what the checkpoint's byte offsets are computed from. The
+  // consequence, stated rather than hidden: a node whose activations are pinned
+  // away from the dtype its weights were saved in needs those weights converted
+  // to match (see Transformer::setFrozenPrefixEngine(), which refuses the
+  // combination until that exists).
+  if (!std::get<props::ActivationDtype>(*layer_node_props).empty()) {
+    tensor_type[2] =
+      to_string(std::get<props::ActivationDtype>(*layer_node_props));
   }
 
   std::vector<bool> out_info;
