@@ -202,6 +202,23 @@ public:
 
   inline static const std::string type = "tie_word_embeddings";
 
+  /**
+   * @brief Record that the Q4_0 table at @a base has been repacked in place
+   * to q4_0x4 (groups of 4 rows interleaved, interleave 8, codes XOR 0x88:
+   * the operand layout of the Q4_0 x Q8_0 GEMM). A tied head that runs its
+   * logits GEMM on the table itself (lm_head_loss) does this, so the
+   * embedding lookup and the head share one int4 copy; the lookup then reads
+   * rows from the repacked layout.
+   */
+  WIN_EXPORT static void markQ4_0x4Table(const void *base);
+  /** @brief whether the Q4_0 table at @a base was repacked (markQ4_0x4Table) */
+  WIN_EXPORT static bool isQ4_0x4Table(const void *base);
+  /**
+   * @brief Dequantize row @a row of a q4_0x4 table of @a k columns into @a y
+   */
+  WIN_EXPORT static void dequantizeRowQ4_0x4(const void *base, size_t row,
+                                             unsigned int k, float *y);
+
 private:
   std::tuple<nntrainer::props::InDim, nntrainer::props::OutDim,
              nntrainer::props::Unit, nntrainer::props::Scale>

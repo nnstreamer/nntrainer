@@ -33,6 +33,8 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <mutex>
+#include <unordered_set>
 #include <vector>
 
 #if defined(ENABLE_CUDA) && ENABLE_CUDA == 1
@@ -87,6 +89,82 @@ void tie_emb_stage_h2d_wait() {
 #endif
 
 namespace nntrainer {
+
+namespace {
+std::mutex &q4x4TableMutex() {
+  static std::mutex m;
+  return m;
+}
+/** IEEE fp16 bits -> float (the Q4_0 block scale) */
+float halfToFloat(uint16_t h) {
+  const uint32_t sign = (uint32_t)(h & 0x8000) << 16;
+  uint32_t exp = (h >> 10) & 0x1F;
+  uint32_t mant = h & 0x3FF;
+  uint32_t bits;
+  if (exp == 0) {
+    if (mant == 0) {
+      bits = sign;
+    } else { // subnormal: normalize
+      exp = 127 - 15 + 1;
+      while ((mant & 0x400) == 0) {
+        mant <<= 1;
+        --exp;
+      }
+      bits = sign | (exp << 23) | ((mant & 0x3FF) << 13);
+    }
+  } else if (exp == 0x1F) {
+    bits = sign | 0x7F800000 | (mant << 13);
+  } else {
+    bits = sign | ((exp + 127 - 15) << 23) | (mant << 13);
+  }
+  float f;
+  std::memcpy(&f, &bits, sizeof(f));
+  return f;
+}
+
+std::unordered_set<const void *> &q4x4Tables() {
+  static std::unordered_set<const void *> s;
+  return s;
+}
+} // namespace
+
+void TieWordEmbedding::markQ4_0x4Table(const void *base) {
+  std::lock_guard<std::mutex> lock(q4x4TableMutex());
+  q4x4Tables().insert(base);
+}
+
+bool TieWordEmbedding::isQ4_0x4Table(const void *base) {
+  std::lock_guard<std::mutex> lock(q4x4TableMutex());
+  return q4x4Tables().count(base) != 0;
+}
+
+void TieWordEmbedding::dequantizeRowQ4_0x4(const void *base, size_t row,
+                                           unsigned int k, float *y) {
+  // block_q4_0x4: 4 fp16 scales (one per row of the group), then 64 code
+  // bytes in 8-byte chunks; chunk i holds bytes (i / 4) * 8 .. + 8 of row
+  // i % 4's plain block, XOR 0x88 (see nntr_make_block_q4_0x4).
+  constexpr size_t BLOCK_X4_BYTES = 4 * sizeof(uint16_t) + 64;
+  const unsigned int nb = k / 32;
+  const unsigned int ri = static_cast<unsigned int>(row % 4);
+  const uint8_t *grp = static_cast<const uint8_t *>(base) +
+                       (row / 4) * (size_t)nb * BLOCK_X4_BYTES;
+  for (unsigned int x = 0; x < nb; ++x) {
+    const uint8_t *blk = grp + (size_t)x * BLOCK_X4_BYTES;
+    uint16_t d16;
+    std::memcpy(&d16, blk + ri * sizeof(uint16_t), sizeof(d16));
+    const float d = halfToFloat(d16);
+    const uint8_t *qs = blk + 4 * sizeof(uint16_t);
+    float *o = y + (size_t)x * 32;
+    for (unsigned int c = 0; c < 2; ++c) {
+      const uint8_t *src = qs + (c * 4 + ri) * 8;
+      for (unsigned int j = 0; j < 8; ++j) {
+        const uint8_t b = src[j] ^ 0x88;
+        o[c * 8 + j] = (float)((b & 0x0F) - 8) * d;
+        o[c * 8 + j + 16] = (float)((b >> 4) - 8) * d;
+      }
+    }
+  }
+}
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
@@ -496,10 +574,14 @@ void TieWordEmbedding::incremental_forwarding_embedding(
             tmp.data(), out_dim);
         } else {
           int num_blocks_per_row = (weight.width() + 32 - 1) / 32;
-          nntrainer::dequantize_row_q4_0(
-            (void *)((char *)weight.getData<uint8_t>() +
-                     (18 * num_blocks_per_row) * embed_idx),
-            tmp.data(), out_dim);
+          if (isQ4_0x4Table(weight.getData<uint8_t>()))
+            dequantizeRowQ4_0x4(weight.getData<uint8_t>(), embed_idx,
+                                weight.width(), tmp.data());
+          else
+            nntrainer::dequantize_row_q4_0(
+              (void *)((char *)weight.getData<uint8_t>() +
+                       (18 * num_blocks_per_row) * embed_idx),
+              tmp.data(), out_dim);
         }
         if (out_tensor.getDataType() == nntrainer::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
@@ -662,6 +744,10 @@ void TieWordEmbedding::incremental_forwarding_lmhead(
       << "weight type is not supported for custom tie word embedding layer";
 
     if (weight.getDataType() == nntrainer::TensorDim::DataType::Q4_0) {
+      NNTR_THROW_IF(isQ4_0x4Table(weight.getData<uint8_t>()),
+                    std::runtime_error)
+        << "[tie_word_embeddings] the Q4_0 table was repacked to q4_0x4 by a "
+           "training head; this lm_head reads plain Q4_0 rows";
       ///@note Q4_0 tensor dot does not support trans_in=true for the
       /// embedding-shaped tied weight, so compute each vocab row explicitly.
       const unsigned int hidden_size = input_step.width();
