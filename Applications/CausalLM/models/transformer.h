@@ -618,6 +618,16 @@ public:
   virtual void resetLogitsProcessor() {}
 
   /**
+   * @brief Turn activation checkpointing on or off for the training graph
+   *        (default: the nntr_config key activation_checkpointing, else off).
+   *        Call before initializeForTraining().
+   */
+  void setActivationCheckpointing(bool enable) { ACTIVATION_CKPT = enable; }
+
+  /** @brief whether the training graph uses activation checkpointing */
+  bool activationCheckpointing() const { return ACTIVATION_CKPT; }
+
+  /**
    * @brief Train a decision model instead of a language model: the training
    *        graph ends in decision_head_loss (the 26 letter rows of the tied
    *        embedding at the last prompt token) rather than lm_head_loss.
@@ -972,6 +982,8 @@ protected:
   bool weight_repacked_ = false;
   /** repack_weight() releases the plain QS4CX payloads it packed */
   bool release_plain_on_repack_ = true;
+  /** activation checkpointing in the training graph (off by default) */
+  bool ACTIVATION_CKPT = false;
   unsigned int MAX_POSITION_EMBEDDINGS; /**< max_position embeddings */
   bool MEMORY_SWAP;                     /**< memory swap option */
   unsigned int FSU_LOOKAHEAD;

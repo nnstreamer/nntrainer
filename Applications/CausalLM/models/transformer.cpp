@@ -469,6 +469,7 @@ void Transformer::setupParameters(json &cfg, json &generation_cfg,
                 nntr_cfg["lora_train_norms"].get<bool>();
   LORA_QAT = nntr_cfg.contains("lora_qat") && nntr_cfg["lora_qat"].get<bool>();
   QAT_EMA_MOMENTUM = nntr_cfg.value("lora_qat_ema_momentum", 0.1f);
+  ACTIVATION_CKPT = nntr_cfg.value("activation_checkpointing", false);
 
   return;
 };
@@ -636,6 +637,8 @@ void Transformer::initializeForTraining(float lr, unsigned int epochs,
     withKey("batch_size", BATCH_SIZE),
     withKey("epochs", std::to_string(epochs)),
     withKey("model_tensor_type", MODEL_TENSOR_TYPE)};
+  if (ACTIVATION_CKPT)
+    model_props.push_back(withKey("activation_checkpointing", "true"));
   model->setProperty(model_props);
 
   std::vector<std::string> opt_props = {withKey("learning_rate", lr)};

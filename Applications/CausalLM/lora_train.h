@@ -221,6 +221,11 @@ struct TrainParams {
   /** stop early after this many consecutive epochs without a validation
    *  improvement (0 = never stop early; requires validate) */
   unsigned int patience = 0;
+  /** activation checkpointing: drop each trained decoder block's activations
+   *  after its forward and recompute them before its backward (lower peak
+   *  memory, one more forward of those blocks per step). Off by default; the
+   *  nntr_config key activation_checkpointing sets it too. */
+  bool activation_ckpt = false;
   /** "lm": next-token loss on every position of text lines; "decision":
    *  train a decision model on eve-rlcd JSONL questions (decision.h). */
   std::string task = "lm";

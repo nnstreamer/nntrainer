@@ -79,6 +79,10 @@ void printUsage(const char *prog) {
     << "                        the channel scales over more steps — try "
        "0.01\n"
     << "                        if long QAT runs destabilize.\n"
+    << "  --activation_ckpt     activation checkpointing: recompute each\n"
+    << "                        trained decoder block's activations before\n"
+    << "                        its backward instead of keeping them (lower\n"
+    << "                        peak memory, slower step; default: off)\n"
     << "  --validate            run a validation pass after every epoch and\n"
     << "                        keep the adapter with the best validation\n"
     << "                        loss (default: off -- the adapter with the\n"
@@ -525,6 +529,10 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
                 << ")" << std::endl;
     }
 
+    if (params.activation_ckpt)
+      model.setActivationCheckpointing(true);
+    std::cout << "act. ckpt:    "
+              << (model.activationCheckpointing() ? "on" : "off") << std::endl;
     model.initializeForTraining(params.lr, params.epochs, params.lr_decay_rate,
                                 params.lr_decay_steps);
 
@@ -749,6 +757,8 @@ int main(int argc, char *argv[]) {
         params.qat_ema_momentum = std::stof(next("--qat_ema_momentum"));
       else if (arg == "--validate")
         params.validate = true;
+      else if (arg == "--activation_ckpt")
+        params.activation_ckpt = true;
       else if (arg == "--valid_data")
         params.valid_data_path = next("--valid_data");
       else if (arg == "--patience")
