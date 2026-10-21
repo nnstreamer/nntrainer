@@ -888,8 +888,10 @@ void Transformer::installFrozenPrefixWalk() {
     return true;
   });
 
-  std::cout << "frozen prefix: blocks [0, " << FROZEN_PREFIX
-            << ") on engine=" << layerEngine()
+  std::cout << "frozen prefix: blocks [0, " << FROZEN_PREFIX << ") on engine="
+            << (FROZEN_PREFIX_ENGINE.empty() ? layerEngine()
+                                             : FROZEN_PREFIX_ENGINE)
+            << (FROZEN_PREFIX_FP16 ? " (FP16)" : "")
             << (FROZEN_PREFIX_OFFLOAD ? " (base GEMM on gpu)" : "")
             << ", split after compiled node " << split_past << " of "
             << total
@@ -1720,6 +1722,12 @@ void Transformer::load_weight_lora_qint4(const std::string &base_path,
             << lora_qint4_path << std::endl;
 }
 
+std::vector<std::string> Transformer::blockActivationProps(int layer_id) const {
+  if (FROZEN_PREFIX > 0 && layer_id < FROZEN_PREFIX && FROZEN_PREFIX_FP16)
+    return {withKey("activation_dtype", "FP16")};
+  return {};
+}
+
 /**
  * @brief Construct the default decoder-only transformer graph.
  */
@@ -1758,9 +1766,11 @@ std::pair<Tensor, Tensor> Transformer::constructModel() {
   auto embedding_props =
     buildEmbeddingLayerProperties("embedding0", NUM_VOCAB, DIM, EMBEDDING_DTYPE,
                                   EMBEDDING_SCALE, EMBEDDING_FILE_NAME);
-  // The frozen range takes its engine and dtype like every other block of a
-  // training graph (host, model dtype) -- see setFrozenPrefix() for why the
-  // split is not expressed as an engine or a dtype.
+  if (FROZEN_PREFIX > 0 && !FROZEN_PREFIX_ENGINE.empty()) {
+    embedding_props.push_back(withKey("engine", FROZEN_PREFIX_ENGINE));
+    for (const auto &p : blockActivationProps(0))
+      embedding_props.push_back(p);
+  }
   // embedding0 is never a LoRA target: freeze it whenever LoRA is active.
   if (LORA_RANK > 0)
     embedding_props.push_back(withKey("trainable", "false"));
@@ -1768,11 +1778,18 @@ std::pair<Tensor, Tensor> Transformer::constructModel() {
   Tensor h = embedding(x);
 
   // transformer decoder blocks. Both the frozen range and the trainable ones
-  // are built the same way -- the split is a range of the walk, not a
-  // difference in the graph (see setFrozenPrefix()).
+  // are built through blockEngine() so frozen blocks can run on GPU while
+  // trainable blocks stay on CPU in the single graph.
   const int last_block = TRUNK_LAYERS > 0 ? TRUNK_LAYERS : NUM_LAYERS;
   for (int i = 0; i < last_block; ++i) {
     h = createTransformerDecoderBlock(i, h);
+    if (FROZEN_PREFIX > 0 && i == FROZEN_PREFIX - 1 && FROZEN_PREFIX_FP16) {
+      LayerHandle boundary(
+        createLayer("cast", {withKey("name", "frozen_prefix_cast"),
+                             withKey("tensor_dtype", "FP32"),
+                             withKey("engine", layerEngine())}));
+      h = boundary(h);
+    }
   }
   // GPU trunk of a GPU-trunk / CPU-head split: stop at the last frozen block.
   if (TRUNK_LAYERS > 0)
@@ -2074,15 +2091,16 @@ void Transformer::run(const WSTR prompt, bool do_sample,
 Tensor Transformer::createTransformerDecoderBlock(const int layer_id,
                                                   Tensor input) {
 
-  // Every block is built the same way, frozen range included: a training graph
-  // is host layers at the model's dtype (see setFrozenPrefix()).
-  const std::string eng = layerEngine();
+  const std::string eng = blockEngine(layer_id);
+  const auto act_props = blockActivationProps(layer_id);
 
   // norms are never a LoRA target: freeze them whenever LoRA is active.
   std::vector<std::string> attn_norm_props = {
     withKey("name", "layer" + std::to_string(layer_id) + "_attention_norm"),
     withKey("epsilon", std::to_string(NORM_EPS)), withKey("packed", "false"),
     withKey("engine", eng)};
+  for (const auto &p : act_props)
+    attn_norm_props.push_back(p);
   if (LORA_RANK > 0 && !TRAIN_NORMS)
     attn_norm_props.push_back(withKey("trainable", "false"));
   LayerHandle attn_norm(createLayer("rms_norm", attn_norm_props));
@@ -2091,16 +2109,20 @@ Tensor Transformer::createTransformerDecoderBlock(const int layer_id,
   Tensor att_out = createAttention(layer_id, INIT_SEQ_LEN, NUM_HEADS, HEAD_DIM,
                                    normed, normed, normed);
 
-  LayerHandle decoder_add(createLayer(
-    "addition",
-    {withKey("name", "layer" + std::to_string(layer_id) + "_decoder_add"),
-     withKey("engine", eng)}));
+  std::vector<std::string> dec_add_props = {
+    withKey("name", "layer" + std::to_string(layer_id) + "_decoder_add"),
+    withKey("engine", eng)};
+  for (const auto &p : act_props)
+    dec_add_props.push_back(p);
+  LayerHandle decoder_add(createLayer("addition", dec_add_props));
   Tensor residual = decoder_add({input, att_out});
 
   std::vector<std::string> ffn_norm_props = {
     withKey("name", "layer" + std::to_string(layer_id) + "_ffn_norm"),
     withKey("epsilon", std::to_string(NORM_EPS)), withKey("packed", "false"),
     withKey("engine", eng)};
+  for (const auto &p : act_props)
+    ffn_norm_props.push_back(p);
   if (LORA_RANK > 0 && !TRAIN_NORMS)
     ffn_norm_props.push_back(withKey("trainable", "false"));
   LayerHandle ffn_norm(createLayer("rms_norm", ffn_norm_props));
@@ -2108,10 +2130,12 @@ Tensor Transformer::createTransformerDecoderBlock(const int layer_id,
 
   Tensor ffn_out = createMlp(layer_id, DIM, INTERMEDIATE_SIZE, ffn_normed);
 
-  LayerHandle decoder_output(createLayer(
-    "addition",
-    {withKey("name", "layer" + std::to_string(layer_id) + "_decoder_output"),
-     withKey("engine", eng)}));
+  std::vector<std::string> dec_out_props = {
+    withKey("name", "layer" + std::to_string(layer_id) + "_decoder_output"),
+    withKey("engine", eng)};
+  for (const auto &p : act_props)
+    dec_out_props.push_back(p);
+  LayerHandle decoder_output(createLayer("addition", dec_out_props));
   return decoder_output({residual, ffn_out});
 }
 
@@ -2179,12 +2203,16 @@ Tensor Transformer::createAttention(const int layer_id, int seq_len,
                                     int n_heads, int head_dim, Tensor query,
                                     Tensor key, Tensor value) {
 
-  // Q layer
+  const std::string eng = blockEngine(layer_id);
+  const auto act_props = blockActivationProps(layer_id);
+
   // Q layer
   std::vector<std::string> wq_props = {
     withKey("name", "layer" + std::to_string(layer_id) + "_wq"),
     withKey("unit", head_dim * n_heads), withKey("disable_bias", "true"),
-    withKey("weight_initializer", "ones"), withKey("engine", layerEngine())};
+    withKey("weight_initializer", "ones"), withKey("engine", eng)};
+  for (const auto &p : act_props)
+    wq_props.push_back(p);
   if (hasLoRA("wq", layer_id))
     appendLoRAProps(wq_props);
   else if (LORA_RANK > 0)
@@ -2197,7 +2225,9 @@ Tensor Transformer::createAttention(const int layer_id, int seq_len,
     withKey("name", "layer" + std::to_string(layer_id) + "_wk"),
     withKey("unit", head_dim * n_heads / GQA_SIZE),
     withKey("disable_bias", "true"), withKey("weight_initializer", "ones"),
-    withKey("engine", layerEngine())};
+    withKey("engine", eng)};
+  for (const auto &p : act_props)
+    wk_props.push_back(p);
   if (hasLoRA("wk", layer_id))
     appendLoRAProps(wk_props);
   else if (LORA_RANK > 0)
@@ -2210,7 +2240,9 @@ Tensor Transformer::createAttention(const int layer_id, int seq_len,
     withKey("name", "layer" + std::to_string(layer_id) + "_wv"),
     withKey("unit", head_dim * n_heads / GQA_SIZE),
     withKey("disable_bias", "true"), withKey("weight_initializer", "ones"),
-    withKey("engine", layerEngine())};
+    withKey("engine", eng)};
+  for (const auto &p : act_props)
+    wv_props.push_back(p);
   if (hasLoRA("wv", layer_id))
     appendLoRAProps(wv_props);
   else if (LORA_RANK > 0)
@@ -2220,26 +2252,22 @@ Tensor Transformer::createAttention(const int layer_id, int seq_len,
 
   // Attention core layer (frozen: GQA has no learnable weights beyond
   // Q/K/V/O, so there's nothing here for LoRA to target)
-  LayerHandle mha(createLayer(
-    "mha_core",
-    {
-      withKey("name", "layer" + std::to_string(layer_id) + "_attention"),
-      withKey("num_heads", n_heads),
-      withKey("num_heads_kv", n_heads / GQA_SIZE),
-      withKey("max_timestep", std::to_string(MAX_SEQ_LEN)),
-      withKey("init_seq_len", std::to_string(INIT_SEQ_LEN)),
-      withKey("sliding_window", getLayerSlidingWindow(layer_id)),
-      withKey("rope_theta", ROPE_THETA),
-      withKey("max_position_embeddings", MAX_POSITION_EMBEDDINGS),
-      withKey("max_new_tokens", std::to_string(NUM_TO_GENERATE)),
-      withKey("is_causal", IS_CAUSAL ? "true" : "false"),
-      // nntr_config "use_flash_attention" (default true) selects the flash
-      // (GEMM) arm: the host one on the cpu engine, the device attention on a
-      // GPU engine whose arm can run; false keeps the per-row host path. See
-      // causallm_gemm_attention().
-      withKey("use_gemm_attention",
-              causallm_gemm_attention(USE_FLASH_ATTENTION) ? "true" : "false"),
-    }));
+  std::vector<std::string> mha_props = {
+    withKey("name", "layer" + std::to_string(layer_id) + "_attention"),
+    withKey("num_heads", n_heads),
+    withKey("num_heads_kv", n_heads / GQA_SIZE),
+    withKey("max_timestep", std::to_string(MAX_SEQ_LEN)),
+    withKey("init_seq_len", std::to_string(INIT_SEQ_LEN)),
+    withKey("sliding_window", getLayerSlidingWindow(layer_id)),
+    withKey("rope_theta", ROPE_THETA),
+    withKey("max_position_embeddings", MAX_POSITION_EMBEDDINGS),
+    withKey("max_new_tokens", std::to_string(NUM_TO_GENERATE)),
+    withKey("is_causal", IS_CAUSAL ? "true" : "false"),
+    withKey("use_gemm_attention",
+            causallm_gemm_attention(USE_FLASH_ATTENTION) ? "true" : "false")};
+  if (layer_id < FROZEN_PREFIX)
+    mha_props.push_back(withKey("forward_only", "true"));
+  LayerHandle mha(createLayer("mha_core", mha_props));
 
   Tensor a;
   if (FOR_TRAINING) {
@@ -2256,7 +2284,9 @@ Tensor Transformer::createAttention(const int layer_id, int seq_len,
   std::vector<std::string> wo_props = {
     withKey("name", "layer" + std::to_string(layer_id) + "_attention_out"),
     withKey("unit", DIM), withKey("disable_bias", "true"),
-    withKey("weight_initializer", "ones"), withKey("engine", layerEngine())};
+    withKey("weight_initializer", "ones"), withKey("engine", eng)};
+  for (const auto &p : act_props)
+    wo_props.push_back(p);
   if (hasLoRA("wo", layer_id))
     appendLoRAProps(wo_props);
   else if (LORA_RANK > 0)
@@ -2271,9 +2301,8 @@ Tensor Transformer::createAttention(const int layer_id, int seq_len,
 Tensor Transformer::createMlp(const int layer_id, int dim, int hidden_dim,
                               Tensor input) {
 
-  // Same engine as every other block of a training graph (see
-  // setFrozenPrefix()).
-  const std::string eng = layerEngine();
+  const std::string eng = blockEngine(layer_id);
+  const auto act_props = blockActivationProps(layer_id);
 
   // A positional .bin is read in graph order, and the graph is collected by
   // walking back from the output through each layer's inputs in order, so
@@ -2286,6 +2315,8 @@ Tensor Transformer::createMlp(const int layer_id, int dim, int hidden_dim,
     withKey("name", "layer" + std::to_string(layer_id) + "_ffn_gate"),
     withKey("unit", hidden_dim), withKey("disable_bias", "true"),
     withKey("weight_initializer", "ones"), withKey("engine", eng)};
+  for (const auto &p : act_props)
+    ffn_gate_props.push_back(p);
   if (hasLoRA("ffn_gate", layer_id))
     appendLoRAProps(ffn_gate_props);
   else if (LORA_RANK > 0)
@@ -2297,6 +2328,8 @@ Tensor Transformer::createMlp(const int layer_id, int dim, int hidden_dim,
     withKey("name", "layer" + std::to_string(layer_id) + "_ffn_up"),
     withKey("unit", hidden_dim), withKey("disable_bias", "true"),
     withKey("weight_initializer", "ones"), withKey("engine", eng)};
+  for (const auto &p : act_props)
+    ffn_up_props.push_back(p);
   if (hasLoRA("ffn_up", layer_id))
     appendLoRAProps(ffn_up_props);
   else if (LORA_RANK > 0)
@@ -2307,6 +2340,8 @@ Tensor Transformer::createMlp(const int layer_id, int dim, int hidden_dim,
   std::vector<std::string> swiglu_props = {
     withKey("name", "layer" + std::to_string(layer_id) + "_ffn_swiglu"),
     withKey("engine", eng)};
+  for (const auto &p : act_props)
+    swiglu_props.push_back(p);
   LayerHandle swiglu(createLayer("swiglu", swiglu_props));
   Tensor act = swiglu({gate, up});
 
@@ -2314,6 +2349,8 @@ Tensor Transformer::createMlp(const int layer_id, int dim, int hidden_dim,
     withKey("name", "layer" + std::to_string(layer_id) + "_ffn_down"),
     withKey("unit", dim), withKey("disable_bias", "true"),
     withKey("weight_initializer", "ones"), withKey("engine", eng)};
+  for (const auto &p : act_props)
+    ffn_down_props.push_back(p);
   if (hasLoRA("ffn_down", layer_id))
     appendLoRAProps(ffn_down_props);
   else if (LORA_RANK > 0)

@@ -233,8 +233,37 @@ public:
     FROZEN_PREFIX = first_trainable_block;
     FROZEN_PREFIX_OFFLOAD = offload_base_gemm;
   }
+  /**
+   * @brief Configure frozen prefix blocks [0, S) to run on a specified engine
+   *        (e.g. "gpu") and optional FP16 activation dtype within the single
+   *        training graph.
+   */
+  void setFrozenPrefixEngine(int first_trainable_block,
+                             const std::string &engine, bool fp16 = false) {
+    FROZEN_PREFIX = std::max(0, first_trainable_block);
+    FROZEN_PREFIX_ENGINE = engine;
+    FROZEN_PREFIX_FP16 = fp16;
+  }
   /** first trainable block of the frozen prefix split (0 = no split) */
   int getFrozenPrefix() const { return FROZEN_PREFIX; }
+  /** target engine of the frozen prefix blocks */
+  const std::string &getFrozenPrefixEngine() const {
+    return FROZEN_PREFIX_ENGINE;
+  }
+  /** whether block i runs on device (gpu) engine */
+  bool frozenBlockOnDevice(int layer_id) const {
+    return FROZEN_PREFIX > 0 && layer_id < FROZEN_PREFIX &&
+           !FROZEN_PREFIX_ENGINE.empty() && FROZEN_PREFIX_ENGINE != "cpu";
+  }
+  /** compute engine for block i */
+  std::string blockEngine(int layer_id) const {
+    if (FROZEN_PREFIX > 0 && layer_id < FROZEN_PREFIX &&
+        !FROZEN_PREFIX_ENGINE.empty())
+      return FROZEN_PREFIX_ENGINE;
+    return layerEngine();
+  }
+  /** optional activation dtype property for block i */
+  std::vector<std::string> blockActivationProps(int layer_id) const;
   /** whether the frozen range's base-weight GEMMs go to the device */
   bool frozenBaseGemmOnDevice() const {
     return FROZEN_PREFIX > 0 && FROZEN_PREFIX_OFFLOAD;
@@ -1166,6 +1195,8 @@ protected:
    * its base-weight GEMMs go to the device */
   int FROZEN_PREFIX = 0;
   bool FROZEN_PREFIX_OFFLOAD = false;
+  std::string FROZEN_PREFIX_ENGINE;
+  bool FROZEN_PREFIX_FP16 = false;
   /** see setFrozenCache() */
   bool FROZEN_CACHE = false;
   size_t FROZEN_CACHE_BYTES = 0;
