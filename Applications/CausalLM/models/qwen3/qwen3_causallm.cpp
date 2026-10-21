@@ -37,14 +37,16 @@ Tensor Qwen3Transformer::createAttention(const int layer_id, int seq_len,
                                          Tensor value) {
 
   // Every block of a training graph is a host layer, frozen ones included; the
-  // device is asked per computation instead (see setFrozenPrefix()).
-  const std::string eng = layerEngine();
+  const std::string eng = blockEngine(layer_id);
+  const auto act_props = blockActivationProps(layer_id);
 
   // Q layer
   std::vector<std::string> wq_props = {
     withKey("name", "layer" + std::to_string(layer_id) + "_wq"),
     withKey("unit", head_dim * n_heads), withKey("disable_bias", "true"),
     withKey("weight_initializer", "ones"), withKey("engine", eng)};
+  for (const auto &p : act_props)
+    wq_props.push_back(p);
   if (hasLoRA("wq", layer_id))
     appendLoRAProps(wq_props);
   else if (LORA_RANK > 0)
@@ -64,6 +66,8 @@ Tensor Qwen3Transformer::createAttention(const int layer_id, int seq_len,
     withKey("name", "layer" + std::to_string(layer_id) + "_q_norm"),
     withKey("packed", "false"), withKey("epsilon", std::to_string(NORM_EPS)),
     withKey("feature_size", std::to_string(head_dim)), withKey("engine", eng)};
+  for (const auto &p : act_props)
+    q_norm_props.push_back(p);
   if (LORA_RANK > 0 && !TRAIN_NORMS)
     q_norm_props.push_back(withKey("trainable", "false"));
   LayerHandle q_norm(createLayer("reshaped_rms_norm", q_norm_props));
@@ -75,6 +79,8 @@ Tensor Qwen3Transformer::createAttention(const int layer_id, int seq_len,
     withKey("unit", head_dim * n_heads / GQA_SIZE),
     withKey("disable_bias", "true"), withKey("weight_initializer", "ones"),
     withKey("engine", eng)};
+  for (const auto &p : act_props)
+    wk_props.push_back(p);
   if (hasLoRA("wk", layer_id))
     appendLoRAProps(wk_props);
   else if (LORA_RANK > 0)
@@ -88,6 +94,8 @@ Tensor Qwen3Transformer::createAttention(const int layer_id, int seq_len,
     withKey("name", "layer" + std::to_string(layer_id) + "_k_norm"),
     withKey("packed", "false"), withKey("epsilon", std::to_string(NORM_EPS)),
     withKey("feature_size", std::to_string(head_dim)), withKey("engine", eng)};
+  for (const auto &p : act_props)
+    k_norm_props.push_back(p);
   if (LORA_RANK > 0 && !TRAIN_NORMS)
     k_norm_props.push_back(withKey("trainable", "false"));
   LayerHandle k_norm(createLayer("reshaped_rms_norm", k_norm_props));
@@ -99,6 +107,8 @@ Tensor Qwen3Transformer::createAttention(const int layer_id, int seq_len,
     withKey("unit", head_dim * n_heads / GQA_SIZE),
     withKey("disable_bias", "true"), withKey("weight_initializer", "ones"),
     withKey("engine", eng)};
+  for (const auto &p : act_props)
+    wv_props.push_back(p);
   if (hasLoRA("wv", layer_id))
     appendLoRAProps(wv_props);
   else if (LORA_RANK > 0)
@@ -115,44 +125,27 @@ Tensor Qwen3Transformer::createAttention(const int layer_id, int seq_len,
 
   // Attention core layer (frozen: GQA has no learnable weights beyond
   // Q/K/V/O, so there's nothing here for LoRA to target)
-  LayerHandle mha(createLayer(
-    "mha_core",
-    {
-      withKey("name", "layer" + std::to_string(layer_id) + "_attention"),
-      withKey("num_heads", n_heads),
-      withKey("num_heads_kv", n_heads / GQA_SIZE),
-      withKey("max_timestep", std::to_string(MAX_SEQ_LEN)),
-      withKey("init_seq_len", std::to_string(INIT_SEQ_LEN)),
-      withKey("sliding_window", getLayerSlidingWindow(layer_id)),
-      withKey("rope_theta", ROPE_THETA),
-      withKey("max_position_embeddings", MAX_POSITION_EMBEDDINGS),
-      withKey("max_new_tokens", std::to_string(NUM_TO_GENERATE)),
-      withKey("is_causal", IS_CAUSAL ? "true" : "false"),
-      // nntr_config "use_flash_attention" (default true) selects the flash
-      // (GEMM) arm: the host one on the cpu engine, and on a GPU engine the
-      // device attention (cuda_attention, or the OpenCL flash / image arm
-      // under NNTR_MHA_GPU) for prefill and decode. false keeps the per-row
-      // host path, which cannot read a device-only activation pool. q_norm /
-      // k_norm above are separate layers, so every arm reads the same
-      // normalised Q/K, and RoPE is applied inside mha_core before any of
-      // them. See causallm_gemm_attention().
-      withKey("use_gemm_attention",
-              causallm_gemm_attention(USE_FLASH_ATTENTION) ? "true" : "false"),
-      // Decode properties from getModelFeatures() (single source): qwen3
-      // turns them on, as Gemma-4 does, so the decode RoPE runs on the device
-      // (the fused rotate-and-commit on the Adreno image arm) instead of
-      // reading Q and K back to the host in every layer. They do not decide
-      // where decode attention runs once use_gemm_attention is on: the cuda
-      // engine routes every step to its device arm, and with NNTR_MHA_GPU the
-      // minimum flash step is 1 (x86, and ARM), so decode takes the OpenCL
-      // arm too.
-      withKey("gpu_decode_attn",
-              getModelFeatures().decode_gpu ? "true" : "false"),
-      withKey("gpu_decode_rope",
-              getModelFeatures().decode_rope_gpu ? "true" : "false"),
-      withKey("gpu_ohwi_rope",
-              getModelFeatures().decode_gpu ? "true" : "false"),
-    }));
+  std::vector<std::string> mha_props = {
+    withKey("name", "layer" + std::to_string(layer_id) + "_attention"),
+    withKey("num_heads", n_heads),
+    withKey("num_heads_kv", n_heads / GQA_SIZE),
+    withKey("max_timestep", std::to_string(MAX_SEQ_LEN)),
+    withKey("init_seq_len", std::to_string(INIT_SEQ_LEN)),
+    withKey("sliding_window", getLayerSlidingWindow(layer_id)),
+    withKey("rope_theta", ROPE_THETA),
+    withKey("max_position_embeddings", MAX_POSITION_EMBEDDINGS),
+    withKey("max_new_tokens", std::to_string(NUM_TO_GENERATE)),
+    withKey("is_causal", IS_CAUSAL ? "true" : "false"),
+    withKey("use_gemm_attention",
+            causallm_gemm_attention(USE_FLASH_ATTENTION) ? "true" : "false"),
+    withKey("gpu_decode_attn",
+            getModelFeatures().decode_gpu ? "true" : "false"),
+    withKey("gpu_decode_rope",
+            getModelFeatures().decode_rope_gpu ? "true" : "false"),
+    withKey("gpu_ohwi_rope", getModelFeatures().decode_gpu ? "true" : "false")};
+  if (layer_id < FROZEN_PREFIX)
+    mha_props.push_back(withKey("forward_only", "true"));
+  LayerHandle mha(createLayer("mha_core", mha_props));
 
   Tensor a;
   if (FOR_TRAINING) {
@@ -170,6 +163,8 @@ Tensor Qwen3Transformer::createAttention(const int layer_id, int seq_len,
     withKey("name", "layer" + std::to_string(layer_id) + "_attention_out"),
     withKey("unit", DIM), withKey("disable_bias", "true"),
     withKey("weight_initializer", "ones"), withKey("engine", eng)};
+  for (const auto &p : act_props)
+    wo_props.push_back(p);
   if (hasLoRA("wo", layer_id))
     appendLoRAProps(wo_props);
   else if (LORA_RANK > 0)
