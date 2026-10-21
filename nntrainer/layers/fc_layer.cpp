@@ -46,6 +46,7 @@
 #include <cstdio>
 #include <cstring>
 #include <iostream>
+#include <future>
 #include <map>
 #include <mutex>
 #include <numeric>
@@ -900,6 +901,17 @@ bool baseGemmGpuOn() {
  * layer's own dot stays reachable via the false return (feature off,
  * non-QS4CX weight).
  */
+/** @brief whether baseGemmGpu() would try the device for @p weight */
+bool baseGemmGpuWanted(const Tensor &weight) {
+#if defined(ENABLE_OPENCL)
+  return baseGemmGpuOn() &&
+         weight.getDataType() == TensorDim::DataType::QS4CX;
+#else
+  (void)weight;
+  return false;
+#endif
+}
+
 bool baseGemmGpu(Tensor &input, Tensor &weight, Tensor &output) {
 #if defined(ENABLE_OPENCL)
   if (!baseGemmGpuOn() || weight.getDataType() != TensorDim::DataType::QS4CX)
@@ -1002,6 +1014,23 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
 
+  // NNTR_TRAIN_BASE_GPU with a LoRA branch: the GPU base GEMM and the CPU
+  // LoRA branch are independent, so the base GEMM is launched asynchronously
+  // and the LoRA branch is computed into hidden_out_lora meanwhile
+  // (NNTR_TRAIN_BASE_GPU_ASYNC=0 keeps the base GEMM synchronous).
+  const bool has_lora_branch = !std::get<props::LoraRank>(fc_props).empty();
+  static const bool async_opt = [] {
+    const char *e = std::getenv("NNTR_TRAIN_BASE_GPU_ASYNC");
+    return e == nullptr || e[0] != '0';
+  }();
+  const bool async_base = async_opt && has_lora_branch &&
+                          baseGemmGpuWanted(weight) && quantizer == nullptr &&
+                          std::getenv("NNTR_TRAIN_FWD_FP32") == nullptr &&
+                          gemm_ops_ == nullptr &&
+                          context.getTensor(lora_idx[LORAParams::loraOut])
+                              .getDim() == hidden_.getDim();
+  std::future<void> base_job;
+
   ///@todo This dequantization action should be moved to tensor.dot()
   {
     train_prof::Scope tp(std::get<props::LoraRank>(fc_props).empty()
@@ -1022,6 +1051,13 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
       Tensor weight_arena_view;
       dequantizeToArena(weight, *quantizer, weight_arena_view);
       input_.dot(weight_arena_view, hidden_, false, false);
+    } else if (async_base) {
+      // GPU base GEMM on its own thread; the LoRA branch below runs on this
+      // thread meanwhile and joins it before adding into hidden_
+      base_job = std::async(std::launch::async, [&input_, &weight, &hidden_] {
+        if (!baseGemmGpu(input_, weight, hidden_))
+          input_.dot(weight, hidden_, false, false);
+      });
     } else if (baseGemmGpu(input_, weight, hidden_)) {
       // the frozen int4 base GEMM ran through the GPU v8c kernel (with fc's
       // same-shape host dot as the in-call fallback) and produced hidden_
@@ -1093,9 +1129,19 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
         h_before = hidden_.clone();
       skinny_xw(input_.getData<float>(), fa.getData<float>(),
                 hidden_tmp_lora.getData<float>(), l_rows, l_in, l_rank);
-      skinny_uv_acc(hidden_tmp_lora.getData<float>(), fb.getData<float>(),
-                    hidden_.getData<float>(), l_rows, l_rank, l_out,
-                    lora_scaling);
+      if (base_job.valid()) {
+        hidden_out_lora.setZero();
+        skinny_uv_acc(hidden_tmp_lora.getData<float>(), fb.getData<float>(),
+                      hidden_out_lora.getData<float>(), l_rows, l_rank, l_out,
+                      lora_scaling);
+        train_prof::Scope tp_w("fc.base_gpu_join", train_prof::FWD);
+        base_job.get();
+        hidden_.add_i(hidden_out_lora);
+      } else {
+        skinny_uv_acc(hidden_tmp_lora.getData<float>(), fb.getData<float>(),
+                      hidden_.getData<float>(), l_rows, l_rank, l_out,
+                      lora_scaling);
+      }
       if (skinnyCheckOn()) {
         Tensor t_ref(hidden_tmp_lora.getDim());
         input_.dot(fa, t_ref, false, false);
@@ -1108,6 +1154,8 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
                     o_ref.size());
       }
     } else {
+      if (base_job.valid())
+        base_job.get();
       gemm(input_, fa, hidden_tmp_lora, false, false);
       Tensor tmp_scaled = hidden_tmp_lora.multiply(lora_scaling);
       if (hidden_.getDataType() == hidden_tmp_lora.getDataType()) {
@@ -1118,6 +1166,9 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
       }
     }
   }
+
+  if (base_job.valid())
+    base_job.get();
 
   if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
       disable_bias.empty() || disable_bias.get() == false) {

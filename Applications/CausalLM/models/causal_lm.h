@@ -401,6 +401,15 @@ protected:
 
   /** @brief Pop a same-size recycled buffer or allocate a new pooled one. */
   float *acquireLogitsBuf(size_t count);
+
+public:
+  /** [PERF-TRUNK] last trunkHidden(): graph / output conversion / copy ms */
+  const double *trunkSplitMs() const { return trunk_split_ms_; }
+
+protected:
+  double last_graph_ms_ = 0.0;   /**< last incrementalInference graph run */
+  double last_convert_ms_ = 0.0; /**< last incrementalInference conversion */
+  double trunk_split_ms_[3] = {0.0, 0.0, 0.0};
   /** @brief Return a pooled buffer to the free list (delete[]s foreign ptrs).
    */
   void releaseLogitsBuf(float *buf);

@@ -397,6 +397,7 @@ int aminCl(const Tensor &input) { throwNoOpenCLKernel("aminCl"); }
 #include <cl_kernels/cl_kernels.h>
 #include <cstdio>
 #include <cstdlib>
+#include <chrono>
 #include <cstring>
 #include <engine.h>
 #include <memory>
@@ -1632,6 +1633,24 @@ static void v8c_copy_svm_to_clmem(const void *in_svm, cl_mem out,
                                         /** async */ true);
 }
 
+namespace {
+/** [DIAG] NNTR_V8C_SPLIT_PROF=1: time the v8c host round trip of a
+ *  host-output FC (upload / kernels / readback / fp16->fp32) */
+bool v8cSplitProf() {
+  static const bool on = std::getenv("NNTR_V8C_SPLIT_PROF") != nullptr;
+  return on;
+}
+double *v8cSplitAcc() {
+  static double acc[4] = {0.0, 0.0, 0.0, 0.0};
+  return acc;
+}
+double msSince(std::chrono::steady_clock::time_point t0) {
+  return std::chrono::duration<double, std::milli>(
+           std::chrono::steady_clock::now() - t0)
+    .count();
+}
+} // namespace
+
 bool dotCl_v8c(const Tensor &input, const Tensor &weight, Tensor &output) {
   if (!v8c_env_enabled())
     return false;
@@ -1965,10 +1984,15 @@ bool dotCl_v8c(const Tensor &input, const Tensor &weight, Tensor &output) {
       v8c_copy_svm_to_clmem(cur_in_ptr, sc.act_in,
                             (unsigned int)((size_t)M * K), cur_dtype == 1);
     } else {
-      if (opencl::clEnqueueWriteBuffer(q, sc.act_in, CL_FALSE, 0,
+      // [DIAG] NNTR_V8C_SPLIT_PROF=1: blocking upload, timed (host -> device)
+      const auto up_t0 = std::chrono::steady_clock::now();
+      if (opencl::clEnqueueWriteBuffer(q, sc.act_in,
+                                       v8cSplitProf() ? CL_TRUE : CL_FALSE, 0,
                                        (size_t)M * K * act_elem, cur_in_ptr, 0,
                                        nullptr, nullptr) != CL_SUCCESS)
         return false;
+      if (v8cSplitProf())
+        v8cSplitAcc()[0] += msSince(up_t0);
     }
     if (M_pad > M && !quant_direct_clmem) {
       // Zero-fill the padded rows so the act-quant kernel sees deterministic
@@ -2222,10 +2246,21 @@ bool dotCl_v8c(const Tensor &input, const Tensor &weight, Tensor &output) {
         y_host.reset(new uint16_t[y_n]);
         y_host_cap = y_n;
       }
+      // [DIAG] NNTR_V8C_SPLIT_PROF=1: wait for the kernels first so the
+      // readback time is the copy alone
+      if (v8cSplitProf()) {
+        const auto k_t0 = std::chrono::steady_clock::now();
+        opencl::clFinish(q);
+        v8cSplitAcc()[1] += msSince(k_t0);
+      }
+      const auto rd_t0 = std::chrono::steady_clock::now();
       if (opencl::clEnqueueReadBuffer(q, sc.y_fp16, CL_TRUE, 0,
                                       sizeof(uint16_t) * y_n, y_host.get(), 0,
                                       nullptr, nullptr) != CL_SUCCESS)
         return false;
+      if (v8cSplitProf())
+        v8cSplitAcc()[2] += msSince(rd_t0);
+      const auto cv_t0 = std::chrono::steady_clock::now();
       if (output.getDataType() == ml::train::TensorDim::DataType::FP32) {
         v8c_h2f_rows(y_host.get(), output.getData<float>(), y_n);
       } else if (output.getDataType() == ml::train::TensorDim::DataType::FP16) {
@@ -2233,6 +2268,17 @@ bool dotCl_v8c(const Tensor &input, const Tensor &weight, Tensor &output) {
                     sizeof(uint16_t) * y_n);
       } else {
         throw std::runtime_error("unsupported output dtype");
+      }
+      if (v8cSplitProf()) {
+        v8cSplitAcc()[3] += msSince(cv_t0);
+        static unsigned int calls = 0;
+        if (++calls % 50 == 0) {
+          const double *a = v8cSplitAcc();
+          std::fprintf(stderr,
+                       "[V8C-SPLIT] calls=%u total ms: upload %.1f kernel "
+                       "%.1f readback %.1f h2f %.1f\n",
+                       calls, a[0], a[1], a[2], a[3]);
+        }
       }
     }
 

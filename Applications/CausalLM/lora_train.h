@@ -226,6 +226,11 @@ struct TrainParams {
    *  memory, one more forward of those blocks per step). Off by default; the
    *  nntr_config key activation_checkpointing sets it too. */
   bool activation_ckpt = false;
+  /** hybrid only: run the GPU trunk of the next sample after the CPU step
+   *  instead of under it (no CPU / GPU overlap; for measurement) */
+  bool hybrid_sync = false;
+  /** reuse the frozen blocks' output across epochs on the CPU (no GPU) */
+  bool frozen_cache = false;
   /** "lm": next-token loss on every position of text lines; "decision":
    *  train a decision model on eve-rlcd JSONL questions (decision.h). */
   std::string task = "lm";

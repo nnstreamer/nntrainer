@@ -22,6 +22,7 @@
  */
 
 #include <algorithm>
+#include <chrono>
 #include <app_context.h>
 #include <cmath>
 #include <cstdlib>
@@ -650,8 +651,12 @@ std::vector<float *> CausalLM::incrementalInference(
     }
   }
 
+  const auto ii_t0 = std::chrono::steady_clock::now();
   nntrainer::sharedConstTensors output_tensors =
     nn->incremental_inference(input_tensors, init_seq_len, from, to);
+  const auto ii_t1 = std::chrono::steady_clock::now();
+  last_graph_ms_ =
+    std::chrono::duration<double, std::milli>(ii_t1 - ii_t0).count();
 
   // Output conversion identical to the float* overload in neuralnet.cpp.
   std::vector<float *> output;
@@ -829,6 +834,9 @@ std::vector<float *> CausalLM::incrementalInference(
   if (kv_cache.isAllocated() && to <= kv_cache.getMaxSeqLen())
     kv_cache.setPosition(to);
 
+  last_convert_ms_ = std::chrono::duration<double, std::milli>(
+                       std::chrono::steady_clock::now() - ii_t1)
+                       .count();
   return output;
 }
 
@@ -869,11 +877,20 @@ void CausalLM::trunkHidden(const int32_t *ids, unsigned int used,
   NNTR_THROW_IF(outs.empty() || outs[0] == nullptr, std::runtime_error)
     << "trunkHidden: trunk graph produced no output";
 
+  const auto cp_t0 = std::chrono::steady_clock::now();
   const size_t dim = static_cast<size_t>(DIM);
   std::memcpy(out, outs[0], sizeof(float) * dim * used);
   std::fill(out + dim * used, out + dim * rows, 0.0f);
   for (float *o : outs)
     releaseLogitsBuf(o);
+  /// [PERF-TRUNK] hand-off split of the last call: the trunk graph (GPU
+  /// compute + boundary readback), its output conversion (FP16 -> FP32 into
+  /// a pooled host buffer), and the copy into the training sample
+  trunk_split_ms_[0] = last_graph_ms_;
+  trunk_split_ms_[1] = last_convert_ms_;
+  trunk_split_ms_[2] = std::chrono::duration<double, std::milli>(
+                         std::chrono::steady_clock::now() - cp_t0)
+                         .count();
 }
 
 std::vector<float> CausalLM::promptLogits(const std::vector<int32_t> &ids) {

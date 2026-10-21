@@ -79,6 +79,9 @@ void printUsage(const char *prog) {
     << "                        the channel scales over more steps — try "
        "0.01\n"
     << "                        if long QAT runs destabilize.\n"
+    << "  --frozen_cache        reuse the frozen blocks' output across epochs\n"
+    << "                        on the CPU: epoch 1 runs them once per sample\n"
+    << "                        and caches it, later epochs skip them\n"
     << "  --activation_ckpt     activation checkpointing: recompute each\n"
     << "                        trained decoder block's activations before\n"
     << "                        its backward instead of keeping them (lower\n"
@@ -259,9 +262,11 @@ static size_t availableMemoryBytes() {
   return 0;
 }
 
-int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
+int runLoraTraining(const TrainParams &params_in, TrainProgressCb callback,
                     void *user_data, IterationProgressCb iter_cb,
                     void *iter_data) {
+  // --frozen_cache rewrites the trunk settings below
+  TrainParams params = params_in;
   const std::string &model_path = params.model_path;
   const std::string &data_path = params.data_path;
 
@@ -472,6 +477,17 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
     // GPU-trunk / CPU-head split: the frozen blocks [0, S) run as an
     // inference graph on the GPU engine, the trainable blocks [S, L) as the
     // CPU training graph whose input is the trunk's hidden state.
+    // --frozen_cache: reuse the frozen blocks' output across epochs without
+    // the GPU. The frozen blocks [0, S) run as their own graph from the
+    // training model's own weights (on the CPU engine of a CPU build) once
+    // per sample in epoch 1; their output is cached and epochs 2.. skip them.
+    // Serialized with the step (no producer-thread overlap on the same CPU).
+    if (params.frozen_cache) {
+      NNTR_THROW_IF(!params.hybrid_trunk_path.empty(), std::invalid_argument)
+        << "--frozen_cache and --hybrid_trunk are exclusive";
+      params.hybrid_trunk_path = model_path;
+      params.hybrid_sync = true;
+    }
     const bool hybrid = !params.hybrid_trunk_path.empty();
     std::unique_ptr<Transformer> trunk;
     int trunk_layers = 0;
@@ -513,9 +529,10 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
       trunk->initialize();
       trunk->load_weight(td + "/" +
                          tnntr["model_file_name"].get<std::string>());
-      std::cout << "hybrid:       GPU trunk blocks [0, " << trunk_layers
-                << ") from " << td << ", CPU head blocks [" << trunk_layers
-                << ", ...)" << std::endl;
+      std::cout << (params.frozen_cache ? "frozen cache: frozen blocks [0, "
+                                        : "hybrid:       GPU trunk blocks [0, ")
+                << trunk_layers << ") from " << td << ", training blocks ["
+                << trunk_layers << ", ...)" << std::endl;
     };
 
     if (decision) {
@@ -595,14 +612,20 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
         const double ms = std::chrono::duration<double, std::milli>(
                             std::chrono::steady_clock::now() - t0)
                             .count();
-        static double acc = 0;
+        static double acc = 0, acc_g = 0, acc_c = 0, acc_m = 0;
         static unsigned int n = 0;
         static const bool prof = std::getenv("NNTR_TRAIN_PROF") != nullptr;
         acc += ms;
+        const double *sp = t->trunkSplitMs();
+        acc_g += sp[0];
+        acc_c += sp[1];
+        acc_m += sp[2];
         if (++n % 10 == 0 && prof) {
           std::cout << "[PERF-TRUNK] avg " << acc / 10 << " ms (gpu trunk, "
-                    << used << " tokens)" << std::endl;
-          acc = 0;
+                    << used << " tokens): graph " << acc_g / 10
+                    << " ms, output conversion " << acc_c / 10 << " ms, copy "
+                    << acc_m / 10 << " ms" << std::endl;
+          acc = acc_g = acc_c = acc_m = 0;
         }
       };
       // The trunk's blocks are frozen and a sample's ids never change, so
@@ -639,7 +662,9 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
     // Hybrid: a 1-slot iteration queue frees its slot only when the step that
     // consumed it ends, so the GPU trunk of the next sample would start after
     // the CPU step instead of under it. Two slots let it run one sample ahead.
-    if (hybrid)
+    // --hybrid_sync: one slot, so the GPU trunk of the next sample waits for
+    // the CPU step (no CPU / GPU overlap) -- for measuring the overlap
+    if (hybrid && !params.hybrid_sync)
       dataset->setProperty({"buffer_size=2"});
     model.setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset);
 
@@ -650,7 +675,7 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
       std::shared_ptr<ml::train::Dataset> valid_dataset =
         ml::train::createDataset(ml::train::DatasetType::GENERATOR,
                                  trainingDataGenCb, valid_gen.get());
-      if (hybrid)
+      if (hybrid && !params.hybrid_sync)
         valid_dataset->setProperty({"buffer_size=2"});
       model.setDataset(ml::train::DatasetModeType::MODE_VALID, valid_dataset);
     }
@@ -759,6 +784,10 @@ int main(int argc, char *argv[]) {
         params.validate = true;
       else if (arg == "--activation_ckpt")
         params.activation_ckpt = true;
+      else if (arg == "--hybrid_sync")
+        params.hybrid_sync = true;
+      else if (arg == "--frozen_cache")
+        params.frozen_cache = true;
       else if (arg == "--valid_data")
         params.valid_data_path = next("--valid_data");
       else if (arg == "--patience")
