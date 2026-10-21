@@ -113,6 +113,10 @@ private:
   std::vector<uint8_t> w_q8_;  /**< W   (vocab x hidden), blocks on hidden */
   std::vector<uint8_t> wt_q8_; /**< W^T (hidden x vocab), blocks on vocab */
   const float *w_q8_src_ = nullptr; /**< the W the copies were built from */
+  bool w_is_q4_ = false;            /**< w_q8_ holds q4_0x4 instead of q8_0x4 */
+  /** a Q4_0 W repacked in place to q4_0x4: the logits GEMM operand */
+  const uint8_t *w_q4_table_ = nullptr;
+  bool wt_is_q4_ = false; /**< wt_q8_ holds q4_0x4 instead of q8_0x4 */
   /** this layer's name (set in finalize): key into the staged-int8 map */
   std::string layer_name_;
   /** the FP32 W's pages were released (staged or release_host_weight): the
