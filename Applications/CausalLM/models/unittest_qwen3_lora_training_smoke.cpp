@@ -198,6 +198,21 @@ TEST(Qwen3LoraTrainingSmoke, TrainsAFewStepsAndSaveLoadLoraRoundTrips) {
   auto base_nntr_cfg = makeTinyNntrainerConfig(/*lora_rank=*/0);
   causallm::Qwen3CausalLM base_model(cfg, generation_cfg, base_nntr_cfg);
   ASSERT_NO_THROW(base_model.initialize());
+  std::mt19937 rng(42);
+  std::uniform_real_distribution<float> dist(-0.05f, 0.05f);
+  std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
+    fill_fn =
+      [&](ml::train::Layer &, nntrainer::RunLayerContext &context, void *) {
+        for (unsigned int i = 0; i < context.getNumWeights(); ++i) {
+          nntrainer::Tensor &t = context.getWeight(i);
+          if (t.getDataType() != ml::train::TensorDim::DataType::FP32)
+            continue;
+          const bool gamma = t.getName().find("gamma") != std::string::npos;
+          for (size_t j = 0; j < t.size(); ++j)
+            t.getData<float>()[j] = gamma ? 1.0f : dist(rng);
+        }
+      };
+  base_model.forEachLayer(fill_fn, nullptr);
   const auto base_path =
     (std::filesystem::temp_directory_path() / "nntrainer_qwen3_base_smoke.bin")
       .string();
@@ -209,7 +224,8 @@ TEST(Qwen3LoraTrainingSmoke, TrainsAFewStepsAndSaveLoadLoraRoundTrips) {
   // the LoRA adapter.
   auto lora_nntr_cfg = makeTinyNntrainerConfig(/*lora_rank=*/4);
   causallm::Qwen3CausalLM lora_model(cfg, generation_cfg, lora_nntr_cfg);
-  ASSERT_NO_THROW(lora_model.initializeForTraining(/*lr=*/1e-2f, /*epochs=*/1));
+  ASSERT_NO_THROW(lora_model.initializeForTraining(/*lr=*/1e-4f, /*epochs=*/1));
+  ASSERT_NO_THROW(lora_model.load_weight_lora(base_path, ""));
 
   SyntheticDataGen gen{/*seq_len=*/4, /*vocab_size=*/32};
   std::shared_ptr<ml::train::Dataset> dataset = ml::train::createDataset(
