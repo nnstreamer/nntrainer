@@ -176,6 +176,67 @@ public:
   /** Build every layer on the cpu engine regardless of causallm_engine()
    *  (see FORCE_CPU_ENGINE). Must be called before initialize(). */
   void setForceCpuEngine(bool on) { FORCE_CPU_ENGINE = on; }
+
+  /**
+   * @brief Place the frozen prefix of a LoRA training graph on another engine.
+   *
+   * A LoRA run trains the last lora_last_n_layers blocks and freezes the rest,
+   * and the frozen blocks are pure forward. Until now they still ran on the
+   * host, because the host CPU-vs-GPU split could only be expressed as TWO
+   * graphs — which is what duplicated the model, its weight pools, its
+   * embedding/lm-head tables, its KV cache and its OpenCL state (measured:
+   * 1.43 GB PSS for the GPU hybrid against 0.6 GB CPU-only, for a hand-off
+   * that costs 0.2 ms a sample). Called before initializeForTraining() with
+   * S = getLoraLayerStart(), this puts blocks [0, S) of the ONE training graph
+   * on engine (typically "gpu") with FP16 activations when fp16 is set, and
+   * keeps blocks [S, L) — the trainable ones, whose backward, LoRA fake-quant
+   * and loss are FP32-only — on the host. The two regions meet at an explicit
+   * cast node, so no layer ever sees a dtype it was not built for.
+   *
+   * Requires the prefix to be truly frozen: it is validated against
+   * LORA_LAYER_START at compile, and a trainable block placed on a
+   * backward-less engine fails there rather than training silently wrong.
+   */
+  void setFrozenPrefixEngine(int first_trainable_block,
+                             const std::string &engine, bool fp16) {
+    FROZEN_PREFIX = first_trainable_block;
+    FROZEN_PREFIX_ENGINE = engine;
+    FROZEN_PREFIX_FP16 = fp16;
+  }
+  /** first trainable block of the frozen prefix split (0 = no split) */
+  int getFrozenPrefix() const { return FROZEN_PREFIX; }
+  /** engine the frozen prefix runs on ("" when there is no split) */
+  const std::string &getFrozenPrefixEngine() const {
+    return FROZEN_PREFIX_ENGINE;
+  }
+
+  /**
+   * @brief Keep the frozen blocks' hidden state after the first epoch instead
+   *        of running them again.
+   *
+   * The frozen prefix depends on nothing that training changes: its weights are
+   * frozen and a sample's token ids never change, so its output is the same in
+   * every epoch. Caching it takes the prefix off the per-step cost from epoch 2
+   * on, which on a device is most of the sample (blocks [0, S) of L). The cache
+   * is keyed by the input token ids and holds @p max_bytes of hidden states;
+   * samples that do not fit are computed as usual, so the cache can only lose
+   * time, never memory. Meaningful only together with setFrozenPrefixEngine().
+   */
+  void setFrozenCache(bool on, size_t max_bytes) {
+    FROZEN_CACHE = on;
+    FROZEN_CACHE_BYTES = max_bytes;
+  }
+  bool frozenCacheEnabled() const { return FROZEN_CACHE && FROZEN_PREFIX > 0; }
+  /** bytes of frozen hidden state the cache may hold (0 = unbounded) */
+  size_t getFrozenCacheBudgetBytes() const { return FROZEN_CACHE_BYTES; }
+  /** bytes it actually holds now: rows are added only while they fit, so this
+   *  is what the switch costs, and it is what to compare against a budget. */
+  size_t getFrozenCacheUsedBytes() const { return FROZEN_CACHE_USED; }
+  /** times the frozen prefix ran / was skipped since training started. A run
+   *  with reuse working shows hits == (samples seen after the first pass). */
+  unsigned long getFrozenPrefixRuns() const { return FROZEN_PREFIX_RUNS; }
+  unsigned long getFrozenCacheHits() const { return FROZEN_CACHE_HITS; }
+
   /** first decoder block that carries LoRA (lora_last_n_layers) */
   int getLoraLayerStart() const { return LORA_LAYER_START; }
   /** hidden size */
@@ -783,6 +844,56 @@ protected:
   std::string layerEngine() const;
 
   /**
+   * @brief Engine name for a layer of decoder block @p layer_id.
+   *
+   * The frozen prefix of a heterogeneous training graph names its own engine
+   * (see setFrozenPrefixEngine()); every other layer takes layerEngine().
+   */
+  std::string blockEngine(int layer_id) const {
+    if (FROZEN_PREFIX > 0 && layer_id < FROZEN_PREFIX &&
+        !FROZEN_PREFIX_ENGINE.empty())
+      return FROZEN_PREFIX_ENGINE;
+    return layerEngine();
+  }
+
+  /**
+   * @brief Whether block @p layer_id is the frozen prefix of a split that runs
+   *        on an accelerator rather than on the host.
+   *
+   * A frozen block on a device cannot take mha_core's host training forward --
+   * trainForwarding() reads its operands as host FP32 -- so such a block asks
+   * for the prefill attention path instead (mha_core's forward_only). A frozen
+   * block that stays on the host has no reason to ask: its training path works
+   * there, and the prefill path is a different implementation whose treatment
+   * of padded batches is not guaranteed to agree with it bit for bit. Keep the
+   * two questions -- is it frozen, is it on a device -- answered in one place
+   * so the graph cannot ask for forward_only without also needing it.
+   */
+  bool frozenBlockOnDevice(int layer_id) const {
+    if (FROZEN_PREFIX <= 0 || layer_id >= FROZEN_PREFIX)
+      return false;
+    // Asked of blockEngine() rather than of FROZEN_PREFIX_ENGINE directly, so
+    // the engine is decided in exactly one place. layerEngine() is "cpu" for
+    // every training graph, so this is "the prefix split put it elsewhere".
+    return blockEngine(layer_id) != "cpu";
+  }
+
+  /**
+   * @brief Layer properties pinning the activation dtype of block @p layer_id.
+   *
+   * Empty unless the block is the frozen prefix of a split that asked for FP16
+   * (see setFrozenPrefixEngine() and props::ActivationDtype): the device runs
+   * the frozen blocks 1.5x faster on FP16 activations, and the trainable
+   * blocks must stay at the model's FP32.
+   */
+  std::vector<std::string> blockActivationProps(int layer_id) const {
+    if (FROZEN_PREFIX > 0 && layer_id < FROZEN_PREFIX && FROZEN_PREFIX_FP16 &&
+        !FROZEN_PREFIX_ENGINE.empty())
+      return {"activation_dtype=FP16"};
+    return {};
+  }
+
+  /**
    * @brief Whether the LoRA fully connected layers of the training graph
    *        offload their FP32 GEMMs to the OpenCL device.
    * @return true when NNTR_TRAIN_GPU=1 in an OpenCL build whose "gpu" context
@@ -1061,6 +1172,35 @@ protected:
   bool FORCE_CPU_ENGINE = false;
   int TRUNK_LAYERS = 0;    /**< see setTrunkLayers() (0 = off) */
   int HEAD_FROM_LAYER = 0; /**< see setHeadFromLayer() (0 = off) */
+  /** see setFrozenPrefixEngine(): first trainable block, its engine, and
+   * whether it runs FP16 activations (0 / "" = no split) */
+  int FROZEN_PREFIX = 0;
+  std::string FROZEN_PREFIX_ENGINE;
+  bool FROZEN_PREFIX_FP16 = false;
+  /** see setFrozenCache() */
+  bool FROZEN_CACHE = false;
+  size_t FROZEN_CACHE_BYTES = 0;
+  unsigned long FROZEN_PREFIX_RUNS = 0;
+  unsigned long FROZEN_CACHE_HITS = 0;
+
+  /**
+   * @brief Install the two-region walk of the training graph on the model's own
+   * NeuralNetwork (see nntrainer::NeuralNetwork::setForwardOverride()). Called
+   * from initializeForTraining() once the graph is compiled, so the split point
+   * is resolved against the compiled order instead of guessed from names.
+   */
+  void installFrozenPrefixWalk();
+  /**
+   * @brief Frozen hidden states, keyed by a hash of the sample's token ids.
+   *
+   * Raw bytes rather than tensors: the split output's dim and dtype are fixed
+   * for the whole run (one graph, one sequence length), so a row is exactly
+   * getMemoryBytes() of the same layout every time, and bytes cross the
+   * app/core type boundary (ml::train::Tensor here, nntrainer::Tensor in the
+   * graph) without either header leaking into the other.
+   */
+  std::unordered_map<std::string, std::vector<char>> FROZEN_CACHE_MAP;
+  size_t FROZEN_CACHE_USED = 0;
 
   // Performance metrics
   // Zero-initialized: [perf-split] added fields (ttft_ms, first_token_ms,

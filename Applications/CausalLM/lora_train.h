@@ -200,10 +200,18 @@ struct TrainParams {
   std::string resume_lora_path; ///< resume from an existing adapter
   unsigned int lora_rank = 0;   ///< override nntr_config lora_rank (0 = config)
   unsigned int lora_alpha = 0; ///< override nntr_config lora_alpha (0 = config)
-  unsigned int max_samples = 0;  ///< cap training samples (0 = no cap)
-  unsigned int lora_last_n = 0;  ///< LoRA on last N layers (0 = all)
-  unsigned int seq_len = 0;      ///< override init_seq_len (0 = config)
-  std::string hybrid_trunk_path; ///< GPU trunk model dir (empty = CPU only)
+  unsigned int max_samples = 0; ///< cap training samples (0 = no cap)
+  unsigned int lora_last_n = 0; ///< LoRA on last N layers (0 = all)
+  unsigned int seq_len = 0;     ///< override init_seq_len (0 = config)
+  /** run the frozen blocks (before --lora_last_n) of the ONE training graph on
+   * the accelerator instead of the host. Any model directory may be named for
+   * command-line compatibility; the frozen region always runs from the training
+   * model's own weights, so a second model is never loaded. Empty = host only.
+   * @note this used to load a second, separate graph for the frozen layers,
+   * which duplicated the weights, the pools, the embedding and the device
+   * context (1.43 GB PSS against 0.6 GB host-only, for a hand-off worth 0.2 ms
+   * a sample). */
+  std::string hybrid_trunk_path;
   float clip_grad = -1.0f;       ///< gradient clip global norm (-1 = config)
   bool train_norms = false;      ///< also train RMSNorm gammas
   bool lora_qat = false;         ///< fake-quantize loraA/loraB to int4
@@ -226,11 +234,20 @@ struct TrainParams {
    *  memory, one more forward of those blocks per step). Off by default; the
    *  nntr_config key activation_checkpointing sets it too. */
   bool activation_ckpt = false;
-  /** hybrid only: run the GPU trunk of the next sample after the CPU step
-   *  instead of under it (no CPU / GPU overlap; for measurement) */
+  /** hybrid only: run the frozen region of the next sample after the trainable
+   *  step instead of under it (no host / device overlap; for measurement). The
+   *  single-graph walk is serial today, so this is the default behaviour and
+   * the flag only keeps the older measurement switches meaningful. */
   bool hybrid_sync = false;
-  /** reuse the frozen blocks' output across epochs on the CPU (no GPU) */
+  /** keep the frozen blocks' hidden state after the first epoch instead of
+   *  running them again: they depend on nothing training changes (frozen
+   *  weights, fixed token ids), so epochs 2.. skip them entirely. Combined with
+   *  --hybrid_trunk the frozen region also runs on the accelerator. */
   bool frozen_cache = false;
+  /** --frozen_cache only: MB of hidden states the cache may hold (0 = every
+   *  sample of the training set, the default). Samples that do not fit are
+   *  computed as usual, so a smaller budget only costs time, never memory. */
+  unsigned int frozen_cache_mb = 0;
   /** "lm": next-token loss on every position of text lines; "decision":
    *  train a decision model on eve-rlcd JSONL questions (decision.h). */
   std::string task = "lm";

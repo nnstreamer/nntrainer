@@ -13,11 +13,11 @@
 #include <factory.h>
 #include <lora_train.h>
 #include <model_registry.h>
-#include <residency_policy.h>
 #include <tokenizer_cache.h>
 #include <transformer.h>
 
 #include <dataset.h>
+#include <engine.h> // does this build have a gpu context at all
 #include <model.h>
 
 #include <algorithm>
@@ -58,9 +58,13 @@ void printUsage(const char *prog) {
     << "                        (default: all). Earlier layers have nothing\n"
     << "                        trainable, so their backward pass is skipped.\n"
     << "  --max_samples <int>   cap the number of training samples\n"
-    << "  --hybrid_trunk <dir>  run the frozen layers (before --lora_last_n)\n"
-    << "                        on the GPU from this QS4CX-FP16 model dir,\n"
-    << "                        overlapped with CPU training of the rest\n"
+    << "  --hybrid_trunk <dir>  run the frozen layers (before\n"
+    << "                        --lora_last_n) of the training graph on the\n"
+    << "                        GPU instead of the host. The directory is not\n"
+    << "                        read: the frozen region runs from the\n"
+    << "                        training model's own weights, in the same\n"
+    << "                        graph (it used to be a second model, which\n"
+    << "                        cost 0.8 GB more than either half needs).\n"
     << "  --seq_len <int>       training sequence length; overrides\n"
     << "                        nntr_config.json's init_seq_len. Attention\n"
     << "                        memory is quadratic in this, so prefer the\n"
@@ -79,9 +83,13 @@ void printUsage(const char *prog) {
     << "                        the channel scales over more steps — try "
        "0.01\n"
     << "                        if long QAT runs destabilize.\n"
-    << "  --frozen_cache        reuse the frozen blocks' output across epochs\n"
-    << "                        on the CPU: epoch 1 runs them once per sample\n"
-    << "                        and caches it, later epochs skip them\n"
+    << "  --frozen_cache        keep the frozen blocks' hidden state per\n"
+    << "                        sample: epoch 1 runs them once, later epochs\n"
+    << "                        skip them (they depend on nothing training\n"
+    << "                        changes). With or without --hybrid_trunk.\n"
+    << "  --frozen_cache_mb <n> budget for --frozen_cache in MB (default:\n"
+    << "                        every sample fitting half the memory at\n"
+    << "                        start; past the budget, samples compute)\n"
     << "  --activation_ckpt     activation checkpointing: recompute each\n"
     << "                        trained decoder block's activations before\n"
     << "                        its backward instead of keeping them (lower\n"
@@ -199,6 +207,17 @@ static void onEpochComplete(void *user_data) {
   if (validate)
     std::cout << " valid_loss=" << valid_loss;
   std::cout << " time=" << timing << std::endl;
+
+  // What the frozen-prefix reuse actually did this epoch, so a run can be read
+  // without instrumenting it: hits == the samples this epoch skipped the frozen
+  // blocks for, and MB is the memory the switch costs. Epoch 1 is all runs and
+  // no hits by construction -- it is the pass that fills the cache -- so the
+  // number to look at is epoch 2 onward.
+  if (st->model->frozenCacheEnabled())
+    std::cout << "  frozen prefix: ran " << st->model->getFrozenPrefixRuns()
+              << ", reused " << st->model->getFrozenCacheHits() << " (cache "
+              << (st->model->getFrozenCacheUsedBytes() >> 20) << " MB of "
+              << (st->model->getFrozenCacheBudgetBytes() >> 20) << " MB)\n";
 
   bool saved = false;
   if (improved) {
@@ -474,66 +493,81 @@ int runLoraTraining(const TrainParams &params_in, TrainProgressCb callback,
     // lives on Transformer; CausalLM adds the lm head. Both are covered.
     Transformer &model = *model_uptr;
 
-    // GPU-trunk / CPU-head split: the frozen blocks [0, S) run as an
-    // inference graph on the GPU engine, the trainable blocks [S, L) as the
-    // CPU training graph whose input is the trunk's hidden state.
-    // --frozen_cache: reuse the frozen blocks' output across epochs without
-    // the GPU. The frozen blocks [0, S) run as their own graph from the
-    // training model's own weights (on the CPU engine of a CPU build) once
-    // per sample in epoch 1; their output is cached and epochs 2.. skip them.
-    // Serialized with the step (no producer-thread overlap on the same CPU).
-    if (params.frozen_cache) {
-      NNTR_THROW_IF(!params.hybrid_trunk_path.empty(), std::invalid_argument)
-        << "--frozen_cache and --hybrid_trunk are exclusive";
-      params.hybrid_trunk_path = model_path;
-      params.hybrid_sync = true;
-    }
+    // One graph, two regions. The frozen blocks [0, S) -- everything before
+    // --lora_last_n, which has nothing trainable in it -- run on the
+    // accelerator and the trainable blocks [S, L) stay on the host, inside the
+    // SAME graph built from the SAME weights.
+    //
+    // This replaces a second, separate model that used to be loaded for the
+    // frozen region (setHeadFromLayer + a trunk CausalLM + a producer-thread
+    // hidden-state writer). Two graphs meant two weight pools, two copies of
+    // the embedding and the lm head, two device contexts and a per-sample
+    // hand-off through a placeholder tensor: measured on the S26U at 1.43 GB
+    // 0.6 GB host-only, for a split that on its own saves about a third of the
+    // step. The duplication, not the split, was the cost.
     const bool hybrid = !params.hybrid_trunk_path.empty();
-    std::unique_ptr<Transformer> trunk;
-    int trunk_layers = 0;
-    if (hybrid) {
-      trunk_layers = model.getLoraLayerStart();
-      if (trunk_layers <= 0)
-        throw std::invalid_argument(
-          "--hybrid_trunk needs --lora_last_n < num_hidden_layers");
-      model.setHeadFromLayer(trunk_layers);
+    // A --frozen_cache run without --hybrid_trunk keeps the frozen region on
+    // the host, but it still has to be a NAMED range of the graph for epochs
+    // 2.. to skip it, so both switches ask for the split; only --hybrid_trunk
+    // asks for the accelerator.
+    const bool split = hybrid || params.frozen_cache;
+    const int frozen_blocks = split ? model.getLoraLayerStart() : 0;
+    if (split)
+      NNTR_THROW_IF(frozen_blocks <= 0, std::invalid_argument)
+        << "--hybrid_trunk / --frozen_cache need --lora_last_n < "
+           "num_hidden_layers (otherwise no block is frozen and there is "
+           "nothing to split or reuse)";
+
+    // The accelerator only if this build brought one up: a CPU-only build (or
+    // NNTR_ENGINE=cpu) silently keeps the frozen region on the host, which is
+    // exactly what --frozen_cache alone asks for.
+    bool prefix_on_device = false;
+#if defined(ENABLE_OPENCL)
+    try {
+      prefix_on_device =
+        nntrainer::Engine::Global().getRegisteredContext("gpu") != nullptr;
+    } catch (std::exception &) {
+      prefix_on_device = false;
     }
-    // The trunk is loaded after the head's weights (load_trunk below):
-    // load_weight_lora() builds and destroys a throwaway base model, and a
-    // model teardown clears the process-wide GPU weight caches. A trunk loaded
-    // before it would lose its device packs and have to rebuild them from its
-    // plain QS4CX payloads, which the GPU path releases after the first build.
-    auto load_trunk = [&]() {
-      const std::string &td = params.hybrid_trunk_path;
-      causallm::json tcfg = causallm::LoadJsonFile(td + "/config.json");
-      causallm::json tgen = causallm::json::object();
-      if (std::filesystem::exists(td + "/generation_config.json"))
-        tgen = causallm::LoadJsonFile(td + "/generation_config.json");
-      causallm::json tnntr = causallm::LoadJsonFile(td + "/nntr_config.json");
-      tnntr["lora_rank"] = 0;
-      tnntr["lora_alpha"] = 0;
-      tnntr["tokenizer_file"] = nntr_cfg["tokenizer_file"];
-      // the GPU attention arms (see README_GPU.md); an explicit setting wins
-      setenv("NNTR_MHA_GPU", "1", 0);
-      setenv("NNTR_KV_IMG_ATTN", "1", 0);
-      trunk = causallm::Factory::Instance().create(
-        resolveTrainingArchitecture(tcfg), tcfg, tgen, tnntr);
-      NNTR_THROW_IF(!trunk, std::invalid_argument)
-        << "unsupported trunk architecture";
-      trunk->setTrunkLayers(trunk_layers);
-      // the trunk's output is read back on the host by the CPU head
-      auto &rp = nntrainer::ResidencyPolicy::global();
-      rp.lower_patterns += std::string(rp.lower_patterns.empty() ? "" : ",") +
-                           "layer" + std::to_string(trunk_layers - 1) +
-                           "_decoder_output:out0";
-      trunk->initialize();
-      trunk->load_weight(td + "/" +
-                         tnntr["model_file_name"].get<std::string>());
-      std::cout << (params.frozen_cache ? "frozen cache: frozen blocks [0, "
-                                        : "hybrid:       GPU trunk blocks [0, ")
-                << trunk_layers << ") from " << td << ", training blocks ["
-                << trunk_layers << ", ...)" << std::endl;
-    };
+#endif
+    if (hybrid && !prefix_on_device)
+      std::cout << "note:         no gpu context in this build; the frozen "
+                   "blocks stay on the host"
+                << std::endl;
+
+    // Set before initializeForTraining(): the split is a property of how the
+    // graph is BUILT (engine and activation dtype per layer), not of how it is
+    // run. FP16 activations are asked for only when the model really is an
+    // FP16 model -- the device runs that combination 1.55x faster, but a norm's
+    // scale is stored in the model's activation dtype, so pinning FP16 onto an
+    // FP32 checkpoint would read FP32 scales as FP16 (see
+    // setFrozenPrefixEngine()).
+    const std::string tensor_type =
+      nntr_cfg.value("model_tensor_type", std::string("FP32-FP32"));
+    const bool frozen_fp16 =
+      prefix_on_device && tensor_type.size() >= 4 &&
+      tensor_type.compare(tensor_type.size() - 4, 4, "FP16") == 0;
+    if (split)
+      model.setFrozenPrefixEngine(
+        frozen_blocks, prefix_on_device ? "gpu" : "cpu", frozen_fp16);
+    // The frozen region's output depends on nothing training changes -- its
+    // weights are frozen and a sample's token ids never change -- so from epoch
+    // 2 a repeated sample can skip it. Budgeted in bytes; samples past the
+    // budget are computed normally, so a small budget only costs time.
+    if (params.frozen_cache) {
+      // No estimate of the data set here on purpose: the cache keeps samples
+      // until the budget is full and computes the rest, so giving it the
+      // smaller of "what the user asked for" and "half of what the system can
+      // hand out now" bounds the memory without knowing how many samples there
+      // are or how long they are.
+      size_t budget = (size_t)params.frozen_cache_mb << 20;
+      const size_t avail = availableMemoryBytes() / 2;
+      if (budget == 0)
+        budget = avail;
+      else if (avail)
+        budget = std::min(budget, avail);
+      model.setFrozenCache(true, budget);
+    }
 
     if (decision) {
       model.setDecisionTask(decisionLetterIds(model_path, model.getTokenizer()),
@@ -555,9 +589,9 @@ int runLoraTraining(const TrainParams &params_in, TrainProgressCb callback,
 
     const std::string weight_file =
       model_path + "/" + nntr_cfg["model_file_name"].get<std::string>();
+    // The frozen region is part of this graph and comes from this file: there
+    // is no second model left to load.
     model.load_weight_lora(weight_file, params.resume_lora_path);
-    if (hybrid)
-      load_trunk();
 
     auto *tokenizer = model.getTokenizer();
     if (tokenizer == nullptr)
@@ -578,107 +612,35 @@ int runLoraTraining(const TrainParams &params_in, TrainProgressCb callback,
                 << std::endl;
     }
 
-    // Hybrid: the producer thread runs the GPU trunk for each sample, so the
-    // trunk of the next sample overlaps the current training step. Which
-    // positions are scored travels with the sample, in its label.
-    if (hybrid) {
-      const unsigned int L = seq_len;
-      // the trunk feeds the head its hidden state through CausalLM::
-      // trunkHidden(); every trainable architecture is a CausalLM. The
-      // Transformer base is virtual (diamond), so the downcast must be
-      // dynamic.
-      auto *t = dynamic_cast<CausalLM *>(trunk.get());
-      NNTR_THROW_IF(!t, std::invalid_argument)
-        << "hybrid trunk is not a CausalLM";
-      data_gen->input_writer = [t, L](const int32_t *ids, unsigned int used,
-                                      float *input) {
-        const auto t0 = std::chrono::steady_clock::now();
-        t->trunkHidden(ids, used, L, input);
-        /// [DIAG] NNTR_TRAIN_GRAD_DUMP=<dir>: the trunk hidden of the first
-        /// produced samples, in production order (matches samples.txt).
-        if (const char *dump = std::getenv("NNTR_TRAIN_GRAD_DUMP")) {
-          static int produced = 0;
-          if (produced < 16) {
-            const std::string f = std::string(dump) + "/hidden_" +
-                                  std::to_string(produced) + ".bin";
-            if (FILE *fp = std::fopen(f.c_str(), "wb")) {
-              std::fwrite(input, sizeof(float),
-                          (size_t)used * t->getHiddenDim(), fp);
-              std::fclose(fp);
-            }
-          }
-          ++produced;
-        }
-        const double ms = std::chrono::duration<double, std::milli>(
-                            std::chrono::steady_clock::now() - t0)
-                            .count();
-        static double acc = 0, acc_g = 0, acc_c = 0, acc_m = 0;
-        static unsigned int n = 0;
-        static const bool prof = std::getenv("NNTR_TRAIN_PROF") != nullptr;
-        acc += ms;
-        const double *sp = t->trunkSplitMs();
-        acc_g += sp[0];
-        acc_c += sp[1];
-        acc_m += sp[2];
-        if (++n % 10 == 0 && prof) {
-          std::cout << "[PERF-TRUNK] avg " << acc / 10 << " ms (gpu trunk, "
-                    << used << " tokens): graph " << acc_g / 10
-                    << " ms, output conversion " << acc_c / 10 << " ms, copy "
-                    << acc_m / 10 << " ms" << std::endl;
-          acc = acc_g = acc_c = acc_m = 0;
-        }
-      };
-      // The trunk's blocks are frozen and a sample's ids never change, so
-      // its hidden state is the same in every epoch: keep it after the first
-      // epoch instead of running the GPU trunk again. Besides the trunk time
-      // this takes the trunk's contention off the CPU head (its host threads
-      // and the first batch of each epoch waiting for the trunk to fill it).
-      // The budget defaults to the whole data set (FP16 rows), capped at
-      // half the memory available when training starts so a large set on a
-      // small device falls back to running the trunk for the rest instead of
-      // pushing the process into the low-memory killer.
-      // NNTR_TRAIN_TRUNK_CACHE_MB sets an explicit cap per generator instead
-      // (0 = off).
-      const char *cache_env = std::getenv("NNTR_TRAIN_TRUNK_CACHE_MB");
-      const size_t avail_cap = availableMemoryBytes() / 2;
-      auto cache_budget = [&](const TrainingDataGenerator &g) {
-        if (cache_env)
-          return static_cast<size_t>(std::strtoull(cache_env, nullptr, 10))
-                 << 20;
-        const size_t need = g.inputCacheBytes(t->getHiddenDim());
-        return avail_cap ? std::min(need, avail_cap) : need;
-      };
-      const size_t train_budget = cache_budget(*data_gen);
-      data_gen->setInputCache(t->getHiddenDim(), train_budget);
-      std::cout << "trunk_cache:  " << (train_budget >> 20) << " MB of "
-                << (data_gen->inputCacheBytes(t->getHiddenDim()) >> 20)
-                << " MB (fp16)" << std::endl;
-      if (valid_gen)
-        valid_gen->setInputCache(t->getHiddenDim(), cache_budget(*valid_gen));
-    }
-
+    // Nothing to wire between a trunk and a head any more: the frozen region
+    // hands its hidden state to the trainable region through the graph's own
+    // tensors, and the generator produces token ids for every configuration --
+    // including the accelerator one, which used to receive precomputed hidden
+    // states through a producer-thread writer. Dropping that writer also drops
+    // the 2-slot iteration queue it needed: cross-sample overlap between the
+    // two regions is deliberately not re-enabled here, because inside one graph
+    // the planner reuses the frozen region's memory for the trainable region's
+    // activations, so sample N+1's prefix would overwrite sample N's tail while
+    // it is still being trained. Overlap is a separate change (it needs a
+    // lifespan partition of the pool, not a second pool), and until it lands
+    // the single graph is serial -- which is also the only configuration whose
+    // memory is bounded.
     std::shared_ptr<ml::train::Dataset> dataset = ml::train::createDataset(
       ml::train::DatasetType::GENERATOR, trainingDataGenCb, data_gen.get());
-    // Hybrid: a 1-slot iteration queue frees its slot only when the step that
-    // consumed it ends, so the GPU trunk of the next sample would start after
-    // the CPU step instead of under it. Two slots let it run one sample ahead.
-    // --hybrid_sync: one slot, so the GPU trunk of the next sample waits for
-    // the CPU step (no CPU / GPU overlap) -- for measuring the overlap
-    if (hybrid && !params.hybrid_sync)
-      dataset->setProperty({"buffer_size=2"});
     model.setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset);
 
-    // Validation runs its own generator (copying the hybrid trunk writer, a
-    // no-op on plain CPU) so its rows never mix into the training shuffle.
+    // Validation keeps its own generator so its rows never mix into the
+    // training shuffle.
     if (valid_gen) {
-      valid_gen->input_writer = data_gen->input_writer;
       std::shared_ptr<ml::train::Dataset> valid_dataset =
         ml::train::createDataset(ml::train::DatasetType::GENERATOR,
                                  trainingDataGenCb, valid_gen.get());
-      if (hybrid && !params.hybrid_sync)
-        valid_dataset->setProperty({"buffer_size=2"});
       model.setDataset(ml::train::DatasetModeType::MODE_VALID, valid_dataset);
     }
+
+    if (hybrid || params.frozen_cache)
+      std::cout << "frozen cache: "
+                << (model.frozenCacheEnabled() ? "on" : "off") << std::endl;
 
     EpochBridge bridge;
     bridge.model = &model;
@@ -788,6 +750,9 @@ int main(int argc, char *argv[]) {
         params.hybrid_sync = true;
       else if (arg == "--frozen_cache")
         params.frozen_cache = true;
+      else if (arg == "--frozen_cache_mb")
+        params.frozen_cache_mb =
+          static_cast<unsigned int>(std::stoul(next("--frozen_cache_mb")));
       else if (arg == "--valid_data")
         params.valid_data_path = next("--valid_data");
       else if (arg == "--patience")

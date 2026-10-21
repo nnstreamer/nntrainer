@@ -664,6 +664,10 @@ void Transformer::initializeForTraining(float lr, unsigned int epochs,
     throw std::invalid_argument("Training model compilation failed.");
   }
 
+  // Only now, with the graph compiled, can the frozen prefix's split point be
+  // resolved against the compiled order (see installFrozenPrefixWalk()).
+  installFrozenPrefixWalk();
+
   is_initialized = true;
 }
 
@@ -675,6 +679,182 @@ void Transformer::setDataset(const ml::train::DatasetModeType &mode,
   if (model->setDataset(mode, dataset)) {
     throw std::invalid_argument("Failed to set dataset.");
   }
+}
+
+/**
+ * Name of the node that ends the frozen prefix: the last frozen block's output.
+ * The split is named rather than counted so a graph that inserts a node between
+ * blocks (the dtype cast, for one) still splits in the right place.
+ */
+static std::string frozenPrefixEndNode(int frozen_prefix) {
+  return "layer" + std::to_string(frozen_prefix - 1) + "_decoder_output";
+}
+
+void Transformer::installFrozenPrefixWalk() {
+  if (FROZEN_PREFIX <= 0 || FROZEN_PREFIX_ENGINE.empty() || !model)
+    return;
+
+  // FP16 activations in the frozen region are only correct if that is also the
+  // dtype the model's weights were saved in. A norm's scale takes its dtype
+  // from the model's activation dtype (an unpacked layer sets weight =
+  // activation), and the checkpoint holds exactly those bytes, so pinning FP16
+  // activations onto an FP32 model would have the frozen norms read FP32 scales
+  // as FP16 -- plausible output, every layer scaled wrong, with nothing to fail
+  // on. The combination is available to a model that really is FP16
+  // (model_tensor_type
+  // *-FP16), which is the case the 1.55x measurement came from.
+  if (FROZEN_PREFIX_FP16) {
+    const std::string tt = MODEL_TENSOR_TYPE;
+    const bool model_is_fp16 =
+      tt.size() >= 4 && tt.compare(tt.size() - 4, 4, "FP16") == 0;
+    NNTR_THROW_IF(!model_is_fp16, std::invalid_argument)
+      << "the frozen prefix was asked to run FP16 activations, but this model "
+         "is model_tensor_type="
+      << tt
+      << ": its norm scales are FP32. Run the frozen region on its own dtype "
+         "(fp16=false), or train a model whose activations are FP16.";
+  }
+
+  auto *nn = static_cast<nntrainer::NeuralNetwork *>(model.get());
+  // forwardRange() indexes the COMPILED order, not the layer ids, so the split
+  // is resolved against the graph that was actually built.
+  const std::string end_node = frozenPrefixEndNode(FROZEN_PREFIX);
+  const int split = nn->getNodeOrder(end_node);
+  NNTR_THROW_IF(split < 0, std::runtime_error)
+    << "frozen prefix split node not found in the compiled graph: " << end_node
+    << " (FROZEN_PREFIX=" << FROZEN_PREFIX << ")";
+  const unsigned int split_past = (unsigned int)split + 1;
+  const unsigned int total = nn->getGraphSize();
+  NNTR_THROW_IF(split_past >= total, std::runtime_error)
+    << "frozen prefix covers the whole training graph: nothing would train";
+
+  // The tensors the walk moves data through, resolved once. out0 of the split
+  // node is what the first trainable block reads; the input placeholder holds
+  // the sample being stepped (setInputsLabels() binds it rather than copying,
+  // so reading it here reads the current sample). A TRAIN graph has exactly one
+  // "input" node -- the KV cache placeholders exist only in the inference graph
+  // -- so the first one found is the token plane, and the check below says so
+  // out loud instead of hashing the wrong tensor.
+  // A pooled tensor is addressed by "<layer>:<slot>", and the slot part is not
+  // uniform across layer kinds (an input placeholder is registered under its
+  // bare name by some paths and under ":input0"/":0" by others), so resolve by
+  // trying the known forms -- the same fallback the KV-cache binding uses in
+  // CausalLM::allocateAndBindKVCache() -- rather than hardcoding one spelling.
+  auto find_tensor = [nn](const std::string &base) -> nntrainer::Tensor * {
+    for (const char *suffix : {"", ":out0", ":input0", ":0"})
+      if (auto *t = nn->getTensor(base + suffix))
+        return t;
+    return nullptr;
+  };
+
+  nntrainer::Tensor *input = nullptr;
+  std::string input_name;
+  // getFlatGraph() hands back a COPY of the sorted node list, so it is bound
+  // here rather than walked through getNetworkGraph(): that returns a
+  // NetworkGraph by value too, and comparing cbegin() to cend() across two
+  // different temporaries compares iterators into two destroyed arrays. The
+  // copy is in the same order forwardRange() indexes, which is what matters
+  // here.
+  const auto flat = nn->getFlatGraph();
+  for (const auto &node : flat) {
+    if (node->getType() != "input")
+      continue;
+    NNTR_THROW_IF(input != nullptr, std::runtime_error)
+      << "frozen prefix walk: the training graph has more than one input "
+         "placeholder, so the frozen-output cache cannot key on its bytes";
+    input_name = node->getName();
+    input = find_tensor(input_name);
+  }
+  NNTR_THROW_IF(input == nullptr, std::runtime_error)
+    << "frozen prefix walk: no input placeholder in the graph (or its tensor "
+       "is not addressable by name: "
+    << input_name << ")";
+  nntrainer::Tensor *split_out = find_tensor(end_node);
+  NNTR_THROW_IF(split_out == nullptr, std::runtime_error)
+    << "frozen prefix walk: " << end_node
+    << " has no addressable output tensor, so a cached hidden state has "
+       "nowhere to go";
+
+  nn->setForwardOverride([this, nn, input, split_out, split_past, total,
+                          end_node](nntrainer::NeuralNetwork *self,
+                                    bool training) {
+    auto run_tail = [&]() { self->forwardRange(split_past, total, training); };
+
+    if (!FROZEN_CACHE) {
+      self->forwardRange(0, split_past, training);
+      ++FROZEN_PREFIX_RUNS;
+      run_tail();
+      return true;
+    }
+
+    // The frozen region's output depends on nothing training changes -- its
+    // weights are frozen and a sample's token ids never change -- so from the
+    // second time a sample is seen the whole prefix can be skipped. Keyed on a
+    // hash of the ids: 8 bytes per sample kept for the run, against 4 bytes per
+    // token to keep the ids themselves. A collision would train one sample on
+    // another's hidden state, so the key also carries the byte count.
+    const char *raw = reinterpret_cast<const char *>(input->getData());
+    const size_t bytes = input->getMemoryBytes();
+    uint64_t h = 1469598103934665603ull; // FNV-1a
+    for (size_t i = 0; i < bytes; ++i) {
+      h ^= (unsigned char)raw[i];
+      h *= 1099511628211ull;
+    }
+    std::string key((const char *)&h, sizeof(h));
+    key.append((const char *)&bytes, sizeof(bytes));
+
+    auto hit = FROZEN_CACHE_MAP.find(key);
+    if (hit != FROZEN_CACHE_MAP.end()) {
+      // Put the cached hidden state where the trainable region reads it, then
+      // walk only the tail. A byte copy, not a tensor assignment: the graph's
+      // own tensor must keep the storage the pool gave it, only its contents
+      // change.
+      NNTR_THROW_IF(hit->second.size() != split_out->getMemoryBytes(),
+                    std::runtime_error)
+        << "frozen prefix cache: a cached row is " << hit->second.size()
+        << " bytes but the graph's split output is "
+        << split_out->getMemoryBytes();
+      std::memcpy(split_out->getData<char>(), hit->second.data(),
+                  hit->second.size());
+      ++FROZEN_CACHE_HITS;
+      run_tail();
+      return true;
+    }
+
+    self->forwardRange(0, split_past, training);
+    ++FROZEN_PREFIX_RUNS;
+    // The pool reuses this memory for the next step's activations, so a cached
+    // row has to own its bytes. The budget is checked after the run because a
+    // row's size is only known once it exists; a sample that does not fit is
+    // simply not cached, so the cache cannot outgrow what it was given and
+    // costs only the time it did not save.
+    const size_t row = split_out->getMemoryBytes();
+    if (FROZEN_CACHE_BYTES == 0 ||
+        FROZEN_CACHE_USED + row <= FROZEN_CACHE_BYTES) {
+      const char *p = split_out->getData<char>();
+      auto inserted =
+        FROZEN_CACHE_MAP.emplace(key, std::vector<char>(p, p + row));
+      if (inserted.second)
+        FROZEN_CACHE_USED += row;
+    }
+    run_tail();
+    return true;
+  });
+
+  std::cout << "frozen prefix: blocks [0, " << FROZEN_PREFIX
+            << ") on engine=" << FROZEN_PREFIX_ENGINE
+            << (FROZEN_PREFIX_FP16 ? " (fp16)" : "")
+            << ", split after compiled node " << split_past << " of "
+            << total
+            // The BUDGET, not what ends up used: a row's size is only known
+            // once the first one exists, and samples past the budget are
+            // computed rather than cached. getFrozenCacheUsedBytes() reports
+            // the bytes actually held, printed per epoch.
+            << (FROZEN_CACHE
+                  ? ", cache budget " +
+                      std::to_string(FROZEN_CACHE_BYTES >> 20) + " MB"
+                  : "")
+            << std::endl;
 }
 
 /**
@@ -1531,6 +1711,17 @@ std::pair<Tensor, Tensor> Transformer::constructModel() {
   auto embedding_props =
     buildEmbeddingLayerProperties("embedding0", NUM_VOCAB, DIM, EMBEDDING_DTYPE,
                                   EMBEDDING_SCALE, EMBEDDING_FILE_NAME);
+  // The frozen prefix starts at the embedding: a norm or an addition passes its
+  // input's dtype through and an FC/norm/mha takes its own activation dtype, so
+  // naming it here is what makes the whole frozen region FP16 without a single
+  // cast inside it (see setFrozenPrefixEngine()). The lookup table's own dtype
+  // is unaffected -- it comes from weight_dtype, which is what the checkpoint's
+  // byte layout is derived from, and must not move per node.
+  if (FROZEN_PREFIX > 0 && !FROZEN_PREFIX_ENGINE.empty()) {
+    embedding_props.push_back(withKey("engine", FROZEN_PREFIX_ENGINE));
+    for (const auto &p : blockActivationProps(0))
+      embedding_props.push_back(p);
+  }
   // embedding0 is never a LoRA target: freeze it whenever LoRA is active.
   if (LORA_RANK > 0)
     embedding_props.push_back(withKey("trainable", "false"));
@@ -1541,6 +1732,19 @@ std::pair<Tensor, Tensor> Transformer::constructModel() {
   const int last_block = TRUNK_LAYERS > 0 ? TRUNK_LAYERS : NUM_LAYERS;
   for (int i = 0; i < last_block; ++i) {
     h = createTransformerDecoderBlock(i, h);
+    // The single dtype boundary of a heterogeneous training graph: the frozen
+    // blocks ran FP16 on the device, the trainable ones run FP32 on the host,
+    // and this node turns one into the other. One cast per sample at seq 208 is
+    // ~0.1 ms against the ~60 ms it replaces; every layer on either side of it
+    // is built for exactly one dtype, which is what keeps the host blocks'
+    // FP32-only backward, LoRA fake-quant and loss untouched.
+    if (FROZEN_PREFIX > 0 && i == FROZEN_PREFIX - 1 && FROZEN_PREFIX_FP16) {
+      LayerHandle boundary(
+        createLayer("cast", {withKey("name", "frozen_prefix_cast"),
+                             withKey("tensor_dtype", "FP32"),
+                             withKey("engine", layerEngine())}));
+      h = boundary(h);
+    }
   }
   // GPU trunk of a GPU-trunk / CPU-head split: stop at the last frozen block.
   if (TRUNK_LAYERS > 0)
@@ -1842,11 +2046,19 @@ void Transformer::run(const WSTR prompt, bool do_sample,
 Tensor Transformer::createTransformerDecoderBlock(const int layer_id,
                                                   Tensor input) {
 
+  // the frozen prefix of a heterogeneous training graph names its own engine
+  // and activation dtype (see setFrozenPrefixEngine()); other blocks get the
+  // plain training engine and the model's dtype.
+  const std::string eng = blockEngine(layer_id);
+  const auto act_props = blockActivationProps(layer_id);
+
   // norms are never a LoRA target: freeze them whenever LoRA is active.
   std::vector<std::string> attn_norm_props = {
     withKey("name", "layer" + std::to_string(layer_id) + "_attention_norm"),
     withKey("epsilon", std::to_string(NORM_EPS)), withKey("packed", "false"),
-    withKey("engine", layerEngine())};
+    withKey("engine", eng)};
+  attn_norm_props.insert(attn_norm_props.end(), act_props.begin(),
+                         act_props.end());
   if (LORA_RANK > 0 && !TRAIN_NORMS)
     attn_norm_props.push_back(withKey("trainable", "false"));
   LayerHandle attn_norm(createLayer("rms_norm", attn_norm_props));
@@ -1858,13 +2070,15 @@ Tensor Transformer::createTransformerDecoderBlock(const int layer_id,
   LayerHandle decoder_add(createLayer(
     "addition",
     {withKey("name", "layer" + std::to_string(layer_id) + "_decoder_add"),
-     withKey("engine", layerEngine())}));
+     withKey("engine", eng)}));
   Tensor residual = decoder_add({input, att_out});
 
   std::vector<std::string> ffn_norm_props = {
     withKey("name", "layer" + std::to_string(layer_id) + "_ffn_norm"),
     withKey("epsilon", std::to_string(NORM_EPS)), withKey("packed", "false"),
-    withKey("engine", layerEngine())};
+    withKey("engine", eng)};
+  ffn_norm_props.insert(ffn_norm_props.end(), act_props.begin(),
+                        act_props.end());
   if (LORA_RANK > 0 && !TRAIN_NORMS)
     ffn_norm_props.push_back(withKey("trainable", "false"));
   LayerHandle ffn_norm(createLayer("rms_norm", ffn_norm_props));
@@ -1875,7 +2089,7 @@ Tensor Transformer::createTransformerDecoderBlock(const int layer_id,
   LayerHandle decoder_output(createLayer(
     "addition",
     {withKey("name", "layer" + std::to_string(layer_id) + "_decoder_output"),
-     withKey("engine", layerEngine())}));
+     withKey("engine", eng)}));
   return decoder_output({residual, ffn_out});
 }
 
@@ -2035,6 +2249,11 @@ Tensor Transformer::createAttention(const int layer_id, int seq_len,
 Tensor Transformer::createMlp(const int layer_id, int dim, int hidden_dim,
                               Tensor input) {
 
+  // engine / activation dtype of this block: the frozen prefix of a
+  // heterogeneous training graph names its own (see blockEngine()).
+  const std::string eng = blockEngine(layer_id);
+  const auto act_props = blockActivationProps(layer_id);
+
   // A positional .bin is read in graph order, and the graph is collected by
   // walking back from the output through each layer's inputs in order, so
   // swiglu({gate, up}) loads ffn_gate before ffn_up whatever order the two
@@ -2045,39 +2264,45 @@ Tensor Transformer::createMlp(const int layer_id, int dim, int hidden_dim,
   std::vector<std::string> ffn_gate_props = {
     withKey("name", "layer" + std::to_string(layer_id) + "_ffn_gate"),
     withKey("unit", hidden_dim), withKey("disable_bias", "true"),
-    withKey("weight_initializer", "ones"), withKey("engine", layerEngine())};
+    withKey("weight_initializer", "ones"), withKey("engine", eng)};
   if (hasLoRA("ffn_gate", layer_id))
     appendLoRAProps(ffn_gate_props);
   else if (LORA_RANK > 0)
     ffn_gate_props.push_back(withKey("trainable", "false"));
+  ffn_gate_props.insert(ffn_gate_props.end(), act_props.begin(),
+                        act_props.end());
   LayerHandle ffn_gate(createLayer("fully_connected", ffn_gate_props));
   Tensor gate = ffn_gate(input);
 
   std::vector<std::string> ffn_up_props = {
     withKey("name", "layer" + std::to_string(layer_id) + "_ffn_up"),
     withKey("unit", hidden_dim), withKey("disable_bias", "true"),
-    withKey("weight_initializer", "ones"), withKey("engine", layerEngine())};
+    withKey("weight_initializer", "ones"), withKey("engine", eng)};
   if (hasLoRA("ffn_up", layer_id))
     appendLoRAProps(ffn_up_props);
   else if (LORA_RANK > 0)
     ffn_up_props.push_back(withKey("trainable", "false"));
+  ffn_up_props.insert(ffn_up_props.end(), act_props.begin(), act_props.end());
   LayerHandle ffn_up(createLayer("fully_connected", ffn_up_props));
   Tensor up = ffn_up(input);
 
-  LayerHandle swiglu(createLayer(
-    "swiglu",
-    {withKey("name", "layer" + std::to_string(layer_id) + "_ffn_swiglu"),
-     withKey("engine", layerEngine())}));
+  std::vector<std::string> swiglu_props = {
+    withKey("name", "layer" + std::to_string(layer_id) + "_ffn_swiglu"),
+    withKey("engine", eng)};
+  swiglu_props.insert(swiglu_props.end(), act_props.begin(), act_props.end());
+  LayerHandle swiglu(createLayer("swiglu", swiglu_props));
   Tensor act = swiglu({gate, up});
 
   std::vector<std::string> ffn_down_props = {
     withKey("name", "layer" + std::to_string(layer_id) + "_ffn_down"),
     withKey("unit", dim), withKey("disable_bias", "true"),
-    withKey("weight_initializer", "ones"), withKey("engine", layerEngine())};
+    withKey("weight_initializer", "ones"), withKey("engine", eng)};
   if (hasLoRA("ffn_down", layer_id))
     appendLoRAProps(ffn_down_props);
   else if (LORA_RANK > 0)
     ffn_down_props.push_back(withKey("trainable", "false"));
+  ffn_down_props.insert(ffn_down_props.end(), act_props.begin(),
+                        act_props.end());
   LayerHandle ffn_down(createLayer("fully_connected", ffn_down_props));
   return ffn_down(act);
 }
