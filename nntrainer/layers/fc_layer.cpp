@@ -45,8 +45,8 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
-#include <iostream>
 #include <future>
+#include <iostream>
 #include <map>
 #include <mutex>
 #include <numeric>
@@ -904,8 +904,7 @@ bool baseGemmGpuOn() {
 /** @brief whether baseGemmGpu() would try the device for @p weight */
 bool baseGemmGpuWanted(const Tensor &weight) {
 #if defined(ENABLE_OPENCL)
-  return baseGemmGpuOn() &&
-         weight.getDataType() == TensorDim::DataType::QS4CX;
+  return baseGemmGpuOn() && weight.getDataType() == TensorDim::DataType::QS4CX;
 #else
   (void)weight;
   return false;
@@ -1023,12 +1022,12 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
     const char *e = std::getenv("NNTR_TRAIN_BASE_GPU_ASYNC");
     return e == nullptr || e[0] != '0';
   }();
-  const bool async_base = async_opt && has_lora_branch &&
-                          baseGemmGpuWanted(weight) && quantizer == nullptr &&
-                          std::getenv("NNTR_TRAIN_FWD_FP32") == nullptr &&
-                          gemm_ops_ == nullptr &&
-                          context.getTensor(lora_idx[LORAParams::loraOut])
-                              .getDim() == hidden_.getDim();
+  const bool async_base =
+    async_opt && has_lora_branch && baseGemmGpuWanted(weight) &&
+    quantizer == nullptr && std::getenv("NNTR_TRAIN_FWD_FP32") == nullptr &&
+    gemm_ops_ == nullptr &&
+    context.getTensor(lora_idx[LORAParams::loraOut]).getDim() ==
+      hidden_.getDim();
   std::future<void> base_job;
 
   ///@todo This dequantization action should be moved to tensor.dot()

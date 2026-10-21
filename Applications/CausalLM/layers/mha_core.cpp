@@ -122,6 +122,7 @@ static constexpr bool host_decode_prefers_per_row() {
 #include <blas_kernels.h>
 #include <opencl_kernel.h>
 #endif
+#include <chrono>
 #include <fp16.h>
 #include <layer_context.h>
 #include <mha_core.h>
@@ -129,7 +130,6 @@ static constexpr bool host_decode_prefers_per_row() {
 #include <nntrainer_log.h>
 #include <node_exporter.h>
 #include <thread_manager.h>
-#include <chrono>
 #include <util_func.h>
 
 #include <cstdint>
@@ -6657,11 +6657,12 @@ void MHACoreLayer::trainForwarding(nntrainer::RunLayerContext &context) {
   apply_rotary_emb_tensor_v2(key, train_k, head_dim, 0, true);
   const auto mha_t_rope = std::chrono::steady_clock::now();
 
-  const ml::train::TensorDim q_dim = train_q.getDim();    // (B,1,max_ts,HQ*D)
-  const ml::train::TensorDim k_dim = train_k.getDim();    // (B,1,max_ts,HKV*D)
-  const ml::train::TensorDim v_dim = value.getDim();      // (B,1,seq,HKV*D)
-  const ml::train::TensorDim o_dim = output.getDim();     // (B,1,seq,HQ*D)
-  const ml::train::TensorDim attn_dim = train_attn.getDim(); // (B,HQ,max_ts,max_ts)
+  const ml::train::TensorDim q_dim = train_q.getDim(); // (B,1,max_ts,HQ*D)
+  const ml::train::TensorDim k_dim = train_k.getDim(); // (B,1,max_ts,HKV*D)
+  const ml::train::TensorDim v_dim = value.getDim();   // (B,1,seq,HKV*D)
+  const ml::train::TensorDim o_dim = output.getDim();  // (B,1,seq,HQ*D)
+  const ml::train::TensorDim attn_dim =
+    train_attn.getDim(); // (B,HQ,max_ts,max_ts)
 
   const float *q_data = train_q.getData<float>();
   const float *k_data = train_k.getData<float>();
@@ -6927,14 +6928,15 @@ void MHACoreLayer::calcDerivative(nntrainer::RunLayerContext &context) {
   dK.setZero();
   dV.setZero();
 
-  const ml::train::TensorDim dy_dim = dy.getDim(); // (B,1,seq,HQ*D)
-  const ml::train::TensorDim dq_dim = dQ.getDim(); // (B,1,seq,HQ*D)
-  const ml::train::TensorDim dk_dim = dK.getDim(); // (B,1,seq,HKV*D)
-  const ml::train::TensorDim dv_dim = dV.getDim(); // (B,1,seq,HKV*D)
-  const ml::train::TensorDim q_dim = train_q.getDim();       // (B,1,max_ts,HQ*D)
-  const ml::train::TensorDim k_dim = train_k.getDim();       // (B,1,max_ts,HKV*D)
-  const ml::train::TensorDim v_dim = value.getDim();         // (B,1,seq,HKV*D)
-  const ml::train::TensorDim attn_dim = train_attn.getDim(); // (B,HQ,max_ts,max_ts)
+  const ml::train::TensorDim dy_dim = dy.getDim();     // (B,1,seq,HQ*D)
+  const ml::train::TensorDim dq_dim = dQ.getDim();     // (B,1,seq,HQ*D)
+  const ml::train::TensorDim dk_dim = dK.getDim();     // (B,1,seq,HKV*D)
+  const ml::train::TensorDim dv_dim = dV.getDim();     // (B,1,seq,HKV*D)
+  const ml::train::TensorDim q_dim = train_q.getDim(); // (B,1,max_ts,HQ*D)
+  const ml::train::TensorDim k_dim = train_k.getDim(); // (B,1,max_ts,HKV*D)
+  const ml::train::TensorDim v_dim = value.getDim();   // (B,1,seq,HKV*D)
+  const ml::train::TensorDim attn_dim =
+    train_attn.getDim(); // (B,HQ,max_ts,max_ts)
 
   const float *dy_data = dy.getData<float>();
   const float *q_data = train_q.getData<float>();

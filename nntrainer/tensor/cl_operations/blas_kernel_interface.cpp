@@ -393,11 +393,11 @@ int aminCl(const Tensor &input) { throwNoOpenCLKernel("aminCl"); }
 #include "blas_kernels.h"
 #include "cl_tensor_backing_pool.h"
 #include "cl_tensor_view.h"
+#include <chrono>
 #include <cl_context.h>
 #include <cl_kernels/cl_kernels.h>
 #include <cstdio>
 #include <cstdlib>
-#include <chrono>
 #include <cstring>
 #include <engine.h>
 #include <memory>
