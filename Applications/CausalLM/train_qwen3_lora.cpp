@@ -539,23 +539,21 @@ int runLoraTraining(const TrainParams &params_in, TrainProgressCb callback,
                    "blocks stay on the host"
                 << std::endl;
 
-    // Set before initializeForTraining(). The frozen range stays a set of HOST
-    // layers: putting it on the "gpu" engine instead swaps the class every one
-    // of its layers is built from (an engine's context registers its own
-    // factory under the same type name), and those are inference classes that
-    // leave the training graph's activation tensors holding what the pool gave
-    // them -- measured on the S26U as a whole prefix reading back zeros and a
-    // loss of 5.08 against the host reference's 2.98, with nothing failing. See
-    // Transformer::setFrozenPrefix(). What the device does instead is the
-    // frozen range's heavy GEMM, through FullyConnectedLayer's base-GEMM
-    // offload, which checks its first calls against the host dot it replaces
-    // and latches itself off on any mismatch. That path is gated by
-    // NNTR_TRAIN_BASE_GPU.
-    const bool frozen_on_device = hybrid && gpu_present && params.gpu_base_gemm;
-    if (frozen_on_device)
+    const bool prefix_on_gpu = hybrid && gpu_present;
+    const std::string tensor_type =
+      nntr_cfg.value("model_tensor_type", std::string("FP32-FP32"));
+    const bool frozen_fp16 =
+      prefix_on_gpu && tensor_type.size() >= 4 &&
+      tensor_type.compare(tensor_type.size() - 4, 4, "FP16") == 0;
+
+    if (prefix_on_gpu) {
+      model.setFrozenPrefixEngine(frozen_blocks, "gpu", frozen_fp16);
+    } else if (split) {
+      model.setFrozenPrefix(frozen_blocks, false);
+    }
+    if (hybrid && gpu_present && params.gpu_base_gemm) {
       nntrainer::nntr_setenv("NNTR_TRAIN_BASE_GPU", "1", 0);
-    if (split)
-      model.setFrozenPrefix(frozen_blocks, frozen_on_device);
+    }
     // The frozen region's output depends on nothing training changes -- its
     // weights are frozen and a sample's token ids never change -- so from epoch
     // 2 a repeated sample can skip it. Budgeted in bytes; samples past the
