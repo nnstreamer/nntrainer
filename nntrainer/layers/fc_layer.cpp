@@ -833,6 +833,19 @@ bool skinnyOk(const Tensor &t) {
  * @brief Whether the frozen-weight dX of a LoRA FC runs as an int8 (Q8_0)
  * GEMM. NNTR_TRAIN_DX_Q8=0/1 overrides; default on for aarch64 (i8mm) only.
  */
+/**
+ * @brief [EXP] NNTR_TRAIN_DX_Q4=1: the dX copy of a Q4_0 / Q6_K / QINT* base
+ * is re-quantized to Q4_0 (blocks along N) instead of Q8_0, and dX runs as an
+ * int4 x int8 (Q4_0 x Q8_0) GEMM. Needs the int8 dX path (useQ8Dx).
+ */
+bool useQ4Dx() {
+  static const bool on = [] {
+    const char *e = std::getenv("NNTR_TRAIN_DX_Q4");
+    return e != nullptr && e[0] != '0';
+  }();
+  return on;
+}
+
 bool useQ8Dx() {
   static const bool on = [] {
     if (const char *e = std::getenv("NNTR_TRAIN_DX_Q8"))
@@ -1373,13 +1386,23 @@ void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
       // dX already computed above
     } else if (q8_dx && dx_wt_q8x4_.empty()) {
       dequantize_base();
-      const size_t bytes = (size_t)w_k * (w_n / 32) * 34; // block_q8_0
-      std::vector<uint8_t> plain(bytes);
-      __ggml_quantize_q8_0(w->getData<float>(), plain.data(), w_k, w_n,
-                           nullptr);
-      dx_wt_q8x4_.resize(bytes);
-      __ggml_repack_q8_0_to_q8_0_4x8(dx_wt_q8x4_.data(), plain.data(), bytes,
+      if (useQ4Dx()) {
+        const size_t bytes = (size_t)w_k * (w_n / 32) * 18; // block_q4_0
+        std::vector<uint8_t> plain(bytes);
+        __ggml_quantize_q4_0(w->getData<float>(), plain.data(), w_k, w_n,
+                             nullptr);
+        dx_wt_q8x4_.resize(bytes);
+        __ggml_repack_q4_0_to_q4_0_4(dx_wt_q8x4_.data(), plain.data(), bytes,
                                      w_k, w_n);
+      } else {
+        const size_t bytes = (size_t)w_k * (w_n / 32) * 34; // block_q8_0
+        std::vector<uint8_t> plain(bytes);
+        __ggml_quantize_q8_0(w->getData<float>(), plain.data(), w_k, w_n,
+                             nullptr);
+        dx_wt_q8x4_.resize(bytes);
+        __ggml_repack_q8_0_to_q8_0_4x8(dx_wt_q8x4_.data(), plain.data(), bytes,
+                                       w_k, w_n);
+      }
     } else if (!q8_dx) {
       dequantize_base();
     }
@@ -1394,9 +1417,14 @@ void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
       // dX already computed above
     } else if (q8_dx) {
       train_prof::Scope tp("fc.deriv_base_dx_q8gemm", train_prof::DERIV);
-      __ggml_q8_0_4x8_q8_0_GEMM(d_rows, w_k, w_n, derivative_.getData<float>(),
-                                w_n, dx_wt_q8x4_.data(), w_n,
-                                ret_.getData<float>(), w_k);
+      if (useQ4Dx())
+        __ggml_q4_0_4x8_q8_0_GEMM<float>(
+          d_rows, w_k, w_n, derivative_.getData<float>(), w_n,
+          dx_wt_q8x4_.data(), w_k, ret_.getData<float>(), w_k);
+      else
+        __ggml_q8_0_4x8_q8_0_GEMM(
+          d_rows, w_k, w_n, derivative_.getData<float>(), w_n,
+          dx_wt_q8x4_.data(), w_n, ret_.getData<float>(), w_k);
       /// [PERF-DXCHECK] NNTR_TRAIN_DX_CHECK=1: compare against the FP32 path
       static const bool dx_check =
         std::getenv("NNTR_TRAIN_DX_CHECK") != nullptr;
