@@ -21,6 +21,9 @@
 #include <residency_policy.h>
 #include <tensor.h>
 #include <tensor_pool.h>
+
+#include <cstdio>
+#include <cstdlib>
 #include <tensor_wrap_specs.h>
 #include <util_func.h>
 
@@ -146,6 +149,13 @@ void TensorPool::finalize(const MemoryPlanner &planner,
                           unsigned int start_order, unsigned int end_order) {
   mem_pool->clear();
   unsigned int bytes_requested = 0;
+  /// [DIAG] NNTR_POOL_DUMP=<file>: append every planned tensor (pool, name,
+  /// bytes, validity [start, end), lifespan) and the planned pool size
+  FILE *dump = nullptr;
+  if (const char *path = std::getenv("NNTR_POOL_DUMP"))
+    dump = std::fopen(path, "a");
+  if (dump)
+    std::fprintf(dump, "B %p %u %u\n", (void *)this, start_order, end_order);
   /** if execution order is PERSIST_END_ORDER, then we think it has another
    * execution order for gradient clipping
    *  persist_end_order is for checking if the end order is updated */
@@ -225,6 +235,11 @@ void TensorPool::finalize(const MemoryPlanner &planner,
     details->token = mem_pool->requestMemory(
       spec.tensor->getMemoryBytes(), validity_start, validity_end + 1,
       details->exec_order, details->lifespan, spec.is_weight_grad);
+    if (dump)
+      std::fprintf(dump, "T %p %s %zu %u %u %d\n", (void *)this,
+                   spec.tensor->getName().c_str(),
+                   spec.tensor->getMemoryBytes(), validity_start,
+                   validity_end + 1, static_cast<int>(details->lifespan));
 #ifdef DEBUG
     if (details->token == 0)
       throw std::runtime_error("Received invalid token from memory pool");
@@ -237,6 +252,13 @@ void TensorPool::finalize(const MemoryPlanner &planner,
   if (bytes_requested > 0) {
     double efficiency = mem_pool->planLayout(planner);
     ml_logd("Memory layout efficiency = %lf", efficiency);
+  }
+  if (dump) {
+    std::fprintf(dump, "E %p pool=%zu min=%zu\n", (void *)this,
+                 bytes_requested > 0 ? mem_pool->size() : (size_t)0,
+                 bytes_requested > 0 ? mem_pool->minMemoryRequirement()
+                                     : (size_t)0);
+    std::fclose(dump);
   }
 }
 
@@ -345,6 +367,14 @@ void TensorPool::allocate(bool init) {
      *  a swap-in from the weight file, whose offsets are not known until
      *  load() -- so a log line must not be the thing that touches it. */
     auto bound = spec.tensor->getMemoryData();
+    if (const char *path = std::getenv("NNTR_POOL_DUMP")) {
+      if (FILE *f = std::fopen(path, "a")) {
+        std::fprintf(f, "A %p %s %p\n", (void *)this,
+                     spec.tensor->getName().c_str(),
+                     bound ? bound->getAddr<void>() : nullptr);
+        std::fclose(f);
+      }
+    }
     ml_logi("Memory Alloc Details (Tensor): %s : %zu : address %p",
             spec.tensor->getName().c_str(), spec.tensor->getMemoryBytes(),
             bound ? bound->getAddr<void>() : nullptr);
