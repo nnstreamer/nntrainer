@@ -252,6 +252,38 @@ public:
     void *user_data = nullptr);
 
   /**
+   * @brief     forwarding a node range of the graph
+   * @param[in] from index of the first node to run (execution order)
+   * @param[in] to index past the last node to run
+   * @param[in] training true if forwarding is on training
+   *
+   * @note The nodes are taken in the graph's compiled order, which is the
+   * order forwarding() walks them, so forwardingRange(0, N) followed by
+   * forwardingRange(N, size()) is exactly forwarding() split in two at node N.
+   *
+   * @note A heterogeneous graph -- frozen blocks on the device, trainable
+   * blocks on the host -- is run in two passes through here: the frozen prefix
+   * on the producer thread for the NEXT sample while the host trains the
+   * current one, then the trainable tail. That overlap is what a two-graph
+   * split buys today; a single graph can only get it if part of it can be
+   * walked on its own, which is why this exists. Only the forwarding walk is
+   * exposed: the backward range of a LoRA run never reaches the frozen prefix
+   * (markNodesForBackwarding() marks forward from a trainable node), so a
+   * range forward needs no matching range backward.
+   *
+   * @retval empty. A prefix's outputs are consumed in place by the next
+   * range, so there is nothing to hand back; the return type matches
+   * forwarding() only so call sites can stay symmetric.
+   */
+  sharedConstTensors forwardingRange(
+    unsigned int from, unsigned int to, bool training = false,
+    std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
+      [](std::shared_ptr<LayerNode>, bool) {},
+    std::function<bool(void *userdata)> stop_cb =
+      [](void *user_data) { return false; },
+    void *user_data = nullptr);
+
+  /**
    * @brief     forwarding network graph
    * @param[in] from start step
    * @param[in] to end step
@@ -617,6 +649,12 @@ public:
   }
 
 private:
+  /**
+   * @brief Host-coherence barrier before a node with an explicit cpu engine
+   * reads inputs a device kernel may still be writing. No-op without OpenCL,
+   * and cheap when the queue is idle.
+   */
+  void drainForCpuHandoff(const LayerNode &ln);
   std::map<std::string, std::string> sub_in_out; /** This is map to identify
                  input and output layer name of subgraph */
   std::shared_ptr<Manager> tensor_manager;       /**< tensors manager */

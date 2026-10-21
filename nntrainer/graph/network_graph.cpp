@@ -446,40 +446,46 @@ void NetworkGraph::applyGradients(
   }
 }
 
+void NetworkGraph::drainForCpuHandoff(const LayerNode &ln) {
+#if defined(ENABLE_OPENCL)
+  // Host-coherence barrier at a device->host hand-off. A layer built with an
+  // explicit engine=cpu reads its inputs -- earlier nodes' shared-memory
+  // outputs -- directly on the host, and a device kernel that wrote them may
+  // still be in flight, in which case the host reads the pre-kernel bytes
+  // (fluent, wrong output; observed on the qwen3.5 hybrid, whose per-layer
+  // CPU ops follow GPU projections, on Adreno). The queue is in-order, so one
+  // drain here orders every outstanding shared-memory write before the host
+  // reads.
+  //
+  // Only an EXPLICIT cpu tag drains. A node with no engine property (the
+  // qwen3 mha_core) is a hybrid that runs device arms and follows the operand
+  // bind protocol itself -- draining before it cost qwen3 decode 31% (a
+  // clFinish per block per token) for no coherence gain. The device->device
+  // direction needs no barrier (the in-order queue orders it), and a device op
+  // unmaps its SVM operands itself before it dispatches, which is the
+  // host->device visibility point. The flag clears on this drain and on every
+  // blocking map, so the steady-state cost for a cpu-tagged node is one atomic
+  // load.
+  static const bool transition_drain_on = []() {
+    const char *e = std::getenv("NNTR_TRANSITION_DRAIN");
+    return !(e != nullptr && e[0] == '0');
+  }();
+  if (transition_drain_on && ln.isExplicitCpuEngine() &&
+      nntrainer::Engine::Global().isContextRegistered("gpu") &&
+      nntrainer::cl_queue_may_be_busy())
+    nntrainer::cl_queue_drain_and_reset();
+#else
+  static_cast<void>(ln);
+#endif
+}
+
 sharedConstTensors NetworkGraph::forwarding(
   bool training,
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op,
   std::function<bool(void *userdata)> stop_cb, void *userdata) {
   for (auto iter = cbegin(); iter != cend() && !stop_cb(userdata); iter++) {
     auto &ln = *iter;
-#if defined(ENABLE_OPENCL)
-    // Host-coherence barrier at a device->host hand-off. A layer built with
-    // an explicit engine=cpu reads its inputs -- earlier nodes' shared-memory
-    // outputs -- directly on the host, and a device kernel that wrote them
-    // may still be in flight, in which case the host reads the pre-kernel
-    // bytes (fluent, wrong output; observed on the qwen3.5 hybrid, whose
-    // per-layer CPU ops follow GPU projections, on Adreno). The queue is
-    // in-order, so one drain here orders every outstanding shared-memory
-    // write before the host reads.
-    //
-    // Only an EXPLICIT cpu tag drains. A node with no engine property (the
-    // qwen3 mha_core) is a hybrid that runs device arms and follows the
-    // operand bind protocol itself -- draining before it cost qwen3 decode
-    // 31% (a clFinish per block per token) for no coherence gain. The
-    // device->device direction needs no barrier (the in-order queue orders
-    // it), and a device op unmaps its SVM operands itself before it
-    // dispatches, which is the host->device visibility point. The flag
-    // clears on this drain and on every blocking map, so the steady-state
-    // cost for a cpu-tagged node is one atomic load.
-    static const bool transition_drain_on = []() {
-      const char *e = std::getenv("NNTR_TRANSITION_DRAIN");
-      return !(e != nullptr && e[0] == '0');
-    }();
-    if (transition_drain_on && ln->isExplicitCpuEngine() &&
-        nntrainer::Engine::Global().isContextRegistered("gpu") &&
-        nntrainer::cl_queue_may_be_busy())
-      nntrainer::cl_queue_drain_and_reset();
-#endif
+    drainForCpuHandoff(*ln);
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
     forwarding_op(*iter, training);
     PROFILE_TIME_END(profile_keys.at(ln->getType()));
@@ -499,40 +505,38 @@ sharedConstTensors NetworkGraph::forwarding(
   return out;
 }
 
+sharedConstTensors NetworkGraph::forwardingRange(
+  unsigned int from, unsigned int to, bool training,
+  std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op,
+  std::function<bool(void *userdata)> stop_cb, void *userdata) {
+  // graph_const_iterator is a random-access iterator over the sorted node
+  // array (same walk as cbegin()/cend(), which size()/getNode() index), so
+  // [from, to) addresses exactly the nodes forwarding() would visit in that
+  // index range.
+  auto first = cbegin();
+  std::advance(first, from);
+  auto last = cbegin();
+  std::advance(last, std::min(to, size()));
+  for (auto iter = first; iter != last; ++iter) {
+    if (stop_cb(userdata))
+      break;
+    auto &ln = *iter;
+    drainForCpuHandoff(*ln);
+    PROFILE_TIME_START(profile_keys.at(ln->getType()));
+    forwarding_op(*iter, training);
+    PROFILE_TIME_END(profile_keys.at(ln->getType()));
+  }
+
+  return {};
+}
+
 sharedConstTensors NetworkGraph::incremental_forwarding(
   unsigned int from, unsigned int to, bool training,
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op,
   std::function<bool(void *userdata)> stop_cb, void *userdata) {
   for (auto iter = cbegin(); iter != cend() && !stop_cb(userdata); iter++) {
     auto &ln = *iter;
-#if defined(ENABLE_OPENCL)
-    // Host-coherence barrier at a device->host hand-off. A layer built with
-    // an explicit engine=cpu reads its inputs -- earlier nodes' shared-memory
-    // outputs -- directly on the host, and a device kernel that wrote them
-    // may still be in flight, in which case the host reads the pre-kernel
-    // bytes (fluent, wrong output; observed on the qwen3.5 hybrid, whose
-    // per-layer CPU ops follow GPU projections, on Adreno). The queue is
-    // in-order, so one drain here orders every outstanding shared-memory
-    // write before the host reads.
-    //
-    // Only an EXPLICIT cpu tag drains. A node with no engine property (the
-    // qwen3 mha_core) is a hybrid that runs device arms and follows the
-    // operand bind protocol itself -- draining before it cost qwen3 decode
-    // 31% (a clFinish per block per token) for no coherence gain. The
-    // device->device direction needs no barrier (the in-order queue orders
-    // it), and a device op unmaps its SVM operands itself before it
-    // dispatches, which is the host->device visibility point. The flag
-    // clears on this drain and on every blocking map, so the steady-state
-    // cost for a cpu-tagged node is one atomic load.
-    static const bool transition_drain_on = []() {
-      const char *e = std::getenv("NNTR_TRANSITION_DRAIN");
-      return !(e != nullptr && e[0] == '0');
-    }();
-    if (transition_drain_on && ln->isExplicitCpuEngine() &&
-        nntrainer::Engine::Global().isContextRegistered("gpu") &&
-        nntrainer::cl_queue_may_be_busy())
-      nntrainer::cl_queue_drain_and_reset();
-#endif
+    drainForCpuHandoff(*ln);
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
     forwarding_op(*iter, training);
     PROFILE_TIME_END(profile_keys.at(ln->getType()));
