@@ -36,10 +36,9 @@ Tensor Qwen3Transformer::createAttention(const int layer_id, int seq_len,
                                          Tensor query, Tensor key,
                                          Tensor value) {
 
-  // engine / activation dtype of this block: the frozen prefix of a
-  // heterogeneous training graph names its own (see blockEngine()).
-  const std::string eng = blockEngine(layer_id);
-  const auto act_props = blockActivationProps(layer_id);
+  // Every block of a training graph is a host layer, frozen ones included; the
+  // device is asked per computation instead (see setFrozenPrefix()).
+  const std::string eng = layerEngine();
 
   // Q layer
   std::vector<std::string> wq_props = {
@@ -50,7 +49,6 @@ Tensor Qwen3Transformer::createAttention(const int layer_id, int seq_len,
     appendLoRAProps(wq_props);
   else if (LORA_RANK > 0)
     wq_props.push_back(withKey("trainable", "false"));
-  wq_props.insert(wq_props.end(), act_props.begin(), act_props.end());
   LayerHandle wq(createLayer("fully_connected", wq_props));
   Tensor q = wq(query);
 
@@ -68,7 +66,6 @@ Tensor Qwen3Transformer::createAttention(const int layer_id, int seq_len,
     withKey("feature_size", std::to_string(head_dim)), withKey("engine", eng)};
   if (LORA_RANK > 0 && !TRAIN_NORMS)
     q_norm_props.push_back(withKey("trainable", "false"));
-  q_norm_props.insert(q_norm_props.end(), act_props.begin(), act_props.end());
   LayerHandle q_norm(createLayer("reshaped_rms_norm", q_norm_props));
   Tensor q_normed = q_norm(q);
 
@@ -82,7 +79,6 @@ Tensor Qwen3Transformer::createAttention(const int layer_id, int seq_len,
     appendLoRAProps(wk_props);
   else if (LORA_RANK > 0)
     wk_props.push_back(withKey("trainable", "false"));
-  wk_props.insert(wk_props.end(), act_props.begin(), act_props.end());
   LayerHandle wk(createLayer("fully_connected", wk_props));
   Tensor k = wk(key);
 
@@ -94,7 +90,6 @@ Tensor Qwen3Transformer::createAttention(const int layer_id, int seq_len,
     withKey("feature_size", std::to_string(head_dim)), withKey("engine", eng)};
   if (LORA_RANK > 0 && !TRAIN_NORMS)
     k_norm_props.push_back(withKey("trainable", "false"));
-  k_norm_props.insert(k_norm_props.end(), act_props.begin(), act_props.end());
   LayerHandle k_norm(createLayer("reshaped_rms_norm", k_norm_props));
   Tensor k_normed = k_norm(k);
 
@@ -108,7 +103,6 @@ Tensor Qwen3Transformer::createAttention(const int layer_id, int seq_len,
     appendLoRAProps(wv_props);
   else if (LORA_RANK > 0)
     wv_props.push_back(withKey("trainable", "false"));
-  wv_props.insert(wv_props.end(), act_props.begin(), act_props.end());
   LayerHandle wv(createLayer("fully_connected", wv_props));
   Tensor v = wv(value);
 
@@ -158,12 +152,6 @@ Tensor Qwen3Transformer::createAttention(const int layer_id, int seq_len,
               getModelFeatures().decode_rope_gpu ? "true" : "false"),
       withKey("gpu_ohwi_rope",
               getModelFeatures().decode_gpu ? "true" : "false"),
-      // a frozen block that runs on an accelerator takes the prefill attention
-      // path (the only place its device arms live) instead of the host-only
-      // trainForwarding(), and takes no backward: see props::ForwardOnly and
-      // frozenBlockOnDevice(). A frozen block left on the host keeps the
-      // training path it already had.
-      withKey("forward_only", frozenBlockOnDevice(layer_id) ? "true" : "false"),
     }));
 
   Tensor a;
@@ -186,7 +174,6 @@ Tensor Qwen3Transformer::createAttention(const int layer_id, int seq_len,
     appendLoRAProps(wo_props);
   else if (LORA_RANK > 0)
     wo_props.push_back(withKey("trainable", "false"));
-  wo_props.insert(wo_props.end(), act_props.begin(), act_props.end());
   LayerHandle wo(createLayer("fully_connected", wo_props));
   return wo(a);
 }

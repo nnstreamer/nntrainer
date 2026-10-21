@@ -56,6 +56,7 @@
 #include <cpu_backend.h>
 #include <decision_head_loss_layer.h>
 #include <embedding_layer.h>
+#include <env_compat.h>
 #include <fc_layer.h>
 #include <fp16.h>
 #include <int4_utils.h>
@@ -691,28 +692,21 @@ static std::string frozenPrefixEndNode(int frozen_prefix) {
 }
 
 void Transformer::installFrozenPrefixWalk() {
-  if (FROZEN_PREFIX <= 0 || FROZEN_PREFIX_ENGINE.empty() || !model)
+  // A named frozen range is worth installing whichever engine runs it: the
+  // split is what lets epochs 2.. skip the range (--frozen_cache), so a host
+  // prefix needs the walk just as much as a device one does. Every layer of the
+  // range stays a host layer either way -- setFrozenPrefix() records why naming
+  // a training layer "gpu" is not a way to move its work to the device.
+  if (FROZEN_PREFIX <= 0 || !model)
     return;
 
-  // FP16 activations in the frozen region are only correct if that is also the
-  // dtype the model's weights were saved in. A norm's scale takes its dtype
-  // from the model's activation dtype (an unpacked layer sets weight =
-  // activation), and the checkpoint holds exactly those bytes, so pinning FP16
-  // activations onto an FP32 model would have the frozen norms read FP32 scales
-  // as FP16 -- plausible output, every layer scaled wrong, with nothing to fail
-  // on. The combination is available to a model that really is FP16
-  // (model_tensor_type
-  // *-FP16), which is the case the 1.55x measurement came from.
-  if (FROZEN_PREFIX_FP16) {
-    const std::string tt = MODEL_TENSOR_TYPE;
-    const bool model_is_fp16 =
-      tt.size() >= 4 && tt.compare(tt.size() - 4, 4, "FP16") == 0;
-    NNTR_THROW_IF(!model_is_fp16, std::invalid_argument)
-      << "the frozen prefix was asked to run FP16 activations, but this model "
-         "is model_tensor_type="
-      << tt
-      << ": its norm scales are FP32. Run the frozen region on its own dtype "
-         "(fp16=false), or train a model whose activations are FP16.";
+  // NNTR_NO_PREFIX_WALK=1: name the range but walk the graph as one pass.
+  // Diagnostic for a split walk: if the numbers change under it, the split is
+  // the variable; if they do not, the split is innocent. (Measured so far: they
+  // do not -- the two walks fingerprinted identically, node for node.)
+  if (nntr_env_on("NNTR_NO_PREFIX_WALK")) {
+    std::cout << "frozen prefix: walk disabled (single pass)" << std::endl;
+    return;
   }
 
   auto *nn = static_cast<nntrainer::NeuralNetwork *>(model.get());
@@ -842,8 +836,8 @@ void Transformer::installFrozenPrefixWalk() {
   });
 
   std::cout << "frozen prefix: blocks [0, " << FROZEN_PREFIX
-            << ") on engine=" << FROZEN_PREFIX_ENGINE
-            << (FROZEN_PREFIX_FP16 ? " (fp16)" : "")
+            << ") on engine=" << layerEngine()
+            << (FROZEN_PREFIX_OFFLOAD ? " (base GEMM on gpu)" : "")
             << ", split after compiled node " << split_past << " of "
             << total
             // The BUDGET, not what ends up used: a row's size is only known
@@ -1711,40 +1705,21 @@ std::pair<Tensor, Tensor> Transformer::constructModel() {
   auto embedding_props =
     buildEmbeddingLayerProperties("embedding0", NUM_VOCAB, DIM, EMBEDDING_DTYPE,
                                   EMBEDDING_SCALE, EMBEDDING_FILE_NAME);
-  // The frozen prefix starts at the embedding: a norm or an addition passes its
-  // input's dtype through and an FC/norm/mha takes its own activation dtype, so
-  // naming it here is what makes the whole frozen region FP16 without a single
-  // cast inside it (see setFrozenPrefixEngine()). The lookup table's own dtype
-  // is unaffected -- it comes from weight_dtype, which is what the checkpoint's
-  // byte layout is derived from, and must not move per node.
-  if (FROZEN_PREFIX > 0 && !FROZEN_PREFIX_ENGINE.empty()) {
-    embedding_props.push_back(withKey("engine", FROZEN_PREFIX_ENGINE));
-    for (const auto &p : blockActivationProps(0))
-      embedding_props.push_back(p);
-  }
+  // The frozen range takes its engine and dtype like every other block of a
+  // training graph (host, model dtype) -- see setFrozenPrefix() for why the
+  // split is not expressed as an engine or a dtype.
   // embedding0 is never a LoRA target: freeze it whenever LoRA is active.
   if (LORA_RANK > 0)
     embedding_props.push_back(withKey("trainable", "false"));
   LayerHandle embedding(createLayer(embedding_type, embedding_props));
   Tensor h = embedding(x);
 
-  // transformer decoder blocks
+  // transformer decoder blocks. Both the frozen range and the trainable ones
+  // are built the same way -- the split is a range of the walk, not a
+  // difference in the graph (see setFrozenPrefix()).
   const int last_block = TRUNK_LAYERS > 0 ? TRUNK_LAYERS : NUM_LAYERS;
   for (int i = 0; i < last_block; ++i) {
     h = createTransformerDecoderBlock(i, h);
-    // The single dtype boundary of a heterogeneous training graph: the frozen
-    // blocks ran FP16 on the device, the trainable ones run FP32 on the host,
-    // and this node turns one into the other. One cast per sample at seq 208 is
-    // ~0.1 ms against the ~60 ms it replaces; every layer on either side of it
-    // is built for exactly one dtype, which is what keeps the host blocks'
-    // FP32-only backward, LoRA fake-quant and loss untouched.
-    if (FROZEN_PREFIX > 0 && i == FROZEN_PREFIX - 1 && FROZEN_PREFIX_FP16) {
-      LayerHandle boundary(
-        createLayer("cast", {withKey("name", "frozen_prefix_cast"),
-                             withKey("tensor_dtype", "FP32"),
-                             withKey("engine", layerEngine())}));
-      h = boundary(h);
-    }
   }
   // GPU trunk of a GPU-trunk / CPU-head split: stop at the last frozen block.
   if (TRUNK_LAYERS > 0)
@@ -2046,19 +2021,15 @@ void Transformer::run(const WSTR prompt, bool do_sample,
 Tensor Transformer::createTransformerDecoderBlock(const int layer_id,
                                                   Tensor input) {
 
-  // the frozen prefix of a heterogeneous training graph names its own engine
-  // and activation dtype (see setFrozenPrefixEngine()); other blocks get the
-  // plain training engine and the model's dtype.
-  const std::string eng = blockEngine(layer_id);
-  const auto act_props = blockActivationProps(layer_id);
+  // Every block is built the same way, frozen range included: a training graph
+  // is host layers at the model's dtype (see setFrozenPrefix()).
+  const std::string eng = layerEngine();
 
   // norms are never a LoRA target: freeze them whenever LoRA is active.
   std::vector<std::string> attn_norm_props = {
     withKey("name", "layer" + std::to_string(layer_id) + "_attention_norm"),
     withKey("epsilon", std::to_string(NORM_EPS)), withKey("packed", "false"),
     withKey("engine", eng)};
-  attn_norm_props.insert(attn_norm_props.end(), act_props.begin(),
-                         act_props.end());
   if (LORA_RANK > 0 && !TRAIN_NORMS)
     attn_norm_props.push_back(withKey("trainable", "false"));
   LayerHandle attn_norm(createLayer("rms_norm", attn_norm_props));
@@ -2077,8 +2048,6 @@ Tensor Transformer::createTransformerDecoderBlock(const int layer_id,
     withKey("name", "layer" + std::to_string(layer_id) + "_ffn_norm"),
     withKey("epsilon", std::to_string(NORM_EPS)), withKey("packed", "false"),
     withKey("engine", eng)};
-  ffn_norm_props.insert(ffn_norm_props.end(), act_props.begin(),
-                        act_props.end());
   if (LORA_RANK > 0 && !TRAIN_NORMS)
     ffn_norm_props.push_back(withKey("trainable", "false"));
   LayerHandle ffn_norm(createLayer("rms_norm", ffn_norm_props));
@@ -2249,10 +2218,9 @@ Tensor Transformer::createAttention(const int layer_id, int seq_len,
 Tensor Transformer::createMlp(const int layer_id, int dim, int hidden_dim,
                               Tensor input) {
 
-  // engine / activation dtype of this block: the frozen prefix of a
-  // heterogeneous training graph names its own (see blockEngine()).
-  const std::string eng = blockEngine(layer_id);
-  const auto act_props = blockActivationProps(layer_id);
+  // Same engine as every other block of a training graph (see
+  // setFrozenPrefix()).
+  const std::string eng = layerEngine();
 
   // A positional .bin is read in graph order, and the graph is collected by
   // walking back from the output through each layer's inputs in order, so
@@ -2269,8 +2237,6 @@ Tensor Transformer::createMlp(const int layer_id, int dim, int hidden_dim,
     appendLoRAProps(ffn_gate_props);
   else if (LORA_RANK > 0)
     ffn_gate_props.push_back(withKey("trainable", "false"));
-  ffn_gate_props.insert(ffn_gate_props.end(), act_props.begin(),
-                        act_props.end());
   LayerHandle ffn_gate(createLayer("fully_connected", ffn_gate_props));
   Tensor gate = ffn_gate(input);
 
@@ -2282,14 +2248,12 @@ Tensor Transformer::createMlp(const int layer_id, int dim, int hidden_dim,
     appendLoRAProps(ffn_up_props);
   else if (LORA_RANK > 0)
     ffn_up_props.push_back(withKey("trainable", "false"));
-  ffn_up_props.insert(ffn_up_props.end(), act_props.begin(), act_props.end());
   LayerHandle ffn_up(createLayer("fully_connected", ffn_up_props));
   Tensor up = ffn_up(input);
 
   std::vector<std::string> swiglu_props = {
     withKey("name", "layer" + std::to_string(layer_id) + "_ffn_swiglu"),
     withKey("engine", eng)};
-  swiglu_props.insert(swiglu_props.end(), act_props.begin(), act_props.end());
   LayerHandle swiglu(createLayer("swiglu", swiglu_props));
   Tensor act = swiglu({gate, up});
 
@@ -2301,8 +2265,6 @@ Tensor Transformer::createMlp(const int layer_id, int dim, int hidden_dim,
     appendLoRAProps(ffn_down_props);
   else if (LORA_RANK > 0)
     ffn_down_props.push_back(withKey("trainable", "false"));
-  ffn_down_props.insert(ffn_down_props.end(), act_props.begin(),
-                        act_props.end());
   LayerHandle ffn_down(createLayer("fully_connected", ffn_down_props));
   return ffn_down(act);
 }

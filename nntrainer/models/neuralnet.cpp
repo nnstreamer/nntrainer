@@ -39,6 +39,7 @@
 #include <load_trace.h>
 #if defined(ENABLE_OPENCL)
 #include <blas_kernel_interface.h> // cl_fc_release_caches
+#include <blas_kernels.h>          // cl_queue_drain_and_reset
 #endif
 #include <chrono>
 #include <mutex>
@@ -63,6 +64,7 @@
 #include <adamw.h>
 #include <common_properties.h>
 #include <databuffer.h>
+#include <env_compat.h>
 #include <flatten_realizer.h>
 #include <fusion_realizer.h>
 #include <ini_interpreter.h>
@@ -593,6 +595,32 @@ NeuralNetwork::makeForwardingOp() {
   std::function<bool(void *userdata)> stop_cb = [](void *) { return false; };
   unsigned int lookahead = std::get<props::FsuLookahead>(model_flex_props);
   bool fsu_mode = std::get<props::Fsu>(model_flex_props);
+  // Three opt-in per-node diagnostics on the forward walk, which together
+  // answer "where did this graph go wrong" for a graph whose regions run on
+  // different engines -- a question that is otherwise unanswerable, because a
+  // heterogeneous graph fails far from its cause: one node reading a plane
+  // another left at another alignment produces output that is merely wrong, and
+  // only later -- once a norm divides by a sqrt or a softmax exponentiates --
+  // does wrongness become a NaN, by which point the node that caused it is
+  // hundreds of nodes back. All three print to stderr, because the shipped
+  // builds compile the INFO level out and a diagnostic asked for by name should
+  // be seen when it is asked for. Each costs a pass over the node's FP32
+  // tensors, hence opt-in.
+  //   NNTR_NAN_PROBE  stop at the FIRST node whose output goes non-finite.
+  //   NNTR_NODE_SUM   fingerprint every output (sum, max, first values, engine,
+  //                   memory class) so two runs of one graph can be diffed; the
+  //                   first line that differs names the node the change
+  //                   altered, which is the bug, where the node that eventually
+  //                   NaNs on it is downstream. This is what localises "finite
+  //                   but wrong", which no NaN check can see.
+  //   NNTR_W_SUM      the same for a node's weights and the memory class of its
+  //                   operands: a layer that outputs zeros with correct inputs
+  //                   is nearly always a layer whose SCALE reads zero, and a
+  //                   zero page is also what a layer that computed nothing
+  //                   leaves behind -- the two look identical from outputs.
+  // Reading a device node's output on the host needs the queue drained first
+  // (below), or the read sees the pool's untouched bytes and reports a clean
+  // zero, which reads exactly like the thing it is meant to distinguish.
   return [this, stop_cb, lookahead, fsu_mode](std::shared_ptr<LayerNode> node,
                                               bool training) -> void {
     (void)this;
@@ -603,6 +631,103 @@ NeuralNetwork::makeForwardingOp() {
         (exec_mode == ExecutionMode::INFERENCE and !fsu_mode)) {
       model_graph.flushCacheExcept(f);
       node->forwarding(training);
+      if (nntr_env_on("NNTR_W_SUM")) {
+        // The same fingerprint for a node's weights and the memory class of its
+        // operands. A layer that outputs zeros while its inputs are fine is
+        // nearly always a layer whose SCALE is zero, and a device-tagged layer
+        // that outputs an untouched zero page is a layer whose device path
+        // wrote into storage that is not the tensor downstream readers hold --
+        // the two look identical from the outputs alone.
+        for (unsigned int w = 0; w < node->getNumWeights(); ++w) {
+          Tensor &wt = node->getWeight(w);
+          if (wt.getDataType() != Tdatatype::FP32 || wt.empty())
+            continue;
+          float *wb = wt.getData<float>();
+          const size_t wn = wt.size();
+          double wsum = 0.0;
+          for (size_t i = 0; i < wn; ++i)
+            wsum += wb[i];
+          std::cerr << "NNWSUM " << std::setprecision(8) << node->getName()
+                    << " w" << w << " e=" << node->getComputeEngineType()
+                    << " mem=" << (wt.isClMem() ? "clmem" : "host")
+                    << " sum=" << wsum << " v0=" << wb[0] << " n=" << wn
+                    << std::endl;
+        }
+        std::ostringstream ins;
+        for (unsigned int i = 0; i < node->getNumInputs(); ++i) {
+          const Tensor &in = node->getInput(i);
+          ins << " in" << i << "="
+              << (in.getDataType() == Tdatatype::FP32 ? "f32" : "other")
+              << (in.isClMem() ? "/clmem" : "/host");
+        }
+        std::cerr << "NNIOSUM " << node->getName()
+                  << " e=" << node->getComputeEngineType() << ins.str()
+                  << std::endl;
+      }
+      if (nntr_env_on("NNTR_NAN_PROBE") || nntr_env_on("NNTR_NODE_SUM")) {
+#if defined(ENABLE_OPENCL)
+        // The probe reads output planes on the host. On a device node the
+        // kernel that filled them is still queued, so an undrained read sees
+        // the pool's untouched bytes and reports a clean zero -- which reads
+        // exactly like "this node produced nothing", the one diagnosis worse
+        // than the bug it hides. Draining here costs a clFinish per node, which
+        // is fine: this walk is opt-in and its whole value is that its numbers
+        // are true.
+        if (node->isComputeEngineGPU() &&
+            Engine::Global().isContextRegistered("gpu") &&
+            nntrainer::cl_queue_may_be_busy())
+          nntrainer::cl_queue_drain_and_reset();
+#endif
+        for (unsigned int idx = 0; idx < node->getNumOutputs(); ++idx) {
+          Tensor &out = node->getOutput(idx);
+          /// only FP32 holds values; the packed formats hold code blocks
+          if (out.getDataType() != Tdatatype::FP32 || out.empty())
+            continue;
+          float *buf = out.getData<float>();
+          const size_t n = out.size();
+          size_t nan_at = n;
+          double sum = 0.0;
+          float max_abs = 0.0f;
+          const bool profile = nntr_env_on("NNTR_NODE_SUM");
+          for (size_t i = 0; i < n; ++i) {
+            if (!std::isfinite(buf[i])) {
+              nan_at = i;
+              break;
+            }
+            if (profile) {
+              sum += buf[i];
+              max_abs = std::max(max_abs, std::fabs(buf[i]));
+            }
+          }
+          if (profile && nan_at == n) {
+            // A run that is merely wrong is harder to place than one that
+            // NaNs: print a fingerprint of every node's output so two arms
+            // (same graph, one region on another engine) can be diffed. The
+            // first line that differs names the node whose computation the
+            // engine change altered -- which is the bug, whereas the node that
+            // eventually NaNs on it is hundreds of nodes downstream.
+            std::cerr << "NNODESUM " << std::setprecision(8) << node->getName()
+                      << " e=" << node->getComputeEngineType()
+                      << " mem=" << (out.isClMem() ? "clmem" : "host")
+                      << " sum=" << sum << " max=" << max_abs
+                      << " v0=" << buf[0] << " v1=" << (n > 1 ? buf[1] : 0.0f)
+                      << std::endl;
+            continue;
+          }
+          if (nan_at < n) {
+            // stderr, not ml_logi: the shipped builds compile the INFO level
+            // out, and a diagnostic that has to be enabled by an env var is
+            // meant to be seen when it is asked for.
+            std::cerr << "NNANPROBE node '" << node->getName() << "' output "
+                      << idx << " first went non-finite (value=" << buf[nan_at]
+                      << " at " << nan_at << " of " << n
+                      << "): engine=" << node->getComputeEngineType()
+                      << " dims=" << out.batch() << ":" << out.channel() << ":"
+                      << out.height() << ":" << out.width() << std::endl;
+            return;
+          }
+        }
+      }
     } else {
       /**
          currently, it supports FSU asynch mode for inference. The prcedure of

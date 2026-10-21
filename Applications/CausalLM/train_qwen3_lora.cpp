@@ -90,6 +90,11 @@ void printUsage(const char *prog) {
     << "  --frozen_cache_mb <n> budget for --frozen_cache in MB (default:\n"
     << "                        every sample fitting half the memory at\n"
     << "                        start; past the budget, samples compute)\n"
+    << "  --gpu_base_gemm       with --hybrid_trunk: run the frozen blocks'\n"
+    << "                        base-weight GEMMs on the GPU (verified "
+       "against\n"
+    << "                        the host dot). Slower than the host today --\n"
+    << "                        for measurement, not for speed.\n"
     << "  --activation_ckpt     activation checkpointing: recompute each\n"
     << "                        trained decoder block's activations before\n"
     << "                        its backward instead of keeping them (lower\n"
@@ -493,23 +498,21 @@ int runLoraTraining(const TrainParams &params_in, TrainProgressCb callback,
     // lives on Transformer; CausalLM adds the lm head. Both are covered.
     Transformer &model = *model_uptr;
 
-    // One graph, two regions. The frozen blocks [0, S) -- everything before
-    // --lora_last_n, which has nothing trainable in it -- run on the
-    // accelerator and the trainable blocks [S, L) stay on the host, inside the
-    // SAME graph built from the SAME weights.
+    // One graph, two regions: the frozen blocks [0, S) -- everything before
+    // --lora_last_n, which has nothing trainable in it -- and the trainable
+    // blocks [S, L), inside the SAME graph built from the SAME weights.
     //
     // This replaces a second, separate model that used to be loaded for the
     // frozen region (setHeadFromLayer + a trunk CausalLM + a producer-thread
     // hidden-state writer). Two graphs meant two weight pools, two copies of
     // the embedding and the lm head, two device contexts and a per-sample
     // hand-off through a placeholder tensor: measured on the S26U at 1.43 GB
-    // 0.6 GB host-only, for a split that on its own saves about a third of the
-    // step. The duplication, not the split, was the cost.
+    // against 0.6 GB host-only, for a split that on its own saves about a third
+    // of the step. The duplication, not the split, was the cost.
     const bool hybrid = !params.hybrid_trunk_path.empty();
-    // A --frozen_cache run without --hybrid_trunk keeps the frozen region on
-    // the host, but it still has to be a NAMED range of the graph for epochs
-    // 2.. to skip it, so both switches ask for the split; only --hybrid_trunk
-    // asks for the accelerator.
+    // Both switches name the range; only --hybrid_trunk also asks for the
+    // device. Naming it is what lets epochs 2.. skip it (--frozen_cache) and
+    // lets the offload below target it.
     const bool split = hybrid || params.frozen_cache;
     const int frozen_blocks = split ? model.getLoraLayerStart() : 0;
     if (split)
@@ -518,38 +521,41 @@ int runLoraTraining(const TrainParams &params_in, TrainProgressCb callback,
            "num_hidden_layers (otherwise no block is frozen and there is "
            "nothing to split or reuse)";
 
-    // The accelerator only if this build brought one up: a CPU-only build (or
-    // NNTR_ENGINE=cpu) silently keeps the frozen region on the host, which is
-    // exactly what --frozen_cache alone asks for.
-    bool prefix_on_device = false;
+    // Does this build have a device at all? A CPU-only build (or
+    // NNTR_ENGINE=cpu) keeps the frozen range entirely on the host, which is
+    // exactly what
+    // --frozen_cache alone asks for.
+    bool gpu_present = false;
 #if defined(ENABLE_OPENCL)
     try {
-      prefix_on_device =
+      gpu_present =
         nntrainer::Engine::Global().getRegisteredContext("gpu") != nullptr;
     } catch (std::exception &) {
-      prefix_on_device = false;
+      gpu_present = false;
     }
 #endif
-    if (hybrid && !prefix_on_device)
+    if (hybrid && !gpu_present)
       std::cout << "note:         no gpu context in this build; the frozen "
                    "blocks stay on the host"
                 << std::endl;
 
-    // Set before initializeForTraining(): the split is a property of how the
-    // graph is BUILT (engine and activation dtype per layer), not of how it is
-    // run. FP16 activations are asked for only when the model really is an
-    // FP16 model -- the device runs that combination 1.55x faster, but a norm's
-    // scale is stored in the model's activation dtype, so pinning FP16 onto an
-    // FP32 checkpoint would read FP32 scales as FP16 (see
-    // setFrozenPrefixEngine()).
-    const std::string tensor_type =
-      nntr_cfg.value("model_tensor_type", std::string("FP32-FP32"));
-    const bool frozen_fp16 =
-      prefix_on_device && tensor_type.size() >= 4 &&
-      tensor_type.compare(tensor_type.size() - 4, 4, "FP16") == 0;
+    // Set before initializeForTraining(). The frozen range stays a set of HOST
+    // layers: putting it on the "gpu" engine instead swaps the class every one
+    // of its layers is built from (an engine's context registers its own
+    // factory under the same type name), and those are inference classes that
+    // leave the training graph's activation tensors holding what the pool gave
+    // them -- measured on the S26U as a whole prefix reading back zeros and a
+    // loss of 5.08 against the host reference's 2.98, with nothing failing. See
+    // Transformer::setFrozenPrefix(). What the device does instead is the
+    // frozen range's heavy GEMM, through FullyConnectedLayer's base-GEMM
+    // offload, which checks its first calls against the host dot it replaces
+    // and latches itself off on any mismatch. That path is gated by
+    // NNTR_TRAIN_BASE_GPU.
+    const bool frozen_on_device = hybrid && gpu_present && params.gpu_base_gemm;
+    if (frozen_on_device)
+      nntrainer::nntr_setenv("NNTR_TRAIN_BASE_GPU", "1", 0);
     if (split)
-      model.setFrozenPrefixEngine(
-        frozen_blocks, prefix_on_device ? "gpu" : "cpu", frozen_fp16);
+      model.setFrozenPrefix(frozen_blocks, frozen_on_device);
     // The frozen region's output depends on nothing training changes -- its
     // weights are frozen and a sample's token ids never change -- so from epoch
     // 2 a repeated sample can skip it. Budgeted in bytes; samples past the
@@ -750,6 +756,8 @@ int main(int argc, char *argv[]) {
         params.hybrid_sync = true;
       else if (arg == "--frozen_cache")
         params.frozen_cache = true;
+      else if (arg == "--gpu_base_gemm")
+        params.gpu_base_gemm = true;
       else if (arg == "--frozen_cache_mb")
         params.frozen_cache_mb =
           static_cast<unsigned int>(std::stoul(next("--frozen_cache_mb")));

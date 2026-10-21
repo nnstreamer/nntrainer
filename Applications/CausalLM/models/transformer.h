@@ -178,36 +178,66 @@ public:
   void setForceCpuEngine(bool on) { FORCE_CPU_ENGINE = on; }
 
   /**
-   * @brief Place the frozen prefix of a LoRA training graph on another engine.
+   * @brief Name the frozen prefix of a LoRA training graph as a range of the
+   *        ONE graph, and optionally send its heavy arithmetic to the device.
    *
    * A LoRA run trains the last lora_last_n_layers blocks and freezes the rest,
    * and the frozen blocks are pure forward. Until now they still ran on the
    * host, because the host CPU-vs-GPU split could only be expressed as TWO
    * graphs — which is what duplicated the model, its weight pools, its
    * embedding/lm-head tables, its KV cache and its OpenCL state (measured:
-   * 1.43 GB PSS for the GPU hybrid against 0.6 GB CPU-only, for a hand-off
-   * that costs 0.2 ms a sample). Called before initializeForTraining() with
-   * S = getLoraLayerStart(), this puts blocks [0, S) of the ONE training graph
-   * on engine (typically "gpu") with FP16 activations when fp16 is set, and
-   * keeps blocks [S, L) — the trainable ones, whose backward, LoRA fake-quant
-   * and loss are FP32-only — on the host. The two regions meet at an explicit
-   * cast node, so no layer ever sees a dtype it was not built for.
+   * 1.43 GB PSS for the GPU hybrid against 0.6 GB CPU-only, for a hand-off that
+   * on its own saves a third of a step). Called before initializeForTraining()
+   * with S = getLoraLayerStart(), this names blocks [0, S) as the frozen range
+   * of the ONE training graph built from the ONE weight file, so the range can
+   * be walked on its own (installFrozenPrefixWalk()) and skipped when cached,
+   * while blocks [S, L) — the trainable ones, whose backward, LoRA fake-quant
+   * and loss are FP32-only — stay the host's.
    *
-   * Requires the prefix to be truly frozen: it is validated against
-   * LORA_LAYER_START at compile, and a trainable block placed on a
-   * backward-less engine fails there rather than training silently wrong.
+   * Naming the range is NOT the same as putting it on a device, and it
+   * deliberately does not: every layer of it keeps the engine layerEngine()
+   * gives it. Naming a training layer's engine "gpu" does far more than move
+   * its memory -- an engine's context registers its own factory under the SAME
+   * type name, so the layer is BUILT FROM A DIFFERENT CLASS: "rms_norm"
+   * resolves to causallm::RMSNormLayerGPU (transformer.cpp:2343) and
+   * "fully_connected" to FullyConnectedLayerCl (cl_context.cpp:318). Those are
+   * the inference classes, and RMSNormLayerGPU::forwarding() has an EMPTY BODY
+   * -- its kernel lives only in incremental_forwarding(), which a training
+   * graph never calls (rms_norm_gpu.h:48). So a training layer named "gpu" does
+   * not run on the device; it computes nothing at all, silently. Measured on
+   * the S26U: a GPU-engine frozen prefix trained to loss 5.08 against the host
+   * reference's 2.98, and per-node fingerprints showed the embedding matching
+   * the reference bit for bit while the very next node -- the first norm of the
+   * first block -- reported an all-zero output whose input and gamma were both
+   * correct. Residual add then fed the block's own input straight through, so
+   * 24 blocks passed the embedding unchanged and the loss trained on a
+   * constant. Nothing failed. A wrong activation never does; it just trains
+   * wrong.
+   *
+   * So the device is asked per computation instead, through the one path that
+   * has been verified against the host code it replaces:
+   * FullyConnectedLayer routes a frozen QS4CX base-weight GEMM to the v8c
+   * int8xint4 kernel when baseGemmGpuOn() (see nntr_gpu_base_gemm), checking
+   * its first calls against the host dot and latching itself off on any
+   * mismatch. That is real device work inside the one graph, with the graph
+   * still holding host-addressable FP32 activations the trainable half can
+   * read.
+   *
+   * @param first_trainable_block   index of the first block that trains; blocks
+   *                                before it are the frozen range.
+   * @param offload_base_gemm       route the range's base-weight GEMMs to the
+   *                                device (needs an OpenCL build with a gpu
+   *                                context; ignored otherwise).
    */
-  void setFrozenPrefixEngine(int first_trainable_block,
-                             const std::string &engine, bool fp16) {
+  void setFrozenPrefix(int first_trainable_block, bool offload_base_gemm) {
     FROZEN_PREFIX = first_trainable_block;
-    FROZEN_PREFIX_ENGINE = engine;
-    FROZEN_PREFIX_FP16 = fp16;
+    FROZEN_PREFIX_OFFLOAD = offload_base_gemm;
   }
   /** first trainable block of the frozen prefix split (0 = no split) */
   int getFrozenPrefix() const { return FROZEN_PREFIX; }
-  /** engine the frozen prefix runs on ("" when there is no split) */
-  const std::string &getFrozenPrefixEngine() const {
-    return FROZEN_PREFIX_ENGINE;
+  /** whether the frozen range's base-weight GEMMs go to the device */
+  bool frozenBaseGemmOnDevice() const {
+    return FROZEN_PREFIX > 0 && FROZEN_PREFIX_OFFLOAD;
   }
 
   /**
@@ -220,7 +250,7 @@ public:
    * on, which on a device is most of the sample (blocks [0, S) of L). The cache
    * is keyed by the input token ids and holds @p max_bytes of hidden states;
    * samples that do not fit are computed as usual, so the cache can only lose
-   * time, never memory. Meaningful only together with setFrozenPrefixEngine().
+   * time, never memory. Meaningful only together with setFrozenPrefix().
    */
   void setFrozenCache(bool on, size_t max_bytes) {
     FROZEN_CACHE = on;
@@ -844,56 +874,6 @@ protected:
   std::string layerEngine() const;
 
   /**
-   * @brief Engine name for a layer of decoder block @p layer_id.
-   *
-   * The frozen prefix of a heterogeneous training graph names its own engine
-   * (see setFrozenPrefixEngine()); every other layer takes layerEngine().
-   */
-  std::string blockEngine(int layer_id) const {
-    if (FROZEN_PREFIX > 0 && layer_id < FROZEN_PREFIX &&
-        !FROZEN_PREFIX_ENGINE.empty())
-      return FROZEN_PREFIX_ENGINE;
-    return layerEngine();
-  }
-
-  /**
-   * @brief Whether block @p layer_id is the frozen prefix of a split that runs
-   *        on an accelerator rather than on the host.
-   *
-   * A frozen block on a device cannot take mha_core's host training forward --
-   * trainForwarding() reads its operands as host FP32 -- so such a block asks
-   * for the prefill attention path instead (mha_core's forward_only). A frozen
-   * block that stays on the host has no reason to ask: its training path works
-   * there, and the prefill path is a different implementation whose treatment
-   * of padded batches is not guaranteed to agree with it bit for bit. Keep the
-   * two questions -- is it frozen, is it on a device -- answered in one place
-   * so the graph cannot ask for forward_only without also needing it.
-   */
-  bool frozenBlockOnDevice(int layer_id) const {
-    if (FROZEN_PREFIX <= 0 || layer_id >= FROZEN_PREFIX)
-      return false;
-    // Asked of blockEngine() rather than of FROZEN_PREFIX_ENGINE directly, so
-    // the engine is decided in exactly one place. layerEngine() is "cpu" for
-    // every training graph, so this is "the prefix split put it elsewhere".
-    return blockEngine(layer_id) != "cpu";
-  }
-
-  /**
-   * @brief Layer properties pinning the activation dtype of block @p layer_id.
-   *
-   * Empty unless the block is the frozen prefix of a split that asked for FP16
-   * (see setFrozenPrefixEngine() and props::ActivationDtype): the device runs
-   * the frozen blocks 1.5x faster on FP16 activations, and the trainable
-   * blocks must stay at the model's FP32.
-   */
-  std::vector<std::string> blockActivationProps(int layer_id) const {
-    if (FROZEN_PREFIX > 0 && layer_id < FROZEN_PREFIX && FROZEN_PREFIX_FP16 &&
-        !FROZEN_PREFIX_ENGINE.empty())
-      return {"activation_dtype=FP16"};
-    return {};
-  }
-
-  /**
    * @brief Whether the LoRA fully connected layers of the training graph
    *        offload their FP32 GEMMs to the OpenCL device.
    * @return true when NNTR_TRAIN_GPU=1 in an OpenCL build whose "gpu" context
@@ -1172,11 +1152,10 @@ protected:
   bool FORCE_CPU_ENGINE = false;
   int TRUNK_LAYERS = 0;    /**< see setTrunkLayers() (0 = off) */
   int HEAD_FROM_LAYER = 0; /**< see setHeadFromLayer() (0 = off) */
-  /** see setFrozenPrefixEngine(): first trainable block, its engine, and
-   * whether it runs FP16 activations (0 / "" = no split) */
+  /** see setFrozenPrefix(): first trainable block (0 = no split) and whether
+   * its base-weight GEMMs go to the device */
   int FROZEN_PREFIX = 0;
-  std::string FROZEN_PREFIX_ENGINE;
-  bool FROZEN_PREFIX_FP16 = false;
+  bool FROZEN_PREFIX_OFFLOAD = false;
   /** see setFrozenCache() */
   bool FROZEN_CACHE = false;
   size_t FROZEN_CACHE_BYTES = 0;

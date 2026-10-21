@@ -239,6 +239,16 @@ struct TrainParams {
    *  single-graph walk is serial today, so this is the default behaviour and
    * the flag only keeps the older measurement switches meaningful. */
   bool hybrid_sync = false;
+  /** --hybrid_trunk only: send the frozen range's base-weight GEMMs to the GPU
+   *  through FullyConnectedLayer's verified offload (it checks its first calls
+   *  against the host dot it replaces). OFF by default, and not a fast path
+   *  yet: measured on the S26U with the standard workload it cost 0.500 s a
+   *  sample against 0.210 s for the same graph on the host, because the v8c
+   *  int8xint4 kernel is ~0.66 ms a call where the host KleidiAI table is
+   *  ~0.2 ms -- per call, and there are ~170 of them a sample. The device wins
+   *  only once a call is worth its own overhead, which is batching work (see
+   *  HANDOFF/TODO.md T3), not a scheduling change. */
+  bool gpu_base_gemm = false;
   /** keep the frozen blocks' hidden state after the first epoch instead of
    *  running them again: they depend on nothing training changes (frozen
    *  weights, fixed token ids), so epochs 2.. skip them entirely. Combined with
