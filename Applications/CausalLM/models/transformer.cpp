@@ -58,6 +58,7 @@
 #include <embedding_layer.h>
 #include <fc_layer.h>
 #include <fp16.h>
+#include <int4_utils.h>
 #include <lm_head_loss_layer.h>
 #include <mha_core.h>
 #include <neuralnet.h>
@@ -735,6 +736,278 @@ void Transformer::save_weight_lora(const std::string &lora_path) {
   model->forEachLayer(fn, nullptr);
 }
 
+namespace {
+
+/**
+ * @brief Which of the two QS4CX record strides a weight file was written at.
+ * @note Same three answers as the loader's own probe (see
+ *       Qs4cxRecordStride in neuralnet/models/neuralnet.cpp, whose logic this
+ *       mirrors); UNDECIDED means neither signal could judge it.
+ */
+enum class BaseQs4cxStride { PADDED, TRIMMED, UNDECIDED };
+
+/**
+ * @brief Value of a "Key:\t NNN kB" line of /proc/self/status, or -1.
+ */
+long procStatusKb(const std::string &key) {
+  std::ifstream status("/proc/self/status");
+  if (!status.is_open())
+    return -1;
+  std::string line;
+  while (std::getline(status, line)) {
+    if (line.rfind(key, 0) != 0)
+      continue;
+    std::istringstream values(line.substr(key.size()));
+    long kb = -1;
+    if (values >> kb)
+      return kb;
+    return -1;
+  }
+  return -1;
+}
+
+/**
+ * @brief Print VmHWM / VmRSS around a load, to show what it costs.
+ * @note NNTR_LOAD_PROF=1. VmHWM is a high-water mark, so the "after" line of a
+ *       load that only ever *drops* memory still reports the peak -- which is
+ *       the point: it says what the load left behind, and the "before" line
+ *       says what the load itself reached.
+ */
+void reportLoadMemory(const char *phase, const std::string &path) {
+  if (std::getenv("NNTR_LOAD_PROF") == nullptr)
+    return;
+  std::fprintf(stderr, "[load-prof] %s VmHWM=%ld kB VmRSS=%ld kB  %s\n", phase,
+               procStatusKb("VmHWM:"), procStatusKb("VmRSS:"), path.c_str());
+  std::fflush(stderr);
+}
+
+/**
+ * @brief Probe the first QS4CX record of a file to read off its stride.
+ *
+ * Ported from the file-static qs4cxRecordStride() in
+ * nntrainer/models/neuralnet.cpp (keep the two in step); it is duplicated
+ * rather than called because that one is private to the loader's translation
+ * unit. The rationale for reading the record instead of trusting its size is
+ * that one there, in short: the two strides differ only by the floor(N/2) pad
+ * bytes between a record's nibbles and its scales, which the padded layout
+ * leaves zero and the trimmed layout fills with the first per-channel scale --
+ * a strictly positive finite reciprocal. So four bytes at (offset + trimmed
+ * nibble bytes) tell the two apart. N < 8 has fewer than four pad bytes and
+ * answers UNDECIDED rather than guessing.
+ */
+BaseQs4cxStride probeQs4cxStride(const std::string &path, size_t offset,
+                                 size_t K, size_t N) {
+  const size_t trimmed_nibbles =
+    nntrainer::QS4CX_Tensor::nibbleBytes(K, N, false);
+  const size_t padded_nibbles =
+    nntrainer::QS4CX_Tensor::nibbleBytes(K, N, true);
+  if (padded_nibbles - trimmed_nibbles < sizeof(float))
+    return BaseQs4cxStride::UNDECIDED;
+
+  std::ifstream probe_file(path, std::ios::in | std::ios::binary);
+  if (!probe_file.is_open())
+    return BaseQs4cxStride::UNDECIDED;
+  probe_file.seekg(static_cast<std::streamoff>(offset + trimmed_nibbles),
+                   std::ios::beg);
+  float probe = 0.0f;
+  probe_file.read(reinterpret_cast<char *>(&probe), sizeof(probe));
+  if (!probe_file)
+    return BaseQs4cxStride::UNDECIDED;
+
+  return (std::isnormal(probe) && probe > 0.0f) ? BaseQs4cxStride::TRIMMED
+                                                : BaseQs4cxStride::PADDED;
+}
+
+/**
+ * @brief One base-weight record of a checkpoint, as laid out over the file by
+ *        walkBaseCheckpointRecords().
+ */
+struct BaseWeightRecord {
+  nntrainer::Weight *weight = nullptr; ///< the training graph's weight
+  std::string layer_name;              ///< for the error messages
+  size_t offset = 0;                   ///< first byte of the record
+  size_t size = 0;        ///< bytes the record occupies (advances the offset)
+  size_t data_offset = 0; ///< first payload byte (offset + a qscheme prefix)
+  size_t payload = 0;     ///< bytes the read consumes (size - the prefix)
+  size_t in_memory = 0;   ///< dst.getMemoryBytes(), for the mismatch report
+  bool qs4cx = false;     ///< sized by the per-file QS4CX stride choice
+  bool deferred = false;  ///< reads no bytes of its own (see the head alias)
+  size_t alias = 0;       ///< deferred: index of the record it shares
+};
+
+/**
+ * @brief What one pass of walkBaseCheckpointRecords() learned about a file.
+ */
+struct BaseWalkResult {
+  /// which file the walk sizes; only set by the caller, read when peeking
+  std::string path;
+  size_t total = 0;       ///< bytes the records occupy in file order
+  size_t num_records = 0; ///< weights that contributed a record
+  bool stride_differs =
+    false;           ///< some QS4CX record sizes differently per stride
+  bool exact = true; ///< every record size is one this loader can trust
+  bool first_qs4cx_found = false;
+  size_t first_qs4cx_offset = 0;
+  size_t first_qs4cx_K = 0;
+  size_t first_qs4cx_N = 0;
+};
+
+/**
+ * @brief Lay a base checkpoint's records over the file by walking THIS graph.
+ *
+ * A .bin checkpoint carries no header, no names and no dtype: it is the raw
+ * payloads of the graph's weights in graph order, so a record's offset is the
+ * running sum of the record sizes before it, computable from the in-memory
+ * weights alone. That is what makes a direct load possible -- and it is why
+ * this walk is a mirror of the prescan in NeuralNetwork::load() (its
+ * `walk_records` lambda) rather than an independent reading of the format: one
+ * disagreement in either direction silently shifts every record after it.
+ *
+ * The filters that decide whether a weight contributes a record are all
+ * load-bearing:
+ *  - a shared weight (a tied head reaches the same Tensor as its embedding
+ *    through requestOrExtend) is written at its FIRST occurrence only, deduped
+ *    here by &getVariableRef() exactly as the loader dedupes;
+ *  - a weight whose tensor type prefixes its payload with a uint16 qscheme
+ *    (CharTensor / ShortTensor / UIntTensor / Uint4QTensor / BCQTensor: the
+ *    types that override save()/read() to write those two bytes) occupies 2
+ *    more bytes than its buffer, which the read then skips.
+ *
+ * Layers whose save() override writes nothing need no case of their own, and
+ * adding one here would only put this walk out of step with the loader, which
+ * has none: a shared_fully_connected in shared_mode_ and a tied lm_head both
+ * reach the owner's Tensor, so the dedup already covers them, and an embedding
+ * with quantized_lut_path set requests no weight at all -- its finalize()
+ * returns before requestWeight, so there is no record to skip.
+ *
+ * The LoRA adapters are excluded by name: they are not in a pretrained
+ * checkpoint at all, which is precisely why this path cannot call model->load()
+ * -- the ordinary loader is strictly sequential in TRAIN mode (no seeking), so
+ * the extra loraA/loraB records would shift everything after the first
+ * adapted FC.
+ *
+ * @param nn           the compiled training model, for its graph only
+ * @param qs4cx_padded stride to lay the QS4CX records out at
+ * @param legacy_int4  model_tensor_type starts with "QINT4": its int4 records
+ *                     are the legacy on-disk form, not QS4CX records
+ * @param records      out: the records, in file order
+ * @param res          out: totals and the facts the stride choice needs
+ * @param peek         stream used to peek a legacy QINT4 container header
+ * @param peek_tried   whether @p peek has been opened yet
+ */
+void walkBaseCheckpointRecords(nntrainer::NeuralNetwork *nn, bool qs4cx_padded,
+                               bool legacy_int4,
+                               std::vector<BaseWeightRecord> &records,
+                               BaseWalkResult &res, std::ifstream &peek,
+                               bool &peek_tried) {
+  res = BaseWalkResult{};
+  records.clear();
+  // A legacy QINT4 container is per record and only readable from the file,
+  // so the walk needs a peeking stream of its own (as the loader does).
+  auto peek_scheme = [&](size_t at, uint16_t &out) {
+    if (!peek_tried) {
+      peek_tried = true;
+      peek.open(res.path, std::ios::in | std::ios::binary);
+    }
+    if (!peek.is_open())
+      return false;
+    peek.clear();
+    peek.seekg(static_cast<std::streamoff>(at), std::ios::beg);
+    peek.read(reinterpret_cast<char *>(&out), sizeof(out));
+    return peek.good();
+  };
+
+  std::unordered_set<const nntrainer::Tensor *> visited;
+  std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
+    collect =
+      [&](ml::train::Layer &l, nntrainer::RunLayerContext &context, void *) {
+        for (auto *w : context.getWeights()) {
+          const std::string &name = w->getName();
+          if (name.find(":loraA") != std::string::npos ||
+              name.find(":loraB") != std::string::npos)
+            continue;
+          if (!visited.insert(&w->getVariableRef()).second)
+            continue; // shared weight: written at its first occurrence
+
+          BaseWeightRecord rec;
+          rec.weight = w;
+          rec.layer_name = l.getName();
+          rec.offset = res.total;
+          const auto dtype = w->getDim().getDataType();
+          rec.qs4cx = dtype == ml::train::TensorDim::DataType::QS4CX;
+          // A QS4CX record is sized -- and later read -- at the stride the walk
+          // assumes, and getMemoryBytes() reports whichever stride the tensor
+          // carries, so choose before asking.
+          if (rec.qs4cx && !legacy_int4)
+            w->getVariableRef().setQs4cxRecordPadded(qs4cx_padded);
+          rec.in_memory = w->getVariableRef().getMemoryBytes();
+          rec.size = rec.in_memory;
+          w->getVariableRef().setFileOffset(res.total);
+          rec.data_offset = rec.offset;
+          rec.payload = rec.size;
+
+          if (dtype != ml::train::TensorDim::DataType::FP32 &&
+              dtype != ml::train::TensorDim::DataType::FP16 &&
+              dtype != ml::train::TensorDim::DataType::Q6_K &&
+              dtype != ml::train::TensorDim::DataType::Q4_0 &&
+              dtype != ml::train::TensorDim::DataType::QS4CX) {
+            // A qscheme header, per the loader's identical test. The five types
+            // that really do write one are exact here; Q4_K and UINT4/8/16/32
+            // are not (Q4_K writes no header at all, UINT4 with the Q4_Kx8
+            // scheme materialises as a Q4_K tensor) -- the loader marks those
+            // inexact and skips its own size check for them. A direct load
+            // cannot afford that: see `exact` below.
+            rec.size += sizeof(uint16_t);
+            rec.data_offset += sizeof(uint16_t);
+            if (dtype == ml::train::TensorDim::DataType::Q4_K ||
+                dtype == ml::train::TensorDim::DataType::UINT4 ||
+                dtype == ml::train::TensorDim::DataType::UINT8 ||
+                dtype == ml::train::TensorDim::DataType::UINT16 ||
+                dtype == ml::train::TensorDim::DataType::UINT32)
+              res.exact = false;
+          }
+
+          if (rec.qs4cx && legacy_int4) {
+            // A legacy QINT4 model builds QS4CX weights but its int4 records
+            // are the legacy on-disk form; flag the tensor so read() transcodes
+            // and size the record by the peeked container.
+            w->getVariableRef().setOnDiskLegacyQint4(true);
+            uint16_t disk_scheme = 0xFFFF;
+            if (!peek_scheme(rec.offset, disk_scheme))
+              res.exact = false;
+            const nntrainer::TensorDim &d = w->getDim();
+            rec.size = sizeof(uint16_t);
+            if (disk_scheme ==
+                static_cast<uint16_t>(nntrainer::QScheme::PER_CHANNEL_AFFINE))
+              rec.size += nntrainer::Int4Utils::plainRecordPayloadBytes(
+                d.width(), d.height());
+            else
+              rec.size += nntrainer::Int4Utils::kaiNibblePayloadBytes(
+                            d.width(), d.height()) +
+                          static_cast<size_t>(d.width()) * sizeof(uint16_t);
+            rec.data_offset = rec.offset; // the transcode reads from record 0
+            rec.payload = rec.size;
+          } else if (rec.qs4cx) {
+            const nntrainer::TensorDim &d = w->getDim();
+            if (nntrainer::QS4CX_Tensor::recordBytes(d.height(), d.width(),
+                                                     !qs4cx_padded) != rec.size)
+              res.stride_differs = true;
+            if (!res.first_qs4cx_found) {
+              res.first_qs4cx_found = true;
+              res.first_qs4cx_offset = rec.offset;
+              res.first_qs4cx_K = d.height();
+              res.first_qs4cx_N = d.width();
+            }
+          }
+          res.total += rec.size;
+          records.push_back(std::move(rec));
+        }
+      };
+  nn->forEachLayer(collect, nullptr);
+}
+
+} // namespace
+
 /**
  * @brief Load a pretrained (non-LoRA) base checkpoint into a graph that has
  *        LoRA weights, then optionally overlay a saved LoRA adapter.
@@ -745,124 +1018,246 @@ void Transformer::load_weight_lora(const std::string &base_path,
     << "Transformer model is not initialized. Please call "
        "initializeForTraining() before load_weight_lora().";
 
-  // Step 1: build a throwaway copy of the graph that is byte-for-byte the
-  // graph the checkpoint was written from, and load the base checkpoint into
-  // it with the ordinary (already-correct) loader.
-  const unsigned int saved_lora_rank = LORA_RANK;
-  const bool saved_for_training = FOR_TRAINING;
-  const int saved_head_from = HEAD_FROM_LAYER;
-  const int saved_trunk = TRUNK_LAYERS;
-  LORA_RANK = 0;
-  FOR_TRAINING = false;
-  FORCE_CPU_ENGINE = true;
-  // The checkpoint is positional for the FULL graph; a head-only training
-  // graph takes its blocks from it by name below.
-  HEAD_FROM_LAYER = 0;
-  TRUNK_LAYERS = 0;
-
-  auto restore_graph_flags = [&]() {
-    LORA_RANK = saved_lora_rank;
-    FOR_TRAINING = saved_for_training;
-    FORCE_CPU_ENGINE = false;
-    HEAD_FROM_LAYER = saved_head_from;
-    TRUNK_LAYERS = saved_trunk;
-  };
-
-  ModelHandle base_model =
-    ml::train::createModel(ml::train::ModelType::NEURAL_NET);
-  base_model->setProperty({withKey("batch_size", BATCH_SIZE),
-                           withKey("epochs", "1"),
-                           withKey("model_tensor_type", MODEL_TENSOR_TYPE)});
-  auto [bx, by] = constructModel();
-  if (base_model->compile(bx, by, ml::train::ExecutionMode::INFERENCE)) {
-    restore_graph_flags();
-    throw std::invalid_argument(
-      "Base (no-LoRA) model compilation failed during load_weight_lora.");
-  }
-  base_model->load(base_path, formatFromExtension(base_path));
-
-  restore_graph_flags();
-
-  // Step 2: index the base model's weights by their (layer-prefixed) name.
-  std::unordered_map<std::string, const nntrainer::Tensor *> base_weights;
-  std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
-    collect = [&base_weights](ml::train::Layer &,
-                              nntrainer::RunLayerContext &context, void *) {
-      for (auto &w : context.getWeights())
-        base_weights.emplace(w->getName(), &w->getVariableRef());
-    };
-  base_model->forEachLayer(collect, nullptr);
-
-  // Step 3: copy every matching weight (by name) into this model. Only
-  // loraA/loraB are expected to go unmatched (they do not exist in a
-  // pretrained checkpoint); anything else unmatched means the two graphs
-  // disagree and the model would silently train from random weights, so
-  // fail loudly instead.
+  // Read the base checkpoint straight into this graph's weights: lay its
+  // records over the file by walking THIS graph, then read each one into the
+  // weight it was laid out for.
   //
-  // For Q4_0/Q6_K tensors, copyData() is not supported, so we use a raw
-  // memcpy of the backing buffer instead. Both tensors come from the same
-  // layer in the same graph topology, so they have the same dtype and size.
-  std::vector<std::string> unmatched;
-  unsigned int matched = 0;
+  // This used to build a throwaway full no-LoRA inference model, load the
+  // checkpoint into it with the ordinary loader, memcpy every weight across by
+  // name and destroy the copy. On the S26U at batch 1 that copy WAS the
+  // process peak -- 709 MB of VmHWM against 530-600 MB of training RSS, and
+  // ~180 MB above even a checkpointed training run -- and it bought nothing but
+  // a set of offsets, which are a prefix sum of record sizes this graph can
+  // compute for itself. A .bin checkpoint is the payloads of the graph's
+  // weights in graph order and nothing else, so the two graphs' layouts agree
+  // by construction: the same layer requests the same weight at the same dtype
+  // (weight_dtype is read from nntr_config, not from LoRA_RANK or FOR_TRAINING)
+  // and shares it with the same neighbour. Where that stops being true the
+  // size guard below refuses the file rather than training on shifted bytes.
+  nntrainer::NeuralNetwork *nn =
+    static_cast<nntrainer::NeuralNetwork *>(model.get());
+  const std::string weight_path = base_path; // @todo support "ini;bin" pairs?
+  const auto format = formatFromExtension(base_path);
+  const std::string model_tensor_type_str = MODEL_TENSOR_TYPE;
+  const bool legacy_int4 = model_tensor_type_str.rfind("QINT4", 0) == 0;
+
+  // Only the .bin layout this walk reproduces. A .safetensors file names every
+  // tensor and carries its own offsets, so laying records out by graph order
+  // would read the wrong bytes without saying so -- and before this guard it
+  // silently loaded nothing at all, training from whatever the initializers
+  // left behind while reporting success.
+  NNTR_THROW_IF(format != ml::train::ModelFormat::MODEL_FORMAT_BIN,
+                std::runtime_error)
+    << "load_weight_lora: '" << base_path
+    << "' is not a .bin checkpoint. This loader locates each weight as the "
+       "running sum of the record sizes before it, which is the .bin layout "
+       "only; a format that names its tensors needs a different one.";
+
+  reportLoadMemory("before", weight_path);
+
+  std::error_code ec;
+  const auto file_bytes = std::filesystem::file_size(weight_path, ec);
+  NNTR_THROW_IF(ec, std::runtime_error) << "load_weight_lora: cannot stat '"
+                                        << weight_path << "': " << ec.message();
+  const size_t actual = static_cast<size_t>(file_bytes);
+
+  std::vector<BaseWeightRecord> records;
+  BaseWalkResult res;
+  res.path = weight_path;
+  std::ifstream peek;
+  bool peek_tried = false;
+  walkBaseCheckpointRecords(nn, /*qs4cx_padded=*/true, legacy_int4, records,
+                            res, peek, peek_tried);
+
+  // Tell the two QS4CX record strides apart, per FILE, exactly as the loader
+  // does: the record names neither, but a file comes from one exporter.
+  //   - size, when it can speak: trimmed_total <= actual < padded_total can
+  //     only be trimmed, since no tail makes a padded file that short;
+  //   - the first record's own bytes when size cannot, because save() appends
+  //     an adam block and 8 bytes of training metadata after the weight
+  //     bodies, and the two totals differ by only sum(floor(N/2)).
+  // The loader falls back to padded (with a warning) when neither speaks;
+  // this path refuses instead, because here there is no second signal -- a
+  // plain "the file is N bytes longer" tail says nothing about the stride, and
+  // a trimmed file read as padded slides every per-channel scale by
+  // floor(N/2) bytes: plausible output, every channel scaled wrong.
+  size_t trimmed_total = 0;
+  // Which QS4CX record stride the file turns out to use. Padded until a file
+  // says otherwise: it is what the first walk sized (and so stamped) every
+  // record at.
+  bool padded_choice = true;
+  if (res.stride_differs) {
+    std::vector<BaseWeightRecord> trimmed_records;
+    BaseWalkResult trimmed_res;
+    trimmed_res.path = weight_path;
+    walkBaseCheckpointRecords(nn, /*qs4cx_padded=*/false, legacy_int4,
+                              trimmed_records, trimmed_res, peek, peek_tried);
+    trimmed_total = trimmed_res.total;
+    NNTR_THROW_IF(!trimmed_res.stride_differs, std::runtime_error)
+      << "load_weight_lora: internal inconsistency -- the QS4CX stride choice "
+         "changed the total but not the per-record sizes";
+
+    // A file no shorter than the padded total and no longer than the trimmed
+    // one can only be trimmed: no tail makes a padded file that short.
+    padded_choice = !(trimmed_total <= actual && actual < res.total);
+    if (padded_choice && res.total <= actual && res.first_qs4cx_found) {
+      switch (probeQs4cxStride(weight_path, res.first_qs4cx_offset,
+                               res.first_qs4cx_K, res.first_qs4cx_N)) {
+      case BaseQs4cxStride::TRIMMED:
+        padded_choice = false;
+        break;
+      case BaseQs4cxStride::PADDED:
+        break;
+      case BaseQs4cxStride::UNDECIDED:
+        throw std::runtime_error(
+          "load_weight_lora: cannot tell which QS4CX record stride '" +
+          weight_path + "' (" + std::to_string(actual) +
+          " bytes) was written at: it fits neither stride exclusively (padded "
+          "total " +
+          std::to_string(res.total) + ", trimmed total " +
+          std::to_string(trimmed_total) + ") and its first QS4CX record (" +
+          std::to_string(res.first_qs4cx_K) + " x " +
+          std::to_string(res.first_qs4cx_N) +
+          ") is too narrow to read the stride off. Reading a trimmed file at "
+          "the padded stride would scale every channel by its neighbour's "
+          "factor, so the load is refused rather than guessed.");
+      }
+    }
+    if (!padded_choice) {
+      ml_logi("weight file '%s' matches the trimmed QS4CX record stride "
+              "(%zu bytes) rather than the padded one (%zu); reading it as "
+              "trimmed",
+              weight_path.c_str(), trimmed_total, res.total);
+      records = std::move(trimmed_records);
+      res.total = trimmed_total;
+      res.num_records = trimmed_res.num_records;
+      res.exact = trimmed_res.exact;
+    }
+  }
+
+  // Stamp the tensors with the layout that won, before anything reads them.
+  //
+  // A walk leaves every tensor it sized stamped for the stride IT used, and the
+  // stride decision above may have run the other walk last -- so whichever
+  // stride was chosen, the tensors have to be restamped from the records that
+  // are about to be read, or a padded file would be read at the trimmed stride
+  // (which does not shift the nibbles, it slides every per-channel scale by
+  // floor(N/2) bytes: plausible output, each channel scaled by its neighbour's
+  // factor). This is the two calls the walk itself makes per weight.
+  for (const auto &rec : records) {
+    nntrainer::Tensor &var = rec.weight->getVariableRef();
+    if (rec.qs4cx && !legacy_int4)
+      var.setQs4cxRecordPadded(padded_choice);
+    var.setFileOffset(rec.offset);
+  }
+
+  // The on-disk contract the offsets above assume, checked before a single byte
+  // is read. The .bin records no per-tensor dtype, so a weight's position is
+  // nothing but this running sum: if any layer asks for a dtype or stride other
+  // than the one the exporting graph wrote, every following weight is read at
+  // the wrong offset, and that surfaces as garbage output far from the cause.
+  // The ordinary loader compares the same two numbers (neuralnet.cpp, after its
+  // own prescan); it can afford to accept a longer file because a save()
+  // appends an adam block and 8 bytes of training metadata after the weight
+  // bodies.
+  //
+  // One dtype makes the sum untrustworthy: Q4_K and UINT4/8/16/32 are counted
+  // with a qscheme header the tensor does not actually write (only the five
+  // types that override save()/read() do), so a graph holding one is skipped,
+  // exactly as the loader skips its own check there.
+  if (res.exact) {
+    NNTR_THROW_IF(actual < res.total, std::runtime_error)
+      << "load_weight_lora: weight file is smaller than this graph expects: '"
+      << weight_path << "' holds " << actual << " bytes, but the "
+      << res.num_records << " weights of this graph account for " << res.total
+      << " (short by " << (res.total - actual)
+      << "). The model file records no per-tensor dtype, so the first thing to "
+         "suspect is a layer requesting a weight at a different dtype or "
+         "stride "
+         "than the package was exported with -- that shifts every later "
+         "weight's offset. A truncated or mismatched file does it too.";
+    if (actual > res.total)
+      ml_logw("weight file '%s' is %zu bytes longer than the %zu bytes this "
+              "graph accounts for; reading the leading %zu and ignoring the "
+              "tail",
+              weight_path.c_str(), actual - res.total, res.total, res.total);
+  }
+
+  // Read every record into the weight it was laid out for. The walk already
+  // stamped each tensor's file offset, and Tensor::read() with no offset
+  // argument picks that up -- the same entry point the ordinary loader reaches
+  // through Layer::read(), so each tensor type keeps its own read()
+  // (the qscheme-header types skip their own 2 bytes, a legacy QINT4 record
+  // transcodes into its QS4CX tensor, and so on) rather than this path
+  // reproducing any of it.
+  //
+  // The fp32 shadow is copied after each read exactly as Layer::read() does it,
+  // because the mixed-precision GEMMs read that one and it would otherwise stay
+  // at whatever the initializer left in it.
+  //
+  // Which weights have a record is taken from the walk itself, by Tensor
+  // identity -- the same identity it deduped on. The tensors' file offsets
+  // cannot answer it: an unstamped tensor reads back 0, and 0 is also where the
+  // first record lives.
+  std::unordered_set<const nntrainer::Tensor *> stamped;
+  for (const auto &rec : records)
+    stamped.insert(&rec.weight->getVariableRef());
+  NNTR_THROW_IF(stamped.size() != records.size(), std::runtime_error)
+    << "load_weight_lora: internal inconsistency -- " << records.size()
+    << " records over " << stamped.size() << " distinct weights";
+
+  std::ifstream model_file = nntrainer::checkedOpenStream<std::ifstream>(
+    weight_path, std::ios::in | std::ios::binary);
+
+  unsigned int loaded = 0;
   std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
     apply =
       [&](ml::train::Layer &l, nntrainer::RunLayerContext &context, void *) {
-        for (auto &w : context.getWeights()) {
+        auto weights = context.getWeights();
+        for (unsigned int i = 0; i < weights.size(); ++i) {
+          nntrainer::Weight *w = weights[i];
           const std::string &name = w->getName();
-          auto it = base_weights.find(name);
-          // A head-only graph's lm_head owns its weight; the full graph's
-          // tied head shares embedding0's.
-          if (it == base_weights.end() && HEAD_FROM_LAYER > 0 &&
-              name.rfind("output_of_causallm", 0) == 0) {
-            const std::string tied =
-              "embedding0" +
-              name.substr(std::string("output_of_causallm").size());
-            it = base_weights.find(tied);
-          }
-          if (it != base_weights.end()) {
-            nntrainer::Tensor &dst = w->getVariableRef();
-            const nntrainer::Tensor &src = *it->second;
-            // A head-only graph's int8 lm_head builds its copies from the
-            // checkpoint's FP32 weight here, so its own vocabulary-sized FP32
-            // W is never filled (it would be released on the first forward).
-            if (HEAD_FROM_LAYER > 0 && l.getType() == LmHeadLossLayer::type &&
-                src.getDataType() == ml::train::TensorDim::DataType::FP32 &&
-                LmHeadLossLayer::stageInt8Weight(
-                  l.getName(), src.getData<float>(), src.getDim().height(),
-                  src.getDim().width())) {
-              ++matched;
-              continue;
-            }
-            // A QS4CX record's scale offset depends on the stride the source
-            // was loaded at (padded / trimmed, see QS4CX_Tensor::size()); the
-            // training graph's tensor starts at the padded default, so carry
-            // the source's choice over or the scales are read at the wrong
-            // offset.
-            if (src.getDataType() == ml::train::TensorDim::DataType::QS4CX)
-              dst.setQs4cxRecordPadded(src.isQs4cxRecordPadded());
-            const size_t bytes =
-              std::min(src.getMemoryBytes(), dst.getMemoryBytes());
-            std::memcpy(dst.getData<char>(), src.getData<char>(), bytes);
-            ++matched;
-          } else if (name.find(":loraA") == std::string::npos &&
-                     name.find(":loraB") == std::string::npos) {
-            unmatched.push_back(name);
-          }
+          // The LoRA A/B are this graph's own and were never in a pretrained
+          // checkpoint; a shared weight was laid out at its first occurrence
+          // only, so it has no record here and keeps the bytes read for its
+          // owner. Anything else without a record means the graph and the file
+          // disagree, which is what the size check above is for -- but only a
+          // per-weight report can say WHICH one, and training on an
+          // uninitialized weight is silent, so name it and refuse.
+          if (name.find(":loraA") != std::string::npos ||
+              name.find(":loraB") != std::string::npos)
+            continue;
+          NNTR_THROW_IF(stamped.find(&w->getVariableRef()) == stamped.end(),
+                        std::runtime_error)
+            << "load_weight_lora: weight '" << name << "' of layer '"
+            << l.getName() << "' got no record in '" << weight_path
+            << "'. Its count or dtype differs from the graph the file was "
+               "written "
+               "from; loading would train on an uninitialized weight.";
+          // Seek each record from its own stamped offset rather than reading
+          // sequentially: start_offset = max() makes Tensor::read() substitute
+          // the tensor's file offset, and read_from_offset is what makes it
+          // seek (the ordinary loader's INFERENCE arm passes the same pair).
+          // Sequential reading would couple every record to what the one before
+          // it actually consumed -- and the two differ by 2 bytes on a
+          // qscheme-header type, which drifts the rest of the file off by one
+          // and ends in a short read.
+          w->getVariableRef().read(model_file,
+                                   std::numeric_limits<size_t>::max(), true);
+          ++loaded;
+          if (context.isMixedPrecision(i) && !context.getWeightFP32(i).empty())
+            context.getWeightFP32(i).copyData(w->getVariableRef());
         }
       };
   model->forEachLayer(apply, nullptr);
 
-  NNTR_THROW_IF(!unmatched.empty(), std::runtime_error)
-    << "load_weight_lora: " << unmatched.size()
-    << " non-LoRA weight(s) had no counterpart in the base checkpoint graph "
-       "(first: "
-    << unmatched.front()
-    << "). The base graph must match the graph the checkpoint was saved "
-       "from.";
-  NNTR_THROW_IF(matched == 0, std::runtime_error)
-    << "load_weight_lora: no weights were loaded from " << base_path;
+  NNTR_THROW_IF(loaded == 0, std::runtime_error)
+    << "load_weight_lora: no weights were read from " << weight_path;
+  reportLoadMemory("after", weight_path);
+  ml_logd("load_weight_lora: read %u base weight(s) from '%s' (%zu bytes)",
+          loaded, weight_path.c_str(), res.total);
 
-  // Step 4: overlay a previously saved LoRA adapter, if given.
+  // Overlay a previously saved LoRA adapter, if given.
   if (!lora_path.empty()) {
     std::ifstream lora_file(lora_path, std::ios::binary);
     NNTR_THROW_IF(!lora_file.is_open(), std::runtime_error)
