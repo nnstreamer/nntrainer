@@ -66,6 +66,7 @@
 #include <residency_policy.h>
 #include <rms_norm.h>
 #include <rms_norm_gpu.h>
+#include <util_func.h>
 
 namespace causallm {
 
@@ -1354,8 +1355,8 @@ void Transformer::repack_weight() {
     MODEL_TENSOR_TYPE.size() >= 5 &&
     MODEL_TENSOR_TYPE.compare(MODEL_TENSOR_TYPE.size() - 5, 5, "-FP16") == 0;
   std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
-    fn = [f16_act](ml::train::Layer &l, nntrainer::RunLayerContext &context,
-                   void *) {
+    fn = [f16_act, this](ml::train::Layer &l,
+                         nntrainer::RunLayerContext &context, void *) {
       auto &node = static_cast<nntrainer::LayerNode &>(l);
       try {
         if (!f16_act) {
@@ -1365,6 +1366,26 @@ void Transformer::repack_weight() {
           // (finalize() stores it transposed as (out_dim, in_dim) and the row
           // decoder reads the plain nibbles + per-channel scales).
           node.pack(context);
+          // The CPU GEMM reads only the pack from here on (dotQs4cx prefers
+          // it for every M), so the plain payload is a dead second copy of
+          // every QS4CX FC weight. Release it now rather than on the FC's
+          // first forward, or the load ends holding both. Only a self-owned
+          // payload (QS4CX heap bypass); a later host read of it fails loudly
+          // through the dropped-payload registry. Off for callers that still
+          // read the plain payload after the load (nntr_quantize's save).
+          if (release_plain_on_repack_ && nntrainer::qs4cxHeapBypassOn() &&
+              node.getType() == "fully_connected") {
+            for (auto &w : context.getWeights()) {
+              nntrainer::Tensor &var = w->getVariableRef();
+              if (var.getDataType() != ml::train::TensorDim::DataType::QS4CX ||
+                  !var.isPacked())
+                continue;
+              const void *base = var.getData<uint8_t>();
+              const size_t bytes = var.getMemoryBytes();
+              if (nntrainer::releaseHostPages(base, bytes))
+                nntrainer::markQs4cxPayloadDropped(base, bytes);
+            }
+          }
           return;
         }
         // fp16-act graphs dispatch QS4CX FCs through HalfTensor::dot, whose KAI

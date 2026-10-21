@@ -1037,6 +1037,8 @@ int main(int argc, char *argv[]) {
     // Step 3: Load FP32 weights
     // =========================================================================
     std::cout << "[3/5] Loading FP32 weights from: " << src_weight_path << "\n";
+    // save_weight() below reads the plain QS4CX payloads back
+    model->setReleasePlainOnRepack(false);
     model->load_weight(src_weight_path);
     std::cout << "  Weights loaded successfully.\n";
 

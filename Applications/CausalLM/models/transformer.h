@@ -155,6 +155,15 @@ public:
   virtual void load_weight(const std::string &weight_path);
 
   /**
+   * @brief Whether repack_weight() releases each QS4CX FC's plain payload once
+   * its CPU pack exists (default true). A caller that reads the plain payload
+   * after the load (e.g. to save it) must turn this off first.
+   */
+  void setReleasePlainOnRepack(bool release) {
+    release_plain_on_repack_ = release;
+  }
+
+  /**
    * @brief GPU-trunk / CPU-head training split. setTrunkLayers(n) builds only
    *        embedding0 + decoder blocks [0, n) and outputs the last block's
    *        hidden state (no output_norm / lm_head). setHeadFromLayer(n)
@@ -961,6 +970,8 @@ protected:
   std::string weight_path_;
   /** Whether repack_weight() was called, so the replay repeats it in order. */
   bool weight_repacked_ = false;
+  /** repack_weight() releases the plain QS4CX payloads it packed */
+  bool release_plain_on_repack_ = true;
   unsigned int MAX_POSITION_EMBEDDINGS; /**< max_position embeddings */
   bool MEMORY_SWAP;                     /**< memory swap option */
   unsigned int FSU_LOOKAHEAD;

@@ -235,6 +235,8 @@ private:
    * dropped, so a later host reader refuses instead of reading zeros.
    * NNTR_TRAIN_DROP_PLAIN=0 keeps them.
    */
+  /** drop a frozen QS4CX FC's plain payload once its pack exists */
+  void releaseFrozenQs4cxPlain(Tensor &weight);
   void releaseDxPlainPayloads(Tensor &weight);
   /** calcGradient left s * dY . B^T (the loraTmp gradient) for this step's
    * calcDerivative to reuse for the LoRA part of dX */
