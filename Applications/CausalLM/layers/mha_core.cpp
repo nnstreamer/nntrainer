@@ -718,7 +718,7 @@ MHACoreLayer::MHACoreLayer() :
     props::RopePartialRotaryFactor(), props::RopeScalingMaxPositionEmbeddings(),
     props::AttnLogitSoftcapping(), props::IsCausal(), props::UseGemmAttention(),
     props::GpuDecodeAttn(), props::GpuDecodeRope(), props::GpuOhwiRope(),
-    props::KvWindowRing()),
+    props::ForwardOnly(), props::KvWindowRing()),
   sm(nntrainer::ActivationType::ACT_SOFTMAX),
   epsilon(1e-3),
   cache_index(0),
@@ -1051,6 +1051,13 @@ void MHACoreLayer::finalize(nntrainer::InitLayerContext &context) {
   if (!use_external_cache) {
     const bool for_training =
       (context.getExecutionMode() == ml::train::ExecutionMode::TRAIN);
+    /** A frozen block of a heterogeneous training graph asks for the prefill
+     * path in a graph compiled for TRAIN (see props::ForwardOnly): the internal
+     * cache instead of the train_* caches, so forwarding() reaches the device
+     * attention arms instead of trainForwarding(). */
+    forward_only =
+      std::get<props::ForwardOnly>(mha_core_props).get() && for_training;
+    const bool train_path = for_training && !forward_only;
 
     /**
      * @note The KV cache exists purely to serve incremental (one-token-at-a-
@@ -1059,7 +1066,7 @@ void MHACoreLayer::finalize(nntrainer::InitLayerContext &context) {
      * cache is dead weight there — skip it rather than reserving
      * max_timestep * num_heads_KV * head_dim per layer for nothing.
      */
-    if (!for_training) {
+    if (!train_path) {
       if (kv_int8) {
         ml::train::TensorDim cache_key_dim(
           {batch_size, 1, max_timestep, num_heads_KV * head_dim},
@@ -1088,19 +1095,29 @@ void MHACoreLayer::finalize(nntrainer::InitLayerContext &context) {
                                 nntrainer::TensorLifespan::MAX_LIFESPAN);
         internal_cache_requested = true;
       } else {
+        /** A forward_only block in a TRAIN graph prefills exactly one fixed
+         * training sequence and never decodes into the cache, so it is sized
+         * to that sequence, not to max_timestep: max_timestep budgets prompt +
+         * all generated tokens, which a training graph never grows into. At
+         * seq 208 against MAX_SEQ_LEN 1024 this is (1024-208) rows x 2 caches
+         * x 1024 cols x 2 B = 3.3 MB per frozen block, 80 MB over 24 of them.
+         * The plain inference path keeps its max_timestep sizing untouched. */
+        const unsigned int cache_rows =
+          forward_only ? input_dims[INOUT_INDEX::QUERY].height()
+                       : max_timestep;
 #ifdef ENABLE_FP16
         ml::train::TensorDim cache_key_dim(
-          {batch_size, 1, max_timestep, num_heads_KV * head_dim},
+          {batch_size, 1, cache_rows, num_heads_KV * head_dim},
           {context.getFormat(), ml::train::TensorDim::DataType::FP16});
         ml::train::TensorDim cache_value_dim(
-          {batch_size, 1, max_timestep, num_heads_KV * head_dim},
+          {batch_size, 1, cache_rows, num_heads_KV * head_dim},
           {context.getFormat(), ml::train::TensorDim::DataType::FP16});
 #else
         ml::train::TensorDim cache_key_dim(
-          {batch_size, 1, max_timestep, num_heads_KV * head_dim},
+          {batch_size, 1, cache_rows, num_heads_KV * head_dim},
           {context.getFormat(), ml::train::TensorDim::DataType::UINT16});
         ml::train::TensorDim cache_value_dim(
-          {batch_size, 1, max_timestep, num_heads_KV * head_dim},
+          {batch_size, 1, cache_rows, num_heads_KV * head_dim},
           {context.getFormat(), ml::train::TensorDim::DataType::UINT16});
 #endif
 
@@ -1114,7 +1131,7 @@ void MHACoreLayer::finalize(nntrainer::InitLayerContext &context) {
       }
     }
 
-    if (for_training) {
+    if (train_path) {
       train_tensors_requested = true;
 
       /**
@@ -1413,8 +1430,9 @@ void MHACoreLayer::forwarding(nntrainer::RunLayerContext &context,
     //
     // Training is dispatched to trainForwarding() above; the training guard
     // below only remains as a belt-and-suspenders check for a TRAIN graph
-    // that somehow lacks the training tensors.
-    if (training)
+    // that somehow lacks the training tensors. A forward_only block IS in a
+    // TRAIN graph and must still reach this path (props::ForwardOnly).
+    if (training && !forward_only)
       return;
     // Precondition: the internal cache is sized to max_timestep, and
     // incremental_forwarding rejects to > max_timestep, so the model must set

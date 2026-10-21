@@ -250,6 +250,39 @@ public:
 };
 
 /**
+ * @brief ForwardOnly property: run the inference attention path in a training
+ *        graph, and take no backward at all.
+ * @note  A LoRA run freezes the blocks below its first adapter, and a single
+ *        heterogeneous training graph has to run those frozen blocks on the
+ *        device (measured on an Adreno 840, 0.6B decision model, 200 tokens:
+ *        82 ms on the GPU against 167 ms on the CPU). But the training graph
+ *        builds mha_core 3-input, and finalize() turns that into
+ *        train_tensors_requested, which sends forwarding() into
+ *        trainForwarding() -- a host FP32 kernel with no device arm at all. So
+ *        the frozen block's attention was the one layer of the block that could
+ *        not follow the block onto the GPU, which is why the split still needed
+ *        a second model and a second graph.
+ *
+ *        With this property the layer keeps the 3-input construction (training
+ *        has no KV-cache placeholders to bind) but asks for the internal-cache
+ *        tensors instead of the train_* caches, so forwarding() takes the
+ *        stateless full-sequence prefill path -- the one the device arms live
+ *        on (flash / OHWI image attention under NNTR_MHA_GPU) -- and
+ *        supportBackwarding() reports false, which is correct: nothing below
+ *        the first adapter is trained, so the graph marks no node in the frozen
+ *        range for backwarding (markNodesForBackwarding only walks FORWARD from
+ *        a trainable node). A trainable block that ever set this would throw at
+ *        compile with "does not support backwarding but is needed" rather than
+ *        train silently wrong.
+ */
+class ForwardOnly : public nntrainer::Property<bool> {
+public:
+  ForwardOnly(bool value = false) { set(value); };
+  static constexpr const char *key = "forward_only";
+  using prop_tag = nntrainer::bool_prop_tag;
+};
+
+/**
  * @brief RopeScalingType
  * - default
  * - yarn
@@ -452,10 +485,17 @@ public:
 
   /**
    * @copydoc bool supportBackwarding() const
-   * @note Returns true, but backwarding is not implemented yet:
-   * calcDerivative() and calcGradient() are no-ops.
+   * @note The doc comment this used to carry ("backwarding is not implemented
+   * yet: calcDerivative() and calcGradient() are no-ops") was stale:
+   * calcDerivative() is a full SDPA backward (see mha_core.cpp), and
+   * calcGradient() is a genuine no-op because the layer has no weights of its
+   * own. A layer built forward_only (a frozen block of a heterogeneous
+   * training graph — see props::ForwardOnly) reports false instead, so a graph
+   * that asked it for a gradient fails at compile instead of training wrong.
    */
-  WIN_EXPORT bool supportBackwarding() const override { return true; };
+  WIN_EXPORT bool supportBackwarding() const override {
+    return !forward_only;
+  };
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
@@ -514,7 +554,7 @@ private:
     props::RopePartialRotaryFactor, props::RopeScalingMaxPositionEmbeddings,
     props::AttnLogitSoftcapping, props::IsCausal, props::UseGemmAttention,
     props::GpuDecodeAttn, props::GpuDecodeRope, props::GpuOhwiRope,
-    props::KvWindowRing>
+    props::ForwardOnly, props::KvWindowRing>
     mha_core_props; /**< mha_core layer properties */
 
   /** softmax activation operation */
@@ -764,6 +804,11 @@ private:
    *  !use_external_cache and the graph was NOT compiled for TRAIN; training
    *  never uses the cache, so it is not allocated there) */
   bool internal_cache_requested = false;
+
+  /** props::ForwardOnly: the frozen prefix of a heterogeneous training graph
+   *  runs the stateless prefill path (device arms reachable) instead of
+   *  trainForwarding(), and takes no backward (see props::ForwardOnly) */
+  bool forward_only = false;
 
   /** attention parameters */
   unsigned int max_position_embeddings;
