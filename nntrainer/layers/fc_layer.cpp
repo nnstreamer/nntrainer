@@ -1044,13 +1044,18 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
       // Per-channel EMA fake-quant: training updates the EMA, validation
       // reads it without updating.
       train_prof::Scope tp_fq("fc.lora_fakequant+stats", train_prof::FWD);
-      fakeQuantizeQInt4(loraA, lora_a_channel_d, training, a_fq);
-      fakeQuantizeQInt4(loraB, lora_b_channel_d, training, b_fq);
+      // A checkpointing recompute re-runs this forward for the same step:
+      // it must reproduce the same fake-quantized weights, not move the EMA
+      // a second time.
+      const bool update_ema = training && !activationRecomputeActive();
+      fakeQuantizeQInt4(loraA, lora_a_channel_d, update_ema, a_fq);
+      fakeQuantizeQInt4(loraB, lora_b_channel_d, update_ema, b_fq);
 
       // Publish the current calibration to the registries so the
       // Application layer can force-feed these scales at save time. Only a
       // training forward moves the scales.
-      if (training && !lora_a_channel_d.empty() && !lora_b_channel_d.empty()) {
+      if (update_ema && !lora_a_channel_d.empty() &&
+          !lora_b_channel_d.empty()) {
         LoRAQATStats s;
         s.a_min = loraA.minValue();
         s.a_max = loraA.maxValue();

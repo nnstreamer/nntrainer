@@ -19,6 +19,8 @@
 #include <map>
 #include <memory>
 #include <stack>
+#include <unordered_map>
+#include <util_func.h>
 #include <vector>
 
 #include <engine.h>
@@ -199,6 +201,16 @@ public:
    * @param[in] batch size
    */
   void setBatchSize(unsigned int batch_size);
+
+  /**
+   * @brief Turn activation checkpointing on or off (off by default). Takes
+   * effect at the next training allocateTensors(); see
+   * applyActivationCheckpointing().
+   */
+  void setActivationCheckpointing(bool enable) {
+    ckpt_enabled_ = enable;
+    activationCheckpointingEnabled() = enable;
+  }
 
   /**
    * @brief     reset input dimensions of a model
@@ -620,6 +632,31 @@ private:
                                    making it noop */
   LayerNode *forward_iter_end;  /**< inclusive end node of the forward execution
                                  when initialize */
+
+  bool ckpt_enabled_ = false; /**< activation checkpointing requested */
+  bool ckpt_applied_ = false; /**< the lifespan rewrite already ran */
+  /** activation checkpointing: segment's last node name -> the segment's
+   * other nodes in forward order, re-run before the last node's backward */
+  std::unordered_map<std::string, std::vector<std::shared_ptr<LayerNode>>>
+    ckpt_segments_;
+
+  /**
+   * @brief Activation checkpointing: find the checkpointed segments and
+   * rewrite their tensors' lifespans in the activation pool, once, before the
+   * first training plan.
+   */
+  void applyActivationCheckpointing();
+
+  /** activation checkpointing: last node name -> first reserved recompute
+   * execution order (setExecutionOrder()) */
+  std::unordered_map<std::string, unsigned int> ckpt_base_;
+
+  /**
+   * @brief The blocks activation checkpointing may checkpoint: maximal runs
+   * of consecutive nodes sharing a "layer<N>_" prefix with a trainable node
+   */
+  std::vector<std::vector<std::shared_ptr<LayerNode>>>
+  checkpointCandidates() const;
 
   /// @note *_list and *_dims must be synced at all times. Consider put it as a
   /// structure

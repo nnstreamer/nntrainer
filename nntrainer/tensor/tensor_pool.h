@@ -142,6 +142,31 @@ public:
   const std::vector<unsigned int> &getExecutionOrder(const std::string &name);
 
   /**
+   * @brief Activation checkpointing: move every execution order of the source
+   * of @a name that is below @a fwd_end (a forward order) to @a map of it (its
+   * recompute order), so the planner keeps the tensor alive only from the
+   * recompute on. The forward still writes the tensor; see
+   * NetworkGraph::applyActivationCheckpointing() for why that is safe.
+   */
+  void remapForwardOrders(const std::string &name, unsigned int fwd_end,
+                          const std::function<unsigned int(unsigned int)> &map);
+
+  /**
+   * @brief Add @a order to the execution orders of the source of @a name
+   */
+  void addExecOrder(const std::string &name, unsigned int order);
+
+  /**
+   * @brief Name of the source tensor @a name is a view of (itself if a source)
+   */
+  const std::string &getSourceName(const std::string &name);
+
+  /**
+   * @brief Names of every source (non-view) tensor in the pool
+   */
+  std::vector<std::string> getSourceNames() const;
+
+  /**
    * @brief Get the maximum real memory requirement
    *
    * @return The real memory requirement with this strategy in bytes

@@ -32,6 +32,8 @@ MemoryOptimization::MemoryOptimization(bool value) { set(value); }
 
 Fsu::Fsu(bool value) { set(value); }
 
+ActivationCheckpointing::ActivationCheckpointing(bool value) { set(value); }
+
 FsuPath::FsuPath(const std::string &value) { set(value); }
 
 FsuLookahead::FsuLookahead(const unsigned int &value) { set(value); }

@@ -130,6 +130,27 @@ public:
  * @brief cache size property
  *
  */
+/**
+ * @brief Activation checkpointing: drop the activations of each checkpointed
+ * segment (a decoder block, recognized by its "layer<N>_" node prefix, inside
+ * the backward range) after its forward and recompute them right before the
+ * segment's backward. Lowers the training peak memory at the cost of one more
+ * forward per segment. Off by default.
+ */
+class ActivationCheckpointing : public Property<bool> {
+public:
+  static constexpr const char *key =
+    "activation_checkpointing";   /**< unique key to access */
+  using prop_tag = bool_prop_tag; /**< property type */
+
+  /**
+   * @brief Constructor
+   *
+   * @param value value to set, defaults to false
+   */
+  ActivationCheckpointing(bool value = false);
+};
+
 class Fsu : public Property<bool> {
 public:
   static constexpr const char *key = "fsu"; /**< unique key to access */

@@ -608,6 +608,12 @@ public:
     weight_pool.setWeightOffset(offsets);
   }
 
+  /**
+   * @brief The activation (non-weight) tensor pool, for graph-level lifespan
+   * rewrites such as activation checkpointing
+   */
+  TensorPool &getActivationPool() { return tensor_pool; }
+
 private:
   /** @todo: merge this list to one */
   std::vector<std::unique_ptr<Weight>> weights_v2; /**< weights for the layers

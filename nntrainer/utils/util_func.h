@@ -529,6 +529,23 @@ float fixedPointAndExponentToFloat(int fixedpoint, int exponent);
  */
 bool releaseHostPages(const void *base, size_t bytes);
 
+/**
+ * @brief Set while NetworkGraph re-runs a checkpointed segment's forward
+ * during backward (activation checkpointing). A layer that updates training
+ * state in its forward (e.g. the LoRA QAT scale EMA) must not update it again
+ * for the recompute.
+ */
+bool &activationRecomputeActive();
+
+/**
+ * @brief Whether the training graph being built uses activation
+ * checkpointing (set by NetworkGraph::setActivationCheckpointing() before its
+ * layers are finalized). A layer may then trade its own backward caches for
+ * recomputation as well (e.g. mha_core recomputes RoPE'd Q/K and the
+ * attention weights in its backward). Read it in finalize().
+ */
+bool &activationCheckpointingEnabled();
+
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */

@@ -344,6 +344,16 @@ float fixedPointAndExponentToFloat(int fixedpoint, int exponent) {
   return std::ldexp(mantissa, exponent);
 }
 
+bool &activationRecomputeActive() {
+  static bool active = false;
+  return active;
+}
+
+bool &activationCheckpointingEnabled() {
+  static bool enabled = false;
+  return enabled;
+}
+
 bool releaseHostPages(const void *base, size_t bytes) {
 #if defined(_WIN32)
   (void)base;

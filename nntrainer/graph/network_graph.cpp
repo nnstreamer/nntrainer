@@ -41,13 +41,17 @@
 #include <split_layer.h>
 #include <time_dist.h>
 #include <tracer.h>
+#include <train_prof.h>
 #include <util_func.h>
 #include <weight_layer.h>
 
+#include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 
 #include "graph_node.h"
 #include "tensor.h"
@@ -102,11 +106,60 @@ int NetworkGraph::compile(const std::string &loss_type) {
   return status;
 }
 
+std::vector<std::vector<std::shared_ptr<LayerNode>>>
+NetworkGraph::checkpointCandidates() const {
+  auto prefixOf = [](const std::string &n) -> std::string {
+    if (n.rfind("layer", 0) != 0)
+      return "";
+    size_t i = 5;
+    while (i < n.size() && std::isdigit(static_cast<unsigned char>(n[i])))
+      ++i;
+    if (i == 5 || i >= n.size() || n[i] != '_')
+      return "";
+    return n.substr(0, i + 1);
+  };
+  std::vector<std::pair<std::string, std::vector<std::shared_ptr<LayerNode>>>>
+    runs;
+  for (auto it = cbegin(); it != cend(); ++it) {
+    const std::string pre = prefixOf((*it)->getName());
+    if (runs.empty() || runs.back().first != pre || pre.empty())
+      runs.push_back({pre, {}});
+    runs.back().second.push_back(*it);
+  }
+  std::vector<std::vector<std::shared_ptr<LayerNode>>> groups;
+  for (auto &[pre, nodes] : runs) {
+    if (pre.empty() || nodes.size() < 2)
+      continue;
+    // only blocks with something to train: a frozen block below the first
+    // trainable one never runs a backward, so it has nothing to keep
+    bool trainable = false;
+    for (auto &n : nodes)
+      trainable = trainable || n->getTrainable();
+    if (trainable)
+      groups.push_back(nodes);
+  }
+  return groups;
+}
+
 void NetworkGraph::setExecutionOrder() {
+  // Activation checkpointing reserves, right before a checkpointed block's
+  // last node, one execution order per re-run node: the recompute then has
+  // its own timeline, so its tensors are planned with the same reuse as in
+  // the forward instead of all at once.
+  std::unordered_map<std::string, unsigned int> slots;
+  ckpt_base_.clear();
+  if (ckpt_enabled_)
+    for (auto &g : checkpointCandidates())
+      slots[g.back()->getName()] = static_cast<unsigned int>(g.size() - 1);
+
   auto backward_order = graph.size();
   for (auto iter = getBackwardingBeginIter(); iter != getBackwardingEndIter();
        iter++) {
     auto &node = *iter;
+    if (auto it = slots.find(node->getName()); it != slots.end()) {
+      ckpt_base_[node->getName()] = static_cast<unsigned int>(backward_order);
+      backward_order += it->second;
+    }
     auto order_idx = getBackwardingEndIter() - iter - 1;
     auto forward_order = order_idx;
     auto calc_gradient_order = backward_order;
@@ -524,6 +577,18 @@ bool NetworkGraph::backwarding(
 
   for (iter_ = iter_begin; iter_ != iter_end && !stop_cb(userdata); iter_++) {
     auto &ln = *iter_;
+    // activation checkpointing: rebuild the segment's activations before the
+    // backward of its last node (see applyActivationCheckpointing())
+    if (!ckpt_segments_.empty()) {
+      auto seg = ckpt_segments_.find(ln->getName());
+      if (seg != ckpt_segments_.end()) {
+        train_prof::Scope tp("ckpt.recompute", train_prof::FWD);
+        activationRecomputeActive() = true;
+        for (auto &node : seg->second)
+          forwarding_op(node, true);
+        activationRecomputeActive() = false;
+      }
+    }
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
     is_valid = backwarding_op(ln, iteration);
     PROFILE_TIME_END(profile_keys.at(ln->getType()));
@@ -669,9 +734,137 @@ void NetworkGraph::allocateTensors(ExecutionMode exec_mode_) {
      * @todo if model is gradient clipping, we have to add last execution order
      * + 1
      */
+    applyActivationCheckpointing();
     tensor_manager->allocateTensors(
       std::get<3>(backward_iter_end->getExecutionOrder()));
   }
+}
+
+/**
+ * Segments are the decoder blocks: maximal runs of consecutive nodes (forward
+ * order) sharing a "layer<N>_" name prefix with a trainable node, all inside
+ * the backward range (checkpointCandidates()). Right before the backward of a
+ * segment's last node, backwarding() re-runs the segment's other nodes'
+ * forward, in the execution orders setExecutionOrder() reserved for it.
+ *
+ * Lifespans: every source tensor named with the segment's prefix (outputs,
+ * layer-requested caches, LoRA scratch, ...) has each forward order moved to
+ * the matching recompute order, so the planner keeps it only from the
+ * recompute on, with the forward's own reuse; the segment's inputs from
+ * outside stay alive through the recompute (it reads them), and the segment's
+ * output keeps its forward value and stays alive through the recompute too (the
+ * last node is not re-run: its output is the next segment's input and may share
+ * memory with the derivative already handed back into it; and while the last
+ * node writes it in the forward it reads moved tensors, which must not share
+ * its memory).
+ *
+ * The original forward still writes the moved tensors. That is safe: a
+ * tensor the plan places at the same address has a validity disjoint from
+ * [R, segment backward end]; anything live during this segment's forward
+ * that is still needed later is either a segment input/output (alive through
+ * R, so never sharing) or long-term, and everything else sharing the address
+ * is dead by then (earlier forward work) or written later (and recomputed
+ * over before it is read).
+ */
+void NetworkGraph::applyActivationCheckpointing() {
+  if (!ckpt_enabled_ || ckpt_applied_)
+    return;
+  ckpt_applied_ = true;
+  ckpt_segments_.clear();
+
+  std::unordered_set<std::string> bwd;
+  for (auto it = getBackwardingBeginIter(); it != getBackwardingEndIter(); ++it)
+    bwd.insert((*it)->getName());
+
+  TensorPool &pool = tensor_manager->getActivationPool();
+  const unsigned int fwd_end = static_cast<unsigned int>(graph.size());
+  const std::vector<std::string> sources = pool.getSourceNames();
+  size_t moved_bytes = 0;
+
+  for (auto &nodes : checkpointCandidates()) {
+    auto &last = nodes.back();
+    auto base_it = ckpt_base_.find(last->getName());
+    if (base_it == ckpt_base_.end())
+      continue;
+    bool all_bwd = true;
+    for (auto &n : nodes)
+      all_bwd = all_bwd && bwd.count(n->getName());
+    if (!all_bwd)
+      continue;
+
+    const std::string name0 = nodes.front()->getName();
+    const std::string pre = name0.substr(0, name0.find('_') + 1);
+    // forward order f of the block's k-th node -> recompute slot base + k;
+    // the last node is not re-run, its forward maps to the last slot
+    const unsigned int base = base_it->second;
+    const unsigned int f_first =
+      std::get<0>(nodes.front()->getExecutionOrder());
+    const unsigned int n_slots = static_cast<unsigned int>(nodes.size() - 1);
+    const unsigned int slot_end = base + n_slots - 1;
+    auto slotOf = [=](unsigned int f) {
+      return (f >= f_first && f - f_first < n_slots) ? base + (f - f_first)
+                                                     : slot_end;
+    };
+
+    std::unordered_set<std::string> keep;
+    RunLayerContext &lrc = last->getRunContext();
+    for (unsigned int i = 0; i < lrc.getNumOutputs(); ++i)
+      keep.insert(pool.getSourceName(lrc.getOutput(i).getName()));
+
+    std::unordered_set<std::string> moved;
+    for (auto &name : sources)
+      if (name.rfind(pre, 0) == 0 && !keep.count(name))
+        moved.insert(name);
+
+    std::unordered_set<std::string> ext_inputs;
+    for (auto &n : nodes) {
+      RunLayerContext &rc = n->getRunContext();
+      for (unsigned int i = 0; i < rc.getNumInputs(); ++i) {
+        const std::string &src = pool.getSourceName(rc.getInput(i).getName());
+        if (!moved.count(src))
+          ext_inputs.insert(src);
+      }
+    }
+
+    // a moved tensor must not be read outside the segment
+    bool ok = true;
+    for (auto it = cbegin(); it != cend() && ok; ++it) {
+      if (std::find(nodes.begin(), nodes.end(), *it) != nodes.end())
+        continue;
+      RunLayerContext &rc = (*it)->getRunContext();
+      for (unsigned int i = 0; i < rc.getNumInputs(); ++i)
+        if (moved.count(pool.getSourceName(rc.getInput(i).getName()))) {
+          ml_logw("activation checkpointing: %s reads %s of segment %s; "
+                  "segment left as is",
+                  (*it)->getName().c_str(), rc.getInput(i).getName().c_str(),
+                  pre.c_str());
+          ok = false;
+          break;
+        }
+    }
+    if (!ok)
+      continue;
+
+    // The segment's inputs are read by the recompute, and its output must not
+    // share memory with the moved tensors the last node reads while writing
+    // it in the forward: both stay alive through the whole recompute.
+    for (auto &src : ext_inputs)
+      pool.addExecOrder(src, slot_end);
+    for (auto &src : keep)
+      pool.addExecOrder(src, slot_end);
+    for (auto &name : moved) {
+      pool.remapForwardOrders(name, fwd_end, slotOf);
+      moved_bytes += pool.getTensor(name)->getMemoryBytes();
+    }
+    ckpt_segments_[last->getName()] =
+      std::vector<std::shared_ptr<LayerNode>>(nodes.begin(), nodes.end() - 1);
+  }
+
+  ml_logi("activation checkpointing: %zu segments, %zu MB of tensors moved",
+          ckpt_segments_.size(), moved_bytes >> 20);
+  std::cout << "[activation checkpointing] " << ckpt_segments_.size()
+            << " segments, " << (moved_bytes >> 20)
+            << " MB of tensors recomputed before backward" << std::endl;
 }
 
 std::vector<TensorDim> NetworkGraph::getInputDimension() const {

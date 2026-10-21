@@ -160,7 +160,8 @@ NeuralNetwork::NeuralNetwork() :
                    props::SavePath(), props::ContinueTrain(),
                    props::SaveBestPath(), props::MemoryOptimization(),
                    props::Fsu(), props::FsuPath(), props::FsuLookahead(),
-                   props::TensorFormat(), props::ModelTensorDataType()),
+                   props::TensorFormat(), props::ModelTensorDataType(),
+                   props::ActivationCheckpointing()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -179,7 +180,8 @@ NeuralNetwork::NeuralNetwork(const Engine *ct_engine_) :
                    props::SavePath(), props::ContinueTrain(),
                    props::SaveBestPath(), props::MemoryOptimization(),
                    props::Fsu(), props::FsuPath(), props::FsuLookahead(),
-                   props::TensorFormat(), props::ModelTensorDataType()),
+                   props::TensorFormat(), props::ModelTensorDataType(),
+                   props::ActivationCheckpointing()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -376,6 +378,10 @@ int NeuralNetwork::compile(ExecutionMode mode) {
     model_graph.addLayer(node);
   }
 
+  // before compile(): the execution orders reserve the recompute slots
+  model_graph.setActivationCheckpointing(
+    mode == ml::train::ExecutionMode::TRAIN &&
+    std::get<props::ActivationCheckpointing>(model_flex_props).get());
   int status = model_graph.compile(loss_type);
   NN_RETURN_STATUS();
 

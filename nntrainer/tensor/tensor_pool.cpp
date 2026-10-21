@@ -459,6 +459,33 @@ TensorPool::getExecutionOrder(const std::string &name) {
   return std::get<SourceDetails>(getSourceSpec(name).details).exec_order;
 }
 
+void TensorPool::remapForwardOrders(
+  const std::string &name, unsigned int fwd_end,
+  const std::function<unsigned int(unsigned int)> &map) {
+  auto &orders =
+    std::get<SourceDetails>(getSourceSpec(name).details).exec_order;
+  for (auto &o : orders)
+    if (o < fwd_end)
+      o = map(o);
+}
+
+void TensorPool::addExecOrder(const std::string &name, unsigned int order) {
+  std::get<SourceDetails>(getSourceSpec(name).details)
+    .exec_order.push_back(order);
+}
+
+const std::string &TensorPool::getSourceName(const std::string &name) {
+  return getSourceSpec(name).tensor->getName();
+}
+
+std::vector<std::string> TensorPool::getSourceNames() const {
+  std::vector<std::string> names;
+  for (auto &spec : pool)
+    if (std::holds_alternative<SourceDetails>(spec.details))
+      names.push_back(spec.tensor->getName());
+  return names;
+}
+
 /**
  * @brief     Expand the lifespan of the tensor with the given name
  *
