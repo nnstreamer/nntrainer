@@ -407,6 +407,29 @@ __kernel void v8c_act_quant_f16_parx(
 #define V8C_TN_M1 8
 #endif
 
+// Output element type of the prefill GEMM store. The default build keeps the
+// historical fp16 store; -DV8C_F32OUT (a separate entry in the kernel/program
+// cache, requested by gemm_int8_v8c_cl for the host-output fp32 FC) makes the
+// epilogue emit fp32 instead.
+//
+// Why it exists: a training FC (NNTR_TRAIN_BASE_GPU) consumes the GEMM in an
+// fp32 CPU tensor, so the fp16 store cost a second host pass over the whole
+// M x N output to widen it. Measured on an S26U at M=200/N=3072 that pass was
+// 0.32 ms against 0.66 ms of kernel and 0.02 ms of readback -- 31 % of the FC's
+// round trip (HANDOFF/BASELINES 7). With the store in fp32 the readback lands
+// straight in the caller's tensor and the pass disappears. The value is the
+// same float the fp16 path computed before rounding it to half, so the fp32
+// store is exactly as close to an fp32 reference minus one rounding.
+//
+// Only the two TM=4 kernels parameterize on it; the single-row (m1 / coop GEMV)
+// and int8xint8 kernels stay fp16-only and the host refuses to ask them for
+// fp32 (see gemm_int8_v8c_cl).
+#ifdef V8C_F32OUT
+#define V8C_YT float
+#else
+#define V8C_YT half
+#endif
+
 // Image-sampling kernel bodies. Compiled out with -DV8C_BUFFER_ONLY on
 // runtimes (e.g. Intel NEO) whose SPIR-V backend cannot compile
 // integer-coordinate read_imageui — otherwise clBuildProgram fails for the
@@ -423,7 +446,7 @@ __kernel void v8c_gemm_int8_int4(
     __global const int    *row_sum_act,     // [M] sum_k(int8 act_ik)
     __global const int    *zp_act,          // [M] per-row asymmetric zero point
     __global const int    *row_sum_w_int4,  // [N] sum_k(int4 w_nk), pre-decoded
-    __global       half   *Y,               // [M, N] fp16 output
+    __global      V8C_YT  *Y,               // [M, N] fp16 output (fp32 with -DV8C_F32OUT)
     const int M, const int N, const int K,
     const int M_valid) {  // valid output rows: stores with row >= M_valid are
                           // skipped. Legacy callers pass M (=M_pad) so every
@@ -562,7 +585,7 @@ __kernel void v8c_gemm_int8_int4(
     for (int j = 0; j < V8C_TN; j++) {
       int corrected = acc[i][j] - 8 * rs - zp * row_sum_w_int4[n0 + j];
       float v = (float)corrected * s_i * scale_wgt[n0 + j];
-      Y[(long)(m0 + i) * N + (n0 + j)] = (half)v;
+      Y[(long)(m0 + i) * N + (n0 + j)] = (V8C_YT)v;
     }
   }
 }
@@ -906,7 +929,7 @@ __kernel void v8c_gemm_int8_int4_buf(
     __global const int    *row_sum_act,
     __global const int    *zp_act,
     __global const int    *row_sum_w_int4,
-    __global       half   *Y,
+    __global      V8C_YT  *Y,               // see v8c_gemm_int8_int4's Y
     const int M, const int N, const int K,
     const int W_act, const int W_wgt,
     const int M_valid) {  // see v8c_gemm_int8_int4: skip stores >= M_valid
@@ -970,7 +993,7 @@ __kernel void v8c_gemm_int8_int4_buf(
     for (int j = 0; j < V8C_TN; j++) {
       int corrected = acc[i][j] - 8 * rs - zp * row_sum_w_int4[n0 + j];
       float v = (float)corrected * s_i * scale_wgt[n0 + j];
-      Y[(long)(m0 + i) * N + (n0 + j)] = (half)v;
+      Y[(long)(m0 + i) * N + (n0 + j)] = (V8C_YT)v;
     }
   }
 }

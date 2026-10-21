@@ -593,6 +593,13 @@ struct V8cScratch {
   int ring_pos = 0; /**< last slot handed out; advance-on-miss */
   cl_mem y_fp16 = nullptr;
   size_t y_fp16_bytes = 0;
+  // [FP32 store] The same staging buffer for the GEMM variants that store
+  // fp32 (see the NNTR_V8C_F32OUT gate in dotCl_v8c). Kept separate from
+  // y_fp16 rather than aliased: the two stores are chosen per call, and a
+  // graph that mixes an FP16-output FC with an FP32-output one must not have
+  // either read the other's bytes.
+  cl_mem y_f32 = nullptr;
+  size_t y_f32_bytes = 0;
 
   // Shared-quant cache (paper §3.6 fused-quant insight, host-side). Qwen3-style
   // layer graphs dispatch consecutive FC calls with the SAME input pointer
@@ -2163,18 +2170,76 @@ bool dotCl_v8c(const Tensor &input, const Tensor &weight, Tensor &output) {
     }();
     const bool direct_out = direct_out_enabled && out_clmem;
 
+    // An output the GPU can write itself: a device-plane sub-buffer (out_clmem,
+    // handled by direct_out) or an SVM tensor the copy kernel can bind. The
+    // fp32-store gate below needs this before the GEMM is dispatched, and the
+    // GEMM cannot change where the output lives, so it is computed once here.
+    const bool out_resident =
+      !out_clmem && output.getMemoryData() && output.getMemoryData()->isSVM() &&
+      (output.getDataType() == ml::train::TensorDim::DataType::FP32 ||
+       output.getDataType() == ml::train::TensorDim::DataType::FP16);
+
+    // [FP32 store] The host-output branch (the last `else` below) used to read
+    // the GEMM back as fp16 and widen the whole M x N on the CPU. At M=200
+    // N=3072 on an S26U that pass cost 0.32 ms against 0.66 ms of kernel and
+    // 0.02 ms of readback -- 31 % of the offloaded FC (HANDOFF/BASELINES 7,
+    // ~54 ms per sample over its 168 calls). Ask the kernel for an fp32 store
+    // instead and land the blocking read straight in the caller's tensor.
+    //
+    // Gated to exactly the case the measurement is about: host-visible FP32
+    // output of a QS4CX weight (the training base GEMM,
+    // fc_layer.cpp::baseGemmGpu). FP16 outputs, the M==1 decode (the single-row
+    // GEMV kernels store fp16 only) and both device-resident output branches
+    // are excluded, so nothing else in the tree changes.
+    //
+    // The numerics improve rather than move: both paths compute the same float
+    // epilogue, the fp16 one then rounds it to half and back. Dropping that
+    // round is one less error on top of the ~1e-3 int8 activation error the
+    // caller's rel_l2 <= 0.05 self-check already accounts for.
+    //
+    // NNTR_V8C_F32OUT=0 forces the old fp16 + host-widen path.
+    static const bool v8c_f32out_enabled = []() {
+      const char *e = std::getenv("NNTR_V8C_F32OUT");
+      return !(e && e[0] == '0');
+    }();
+    // (!direct_out && !out_resident) is exactly the host-readback branch, so
+    // the gate cannot drift from the branch it is asking permission for.
+    const bool want_fp32_store =
+      v8c_f32out_enabled && !direct_out && !out_resident && M > 1 &&
+      output.getDataType() == ml::train::TensorDim::DataType::FP32;
+
+    cl_mem gemm_act_arg = use_buf ? act_i8_arg : act_image;
+    cl_mem gemm_wgt_arg = use_buf ? w->weight_buf : w->weight_image;
+    // Whether the GEMM below already ran with the fp32 store. gemm_int8_v8c_cl
+    // declines an fp32 store -- having enqueued NOTHING -- for a shape that
+    // routes to a half-only kernel (single-row GEMV) or a driver that cannot
+    // compile the variant; then the fp16 dispatch below runs exactly as before
+    // and y_f32 stays unused.
+    bool dispatched_f32 = false;
+    if (want_fp32_store) {
+      if (!v8c_ensure_buf(ctx, &sc.y_f32, &sc.y_f32_bytes,
+                          sizeof(float) * (size_t)M_pad * N, CL_MEM_READ_WRITE))
+        return false;
+      // Declared as this dispatch's only write before the call: the log records
+      // the dispatch whether the store is fp16 or fp32.
+      opencl::Kernel::noteDispatchWrites(static_cast<void *>(sc.y_f32));
+      dispatched_f32 = gemm_int8_v8c_cl(
+        gemm_act_arg, gemm_wgt_arg, act_scale_arg, w->scale_buf.get(),
+        act_rs_arg, act_zp_arg, w->row_sum_w_int4.get(), sc.y_f32, M_pad, N, K,
+        M, /** out_fp32 = */ true);
+    }
+
     // v8c GEMM -- run on padded M_pad rows, but only the valid M rows reach
     // the caller. y_fp16 only backs the NON-direct output paths; under
     // direct_out the GEMM stores into the planner buffer itself.
-    if (!direct_out && !v8c_ensure_buf(ctx, &sc.y_fp16, &sc.y_fp16_bytes,
-                                       sizeof(uint16_t) * (size_t)M_pad * N,
-                                       CL_MEM_READ_WRITE))
+    if (!direct_out && !dispatched_f32 &&
+        !v8c_ensure_buf(ctx, &sc.y_fp16, &sc.y_fp16_bytes,
+                        sizeof(uint16_t) * (size_t)M_pad * N,
+                        CL_MEM_READ_WRITE))
       return false;
     cl_mem gemm_y_arg =
       direct_out ? static_cast<cl_mem>(output.getMemoryData()->deviceMem())
-                 : sc.y_fp16;
-    cl_mem gemm_act_arg = use_buf ? act_i8_arg : act_image;
-    cl_mem gemm_wgt_arg = use_buf ? w->weight_buf : w->weight_image;
+                 : (dispatched_f32 ? sc.y_f32 : sc.y_fp16);
     // M_valid = the REAL row count, always: the kernel routes single-row
     // calls to the fast GEMV (M=1 decode) and multi-row calls to the TM=4
     // tiled kernel with the M_valid store guard; consumers only ever read
@@ -2183,10 +2248,12 @@ bool dotCl_v8c(const Tensor &input, const Tensor &weight, Tensor &output) {
     // that is the output tensor's planner sub-buffer, otherwise the private
     // y_fp16 scratch. Either way it is the only buffer this dispatch stores
     // into, which is what an outstanding handoff has to be checked against.
-    opencl::Kernel::noteDispatchWrites(static_cast<void *>(gemm_y_arg));
-    gemm_int8_v8c_cl(gemm_act_arg, gemm_wgt_arg, act_scale_arg,
-                     w->scale_buf.get(), act_rs_arg, act_zp_arg,
-                     w->row_sum_w_int4.get(), gemm_y_arg, M_pad, N, K, M);
+    if (!dispatched_f32) {
+      opencl::Kernel::noteDispatchWrites(static_cast<void *>(gemm_y_arg));
+      gemm_int8_v8c_cl(gemm_act_arg, gemm_wgt_arg, act_scale_arg,
+                       w->scale_buf.get(), act_rs_arg, act_zp_arg,
+                       w->row_sum_w_int4.get(), gemm_y_arg, M_pad, N, K, M);
+    }
     // NNTR_XE3_FC_SYNC=1: clFinish after the FC GEMM. Off by default on
     // every platform; =0 or leaving it unset keeps it off.
     //
@@ -2223,10 +2290,7 @@ bool dotCl_v8c(const Tensor &input, const Tensor &weight, Tensor &output) {
     // Device-plane output: the fp16 result goes into the planner sub-buffer
     // its consumers bind. Writing the shared-plane shadow instead leaves those
     // consumers reading a buffer nothing filled.
-    const bool out_resident =
-      !out_clmem && output.getMemoryData() && output.getMemoryData()->isSVM() &&
-      (output.getDataType() == ml::train::TensorDim::DataType::FP32 ||
-       output.getDataType() == ml::train::TensorDim::DataType::FP16);
+    // (out_resident was computed above, ahead of the fp32-store gate.)
     if (direct_out) {
       // The GEMM already stored into the planner sub-buffer: nothing to copy.
     } else if (out_clmem) {
@@ -2238,14 +2302,7 @@ bool dotCl_v8c(const Tensor &input, const Tensor &weight, Tensor &output) {
         sc.y_fp16, output, (unsigned int)((size_t)M * N),
         output.getDataType() == ml::train::TensorDim::DataType::FP16);
     } else {
-      // grow-only and not value-initialized: the read overwrites it whole
-      static thread_local std::unique_ptr<uint16_t[]> y_host;
-      static thread_local size_t y_host_cap = 0;
       const size_t y_n = (size_t)M * N;
-      if (y_host_cap < y_n) {
-        y_host.reset(new uint16_t[y_n]);
-        y_host_cap = y_n;
-      }
       // [DIAG] NNTR_V8C_SPLIT_PROF=1: wait for the kernels first so the
       // readback time is the copy alone
       if (v8cSplitProf()) {
@@ -2254,23 +2311,46 @@ bool dotCl_v8c(const Tensor &input, const Tensor &weight, Tensor &output) {
         v8cSplitAcc()[1] += msSince(k_t0);
       }
       const auto rd_t0 = std::chrono::steady_clock::now();
-      if (opencl::clEnqueueReadBuffer(q, sc.y_fp16, CL_TRUE, 0,
-                                      sizeof(uint16_t) * y_n, y_host.get(), 0,
-                                      nullptr, nullptr) != CL_SUCCESS)
-        return false;
-      if (v8cSplitProf())
-        v8cSplitAcc()[2] += msSince(rd_t0);
-      const auto cv_t0 = std::chrono::steady_clock::now();
-      if (output.getDataType() == ml::train::TensorDim::DataType::FP32) {
-        v8c_h2f_rows(y_host.get(), output.getData<float>(), y_n);
-      } else if (output.getDataType() == ml::train::TensorDim::DataType::FP16) {
-        std::memcpy(output.getData<uint8_t>(), y_host.get(),
-                    sizeof(uint16_t) * y_n);
+      if (dispatched_f32) {
+        // The kernel stored fp32, so the blocking read lands in the caller's
+        // tensor and there is no conversion pass to time -- a[3] stays 0, which
+        // is the point of NNTR_V8C_F32OUT. The read is 2x the bytes of the fp16
+        // one it replaces (0.02 -> ~0.04 ms/call measured), still small next to
+        // the 0.32 ms it removes.
+        if (opencl::clEnqueueReadBuffer(
+              q, sc.y_f32, CL_TRUE, 0, sizeof(float) * y_n,
+              output.getData<float>(), 0, nullptr, nullptr) != CL_SUCCESS)
+          return false;
+        if (v8cSplitProf())
+          v8cSplitAcc()[2] += msSince(rd_t0);
       } else {
-        throw std::runtime_error("unsupported output dtype");
+        // grow-only and not value-initialized: the read overwrites it whole
+        static thread_local std::unique_ptr<uint16_t[]> y_host;
+        static thread_local size_t y_host_cap = 0;
+        if (y_host_cap < y_n) {
+          y_host.reset(new uint16_t[y_n]);
+          y_host_cap = y_n;
+        }
+        if (opencl::clEnqueueReadBuffer(q, sc.y_fp16, CL_TRUE, 0,
+                                        sizeof(uint16_t) * y_n, y_host.get(), 0,
+                                        nullptr, nullptr) != CL_SUCCESS)
+          return false;
+        if (v8cSplitProf())
+          v8cSplitAcc()[2] += msSince(rd_t0);
+        const auto cv_t0 = std::chrono::steady_clock::now();
+        if (output.getDataType() == ml::train::TensorDim::DataType::FP32) {
+          v8c_h2f_rows(y_host.get(), output.getData<float>(), y_n);
+        } else if (output.getDataType() ==
+                   ml::train::TensorDim::DataType::FP16) {
+          std::memcpy(output.getData<uint8_t>(), y_host.get(),
+                      sizeof(uint16_t) * y_n);
+        } else {
+          throw std::runtime_error("unsupported output dtype");
+        }
+        if (v8cSplitProf())
+          v8cSplitAcc()[3] += msSince(cv_t0);
       }
       if (v8cSplitProf()) {
-        v8cSplitAcc()[3] += msSince(cv_t0);
         static unsigned int calls = 0;
         if (++calls % 50 == 0) {
           const double *a = v8cSplitAcc();

@@ -1700,10 +1700,11 @@ static inline unsigned int v8c_wrow_texels(unsigned int K) {
   return (unsigned int)(v8c_wrow_bytes(K) / 16);
 }
 
-void gemm_int8_v8c_cl(cl_mem act_image, cl_mem weight_image, cl_mem scale_act,
+bool gemm_int8_v8c_cl(cl_mem act_image, cl_mem weight_image, cl_mem scale_act,
                       cl_mem scale_wgt, cl_mem row_sum_act, cl_mem zp_act,
                       cl_mem row_sum_w_int4, cl_mem output_fp16, unsigned int M,
-                      unsigned int N, unsigned int K, unsigned int M_valid) {
+                      unsigned int N, unsigned int K, unsigned int M_valid,
+                      bool out_fp32) {
   if (M_valid == 0)
     M_valid = M; // legacy: store every (padded) row
   // [M=2..4 row-gap fix] The m1/coop GEMV kernels compute ONLY row 0. That is
@@ -1731,6 +1732,20 @@ void gemm_int8_v8c_cl(cl_mem act_image, cl_mem weight_image, cl_mem scale_act,
   // K).
   const bool use_buf = v8c_use_buffer_path();
   const bool buf_kernel = use_buf;
+  // [FP32 store] An fp32 consumer (the host-output FP32 FC, see dotCl_v8c's
+  // NNTR_V8C_F32OUT gate) asks the TM=4 kernel to store float instead of half,
+  // which removes a whole host pass over M x N (0.32 ms/call at M=200 N=3072 on
+  // an S26U against 0.66 ms of kernel — HANDOFF/BASELINES 7).
+  // Decline — WITHOUT enqueuing anything, so the caller can re-dispatch as
+  // fp16 — whenever this call would route to a kernel that has no fp32 store:
+  // the single-row m1/coop GEMVs (decode; their callers are FP16 graphs) and,
+  // below, the Intel XMX/DPAS kernel. The XMX carve-out is the one to know
+  // about: on an Intel prefill an FP32-output FC now runs the dp4a kernel with
+  // a float store instead of DPAS with a half store plus a widen, which is the
+  // right trade (the widen was the more expensive half) but it is not the same
+  // kernel the FP16 path picks.
+  if (out_fp32 && use_m1)
+    return false;
   const char *kname =
     buf_kernel
       ? (use_m1 ? "v8c_gemm_int8_int4_m1_buf" : "v8c_gemm_int8_int4_buf")
@@ -1738,6 +1753,11 @@ void gemm_int8_v8c_cl(cl_mem act_image, cl_mem weight_image, cl_mem scale_act,
   // Buffer path compiles the program with -DV8C_BUFFER_ONLY so the
   // image-sampling kernel bodies are excluded (Intel NEO can't compile them).
   std::string copts = use_buf ? kV8cBufCompileOpts : "";
+  // A distinct option string is a distinct program and kernel in the
+  // registration cache, so the fp16 dispatches keep compiling exactly what they
+  // compile today.
+  if (out_fp32)
+    copts += " -DV8C_F32OUT";
   // NNTR_V8C_KCLOCK: in-kernel cl_khr_kernel_clock measurement build (off by
   // default). "1" = time the full K-loop; "2" = also drop the dp4a (fetch-only
   // floor) to isolate fetch-stall from compute. Measurement-only; the printf is
@@ -1849,7 +1869,7 @@ void gemm_int8_v8c_cl(cl_mem act_image, cl_mem weight_image, cl_mem scale_act,
           std::array<size_t, 3> lws = {wg, 1, 1};
           blas_cc->command_queue_inst_.enqueueKernel(
             ck->GetKernel(), 1, gws.data(), lws.data(), 0, nullptr, nullptr);
-          return;
+          return true;
         }
       }
     }
@@ -1919,6 +1939,9 @@ void gemm_int8_v8c_cl(cl_mem act_image, cl_mem weight_image, cl_mem scale_act,
   static bool xmx_gate_logged = false;
   if (!xmx_gate_logged) {
     xmx_gate_logged = true;
+    // Shape gate only -- this one-shot line reports why DPAS is unavailable for
+    // the shape, and deliberately does not fold in the fp32-store decline
+    // (below), which is a chosen trade rather than a capability miss.
     const bool gate = xmx_fc && M > 4 && buf_kernel && (N % 64) == 0 &&
                       (K % 64) == 0 && K >= 128 &&
                       v8c_wrow_bytes(K) == (size_t)K / 2;
@@ -1944,8 +1967,14 @@ void gemm_int8_v8c_cl(cl_mem act_image, cl_mem weight_image, cl_mem scale_act,
   // the row stride IS K/2. That holds on the buffer path today, but buf_kernel
   // can also be set by the probe override while the row stride is the padded
   // image-path one, so the invariant is checked here instead of assumed.
-  if (xmx_fc && M > 4 && buf_kernel && (N % 64) == 0 && (K % 64) == 0 &&
-      K >= 128 && v8c_wrow_bytes(K) == (size_t)K / 2) {
+  // !out_fp32: gemm_xmx_i4 stores half only, so an FP32 store request declines
+  // here and lands on the dp4a kernel below, which takes the switch. That is a
+  // kernel swap on Intel prefill, and a deliberate one: the fp16->fp32 widen it
+  // buys (0.32 ms/call at M=200 N=3072, ~1/2 of the dp4a kernel's own time) is
+  // worth more than the DPAS win over dp4a. Teach gemm_xmx_i4 the same
+  // V8C_F32OUT epilogue to get both.
+  if (xmx_fc && !out_fp32 && M > 4 && buf_kernel && (N % 64) == 0 &&
+      (K % 64) == 0 && K >= 128 && v8c_wrow_bytes(K) == (size_t)K / 2) {
     // ONE fixed tile, deliberately -- not a per-shape heuristic. A standalone
     // sweep does favour a different (NT, SG_M) per projection shape (SG_M=8
     // for the deep down-projections, SG_M=1 for the narrow models), but those
@@ -2024,16 +2053,22 @@ void gemm_int8_v8c_cl(cl_mem act_image, cl_mem weight_image, cl_mem scale_act,
         std::array<size_t, 3> lws = {16, (size_t)xmx_sgm, 1};
         blas_cc->command_queue_inst_.enqueueKernel(
           kx->GetKernel(), 2, gws.data(), lws.data(), 0, nullptr, nullptr);
-        return;
+        return true;
       }
     }
     // fall through to dp4a on any failure
   }
   ClContext::SharedPtrClKernel kp =
     blas_cc->registerClKernel(int8_int4_gemm_v8c_kernel, kname, copts);
-  if (!kp)
+  if (!kp) {
+    // A driver that cannot compile the fp32-store variant declines the request
+    // instead of throwing, so the caller re-dispatches the fp16 one it already
+    // knows works rather than losing the GEMM to the host dot.
+    if (out_fp32)
+      return false;
     throw std::runtime_error(
       std::string("v8c_gemm: registerClKernel failed: ") + kname);
+  }
 
   int arg = 0;
   if (!kp->SetKernelArguments(arg++, &act_image, sizeof(cl_mem)))
@@ -2113,6 +2148,7 @@ void gemm_int8_v8c_cl(cl_mem act_image, cl_mem weight_image, cl_mem scale_act,
                                                lws_ok ? lws.data() : nullptr, 0,
                                                nullptr, nullptr);
   }
+  return true;
 }
 
 void gemm_int8_v8c_v_ohwi_cl(cl_mem act_image, cl_mem weight_image,

@@ -510,18 +510,29 @@ bool rmsnorm_add_cl_fp16(const _FP16 *input, const _FP16 *gamma,
  * @param[in] zp_act per-row int32 asymmetric zero-point [M]
  * @param[in] row_sum_w_int4 per-channel int32 sum_k(int4 w_nk) [N], precomputed
  *            once at weight upload (depends only on weight bytes).
- * @param[out] output_fp16 fp16 output buffer [M*N]
+ * @param[out] output_fp16 fp16 output buffer [M*N], or fp32 [M*N] when
+ *            out_fp32 is set (see below)
  * @param[in] M,N,K shape; K must be multiple of 32
  * @param[in] M_valid valid output rows (0 = M): stores with row >= M_valid
  *            are skipped by the TM=4 kernels. Direct-output mode passes the
  *            unpadded row count with output_fp16 = the FC's planner
  *            sub-buffer (sized M_valid x N), so the M_pad padding rows
  *            cannot write out of bounds.
+ * @param[in] out_fp32 store the epilogue as fp32 instead of fp16 (the TM=4
+ *            kernels compiled with -DV8C_F32OUT), so an fp32 consumer needs no
+ *            widening pass. @return true when the GEMM was dispatched with the
+ *            requested store type; false when this shape routes to a kernel
+ *            that can only store fp16 (the single-row GEMV/m1 variants, the
+ *            Intel XMX/DPAS kernel). A false return means NOTHING was
+ *            enqueued, so the caller may re-dispatch with out_fp32 = false.
+ *            Ignored (always true) by the fp16 callers, which is why this
+ *            returns true for them.
  */
-void gemm_int8_v8c_cl(cl_mem act_image, cl_mem weight_image, cl_mem scale_act,
+bool gemm_int8_v8c_cl(cl_mem act_image, cl_mem weight_image, cl_mem scale_act,
                       cl_mem scale_wgt, cl_mem row_sum_act, cl_mem zp_act,
                       cl_mem row_sum_w_int4, cl_mem output_fp16, unsigned int M,
-                      unsigned int N, unsigned int K, unsigned int M_valid = 0);
+                      unsigned int N, unsigned int K, unsigned int M_valid = 0,
+                      bool out_fp32 = false);
 
 /**
  * @brief #46l: v8c GEMM with fused OHWI-reversed V scatter. Same compute as
