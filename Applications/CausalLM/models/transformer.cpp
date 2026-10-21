@@ -783,53 +783,106 @@ void Transformer::installFrozenPrefixWalk() {
 
     // The frozen region's output depends on nothing training changes -- its
     // weights are frozen and a sample's token ids never change -- so from the
-    // second time a sample is seen the whole prefix can be skipped. Keyed on a
-    // hash of the ids: 8 bytes per sample kept for the run, against 4 bytes per
-    // token to keep the ids themselves. A collision would train one sample on
-    // another's hidden state, so the key also carries the byte count.
-    const char *raw = reinterpret_cast<const char *>(input->getData());
-    const size_t bytes = input->getMemoryBytes();
-    uint64_t h = 1469598103934665603ull; // FNV-1a
-    for (size_t i = 0; i < bytes; ++i) {
-      h ^= (unsigned char)raw[i];
-      h *= 1099511628211ull;
-    }
-    std::string key((const char *)&h, sizeof(h));
-    key.append((const char *)&bytes, sizeof(bytes));
+    // second time a sample is seen its rows of the prefix can be skipped.
+    //
+    // Keyed per SAMPLE ROW, not per step. Through the frozen range a batch row
+    // depends on nothing but itself (causal attention over the row's own
+    // tokens, per-row norms, per-row GEMMs), so a row of the boundary tensor
+    // can be restored on its own. With the whole step as the key -- the first
+    // version -- a batch of N reused only when those same N samples were
+    // grouped into one batch again, and the epoch shuffle makes that rare:
+    // measured at batch 4, "reused 0" over a whole second epoch. Per-row keys
+    // hit on the sample, which every sample earns in epoch 1, so a later epoch
+    // gathers its batch row by row and skips the range whenever all of its
+    // rows are known.
+    //
+    // The key is a hash of the row's token-plane bytes: 16 bytes kept per
+    // sample for the run against a row of hidden states. A collision would
+    // train one sample on another's hidden state, so the key carries the row
+    // byte count too, and a row's bytes contain its own padding, so two samples
+    // of different lengths cannot collide by truncation.
+    const size_t rows = input->batch();
+    // Row stride in BYTES, taken from the plane rather than from
+    // TensorDim::getFeatureLen(): that accessor counts elements (the input here
+    // reports 208 for a 208-token FP32 row whose 4 rows occupy 3328 bytes), and
+    // the two only agree for FP32 planes of one element per feature, which is
+    // not a property worth depending on for a byte copy.
+    const size_t in_bytes = input->getMemoryBytes();
+    const size_t out_bytes = split_out->getMemoryBytes();
+    const size_t in_stride = in_bytes / rows;
+    const size_t out_stride = out_bytes / rows;
+    // a row is one batch's worth of a plane laid out batch-major (the same
+    // layout getSharedDataTensor slices by throughout the layers). What is
+    // checked here is that both planes have one row per input row and split
+    // into that many equal byte runs -- a shape check, not a proof of layout.
+    // The layout itself is verified where it can actually be verified: the
+    // frozen range's output feeds training, so if rows were extracted on any
+    // other layout the second epoch trains on the wrong hidden states and the
+    // saved adapters stop matching the same run with the cache off, which
+    // HANDOFF/MEASUREMENT_PROTOCOL.md requires to be bit-identical (checked at
+    // batch 1 and batch 4).
+    const bool row_addressable = rows > 0 && split_out->batch() == rows &&
+                                 in_stride * rows == in_bytes &&
+                                 out_stride * rows == out_bytes;
+    NNTR_THROW_IF(!row_addressable, std::runtime_error)
+      << "frozen prefix cache: the boundary plane does not have one row per "
+         "input row laid out batch-major ("
+      << rows << " input rows vs " << split_out->batch() << " output rows, "
+      << in_bytes << "/" << out_bytes
+      << " bytes not divisible into them), so rows cannot be cached "
+         "individually";
 
-    auto hit = FROZEN_CACHE_MAP.find(key);
-    if (hit != FROZEN_CACHE_MAP.end()) {
-      // Put the cached hidden state where the trainable region reads it, then
-      // walk only the tail. A byte copy, not a tensor assignment: the graph's
-      // own tensor must keep the storage the pool gave it, only its contents
-      // change.
-      NNTR_THROW_IF(hit->second.size() != split_out->getMemoryBytes(),
-                    std::runtime_error)
-        << "frozen prefix cache: a cached row is " << hit->second.size()
-        << " bytes but the graph's split output is "
-        << split_out->getMemoryBytes();
-      std::memcpy(split_out->getData<char>(), hit->second.data(),
-                  hit->second.size());
-      ++FROZEN_CACHE_HITS;
+    std::vector<std::string> keys(rows);
+    bool all_hit = true;
+    for (size_t r = 0; r < rows; ++r) {
+      const char *raw = input->getData<char>() + r * in_stride;
+      uint64_t h = 1469598103934665603ull; // FNV-1a
+      for (size_t i = 0; i < in_stride; ++i) {
+        h ^= (unsigned char)raw[i];
+        h *= 1099511628211ull;
+      }
+      std::string key((const char *)&h, sizeof(h));
+      key.append((const char *)&in_stride, sizeof(in_stride));
+      if (FROZEN_CACHE_MAP.find(key) == FROZEN_CACHE_MAP.end())
+        all_hit = false;
+      keys[r] = std::move(key);
+    }
+
+    if (all_hit) {
+      // Restore every row where the trainable region reads it, then walk only
+      // the tail. Byte copies, not tensor assignments: the graph's own tensor
+      // must keep the storage the pool gave it, only its contents change.
+      for (size_t r = 0; r < rows; ++r) {
+        const std::vector<char> &row = FROZEN_CACHE_MAP[keys[r]];
+        NNTR_THROW_IF(row.size() != out_stride, std::runtime_error)
+          << "frozen prefix cache: a cached row is " << row.size()
+          << " bytes but the graph's split output row is " << out_stride;
+        std::memcpy(split_out->getData<char>() + r * out_stride, row.data(),
+                    out_stride);
+      }
+      FROZEN_CACHE_HITS += rows;
       run_tail();
       return true;
     }
 
     self->forwardRange(0, split_past, training);
-    ++FROZEN_PREFIX_RUNS;
+    FROZEN_PREFIX_RUNS += rows;
     // The pool reuses this memory for the next step's activations, so a cached
-    // row has to own its bytes. The budget is checked after the run because a
-    // row's size is only known once it exists; a sample that does not fit is
-    // simply not cached, so the cache cannot outgrow what it was given and
-    // costs only the time it did not save.
-    const size_t row = split_out->getMemoryBytes();
-    if (FROZEN_CACHE_BYTES == 0 ||
-        FROZEN_CACHE_USED + row <= FROZEN_CACHE_BYTES) {
-      const char *p = split_out->getData<char>();
+    // row has to own its bytes. The budget is checked per row after the run
+    // because a row's size is only known once it exists; a row that does not
+    // fit is simply not cached, so the cache cannot outgrow what it was given
+    // and costs only the time it did not save.
+    for (size_t r = 0; r < rows; ++r) {
+      if (keys[r].empty() || FROZEN_CACHE_MAP.count(keys[r]))
+        continue; // a row already cached this step (identical samples)
+      if (FROZEN_CACHE_BYTES != 0 &&
+          FROZEN_CACHE_USED + out_stride > FROZEN_CACHE_BYTES)
+        break;
+      const char *p = split_out->getData<char>() + r * out_stride;
       auto inserted =
-        FROZEN_CACHE_MAP.emplace(key, std::vector<char>(p, p + row));
+        FROZEN_CACHE_MAP.emplace(keys[r], std::vector<char>(p, p + out_stride));
       if (inserted.second)
-        FROZEN_CACHE_USED += row;
+        FROZEN_CACHE_USED += out_stride;
     }
     run_tail();
     return true;

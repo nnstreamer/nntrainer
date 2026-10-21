@@ -247,10 +247,18 @@ public:
    * The frozen prefix depends on nothing that training changes: its weights are
    * frozen and a sample's token ids never change, so its output is the same in
    * every epoch. Caching it takes the prefix off the per-step cost from epoch 2
-   * on, which on a device is most of the sample (blocks [0, S) of L). The cache
-   * is keyed by the input token ids and holds @p max_bytes of hidden states;
-   * samples that do not fit are computed as usual, so the cache can only lose
-   * time, never memory. Meaningful only together with setFrozenPrefix().
+   * on, which is most of the sample (blocks [0, S) of L).
+   *
+   * Cached per SAMPLE ROW, keyed by a hash of the row's input ids. Per row and
+   * not per step because a batch row through a frozen region depends on nothing
+   * but itself (causal attention over its own tokens, per-row norms and GEMMs),
+   * and because a step key never repeats: epochs shuffle, so at batch 4 the
+   * same N samples are almost never batched together again -- measured as
+   * "reused 0" over a whole second epoch. Restoring a step gathers its rows.
+   *
+   * Holds @p max_bytes of hidden states; rows past the budget compute as usual,
+   * so the cache can only lose time, never memory. Meaningful only together
+   * with setFrozenPrefix().
    */
   void setFrozenCache(bool on, size_t max_bytes) {
     FROZEN_CACHE = on;
@@ -262,8 +270,10 @@ public:
   /** bytes it actually holds now: rows are added only while they fit, so this
    *  is what the switch costs, and it is what to compare against a budget. */
   size_t getFrozenCacheUsedBytes() const { return FROZEN_CACHE_USED; }
-  /** times the frozen prefix ran / was skipped since training started. A run
-   *  with reuse working shows hits == (samples seen after the first pass). */
+  /** Sample rows the frozen prefix ran / restored from cache since training
+   *  started, counted per row rather than per step: a step of batch N can
+   *  restore some rows and compute others. A run with reuse working shows hits
+   *  == (sample rows seen after the first pass). */
   unsigned long getFrozenPrefixRuns() const { return FROZEN_PREFIX_RUNS; }
   unsigned long getFrozenCacheHits() const { return FROZEN_CACHE_HITS; }
 
