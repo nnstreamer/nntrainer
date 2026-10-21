@@ -536,6 +536,11 @@ NeuralNetwork::~NeuralNetwork() {
 sharedConstTensors NeuralNetwork::forwarding(
   bool training, std::function<bool(void *userdata)> stop_cb, void *userdata) {
 
+  // A model that splits its own graph into regions (frozen on the device,
+  // trainable on the host) owns the walk; see setForwardOverride().
+  if (forward_override_ && forward_override_(this, training))
+    return {};
+
   unsigned int lookahead = std::get<props::FsuLookahead>(model_flex_props);
   bool fsu_mode = std::get<props::Fsu>(model_flex_props);
   if (fsu_mode) {
@@ -544,8 +549,52 @@ sharedConstTensors NeuralNetwork::forwarding(
     }
   }
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
-    [this, stop_cb, lookahead, fsu_mode](std::shared_ptr<LayerNode> node,
-                                         bool training) -> void {
+    makeForwardingOp();
+
+  return model_graph.forwarding(training, forwarding_op, stop_cb, userdata);
+}
+
+void NeuralNetwork::forwardRange(unsigned int from, unsigned int to,
+                                 bool training) {
+  // The same walk forwarding() does, restricted to a node range: used to run a
+  // frozen prefix (device) and the trainable tail (host) of ONE graph as two
+  // passes. No outputs come back; the prefix's output is consumed in place.
+  if (from >= to)
+    return;
+  std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
+    makeForwardingOp();
+  auto never_stop = [](void *) { return false; };
+  model_graph.forwardingRange(from, to, training, forwarding_op, never_stop,
+                              nullptr);
+}
+
+int NeuralNetwork::getNodeOrder(const std::string &node_name) {
+  // The compiled order is what forwardRange() indexes (GraphCore walks its
+  // sorted array, which is the order forwarding() visits). The split point of
+  // a heterogeneous training graph is named by the app that built it -- the
+  // layer whose output is the last frozen one -- so it is resolved here rather
+  // than pushed back into the graph.
+  unsigned int i = 0;
+  for (auto it = model_graph.cbegin(); it != model_graph.cend(); ++it, ++i)
+    if ((*it)->getName() == node_name)
+      return (int)i;
+  return -1;
+}
+
+/**
+ * @brief The per-node work of a forward walk: flush the cache down to this
+ * node's execution order and run it (or, for FSU inference, drive the
+ * look-ahead load/release pipeline). Shared by the whole-graph walk and the
+ * range walk so the two cannot drift -- in-place reuse and the FSU pipeline
+ * depend on both regions doing exactly the same thing per node.
+ */
+std::function<void(std::shared_ptr<LayerNode>, bool)>
+NeuralNetwork::makeForwardingOp() {
+  std::function<bool(void *userdata)> stop_cb = [](void *) { return false; };
+  unsigned int lookahead = std::get<props::FsuLookahead>(model_flex_props);
+  bool fsu_mode = std::get<props::Fsu>(model_flex_props);
+  return [this, stop_cb, lookahead, fsu_mode](std::shared_ptr<LayerNode> node,
+                                              bool training) -> void {
     (void)this;
     PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
 
@@ -588,10 +637,9 @@ sharedConstTensors NeuralNetwork::forwarding(
       model_graph.LoadTensors(f + lookahead);
     }
   };
-
-  return model_graph.forwarding(training, forwarding_op, stop_cb, userdata);
 }
 
+/**
 /**
  * @brief     forward propagation using layers object which has layer
  */

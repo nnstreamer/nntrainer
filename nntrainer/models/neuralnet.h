@@ -238,6 +238,56 @@ public:
     void *user_data = nullptr);
 
   /**
+   * @brief     Forward only a range of the compiled graph.
+   *
+   * The compiled order is a topological order, so any prefix [0, N) of it is a
+   * downward-closed set: running [0, N) and then [N, size()) is the same walk
+   * forwarding() does, split at a point where no node still needs a successor
+   * that has not run. That is what lets ONE graph be driven in two passes -- a
+   * frozen prefix on the device and a trainable tail on the host -- without
+   * splitting the model in two (which duplicated its weights, its pools, its
+   * embedding and its device state for a hand-off worth 0.2 ms).
+   *
+   * No outputs are returned: the prefix's output is consumed in place by the
+   * tail, and the tail's own outputs are read by whoever asks for the loss.
+   *
+   * @param[in] from first node index (compiled order) to run
+   * @param[in] to   one past the last node index to run
+   * @param[in] training true if forwarding is on training
+   */
+  void forwardRange(unsigned int from, unsigned int to, bool training = true);
+
+  /**
+   * @brief     Position of a node in the compiled order that forwardRange()
+   *            indexes.
+   * @param[in] node_name name of the node as it was added to the graph
+   * @retval    position in [0, size)
+   * @retval    -1 when no node of that name is in the graph
+   */
+  int getNodeOrder(const std::string &node_name);
+
+  /**
+   * @brief     Number of nodes the compiled order walks (the exclusive upper
+   *            bound for forwardRange()).
+   */
+  unsigned int getGraphSize() const { return model_graph.size(); }
+
+  /**
+   * @brief     Install a hook that takes over the per-iteration forward.
+   *
+   * A training graph whose frozen region runs on another engine is walked in
+   * two regions (see forwardRange()); which node ends the frozen region is a
+   * property of the model that built the graph, not of the training loop, so
+   * the model installs this hook instead of the loop learning layer names.
+   * Returning true means the hook ran the whole forward and forwarding() must
+   * not walk again.
+   */
+  void setForwardOverride(
+    std::function<bool(NeuralNetwork *, bool /* training */)> hook) {
+    forward_override_ = std::move(hook);
+  }
+
+  /**
    * @brief     Forward Propagation of the neural network
    * @param[in] input List of Input Tensors taken by the neural network
    * @param[in] label List of Label Tensors for the model
@@ -769,6 +819,16 @@ public:
                const std::string file_path) override;
 
 private:
+  /**
+   * @brief The per-node operation of a forward walk (cache flush + forwarding,
+   * or the FSU look-ahead pipeline). Shared by forwarding() and forwardRange()
+   * so a range walk cannot drift from the whole-graph one.
+   */
+  std::function<void(std::shared_ptr<LayerNode>, bool)> makeForwardingOp();
+
+  /** see setForwardOverride() */
+  std::function<bool(NeuralNetwork *, bool)> forward_override_;
+
   using FlexiblePropTypes =
     std::tuple<props::Epochs, props::TrainingBatchSize, props::SavePath,
                props::ContinueTrain, props::SaveBestPath,
