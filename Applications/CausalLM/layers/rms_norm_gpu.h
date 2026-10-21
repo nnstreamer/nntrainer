@@ -46,8 +46,14 @@ public:
 
   WIN_EXPORT void finalize(nntrainer::InitLayerContext &context) override;
 
+  /**
+   * @brief Whole-tensor forward. Defined in the .cpp as the whole-row case of
+   *        incremental_forwarding(); it used to be an empty body here, which
+   *        silently zeroed any graph that reaches forwarding() -- a TRAIN graph
+   *        does, and only that one.
+   */
   WIN_EXPORT void forwarding(nntrainer::RunLayerContext &context,
-                             bool training) override {}
+                             bool training) override;
 
   WIN_EXPORT void incremental_forwarding(nntrainer::RunLayerContext &context,
                                          unsigned int from, unsigned int to,

@@ -113,6 +113,29 @@ static void rms_norm_host_fp32(const float *in, const float *gamma, float *out,
 #endif
 }
 
+/**
+ * @brief Whole-tensor forward: the same computation incremental_forwarding()
+ *        already implements over one row range, over every row.
+ *
+ * This body used to be empty, which was not harmless. A TRAIN graph walks its
+ * nodes through forwarding() and never calls incremental_forwarding()
+ * (NeuralNetwork::makeForwardingOp), so this class built into a training graph
+ * -- which is what naming the layer engine=gpu does, since the gpu context
+ * registers it under the same type string -- computed nothing at all and left
+ * the output holding whatever the pool had given it. Nothing failed: measured
+ * on the S26U a frozen prefix built this way trained to loss 5.08 against the
+ * host reference's 2.98, with 24 blocks passing their input straight through
+ * the residual adds. Delegating over [0, height) makes the class correct on
+ * both walks, and cannot be worse than the empty body was: the only case that
+ * still produces no output is skip_prefill, where the old body produced none
+ * either.
+ */
+void RMSNormLayerGPU::forwarding(nntrainer::RunLayerContext &context,
+                                 bool training) {
+  nntrainer::Tensor &in = context.getInput(SINGLE_INOUT_IDX);
+  incremental_forwarding(context, 0, in.getDim().height(), training);
+}
+
 void RMSNormLayerGPU::incremental_forwarding(
   nntrainer::RunLayerContext &context, unsigned int from, unsigned int to,
   bool training) {
