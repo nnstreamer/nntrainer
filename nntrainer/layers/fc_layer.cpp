@@ -1001,6 +1001,28 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
     }
   }
 
+  // A frozen (non-LoRA) QS4CX FC of a training graph reads only its KleidiAI
+  // pack from its first forward on, so the plain payload the pack was built
+  // from is a dead second copy of the int4 weight: hand its pages back
+  // (LoRA FCs do the same in releaseDxPlainPayloads once their dX copy is
+  // built). Only a self-owned payload (QS4CX heap bypass) is released, and
+  // the dropped-payload registry turns any later host read into an error
+  // instead of zeros. NNTR_TRAIN_DROP_PLAIN=0 keeps it.
+  if (training && !dx_plain_released_ &&
+      std::get<props::LoraRank>(fc_props).empty() &&
+      weight.getDataType() == TensorDim::DataType::QS4CX && weight.isPacked() &&
+      qs4cxHeapBypassOn()) {
+    const char *keep = std::getenv("NNTR_TRAIN_DROP_PLAIN");
+    static const bool fwd_fp32 = std::getenv("NNTR_TRAIN_FWD_FP32") != nullptr;
+    dx_plain_released_ = true;
+    if (!(keep != nullptr && keep[0] == '0') && !fwd_fp32) {
+      const void *base = weight.getData<uint8_t>();
+      const size_t bytes = weight.getMemoryBytes();
+      if (releaseHostPages(base, bytes))
+        markQs4cxPayloadDropped(base, bytes);
+    }
+  }
+
   if (!std::get<props::LoraRank>(fc_props).empty()) {
     Tensor &loraA = context.getWeight(lora_idx[LORAParams::loraA]);
     Tensor &loraB = context.getWeight(lora_idx[LORAParams::loraB]);
