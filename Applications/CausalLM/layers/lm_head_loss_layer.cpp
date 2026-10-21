@@ -96,6 +96,44 @@ void quantizeRepackRows(bool q4, const float *src, uint8_t *dst,
   }
 }
 
+/**
+ * @brief Whether the W^T copy of the dL/dx GEMM is centered (W - mean row).
+ * dL/dx = sum_v g_v W_v with sum_v g_v = 0 (softmax minus one-hot), so the
+ * mean row cancels exactly -- but in the int GEMM it does not: the tail of
+ * the softmax piles up along the embedding's large common direction and the
+ * one-hot takes it back, and the int8 error on that large term survives the
+ * cancellation (9 % rel L2 on dL/dx, 30 % on single rows, with a Qwen3
+ * embedding). Quantizing W - mean instead removes the term; the exact
+ * mean * sum_v g_v correction is added back after the GEMM.
+ * NNTR_LMHEAD_CENTER=0 turns it off.
+ */
+bool centerHeadWt() {
+  static const bool on = [] {
+    const char *e = std::getenv("NNTR_LMHEAD_CENTER");
+    return e == nullptr || e[0] != '0';
+  }();
+  return on;
+}
+
+/**
+ * @brief Subtract each of the @a nrow rows' mean (over @a n entries) from the
+ * row, storing the means in @a mean (zeros when centering is off)
+ */
+void centerRows(float *rows, unsigned int nrow, unsigned int n, float *mean) {
+  for (unsigned int j = 0; j < nrow; ++j) {
+    float *r = rows + (size_t)j * n;
+    double acc = 0.0;
+    if (centerHeadWt())
+      for (unsigned int i = 0; i < n; ++i)
+        acc += r[i];
+    const float mu = static_cast<float>(acc / n);
+    mean[j] = mu;
+    if (mu != 0.0f)
+      for (unsigned int i = 0; i < n; ++i)
+        r[i] -= mu;
+  }
+}
+
 /** C (M x N) = A (M x K) . B^T on the head's quantized copy B */
 void headGemm(bool q4, unsigned int M, unsigned int N, unsigned int K,
               const float *A, const uint8_t *B, float *C) {
@@ -151,7 +189,8 @@ namespace {
  * blocks along vocab (dL/dx GEMM).
  */
 void buildQ8Copies(const float *w, unsigned int vocab, unsigned int hidden,
-                   std::vector<uint8_t> &w_q8, std::vector<uint8_t> &wt_q8) {
+                   std::vector<uint8_t> &w_q8, std::vector<uint8_t> &wt_q8,
+                   std::vector<float> &wt_mean) {
   auto &tm = nntrainer::ThreadManager::Global();
   const bool q4 = useQ4Head();
 
@@ -183,6 +222,7 @@ void buildQ8Copies(const float *w, unsigned int vocab, unsigned int hidden,
     const size_t blk = q4 ? Q4_0_BLOCK_BYTES : Q8_0_BLOCK_BYTES;
     const size_t row_bytes = (size_t)(vocab / 32) * blk;
     wt_q8.resize((size_t)hidden * row_bytes);
+    wt_mean.assign(hidden, 0.0f);
     tm.parallel_for(0, hidden / WT_ROWS_PER_TASK, [&](size_t t) {
       const unsigned int h0 = static_cast<unsigned int>(t) * WT_ROWS_PER_TASK;
       std::vector<float> rows((size_t)WT_ROWS_PER_TASK * vocab);
@@ -191,6 +231,7 @@ void buildQ8Copies(const float *w, unsigned int vocab, unsigned int hidden,
         for (unsigned int j = 0; j < WT_ROWS_PER_TASK; ++j)
           rows[(size_t)j * vocab + v] = src[j];
       }
+      centerRows(rows.data(), WT_ROWS_PER_TASK, vocab, wt_mean.data() + h0);
       quantizeRepackRows(q4, rows.data(), wt_q8.data() + (size_t)h0 * row_bytes,
                          WT_ROWS_PER_TASK, vocab);
     });
@@ -206,7 +247,8 @@ void buildQ8Copies(const float *w, unsigned int vocab, unsigned int hidden,
  * and no second copy of its codes is ever built.
  */
 void buildFromQ4_0(uint8_t *w, unsigned int vocab, unsigned int hidden,
-                   std::vector<uint8_t> &wt_q, bool wt_q4) {
+                   std::vector<uint8_t> &wt_q, std::vector<float> &wt_mean,
+                   bool wt_q4) {
   auto &tm = nntrainer::ThreadManager::Global();
   const size_t w_row_bytes = (size_t)(hidden / 32) * Q4_0_BLOCK_BYTES;
 
@@ -217,6 +259,7 @@ void buildFromQ4_0(uint8_t *w, unsigned int vocab, unsigned int hidden,
   const size_t wt_row_bytes =
     (size_t)(vocab / 32) * (wt_q4 ? Q4_0_BLOCK_BYTES : Q8_0_BLOCK_BYTES);
   wt_q.resize((size_t)hidden * wt_row_bytes);
+  wt_mean.assign(hidden, 0.0f);
   tm.parallel_for(0, hidden / WT_ROWS_PER_TASK, [&](size_t t) {
     const unsigned int h0 = static_cast<unsigned int>(t) * WT_ROWS_PER_TASK;
     const size_t blk_off = (size_t)(h0 / 32) * Q4_0_BLOCK_BYTES;
@@ -233,6 +276,7 @@ void buildFromQ4_0(uint8_t *w, unsigned int vocab, unsigned int hidden,
         rows[(size_t)j * vocab + v] = (float)(q - 8) * d;
       }
     }
+    centerRows(rows.data(), WT_ROWS_PER_TASK, vocab, wt_mean.data() + h0);
     quantizeRepackRows(wt_q4, rows.data(),
                        wt_q.data() + (size_t)h0 * wt_row_bytes,
                        WT_ROWS_PER_TASK, vocab);
@@ -259,6 +303,7 @@ void buildFromQ4_0(uint8_t *w, unsigned int vocab, unsigned int hidden,
 /** int8 copies staged by LmHeadLossLayer::stageInt8Weight, by layer name */
 struct StagedInt8 {
   std::vector<uint8_t> w, wt;
+  std::vector<float> wt_mean;
 };
 std::mutex &stagedMutex() {
   static std::mutex m;
@@ -278,7 +323,7 @@ bool int8Head(unsigned int vocab, unsigned int hidden) {
 
 void LmHeadLossLayer::buildQ8(const float *w, unsigned int vocab,
                               unsigned int hidden) {
-  buildQ8Copies(w, vocab, hidden, w_q8_, wt_q8_);
+  buildQ8Copies(w, vocab, hidden, w_q8_, wt_q8_, wt_mean_);
   w_is_q4_ = wt_is_q4_ = useQ4Head();
   w_q8_src_ = w;
 }
@@ -290,7 +335,7 @@ bool LmHeadLossLayer::stageInt8Weight(const std::string &layer_name,
       std::getenv("NNTR_LMHEAD_KEEP_FP32") != nullptr)
     return false;
   StagedInt8 staged;
-  buildQ8Copies(src, vocab, hidden, staged.w, staged.wt);
+  buildQ8Copies(src, vocab, hidden, staged.w, staged.wt, staged.wt_mean);
   std::lock_guard<std::mutex> lock(stagedMutex());
   stagedInt8()[layer_name] = std::move(staged);
   return true;
@@ -370,14 +415,20 @@ void LmHeadLossLayer::forwarding(nntrainer::RunLayerContext &context,
                   std::invalid_argument)
       << "[lm_head_loss] a Q4_0 head needs hidden and vocab divisible by 32";
     w_is_q4_ = true;
-    wt_is_q4_ = useQ4Head();
+    // W^T as Q4_0 unless NNTR_LMHEAD_Q4=0: with the centered copy and the
+    // exact top entries, its dL/dx error matches the Q8_0 copy's (2.7 % rel
+    // L2 either way) at half the size
+    {
+      const char *e = std::getenv("NNTR_LMHEAD_Q4");
+      wt_is_q4_ = e == nullptr || e[0] != '0';
+    }
     NNTR_THROW_IF(
       nntrainer::TieWordEmbedding::isQ4_0x4Table(w.getData<uint8_t>()),
       std::runtime_error)
       << "[lm_head_loss] the Q4_0 table is already repacked (a second head "
          "on the same weight)";
     buildFromQ4_0(const_cast<uint8_t *>(w.getData<uint8_t>()), vocab, hidden,
-                  wt_q8_, wt_is_q4_);
+                  wt_q8_, wt_mean_, wt_is_q4_);
     w_q4_table_ = w.getData<uint8_t>();
   }
   if (!w_q4_0 && w_q8_.empty() && !w_released_) {
@@ -386,6 +437,7 @@ void LmHeadLossLayer::forwarding(nntrainer::RunLayerContext &context,
     if (it != stagedInt8().end()) {
       w_q8_ = std::move(it->second.w);
       wt_q8_ = std::move(it->second.wt);
+      wt_mean_ = std::move(it->second.wt_mean);
       w_is_q4_ = wt_is_q4_ = useQ4Head();
       stagedInt8().erase(it);
       w_q8_src_ = w_data;
@@ -521,14 +573,100 @@ void LmHeadLossLayer::forwarding(nntrainer::RunLayerContext &context,
     // the softmax costs most of the int head's dL/dx error: dL/dx is a small
     // difference E_p[W] - W_target, so the GEMM's error on either term shows
     // up amplified.
+    // The largest |dL/dlogits| entries of each row (the target and the top
+    // predictions, which carry most of dL/dx) are taken out of the int GEMM
+    // and applied exactly from the table afterwards: the GEMM then only sees
+    // the softmax tail, whose int8 / int4 error stays small. One pass per row
+    // picks every entry >= max / 64, at most SPLIT_K of them.
+    // NNTR_LMHEAD_SPLIT=0 turns it off.
+    constexpr unsigned int SPLIT_K = 32;
+    static const bool split_on = [] {
+      const char *e = std::getenv("NNTR_LMHEAD_SPLIT");
+      return e == nullptr || e[0] != '0';
+    }();
+    const bool split =
+      q8 && split_on && (w_q4_table_ != nullptr || !w_released_);
+    std::vector<unsigned int> top_id;
+    std::vector<float> top_val;
+    std::vector<unsigned int> top_n;
+    if (split) {
+      top_id.assign((size_t)m * SPLIT_K, 0);
+      top_val.assign((size_t)m * SPLIT_K, 0.0f);
+      top_n.assign(m, 0);
+      unsigned int *ti = top_id.data();
+      float *tv = top_val.data();
+      unsigned int *tn = top_n.data();
+      tm.parallel_for(0, m, [=](size_t j) {
+        float *r = lg + j * vocab;
+        float mx = 0.0f;
+        for (unsigned int v = 0; v < vocab; ++v)
+          mx = std::max(mx, std::abs(r[v]));
+        const float tau = mx * (1.0f / 64.0f);
+        std::vector<std::pair<float, unsigned int>> cand;
+        for (unsigned int v = 0; v < vocab; ++v)
+          if (std::abs(r[v]) >= tau)
+            cand.emplace_back(std::abs(r[v]), v);
+        if (cand.size() > SPLIT_K) {
+          std::partial_sort(
+            cand.begin(), cand.begin() + SPLIT_K, cand.end(),
+            [](const auto &a, const auto &b) { return a.first > b.first; });
+          cand.resize(SPLIT_K);
+        }
+        tn[j] = static_cast<unsigned int>(cand.size());
+        for (size_t k = 0; k < cand.size(); ++k) {
+          const unsigned int v = cand[k].second;
+          ti[j * SPLIT_K + k] = v;
+          tv[j * SPLIT_K + k] = r[v];
+          r[v] = 0.0f;
+        }
+      });
+    }
     if (q8) {
       headGemm(wt_is_q4_, mg, hidden, vocab, lg, wt_q8_.data(), dxr);
+      // the centered W^T dropped mean * sum_v g_v; add it back exactly
+      if (centerHeadWt() && !wt_mean_.empty()) {
+        const float *mu = wt_mean_.data();
+        tm.parallel_for(0, m, [=](size_t j) {
+          const float *g = lg + j * vocab;
+          double sg = 0.0;
+          for (unsigned int v = 0; v < vocab; ++v)
+            sg += g[v];
+          const float k = static_cast<float>(sg);
+          float *d = dxr + j * hidden;
+          for (unsigned int h = 0; h < hidden; ++h)
+            d[h] += k * mu[h];
+        });
+      }
     } else {
       tm.parallel_for(0, n_ht, [=](size_t t) {
         const unsigned int h0 = static_cast<unsigned int>(t) * HIDDEN_PER_TASK;
         const unsigned int nh = std::min(HIDDEN_PER_TASK, hidden - h0);
         ops->sgemm_fp32(row_major, false, false, m, nh, vocab, 1.0f, lg, vocab,
                         w_data + h0, hidden, 0.0f, dxr + h0, hidden);
+      });
+    }
+    if (split) {
+      const unsigned int K = SPLIT_K;
+      const unsigned int *ti = top_id.data();
+      const float *tv = top_val.data();
+      const unsigned int *tn = top_n.data();
+      const uint8_t *tab = w_q4_table_;
+      tm.parallel_for(0, m, [=](size_t j) {
+        std::vector<float> row(hidden);
+        float *d = dxr + j * hidden;
+        for (unsigned int k = 0; k < tn[j]; ++k) {
+          const unsigned int v = ti[j * K + k];
+          const float g = tv[j * K + k];
+          if (tab != nullptr)
+            nntrainer::TieWordEmbedding::dequantizeRowQ4_0x4(tab, v, hidden,
+                                                             row.data());
+          else
+            std::memcpy(row.data(), w_data + (size_t)v * hidden,
+                        sizeof(float) * hidden);
+          for (unsigned int h = 0; h < hidden; ++h)
+            d[h] += g * row[h];
+          lg[j * vocab + v] = g; // restore (the check below reads it)
+        }
       });
     }
     /// [DIAG] NNTR_LMHEAD_CHECK=1: check the first chunk's dL/dx (all m rows)

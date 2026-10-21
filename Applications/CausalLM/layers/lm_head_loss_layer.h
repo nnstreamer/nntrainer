@@ -114,6 +114,8 @@ private:
   std::vector<uint8_t> wt_q8_; /**< W^T (hidden x vocab), blocks on vocab */
   const float *w_q8_src_ = nullptr; /**< the W the copies were built from */
   bool w_is_q4_ = false;            /**< w_q8_ holds q4_0x4 instead of q8_0x4 */
+  /** per hidden index: the mean over vocab subtracted from wt_q8_ */
+  std::vector<float> wt_mean_;
   /** a Q4_0 W repacked in place to q4_0x4: the logits GEMM operand */
   const uint8_t *w_q4_table_ = nullptr;
   bool wt_is_q4_ = false; /**< wt_q8_ holds q4_0x4 instead of q8_0x4 */
