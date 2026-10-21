@@ -5464,7 +5464,9 @@ void MHACoreLayer::one_batch_incremental_forwarding(
   // causallm::kvRingLayerEligible() returns false for a use_sink layer, so
   // kv_ring_cap is 0 by construction and the cache is the full max_seq height.
   // A clamp would read as though the ring could reach this path.
+  cached_key_dim.batch(1);
   cached_key_dim.height(to);
+  cached_value_dim.batch(1);
   cached_value_dim.height(to);
 
   nntrainer::Tensor b_cached_key = cache_key.getSharedDataTensor(
