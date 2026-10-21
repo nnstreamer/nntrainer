@@ -11,7 +11,9 @@
 
 #include <decision_head_loss_layer.h>
 
+#include <cpu_backend.h>
 #include <nntrainer_error.h>
+#include <tie_word_embedding.h>
 #include <util_func.h>
 
 #include <algorithm>
@@ -92,9 +94,11 @@ void DecisionHeadLossLayer::forwarding(nntrainer::RunLayerContext &context,
   const nntrainer::Tensor &x = context.getInput(SINGLE_INOUT_IDX);
   nntrainer::Tensor &out = context.getOutput(SINGLE_INOUT_IDX);
   const nntrainer::Tensor &w = context.getWeight(weight_idx);
-  NNTR_THROW_IF(x.getDataType() != DT::FP32 || w.getDataType() != DT::FP32,
+  const bool w_q4_0 = w.getDataType() == DT::Q4_0;
+  NNTR_THROW_IF(x.getDataType() != DT::FP32 ||
+                  (w.getDataType() != DT::FP32 && !w_q4_0),
                 std::invalid_argument)
-    << "[decision_head_loss] FP32 input and weight only";
+    << "[decision_head_loss] FP32 input and an FP32 or Q4_0 weight only";
 
   const unsigned int batch = x.getDim().batch();
   const unsigned int len = x.getDim().height();
@@ -107,6 +111,22 @@ void DecisionHeadLossLayer::forwarding(nntrainer::RunLayerContext &context,
 
   // The head reads LETTERS rows of the frozen W: keep those, and when this
   // layer owns W (release_host_weight) hand the rest of its pages back.
+  if (letter_w_.empty() && w_q4_0) {
+    // a Q4_0 tied table (plain rows, or repacked in place by a tied head)
+    const uint8_t *wq = w.getData<uint8_t>();
+    const bool x4 = nntrainer::TieWordEmbedding::isQ4_0x4Table(wq);
+    const size_t row_bytes = (size_t)(hidden / 32) * (sizeof(uint16_t) + 16);
+    letter_w_.resize((size_t)LETTERS * hidden);
+    for (unsigned int i = 0; i < LETTERS; ++i) {
+      float *dst = letter_w_.data() + (size_t)i * hidden;
+      if (x4)
+        nntrainer::TieWordEmbedding::dequantizeRowQ4_0x4(wq, letter_ids_[i],
+                                                         hidden, dst);
+      else
+        nntrainer::dequantize_row_q4_0(wq + (size_t)letter_ids_[i] * row_bytes,
+                                       dst, hidden);
+    }
+  }
   if (letter_w_.empty()) {
     const float *w_data = w.getData<float>();
     letter_w_.resize((size_t)LETTERS * hidden);
