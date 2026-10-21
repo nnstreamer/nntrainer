@@ -3533,7 +3533,9 @@ void MHACoreLayer::one_batch_incremental_forwarding(
   // Wcap-high view is sufficient. (Ring off: full cache_to, unchanged.)
   const unsigned int read_rows =
     kv_ring_cap ? std::min<unsigned int>(cache_to, kv_ring_cap) : cache_to;
+  cached_key_dim.batch(1);
   cached_key_dim.height(read_rows);
+  cached_value_dim.batch(1);
   cached_value_dim.height(read_rows);
 
   // §3.8 Phase 2: OHWI-direct GPU prefill. When both NNTR_KV_OHWI=1 and
