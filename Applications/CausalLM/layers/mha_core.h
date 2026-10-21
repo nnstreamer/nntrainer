@@ -724,8 +724,16 @@ private:
     train_q_roped,
     train_k_roped,
     train_attn_wt,
+    /** activation checkpointing: backward-only Q/K/attention scratch the
+     * backward recomputes (the three above are then forward-only) */
+    train_q_bwd,
+    train_k_bwd,
+    train_attn_bwd,
   };
-  std::array<unsigned int, 12> tensor_idx;
+  std::array<unsigned int, 15> tensor_idx;
+  /** activation checkpointing: the backward recomputes RoPE'd Q/K and the
+   * attention weights instead of keeping them from the forward */
+  bool train_recompute = false;
 
   /** True when KV cache is stored as int8 (raw bytes treated as
    * int8) + per-(token, head) FP16 scales. Enabled by setting the
@@ -922,6 +930,10 @@ private:
    *        attention sink, no logit softcapping (Qwen3-dense default
    *        config) — training with any of those features enabled throws.
    */
+  /** activation checkpointing: causal softmax(q k^T / sqrt(d)) into attn */
+  void recomputeTrainAttention(const nntrainer::Tensor &q,
+                               const nntrainer::Tensor &k,
+                               nntrainer::Tensor &attn);
   void trainForwarding(nntrainer::RunLayerContext &context);
 
   /**

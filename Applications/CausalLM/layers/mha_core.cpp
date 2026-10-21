@@ -1137,15 +1137,35 @@ void MHACoreLayer::finalize(nntrainer::InitLayerContext &context) {
         {batch_size, num_heads_Q, train_seq_len, train_seq_len},
         {context.getFormat(), ml::train::TensorDim::DataType::FP32});
 
-      tensor_idx[AttentionParams::train_q_roped] = context.requestTensor(
-        q_roped_dim, "train_q_roped", nntrainer::Initializer::NONE, false,
-        nntrainer::TensorLifespan::ITERATION_LIFESPAN);
-      tensor_idx[AttentionParams::train_k_roped] = context.requestTensor(
-        k_roped_dim, "train_k_roped", nntrainer::Initializer::NONE, false,
-        nntrainer::TensorLifespan::ITERATION_LIFESPAN);
-      tensor_idx[AttentionParams::train_attn_wt] = context.requestTensor(
-        attn_wt_dim, "train_attn_wt", nntrainer::Initializer::NONE, false,
-        nntrainer::TensorLifespan::ITERATION_LIFESPAN);
+      // Under activation checkpointing the caches are forward-only scratch
+      // and the backward rebuilds them from its Q/K inputs (alive until this
+      // layer's calcDerivative anyway) into backward-only scratch: nothing of
+      // the size of Q, K or the attention weights is kept across the step.
+      train_recompute = nntrainer::activationCheckpointingEnabled();
+      const auto fwd_ls = train_recompute
+                            ? nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN
+                            : nntrainer::TensorLifespan::ITERATION_LIFESPAN;
+      tensor_idx[AttentionParams::train_q_roped] =
+        context.requestTensor(q_roped_dim, "train_q_roped",
+                              nntrainer::Initializer::NONE, false, fwd_ls);
+      tensor_idx[AttentionParams::train_k_roped] =
+        context.requestTensor(k_roped_dim, "train_k_roped",
+                              nntrainer::Initializer::NONE, false, fwd_ls);
+      tensor_idx[AttentionParams::train_attn_wt] =
+        context.requestTensor(attn_wt_dim, "train_attn_wt",
+                              nntrainer::Initializer::NONE, false, fwd_ls);
+      if (train_recompute) {
+        const auto bwd_ls = nntrainer::TensorLifespan::CALC_DERIV_LIFESPAN;
+        tensor_idx[AttentionParams::train_q_bwd] =
+          context.requestTensor(q_roped_dim, "train_q_bwd",
+                                nntrainer::Initializer::NONE, false, bwd_ls);
+        tensor_idx[AttentionParams::train_k_bwd] =
+          context.requestTensor(k_roped_dim, "train_k_bwd",
+                                nntrainer::Initializer::NONE, false, bwd_ls);
+        tensor_idx[AttentionParams::train_attn_bwd] =
+          context.requestTensor(attn_wt_dim, "train_attn_bwd",
+                                nntrainer::Initializer::NONE, false, bwd_ls);
+      }
     }
   }
 
@@ -6202,6 +6222,11 @@ void MHACoreLayer::setBatch(nntrainer::RunLayerContext &context,
     context.updateTensor(tensor_idx[AttentionParams::train_q_roped], batch);
     context.updateTensor(tensor_idx[AttentionParams::train_k_roped], batch);
     context.updateTensor(tensor_idx[AttentionParams::train_attn_wt], batch);
+    if (train_recompute) {
+      context.updateTensor(tensor_idx[AttentionParams::train_q_bwd], batch);
+      context.updateTensor(tensor_idx[AttentionParams::train_k_bwd], batch);
+      context.updateTensor(tensor_idx[AttentionParams::train_attn_bwd], batch);
+    }
   }
 }
 
@@ -6258,6 +6283,14 @@ void MHACoreLayer::updateTensorsByInputDimensions(
                          k_roped_dim);
     context.updateTensor(tensor_idx[AttentionParams::train_attn_wt],
                          attn_wt_dim);
+    if (train_recompute) {
+      context.updateTensor(tensor_idx[AttentionParams::train_q_bwd],
+                           q_roped_dim);
+      context.updateTensor(tensor_idx[AttentionParams::train_k_bwd],
+                           k_roped_dim);
+      context.updateTensor(tensor_idx[AttentionParams::train_attn_bwd],
+                           attn_wt_dim);
+    }
   }
 }
 
@@ -6434,7 +6467,7 @@ inline void attn_fwd_rows_tile(const float *q_b, const float *k_b,
       const unsigned int rr = i0 + std::min(r, nr - 1);
       qa[r] = q_b + rr * q_stride + qh * hd;
       ar[r] = attn_h + rr * a_stride;
-      orow[r] = o_b + rr * o_stride + qh * hd;
+      orow[r] = o_b != nullptr ? o_b + rr * o_stride + qh * hd : nullptr;
     }
     for (unsigned int j0 = 0; j0 <= imax; j0 += 4) {
       const float *kb[4];
@@ -6466,7 +6499,9 @@ inline void attn_fwd_rows_tile(const float *q_b, const float *k_b,
       for (unsigned int j = i + 1; j <= std::min(L - 1, i + 3); ++j)
         row[j] = 0.0f;
     }
-    attn_tile_rows_axpy4(orow, ar, imax + 1, v_b + kv * hd, v_stride, hd);
+    // o_b == nullptr: the weights only (activation checkpointing recompute)
+    if (o_b != nullptr)
+      attn_tile_rows_axpy4(orow, ar, imax + 1, v_b + kv * hd, v_stride, hd);
   }
 }
 
@@ -6753,6 +6788,69 @@ void MHACoreLayer::apply_inverse_rotary_emb(float *grad, unsigned int width,
     });
 }
 
+void MHACoreLayer::recomputeTrainAttention(const nntrainer::Tensor &q,
+                                           const nntrainer::Tensor &k,
+                                           nntrainer::Tensor &attn) {
+  const ml::train::TensorDim q_dim = q.getDim();
+  const ml::train::TensorDim k_dim = k.getDim();
+  const ml::train::TensorDim attn_dim = attn.getDim();
+  const unsigned int batch = q_dim.batch();
+  const unsigned int seq_len = q_dim.height();
+  const unsigned int gqa_size = num_heads_Q / num_heads_KV;
+  const unsigned int hd = head_dim;
+  const float scale = 1.0f / std::sqrt((float)head_dim);
+  const size_t q_row_stride = q_dim.width();
+  const size_t k_row_stride = k_dim.width();
+  const size_t attn_row_stride = attn_dim.width();
+  const unsigned int n_rb = (seq_len + TRAIN_ATTN_ROWS - 1) / TRAIN_ATTN_ROWS;
+  const bool use_tile = (hd % 16 == 0) && (seq_len % 4 == 0);
+  (void)use_tile;
+  auto &tm = nntrainer::ThreadManager::Global();
+  for (unsigned int b = 0; b < batch; ++b) {
+    const float *q_b = q.getData<float>() + b * q_dim.getFeatureLen();
+    const float *k_b = k.getData<float>() + b * k_dim.getFeatureLen();
+    float *attn_b = attn.getData<float>() + b * attn_dim.getFeatureLen();
+    tm.parallel_for(0, static_cast<size_t>(num_heads_Q) * n_rb, [=](size_t t) {
+      const unsigned int qh = static_cast<unsigned int>(t / n_rb);
+      const unsigned int rb = static_cast<unsigned int>(t % n_rb);
+      const unsigned int kv = qh / gqa_size;
+      float *attn_h = attn_b + qh * attn_dim.height() * attn_row_stride;
+      const unsigned int i_end = std::min(seq_len, (rb + 1) * TRAIN_ATTN_ROWS);
+#if defined(__ARM_NEON)
+      // the forward's own kernel and branch (trainForwarding), so the
+      // recomputed weights are bit-identical to the forward's
+      if (use_tile) {
+        attn_fwd_rows_tile(q_b, k_b, nullptr, nullptr, attn_h, q_row_stride,
+                           k_row_stride, 0, 0, attn_row_stride, qh, kv, hd,
+                           seq_len, scale, rb * TRAIN_ATTN_ROWS, i_end);
+        return;
+      }
+#endif
+      for (unsigned int i = rb * TRAIN_ATTN_ROWS; i < i_end; ++i) {
+        const float *q_row = q_b + i * q_row_stride + qh * hd;
+        float *attn_row = attn_h + i * attn_row_stride;
+        float max_score = -std::numeric_limits<float>::infinity();
+        for (unsigned int j = 0; j <= i; ++j) {
+          const float sc =
+            train_dot(q_row, k_b + j * k_row_stride + kv * hd, hd) * scale;
+          attn_row[j] = sc;
+          if (sc > max_score)
+            max_score = sc;
+        }
+        float sum = 0.0f;
+        for (unsigned int j = 0; j <= i; ++j) {
+          const float e = std::exp(attn_row[j] - max_score);
+          attn_row[j] = e;
+          sum += e;
+        }
+        const float inv_sum = 1.0f / sum;
+        for (unsigned int j = 0; j <= i; ++j)
+          attn_row[j] *= inv_sum;
+      }
+    });
+  }
+}
+
 /**
  * @brief calcDerivative for the internal-cache (training) path.
  * @details Standard scaled-dot-product-attention backward (with GQA
@@ -6778,12 +6876,26 @@ void MHACoreLayer::calcDerivative(nntrainer::RunLayerContext &context) {
   nntrainer::Tensor &dK = context.getOutgoingDerivative(INOUT_INDEX::KEY);
   nntrainer::Tensor &dV = context.getOutgoingDerivative(INOUT_INDEX::VALUE);
 
-  nntrainer::Tensor &train_q =
-    context.getTensor(tensor_idx[AttentionParams::train_q_roped]);
-  nntrainer::Tensor &train_k =
-    context.getTensor(tensor_idx[AttentionParams::train_k_roped]);
-  nntrainer::Tensor &train_attn =
-    context.getTensor(tensor_idx[AttentionParams::train_attn_wt]);
+  nntrainer::Tensor &train_q = context.getTensor(
+    tensor_idx[train_recompute ? AttentionParams::train_q_bwd
+                               : AttentionParams::train_q_roped]);
+  nntrainer::Tensor &train_k = context.getTensor(
+    tensor_idx[train_recompute ? AttentionParams::train_k_bwd
+                               : AttentionParams::train_k_roped]);
+  nntrainer::Tensor &train_attn = context.getTensor(
+    tensor_idx[train_recompute ? AttentionParams::train_attn_bwd
+                               : AttentionParams::train_attn_wt]);
+  if (train_recompute) {
+    // Rebuild what the forward computed into its (forward-only) scratch:
+    // RoPE'd Q/K from this layer's Q/K inputs -- read before dQ/dK, which
+    // alias those inputs, are zeroed below -- and the causal softmax weights.
+    // The output (attn . V) is not recomputed: its buffer holds dy now.
+    apply_rotary_emb_tensor_v2(context.getInput(INOUT_INDEX::QUERY), train_q,
+                               head_dim, 0, true);
+    apply_rotary_emb_tensor_v2(context.getInput(INOUT_INDEX::KEY), train_k,
+                               head_dim, 0, true);
+    recomputeTrainAttention(train_q, train_k, train_attn);
+  }
   // Snapshot V before dV.setZero() below; see the aliasing note above.
   const nntrainer::Tensor value = context.getInput(INOUT_INDEX::VALUE).clone();
   /// [PERF-MHA] diagnostic timing
