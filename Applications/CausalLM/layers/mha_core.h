@@ -493,9 +493,7 @@ public:
    * training graph — see props::ForwardOnly) reports false instead, so a graph
    * that asked it for a gradient fails at compile instead of training wrong.
    */
-  WIN_EXPORT bool supportBackwarding() const override {
-    return !forward_only;
-  };
+  WIN_EXPORT bool supportBackwarding() const override { return !forward_only; };
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods

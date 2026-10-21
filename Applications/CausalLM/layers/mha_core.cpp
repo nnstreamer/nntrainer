@@ -1103,8 +1103,7 @@ void MHACoreLayer::finalize(nntrainer::InitLayerContext &context) {
          * x 1024 cols x 2 B = 3.3 MB per frozen block, 80 MB over 24 of them.
          * The plain inference path keeps its max_timestep sizing untouched. */
         const unsigned int cache_rows =
-          forward_only ? input_dims[INOUT_INDEX::QUERY].height()
-                       : max_timestep;
+          forward_only ? input_dims[INOUT_INDEX::QUERY].height() : max_timestep;
 #ifdef ENABLE_FP16
         ml::train::TensorDim cache_key_dim(
           {batch_size, 1, cache_rows, num_heads_KV * head_dim},
