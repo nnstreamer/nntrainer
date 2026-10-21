@@ -696,3 +696,62 @@ TEST(Qwen3LoraTrainingSmoke, BatchOfTwoMatchesTwoBatchesOfOne) {
 
   std::filesystem::remove(base_path);
 }
+
+TEST(Qwen3LoraTrainingSmoke, FrozenPrefixEngineCompilesAndTrains) {
+  auto cfg = makeTinyQwen3Config();
+  auto generation_cfg = makeTinyGenerationConfig();
+
+  auto base_nntr_cfg = makeTinyNntrainerConfig(/*lora_rank=*/0);
+  causallm::Qwen3CausalLM base_model(cfg, generation_cfg, base_nntr_cfg);
+  ASSERT_NO_THROW(base_model.initialize());
+  {
+    std::mt19937 rng(42);
+    std::uniform_real_distribution<float> dist(-0.1f, 0.1f);
+    std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &,
+                       void *)>
+      fill =
+        [&](ml::train::Layer &, nntrainer::RunLayerContext &context, void *) {
+          for (unsigned int i = 0; i < context.getNumWeights(); ++i) {
+            auto &w = context.getWeight(i);
+            if (w.getDataType() != ml::train::TensorDim::DataType::FP32)
+              continue;
+            const bool norm = w.getName().find("norm") != std::string::npos;
+            float *d = w.getData<float>();
+            for (size_t k = 0; k < w.size(); ++k)
+              d[k] = norm ? 1.0f : dist(rng);
+          }
+        };
+    base_model.forEachLayer(fill, nullptr);
+  }
+  const auto base_path = (std::filesystem::temp_directory_path() /
+                          "nntrainer_qwen3_base_prefix_smoke.bin")
+                           .string();
+  ASSERT_NO_THROW(base_model.save_weight(base_path));
+
+  // 2 decoder layers total in tiny config. Set frozen prefix = 1 on engine
+  // "cpu".
+  auto lora_nntr_cfg = makeTinyNntrainerConfig(/*lora_rank=*/4);
+  lora_nntr_cfg["lora_last_n_layers"] = 1;
+  causallm::Qwen3CausalLM model(cfg, generation_cfg, lora_nntr_cfg);
+  model.setFrozenPrefixEngine(/*first_trainable_block=*/1, "cpu",
+                              /*fp16=*/false);
+  EXPECT_EQ(model.getFrozenPrefix(), 1);
+  EXPECT_EQ(model.getFrozenPrefixEngine(), "cpu");
+
+  ASSERT_NO_THROW(model.initializeForTraining(/*lr=*/1e-4f, /*epochs=*/1));
+  ASSERT_NO_THROW(model.load_weight_lora(base_path, ""));
+
+  SyntheticDataGen gen{/*seq_len=*/4, /*vocab_size=*/32};
+  std::shared_ptr<ml::train::Dataset> dataset = ml::train::createDataset(
+    ml::train::DatasetType::GENERATOR, datasetCb, &gen);
+  ASSERT_NO_THROW(
+    model.setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset));
+  ASSERT_NO_THROW(model.train());
+
+  auto stats = model.getTrainingStats();
+  EXPECT_GT(stats.loss, 0.0f);
+  EXPECT_TRUE(std::isfinite(stats.loss));
+  EXPECT_GT(model.getFrozenPrefixRuns(), 0u);
+
+  std::filesystem::remove(base_path);
+}

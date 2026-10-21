@@ -477,6 +477,8 @@ void Transformer::setupParameters(json &cfg, json &generation_cfg,
 };
 
 bool Transformer::hasLoRA(const std::string &module_type, int layer_id) const {
+  if (FROZEN_PREFIX > 0 && layer_id < FROZEN_PREFIX)
+    return false;
   return LORA_RANK > 0 && layer_id >= LORA_LAYER_START &&
          std::find(LORA_TARGET.begin(), LORA_TARGET.end(), module_type) !=
            LORA_TARGET.end();
