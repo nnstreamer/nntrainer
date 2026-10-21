@@ -221,7 +221,6 @@ private:
    * (dX = (dY * s) . Q^T), so the copy is lossless and dX runs on the same
    * KleidiAI qai8dxp x qsi4cxp GEMM as the forward. */
   Tensor dx_wt_qs4t_;
-  Tensor dx_scaled_dy_; /**< (dY * s) scratch */
   /** W's per-output-channel scales s, copied out of its payload so dX keeps
    * them after the plain payload is released (see releaseDxPlainPayloads) */
   std::vector<float> dx_scale_;

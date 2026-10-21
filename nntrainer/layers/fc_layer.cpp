@@ -47,6 +47,7 @@
 #include <cstring>
 #include <iostream>
 #include <map>
+#include <mutex>
 #include <numeric>
 
 namespace nntrainer {
@@ -846,6 +847,21 @@ bool useQ4Dx() {
   return on;
 }
 
+/**
+ * @brief The (dY * s) scratch of the QS4CX int dX, shared by all FCs and
+ * grown to the largest request (see calcDerivative)
+ */
+Tensor sharedDxScratch(const TensorDim &dim) {
+  static std::vector<float> buf;
+  static std::mutex mtx;
+  std::lock_guard<std::mutex> lock(mtx);
+  if (buf.size() < dim.getDataLen())
+    buf.resize(dim.getDataLen());
+  return Tensor::Map<float>(
+    buf.data(), static_cast<unsigned int>(dim.getDataLen() * sizeof(float)),
+    dim);
+}
+
 bool useQ8Dx() {
   static const bool on = [] {
     if (const char *e = std::getenv("NNTR_TRAIN_DX_Q8"))
@@ -1352,8 +1368,11 @@ void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
         const float *ws = static_cast<const float *>(weight.getScale());
         dx_scale_.assign(ws, ws + w_n);
       }
-      if (dx_scaled_dy_.empty() || dx_scaled_dy_.getDim() != dd0)
-        dx_scaled_dy_ = Tensor(dd0, true);
+      // One scratch for every FC: calcDerivative runs one layer at a time,
+      // and a per-layer (B * L * N) copy of dY kept between steps was the
+      // largest batch-proportional cost of the int dX (~54 MB per 336-token
+      // sample over the 28 LoRA FCs of four Qwen3 blocks).
+      Tensor dx_scaled_dy_ = sharedDxScratch(dd0);
       // G = dY * s (per output channel): s is W's scale, folded out of the
       // unit-scale transposed codes.
       const float *s = dx_scale_.data();
