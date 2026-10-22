@@ -470,10 +470,18 @@ void NetworkGraph::drainForCpuHandoff(const LayerNode &ln) {
     const char *e = std::getenv("NNTR_TRANSITION_DRAIN");
     return !(e != nullptr && e[0] == '0');
   }();
-  if (transition_drain_on && ln.isExplicitCpuEngine() &&
+  // The busy flag is only as good as every enqueue path setting it, and the
+  // FP16 frozen-prefix kernels do not: the cast that closes a GPU prefix then
+  // read the last block's output before it was written. A cpu node right
+  // after a device node is a real device->host edge, so drain there whatever
+  // the flag says (once per region boundary, not per node).
+  static thread_local bool prev_was_device = false;
+  const bool explicit_cpu = ln.isExplicitCpuEngine();
+  if (transition_drain_on && explicit_cpu &&
       nntrainer::Engine::Global().isContextRegistered("gpu") &&
-      nntrainer::cl_queue_may_be_busy())
+      (prev_was_device || nntrainer::cl_queue_may_be_busy()))
     nntrainer::cl_queue_drain_and_reset();
+  prev_was_device = !explicit_cpu && ln.isComputeEngineGPU();
 #else
   static_cast<void>(ln);
 #endif
