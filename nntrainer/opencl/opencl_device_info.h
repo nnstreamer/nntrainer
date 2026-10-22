@@ -66,6 +66,17 @@ public:
     return device_svm_capabilities_;
   }
 
+  /** Raw CL_DEVICE_INTEGER_DOT_PRODUCT_CAPABILITIES bits, 0 when the query
+   *  is not supported (pre-2.0 core / no cl_khr_integer_dot_product) or the
+   *  driver refuses it. Bit meaning per the cl_khr_integer_dot_product spec:
+   *    bit 0: 4x8-bit (+ 16/8-bit) dot products,
+   *    bit 1: 16-bit inputs, bit 2: 4x8-bit packed inputs,
+   *    bit 3: 4x8-bit packed with 32-bit accumulation (the dp4a shape the
+   *  v8c GEMM needs; without it dot_4x8packed_* is emulated). */
+  cl_uint getDeviceIntegerDotProductCapabilities() const {
+    return device_integer_dot_product_caps_;
+  }
+
 private:
   // Order of parameters based on
   // https://registry.khronos.org/OpenCL/specs/3.0-unified/html/OpenCL_API.html#device-queries-table
@@ -81,6 +92,7 @@ private:
   std::string driver_version_ = {};
   std::string device_extensions_ = {};
   cl_device_svm_capabilities device_svm_capabilities_ = {};
+  cl_uint device_integer_dot_product_caps_ = {};
 };
 
 } // namespace nntrainer::opencl

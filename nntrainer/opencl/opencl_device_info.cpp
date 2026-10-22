@@ -156,6 +156,20 @@ bool DeviceInfo::read(const cl_device_id device_id) {
     return false;
   }
 
+  // CL_DEVICE_INTEGER_DOT_PRODUCT_CAPABILITIES (cl_khr_integer_dot_product
+  // device query; enum 0x1073, the first value past the core CL 3.0
+  // device-query space this vendored cl.h knows). A driver without the
+  // extension answers CL_INVALID_VALUE and the field stays 0 — which reads
+  // as "no HW dp4a", the right default. Non-fatal: the field is a capability
+  // snapshot, not a gate (the v8c kernel's compile is the gate).
+  constexpr cl_device_info kDotCapsQuery = static_cast<cl_device_info>(0x1073);
+  device_integer_dot_product_caps_ = 0;
+  if (CL_SUCCESS != clGetDeviceInfo(device_id, kDotCapsQuery, sizeof(cl_uint),
+                                    &device_integer_dot_product_caps_,
+                                    nullptr)) {
+    device_integer_dot_product_caps_ = 0;
+  }
+
   return true;
 }
 

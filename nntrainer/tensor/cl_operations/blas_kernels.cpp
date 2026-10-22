@@ -31,6 +31,7 @@
 #include <string>
 #include <thread>
 #include <unordered_map>
+#include <utility>
 
 namespace nntrainer {
 
@@ -1678,6 +1679,42 @@ bool v8c_use_buffer_path() {
   return use_buf;
 }
 
+/**
+ * @brief [s1] v8c tiled-GEMM tile selection (Adreno 740 device specialization).
+ *
+ * On the Adreno 740 (SM-S918N / Galaxy S23, 6 CU) the historic 4×8 tile runs
+ * the FC GEMM at ~1-2% of device peak: with TM=4 each work-item holds 4
+ * accumulator rows and the 4×16 LWS oversubscribes the small CU count, so the
+ * compiled program spills (the same binary hits dp4a peak on Adreno 840's
+ * 12-16 CU S26U). Measured on-device (2-sample seq-384 epoch, NNTR_NODE_TIME=1
+ * marker runs, loss bit-identical in every variant): 4×8 = 22.7 s, 2×8 =
+ * 4.35 s, 4×4 = 4.19 s, 2×4 = 3.78 s, 8×8 = 28.9 s, 16×8 = 30.2 s. The
+ * 2×4 tile (half the M rows, half the N cols per work-item) restores ~5-10×
+ * and is the default on Qualcomm (vendor_id 0x5143); everything else keeps
+ * the historic 4×8.
+ *
+ * Read ONCE per process; the SAME (tm, tn) pair must reach both the -DV8C_TM/
+ * -DV8C_TN compile options (distinct string ⇒ distinct cached program) and
+ * the dispatch grid, so both sites call this.
+ * @return {tile_m, tile_n}
+ */
+static std::pair<unsigned, unsigned> v8c_tile_select() {
+  static const std::pair<unsigned, unsigned> tile = []() {
+    // Caps-derived default: the small-Adreno spill fix. Historic 4×8
+    // everywhere else (Adreno 840, Intel buffer path, unknown vendors).
+    // Small = the 6-CU Adreno 740 (S23) it was measured on; the 4x8 tile was
+    // tuned on the larger Adreno 840 and stays there.
+    constexpr uint32_t qualcomm_vendor_id = 0x5143; // Adreno
+    constexpr uint32_t small_adreno_max_cu = 6;
+    const auto &caps = ClContext::Global().caps();
+    if (caps.vendor_id == qualcomm_vendor_id &&
+        caps.compute_units <= small_adreno_max_cu)
+      return std::make_pair(2u, 4u);
+    return std::make_pair(4u, 8u);
+  }();
+  return tile;
+}
+
 // Compile options for the buffer-load v8c program. -DV8C_BUFFER_ONLY excludes
 // the image-sampling kernel bodies; -cl-std=CL3.0 exposes the core OpenCL C
 // 3.0 dot_4x8packed_* builtins (Intel NEO does not declare them under the
@@ -1798,6 +1835,18 @@ bool gemm_int8_v8c_cl(cl_mem act_image, cl_mem weight_image, cl_mem scale_act,
     if (const char *mf = getenv("NNTR_V8C_MFAST"))
       if (mf[0] == '1')
         s += " -DV8C_MFAST";
+    // The SAME tile shape must land in the -D options (this string) and the
+    // dispatch grid (gemm_int8_v8c_cl below calls the same v8c_tile_select());
+    // a distinct option string is a distinct cached program, so each tile
+    // variant compiles once. Caps-derived Adreno default (2×4) included.
+    {
+      const auto tile = v8c_tile_select();
+      const unsigned tm = tile.first, tn = tile.second;
+      if (tm != 4 || tn != 8) {
+        s +=
+          " -DV8C_TM=" + std::to_string(tm) + " -DV8C_TN=" + std::to_string(tn);
+      }
+    }
     return s;
   }();
   static const bool v8c_mfast = []() {
@@ -2135,21 +2184,36 @@ bool gemm_int8_v8c_cl(cl_mem act_image, cl_mem weight_image, cl_mem scale_act,
     blas_cc->command_queue_inst_.enqueueKernel(kp->GetKernel(), 1, gws.data(),
                                                nullptr, 0, nullptr, nullptr);
   } else {
-    constexpr size_t TM = 4, TN = 8;
+    // Tile-shape selection for the TM=4 tiled kernel: one shared
+    // v8c_tile_select() so the dispatch grid and the -DV8C_TM/-DV8C_TN the
+    // program was compiled with can never disagree. A mis-sized tile that N
+    // or M cannot divide falls back to 4/8 here (the .cl tile loops need
+    // N%TN==0, M%TM==0 at this dispatch); M_pad%4==0 by v8c_m_pad_for and
+    // N%8==0 by the caller gate, so the fallback is always dispatchable.
+    static const std::pair<unsigned, unsigned> v8c_tile = v8c_tile_select();
+    const size_t TM = v8c_tile.first, TN = v8c_tile.second;
+    // The M/N divisibility guard the constexpr-4/8 path never needed: a
+    // tile the shape cannot divide must not dispatch (the kernel would read
+    // and store past the tensor). Fall back to the 4/8 every shape here
+    // satisfies (M_pad%4==0 by v8c_m_pad_for, N%8==0 by the caller gate).
+    const bool tile_fits = ((M % TM) == 0 && (N % TN) == 0);
+    const size_t TM_eff = tile_fits ? TM : 4;
+    const size_t TN_eff = tile_fits ? TN : 8;
     // NNTR_V8C_MFAST: swap so M/TM is the fast-varying (dim0) axis; the image
     // kernel (-DV8C_MFAST) reads m0 from gid0, n0 from gid1 to match.
     // Weight-reuse dispatch order. Default keeps {N/TN, M/TM}. The _buf kernel
     // does not read V8C_MFAST (it always takes n0 from gid0), so the swap is
     // only consistent on the image path.
     std::array<size_t, 3> gws =
-      v8c_mfast ? std::array<size_t, 3>{(size_t)M / TM, (size_t)N / TN, 1}
-                : std::array<size_t, 3>{(size_t)N / TN, (size_t)M / TM, 1};
+      v8c_mfast
+        ? std::array<size_t, 3>{(size_t)M / TM_eff, (size_t)N / TN_eff, 1}
+        : std::array<size_t, 3>{(size_t)N / TN_eff, (size_t)M / TM_eff, 1};
     // CL-event profiling showed the historic NULL lws (driver-chosen
     // workgroup) lands the GEMM at ~14% of dp4a peak in-forward, vs 87%
     // in the standalone microbench which used a tuned LWS. Pick a device-
     // specialized LWS (4×16 sweet spot, capped to the device max work-group
     // size and required to divide gws); fall back to NULL when none fits
-    // (small-M prefill). There is no env override.
+    // (small-M prefill).
     std::array<size_t, 2> picked{};
     const bool lws_ok = v8c_pick_lws(gws[0], gws[1], picked);
     std::array<size_t, 3> lws = {picked[0], picked[1], 1};
