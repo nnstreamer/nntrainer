@@ -6663,6 +6663,7 @@ void MHACoreLayer::trainForwarding(nntrainer::RunLayerContext &context) {
     context.getTensor(tensor_idx[AttentionParams::train_k_roped]);
   nntrainer::Tensor &train_attn =
     context.getTensor(tensor_idx[AttentionParams::train_attn_wt]);
+  train_attn.setZero();
 
   // Apply RoPE to Q, K into the persistent training caches, leaving the
   // original input tensors (query/key) untouched — calcDerivative reads raw
@@ -6827,6 +6828,7 @@ void MHACoreLayer::apply_inverse_rotary_emb(float *grad, unsigned int width,
 void MHACoreLayer::recomputeTrainAttention(const nntrainer::Tensor &q,
                                            const nntrainer::Tensor &k,
                                            nntrainer::Tensor &attn) {
+  attn.setZero();
   const ml::train::TensorDim q_dim = q.getDim();
   const ml::train::TensorDim k_dim = k.getDim();
   const ml::train::TensorDim attn_dim = attn.getDim();
