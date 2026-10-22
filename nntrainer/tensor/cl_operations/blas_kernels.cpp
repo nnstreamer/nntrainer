@@ -1308,10 +1308,19 @@ bool residual_f32_svm_cl(const float *in, float *out, unsigned int N,
   std::array<size_t, 3> lws = {LWS, 1, 1};
   q.enqueueKernel(kp->GetKernel(), 3, gws.data(), lws.data(), 0, nullptr,
                   nullptr);
+  // Re-map the two planes so the next host reader sees the kernel's bytes. The
+  // maps used to be async, which is sound only while nothing host-touches the
+  // region before the queue's next GPU op; in the hybrid-pipeline training run
+  // the producer thread enqueues kernels against the same shared allocation
+  // while this tail op runs, so an async map's host-visible state depended on
+  // where those enqueues landed: mapped-shadow bytes one interleave, device
+  // bytes the next. Blocking maps pin the visibility deterministically (the
+  // map waits out only what is already enqueued, so the overlap the pipeline
+  // exists for is preserved).
   q.enqueueSVMMap(const_cast<float *>(in), bytes, /*read_only=*/true,
-                  /*event=*/nullptr, /*async=*/true);
+                  /*event=*/nullptr, /*async=*/false);
   q.enqueueSVMMap(out, bytes, /*read_only=*/false, /*event=*/nullptr,
-                  /*async=*/true);
+                  /*async=*/false);
   return true;
 }
 
