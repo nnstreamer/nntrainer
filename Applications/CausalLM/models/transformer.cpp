@@ -890,12 +890,15 @@ void Transformer::installFrozenPrefixWalk() {
     return true;
   });
 
-  std::cout << "frozen prefix: blocks [0, " << FROZEN_PREFIX << ") on engine="
+  std::cout << "frozen prefix: blocks [0, " << FROZEN_GPU_END << ") on engine="
             << (FROZEN_PREFIX_ENGINE.empty() ? layerEngine()
                                              : FROZEN_PREFIX_ENGINE)
             << (FROZEN_PREFIX_FP16 ? " (FP16)" : "")
-            << (FROZEN_PREFIX_OFFLOAD ? " (base GEMM on gpu)" : "")
-            << ", split after compiled node " << split_past << " of "
+            << (FROZEN_PREFIX_OFFLOAD ? " (base GEMM on gpu)" : "");
+  if (FROZEN_GPU_END < FROZEN_PREFIX)
+    std::cout << ", blocks [" << FROZEN_GPU_END << ", " << FROZEN_PREFIX
+              << ") on engine=" << layerEngine() << " (frozen, fwd-only)";
+  std::cout << ", split after compiled node " << split_past << " of "
             << total
             // The BUDGET, not what ends up used: a row's size is only known
             // once the first one exists, and samples past the budget are
@@ -1725,7 +1728,7 @@ void Transformer::load_weight_lora_qint4(const std::string &base_path,
 }
 
 std::vector<std::string> Transformer::blockActivationProps(int layer_id) const {
-  if (FROZEN_PREFIX > 0 && layer_id < FROZEN_PREFIX && FROZEN_PREFIX_FP16)
+  if (FROZEN_GPU_END > 0 && layer_id < FROZEN_GPU_END && FROZEN_PREFIX_FP16)
     return {withKey("activation_dtype", "FP16")};
   return {};
 }
@@ -1768,7 +1771,7 @@ std::pair<Tensor, Tensor> Transformer::constructModel() {
   auto embedding_props =
     buildEmbeddingLayerProperties("embedding0", NUM_VOCAB, DIM, EMBEDDING_DTYPE,
                                   EMBEDDING_SCALE, EMBEDDING_FILE_NAME);
-  if (FROZEN_PREFIX > 0 && !FROZEN_PREFIX_ENGINE.empty()) {
+  if (FROZEN_GPU_END > 0 && !FROZEN_PREFIX_ENGINE.empty()) {
     embedding_props.push_back(withKey("engine", FROZEN_PREFIX_ENGINE));
     for (const auto &p : blockActivationProps(0))
       embedding_props.push_back(p);
@@ -1785,7 +1788,7 @@ std::pair<Tensor, Tensor> Transformer::constructModel() {
   const int last_block = TRUNK_LAYERS > 0 ? TRUNK_LAYERS : NUM_LAYERS;
   for (int i = 0; i < last_block; ++i) {
     h = createTransformerDecoderBlock(i, h);
-    if (FROZEN_PREFIX > 0 && i == FROZEN_PREFIX - 1 && FROZEN_PREFIX_FP16) {
+    if (FROZEN_GPU_END > 0 && i == FROZEN_GPU_END - 1 && FROZEN_PREFIX_FP16) {
       LayerHandle boundary(
         createLayer("cast", {withKey("name", "frozen_prefix_cast"),
                              withKey("tensor_dtype", "FP32"),

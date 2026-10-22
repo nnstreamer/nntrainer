@@ -231,33 +231,45 @@ public:
    */
   void setFrozenPrefix(int first_trainable_block, bool offload_base_gemm) {
     FROZEN_PREFIX = first_trainable_block;
+    FROZEN_GPU_END = FROZEN_PREFIX;
     FROZEN_PREFIX_OFFLOAD = offload_base_gemm;
   }
   /**
    * @brief Configure frozen prefix blocks [0, S) to run on a specified engine
    *        (e.g. "gpu") and optional FP16 activation dtype within the single
    *        training graph.
+   * @param gpu_end_block last block of the device sub-range + 1 (G): blocks
+   *        [0, G) run on @p engine, [G, S) stay on the host engine as frozen
+   *        FP32 forward-only blocks. Negative (the default) or a value past
+   *        the first trainable block means G = S -- the whole frozen prefix on
+   *        one engine, the historical behaviour.
    */
   void setFrozenPrefixEngine(int first_trainable_block,
-                             const std::string &engine, bool fp16 = false) {
+                             const std::string &engine, bool fp16 = false,
+                             int gpu_end_block = -1) {
     FROZEN_PREFIX = std::max(0, first_trainable_block);
     FROZEN_PREFIX_ENGINE = engine;
     FROZEN_PREFIX_FP16 = fp16;
+    FROZEN_GPU_END = gpu_end_block >= 0 ? std::min(gpu_end_block, FROZEN_PREFIX)
+                                        : FROZEN_PREFIX;
   }
   /** first trainable block of the frozen prefix split (0 = no split) */
   int getFrozenPrefix() const { return FROZEN_PREFIX; }
+  /** end of the device sub-range of the frozen prefix (G); G == S unless
+   *  setFrozenPrefixEngine() was given a smaller gpu_end_block */
+  int getFrozenGpuEnd() const { return FROZEN_GPU_END; }
   /** target engine of the frozen prefix blocks */
   const std::string &getFrozenPrefixEngine() const {
     return FROZEN_PREFIX_ENGINE;
   }
   /** whether block i runs on device (gpu) engine */
   bool frozenBlockOnDevice(int layer_id) const {
-    return FROZEN_PREFIX > 0 && layer_id < FROZEN_PREFIX &&
+    return FROZEN_GPU_END > 0 && layer_id < FROZEN_GPU_END &&
            !FROZEN_PREFIX_ENGINE.empty() && FROZEN_PREFIX_ENGINE != "cpu";
   }
   /** compute engine for block i */
   std::string blockEngine(int layer_id) const {
-    if (FROZEN_PREFIX > 0 && layer_id < FROZEN_PREFIX &&
+    if (FROZEN_GPU_END > 0 && layer_id < FROZEN_GPU_END &&
         !FROZEN_PREFIX_ENGINE.empty())
       return FROZEN_PREFIX_ENGINE;
     return layerEngine();
@@ -1194,6 +1206,10 @@ protected:
   /** see setFrozenPrefix(): first trainable block (0 = no split) and whether
    * its base-weight GEMMs go to the device */
   int FROZEN_PREFIX = 0;
+  /** end of the device sub-range of the frozen prefix: blocks [0, G) run on
+   *  FROZEN_PREFIX_ENGINE, [G, S) on the host engine (frozen, forward-only).
+   *  Kept equal to FROZEN_PREFIX unless setFrozenPrefixEngine() splits them. */
+  int FROZEN_GPU_END = 0;
   bool FROZEN_PREFIX_OFFLOAD = false;
   std::string FROZEN_PREFIX_ENGINE;
   bool FROZEN_PREFIX_FP16 = false;

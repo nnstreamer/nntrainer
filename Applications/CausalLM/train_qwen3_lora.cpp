@@ -95,6 +95,12 @@ void printUsage(const char *prog) {
        "against\n"
     << "                        the host dot). Slower than the host today --\n"
     << "                        for measurement, not for speed.\n"
+    << "  --gpu_prefix_layers <n> with --hybrid_trunk: run only the first n\n"
+    << "                        frozen blocks [0, n) on the GPU; blocks\n"
+    << "                        [n, S) stay on the host as frozen FP32\n"
+    << "                        forward-only blocks (S = the frozen count,\n"
+    << "                        --lora_last_n back). Default: n = S, the\n"
+    << "                        whole frozen prefix on the GPU.\n"
     << "  --activation_ckpt     activation checkpointing: recompute each\n"
     << "                        trained decoder block's activations before\n"
     << "                        its backward instead of keeping them (lower\n"
@@ -547,7 +553,26 @@ int runLoraTraining(const TrainParams &params_in, TrainProgressCb callback,
     const bool frozen_fp16 = prefix_on_gpu && !gpu_force_fp32;
 
     if (prefix_on_gpu) {
-      model.setFrozenPrefixEngine(frozen_blocks, "gpu", frozen_fp16);
+      // --gpu_prefix_layers G: end the device sub-range at G, leaving [G, S)
+      // on the host as frozen FP32 forward-only blocks. 0 (unset) = G = S.
+      unsigned int gpu_end = frozen_blocks;
+      if (params.gpu_prefix_layers > 0) {
+        NNTR_THROW_IF(params.gpu_prefix_layers > (unsigned int)frozen_blocks,
+                      std::invalid_argument)
+          << "--gpu_prefix_layers " << params.gpu_prefix_layers
+          << " exceeds the frozen block count " << frozen_blocks
+          << " (--lora_last_n " << params.lora_last_n << ")";
+        gpu_end = params.gpu_prefix_layers;
+      }
+      model.setFrozenPrefixEngine(frozen_blocks, "gpu", frozen_fp16,
+                                  (int)gpu_end);
+      std::cout << "gpu prefix:   blocks [0, " << gpu_end << ") of "
+                << frozen_blocks << " frozen on engine=gpu"
+                << (gpu_end < (unsigned int)frozen_blocks
+                      ? ", [" + std::to_string(gpu_end) + ", " +
+                          std::to_string(frozen_blocks) + ") on cpu"
+                      : "")
+                << std::endl;
     } else if (split) {
       model.setFrozenPrefix(frozen_blocks, false);
     }
@@ -756,6 +781,9 @@ int main(int argc, char *argv[]) {
         params.frozen_cache = true;
       else if (arg == "--gpu_base_gemm")
         params.gpu_base_gemm = true;
+      else if (arg == "--gpu_prefix_layers")
+        params.gpu_prefix_layers =
+          static_cast<unsigned int>(std::stoul(next("--gpu_prefix_layers")));
       else if (arg == "--frozen_cache_mb")
         params.frozen_cache_mb =
           static_cast<unsigned int>(std::stoul(next("--frozen_cache_mb")));

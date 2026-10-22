@@ -146,6 +146,8 @@ Tensor Qwen3Transformer::createAttention(const int layer_id, int seq_len,
     withKey("engine", eng)};
   for (const auto &p : act_props)
     mha_props.push_back(p);
+  // Every frozen block's attention runs forward_only (see
+  // Transformer::createAttention).
   if (layer_id < FROZEN_PREFIX)
     mha_props.push_back(withKey("forward_only", "true"));
   LayerHandle mha(createLayer("mha_core", mha_props));
