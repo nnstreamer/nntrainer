@@ -14,11 +14,11 @@
  */
 
 #include <cmath>
-#include <vector>
 #include <cpu_backend.h>
 #include <env_compat.h>
 #include <layer_prof.h>
 #include <reshaped_rms_norm.h>
+#include <vector>
 
 #if defined(ENABLE_OPENCL)
 // OpenCL GPU rmsnorm kernels (rmsnorm_cl / rmsnorm_cl_fp16). Guarded so the
@@ -177,9 +177,15 @@ void ReshapedRMSNormLayer::incremental_forwarding(
     // dtype falls through to the host path, which casts at the multiply site.
     const bool gamma_dtype_ok =
       gamma && gamma->getDataType() == in_step.getDataType();
-    const bool use_svm = gamma && gamma_dtype_ok && in_md && in_md->isSVM() &&
-                         out_md && out_md->isSVM() && gamma_md &&
-                         gamma_md->isSVM();
+    // A layer pinned to the CPU engine (the trainable tail of a hybrid graph)
+    // stays on the host even though its operands sit in the shared SVM pool:
+    // a GPU dispatch from it would put a second submitter on the queue while
+    // the pipeline producer runs the frozen prefix.
+    const bool cpu_engine =
+      context.getRunComputeEngine() == ml::train::LayerComputeEngine::CPU;
+    const bool use_svm = !cpu_engine && gamma && gamma_dtype_ok && in_md &&
+                         in_md->isSVM() && out_md && out_md->isSVM() &&
+                         gamma_md && gamma_md->isSVM();
     // Gamma-free norm on the GPU. A norm with use_gamma=false has no gamma
     // weight, so the path above falls through to the host, which costs a full
     // queue drain plus two blocking SVM maps per call. Route it instead to the
@@ -191,8 +197,8 @@ void ReshapedRMSNormLayer::incremental_forwarding(
     // NNTR_VNORM_HOST escape hatch is there for bring-up on a new device.
     static const bool vnorm_host = std::getenv("NNTR_VNORM_HOST") != nullptr;
     const bool use_svm_ng =
-      !gamma && !vnorm_host && in_md && in_md->isSVM() && out_md &&
-      out_md->isSVM() &&
+      !cpu_engine && !gamma && !vnorm_host && in_md && in_md->isSVM() &&
+      out_md && out_md->isSVM() &&
       in_step.getDataType() == ml::train::TensorDim::DataType::FP16;
     const unsigned int n_rows = in_step.getDim().height();
     bool gpu_done = false;
@@ -201,6 +207,33 @@ void ReshapedRMSNormLayer::incremental_forwarding(
     // and the host RMSNorm loop below runs.
     if (use_svm) {
       if (in_step.getDataType() == ml::train::TensorDim::DataType::FP32) {
+        // The training backward reads back the inv_rms this forward cached
+        // (see the cache write in the host path below). The GPU dispatch skips
+        // that host block entirely, so cache it here first or the cached
+        // values stay whatever the pool slot held: a hybrid run whose trainable
+        // blocks are SVM-resident then backpropagates zeros (fresh slot) or
+        // stale garbage (recycled slot) through q_norm/k_norm, zeroing or
+        // exploding every wq/wk LoRA grad. in_step is host-valid here: its
+        // producer (the q/k/v projection FC) wrote it from the host.
+        if (cache_inv_rms) {
+          nntrainer::Tensor &inv_rms_cache =
+            context.getTensor(wt_idx[RMSParams::inv_rms]);
+          const unsigned int chunks_from =
+            from * (in_dim.width() / feature_size);
+          const unsigned int chunks = in_step.getDim().height();
+          const float *x_chunk = in_step.getData<float>();
+          float *inv_rms_row = inv_rms_cache.getData<float>() +
+                               b * inv_rms_cache.getDim().getFeatureLen() +
+                               chunks_from;
+          for (unsigned int c = 0; c < chunks; ++c) {
+            float ms = 0.0f;
+            for (unsigned int w = 0; w < feature_size; ++w)
+              ms +=
+                x_chunk[c * feature_size + w] * x_chunk[c * feature_size + w];
+            ms /= feature_size;
+            inv_rms_row[c] = 1.0f / std::sqrt(ms + epsilon);
+          }
+        }
         nntrainer::rmsnorm_cl(in_step.getData<float>(), gamma->getData<float>(),
                               out_step.getData<float>(), epsilon, n_rows,
                               feature_size, /*use_svm=*/true);
@@ -330,12 +363,11 @@ void ReshapedRMSNormLayer::incremental_forwarding(
       // back verbatim -- see the note in finalize() for why this must not
       // be recomputed from the input tensor at backward time instead. Host
       // path only: training graphs are host-resident FP32.
-      if (cache_inv_rms && in_step.getDataType() ==
-                             ml::train::TensorDim::DataType::FP32) {
+      if (cache_inv_rms &&
+          in_step.getDataType() == ml::train::TensorDim::DataType::FP32) {
         nntrainer::Tensor &inv_rms_cache =
           context.getTensor(wt_idx[RMSParams::inv_rms]);
-        const unsigned int chunks_from =
-          from * (in_dim.width() / feature_size);
+        const unsigned int chunks_from = from * (in_dim.width() / feature_size);
         float *inv_rms_row = inv_rms_cache.getData<float>() +
                              b * inv_rms_cache.getDim().getFeatureLen() +
                              chunks_from;
@@ -392,8 +424,7 @@ void ReshapedRMSNormLayer::setBatch(nntrainer::RunLayerContext &context,
  */
 void ReshapedRMSNormLayer::calcDerivative(nntrainer::RunLayerContext &context) {
   nntrainer::Tensor &in = context.getInput(SINGLE_INOUT_IDX);
-  const nntrainer::Tensor &dy =
-    context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const nntrainer::Tensor &dy = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   nntrainer::Tensor &dx = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
   const nntrainer::Tensor &inv_rms_cache =
     context.getTensor(wt_idx[RMSParams::inv_rms]);
@@ -468,15 +499,13 @@ void ReshapedRMSNormLayer::calcGradient(nntrainer::RunLayerContext &context) {
     return;
 
   nntrainer::Tensor &in = context.getInput(SINGLE_INOUT_IDX);
-  const nntrainer::Tensor &dy =
-    context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  const nntrainer::Tensor &dy = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   nntrainer::Tensor &dgamma = context.getWeightGrad(wt_idx[RMSParams::gamma]);
   const nntrainer::Tensor &inv_rms_cache =
     context.getTensor(wt_idx[RMSParams::inv_rms]);
 
   NNTR_THROW_IF(in.getDataType() != ml::train::TensorDim::DataType::FP32 ||
-                  dgamma.getDataType() !=
-                    ml::train::TensorDim::DataType::FP32,
+                  dgamma.getDataType() != ml::train::TensorDim::DataType::FP32,
                 std::invalid_argument)
     << "[reshaped_rms_norm] calcGradient only supports FP32 for now";
 
