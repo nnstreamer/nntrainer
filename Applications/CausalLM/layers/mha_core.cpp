@@ -2115,13 +2115,23 @@ void MHACoreLayer::one_batch_incremental_forwarding(
   }
 
   // Load Input Tensors of this batch : b_ denotes a Tensor for this batch
+  auto safe_k_step_dim = cache_key_step_dim;
+  auto safe_v_step_dim = cache_value_step_dim;
+  if (cacheRow(cache_index) + safe_k_step_dim.height() >
+      cache_key_dim.height()) {
+    safe_k_step_dim.height(cache_key_dim.height() - cacheRow(cache_index));
+  }
+  if (cacheRow(cache_index) + safe_v_step_dim.height() >
+      cache_value_dim.height()) {
+    safe_v_step_dim.height(cache_value_dim.height() - cacheRow(cache_index));
+  }
   nntrainer::Tensor b_cache_key_step = cache_key.getSharedDataTensor(
-    cache_key_step_dim,
+    safe_k_step_dim,
     batch * cache_key_dim.getFeatureLen() +
       cacheRow(cache_index) * cache_key_dim.width(),
     true);
   nntrainer::Tensor b_cache_value_step = cache_value.getSharedDataTensor(
-    cache_value_step_dim,
+    safe_v_step_dim,
     batch * cache_value_dim.getFeatureLen() +
       cacheRow(cache_index) * cache_value_dim.width(),
     true);
@@ -3531,8 +3541,10 @@ void MHACoreLayer::one_batch_incremental_forwarding(
   // VIEW must fit it. The GPU flash kernel walks the LOGICAL range (N_kv =
   // cache_to, passed separately) and modulo-maps to the physical ring, so a
   // Wcap-high view is sufficient. (Ring off: full cache_to, unchanged.)
-  const unsigned int read_rows =
-    kv_ring_cap ? std::min<unsigned int>(cache_to, kv_ring_cap) : cache_to;
+  const unsigned int max_h = cache_key_dim.height();
+  const unsigned int read_rows = std::min<unsigned int>(
+    max_h,
+    kv_ring_cap ? std::min<unsigned int>(cache_to, kv_ring_cap) : cache_to);
   cached_key_dim.batch(1);
   cached_key_dim.height(read_rows);
   cached_value_dim.batch(1);
@@ -5466,10 +5478,12 @@ void MHACoreLayer::one_batch_incremental_forwarding(
   // causallm::kvRingLayerEligible() returns false for a use_sink layer, so
   // kv_ring_cap is 0 by construction and the cache is the full max_seq height.
   // A clamp would read as though the ring could reach this path.
+  const unsigned int max_h = cache_key_dim.height();
+  const unsigned int read_rows = std::min<unsigned int>(max_h, to);
   cached_key_dim.batch(1);
-  cached_key_dim.height(to);
+  cached_key_dim.height(read_rows);
   cached_value_dim.batch(1);
-  cached_value_dim.height(to);
+  cached_value_dim.height(read_rows);
 
   nntrainer::Tensor b_cached_key = cache_key.getSharedDataTensor(
     cached_key_dim, batch * cache_key_dim.getFeatureLen(), true);
