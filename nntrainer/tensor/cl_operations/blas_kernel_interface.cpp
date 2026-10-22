@@ -405,6 +405,7 @@ int aminCl(const Tensor &input) { throwNoOpenCLKernel("aminCl"); }
 #include <cuda_context_manager.h> // [nondet] cuda::dev_only / copy_any
 #endif
 #include <mutex>
+#include <thread>
 #include <unordered_map>
 
 namespace nntrainer {
@@ -626,6 +627,14 @@ struct V8cScratch {
   int last_quant_slot = 0; /**< slot whose int8 the cache hit refers to */
   /** dispatch seq at which the cached int8 was produced (device-plane reuse) */
   unsigned long long last_quant_seq = 0;
+  /** The submitter thread that produced the cached quantisation. The write
+   *  log the cache-hit test consults is thread_local, so a record from
+   *  another submitter (the pipeline producer's prefix walk running beside
+   *  the training thread) can never be validated by this thread's log -- it
+   *  would read "unchanged" about bytes another thread is concurrently
+   *  re-quantising into the same slot. A cross-thread hit is refused and the
+   *  FC re-quantises; single-submitter runs always match and are unchanged. */
+  std::thread::id last_quant_tid{};
 
   // [norm->FC quant handoff] A fused norm (rmsnorm_cl_fp16_coop_q) fills one
   // of these slots with the quantisation of the row it just wrote, and
@@ -648,10 +657,30 @@ struct V8cScratch {
   unsigned int nq_K = 0;
   int nq_slot = -1; /**< ring slot holding the handoff int8, -1 = none */
   int nq_pending_slot = -1; /**< reserved by Begin, published by Commit */
+  /** The thread whose fused norm published the handoff (see last_quant_tid:
+   *  the handoff's soundness rests on the publishing thread's write log, so
+   *  another thread's FC must not consume it). */
+  std::thread::id nq_tid{};
 };
 
 static V8cScratch &v8c_scratch() {
-  static V8cScratch s;
+  // One scratch PER SUBMITTER THREAD. The mutex above serialises the
+  // host-side bookkeeping of concurrent dotCl_v8c calls, and the single
+  // in-order queue executes their kernels in enqueue order -- but a shared
+  // scratch still breaks under the pipeline producer: the walk thread and
+  // the training thread interleave ring advances, quant-cache hits and
+  // handoff publishes, and each thread's soundness argument ("nothing has
+  // written this slot since MY quant") reads a thread_local write log that
+  // cannot see the other thread's dispatches. A cross-thread hit then binds
+  // a slot the other thread is concurrently re-quantising -- plausible,
+  // wrong, timing-dependent output (the concurrent-run loss drift). Giving
+  // each submitter its own ring, cache records and handoff makes every
+  // thread's reasoning self-contained; the weight pack cache above stays
+  // shared (read-only after its mutex-guarded build). Single-thread runs
+  // allocate exactly one scratch as before -- no memory or performance
+  // change; a second submitter pays one extra copy of the grow-only
+  // buffers.
+  static thread_local V8cScratch s;
   return s;
 }
 
@@ -1313,6 +1342,7 @@ void v8cNormQuantCommit(void *src_clmem, unsigned int rows, unsigned int K) {
   // Sampled AFTER the dispatch: the window the write log has to be clean over
   // starts at the norm itself.
   sc.nq_seq = opencl::Kernel::dispatchSeq();
+  sc.nq_tid = std::this_thread::get_id();
 }
 
 void v8cNormQuantAbort() {
@@ -1656,6 +1686,7 @@ double msSince(std::chrono::steady_clock::time_point t0) {
            std::chrono::steady_clock::now() - t0)
     .count();
 }
+
 } // namespace
 
 bool dotCl_v8c(const Tensor &input, const Tensor &weight, Tensor &output) {
@@ -1845,7 +1876,12 @@ bool dotCl_v8c(const Tensor &input, const Tensor &weight, Tensor &output) {
     device_clmem_in && sc.last_quant_in_ptr != nullptr &&
     sc.last_quant_in_ptr == cur_in_ptr && sc.last_quant_M == M &&
     sc.last_quant_K == K && sc.last_quant_M_pad == M_pad &&
-    sc.last_quant_dtype == cur_dtype;
+    sc.last_quant_dtype == cur_dtype &&
+    // A record another submitter thread published cannot be validated by
+    // this thread's write log (it is thread_local): refusing the hit makes
+    // the concurrent case re-quantise instead of reading a slot another
+    // thread may be refilling. Single-submitter runs always match.
+    sc.last_quant_tid == std::this_thread::get_id();
   const bool quant_cache_hit =
     quant_share_device && shape_tuple_hit &&
     opencl::Kernel::bufferUnchangedSince(static_cast<void *>(clmem_in),
@@ -1888,6 +1924,11 @@ bool dotCl_v8c(const Tensor &input, const Tensor &weight, Tensor &output) {
                sc.act_zp_bytes[sc.nq_slot] < sizeof(int) * M_pad ||
                sc.act_rs_bytes[sc.nq_slot] < sizeof(int) * M_pad) {
       ++fs.nq_shape;
+    } else if (sc.nq_tid != std::this_thread::get_id()) {
+      // The handoff's soundness rests on the publishing thread's dispatch
+      // write log; another thread's FC cannot consult it (see
+      // last_quant_tid). Refuse and re-quantise.
+      ++fs.nq_other;
     } else if (!opencl::Kernel::bufferUnchangedSince(
                  static_cast<void *>(clmem_in), sc.nq_seq)) {
       ++fs.nq_dirty;
@@ -2039,6 +2080,7 @@ bool dotCl_v8c(const Tensor &input, const Tensor &weight, Tensor &output) {
       sc.last_quant_dtype = cur_dtype;
       sc.last_quant_slot = act_slot;
       sc.last_quant_seq = sc.nq_seq;
+      sc.last_quant_tid = std::this_thread::get_id();
       // [norm->FC quant handoff] The fused norm already wrote act_i8 /
       // act_scale / act_zp / act_rs for this exact row into this slot. Nothing
       // to stage, nothing to quantise; the GEMM binding below is unchanged.
@@ -2069,6 +2111,7 @@ bool dotCl_v8c(const Tensor &input, const Tensor &weight, Tensor &output) {
       sc.last_quant_dtype = cur_dtype;
       sc.last_quant_slot = act_slot;
       sc.last_quant_seq = opencl::Kernel::dispatchSeq();
+      sc.last_quant_tid = std::this_thread::get_id();
       ++v8c_fuse_stats().quant;
     } else {
       ++v8c_fuse_stats().share_hit;
@@ -2628,6 +2671,7 @@ void cl_fc_release_caches() {
   sc.nq_K = 0;
   sc.nq_slot = -1;
   sc.nq_pending_slot = -1;
+  sc.nq_tid = {};
   sc.last_quant_in_ptr = nullptr;
   sc.last_quant_seq = 0;
   sc.last_quant_gen = 0;
@@ -2635,6 +2679,7 @@ void cl_fc_release_caches() {
   sc.last_quant_K = 0;
   sc.last_quant_M_pad = 0;
   sc.last_quant_dtype = -1;
+  sc.last_quant_tid = {};
   // 4. A teardown is as much a handle-epoch boundary as a creation: the next
   //    load's memory objects land on freed addresses, so every remaining
   //    handle-VALUE-keyed memo in the tree (the kernel-argument cache, the

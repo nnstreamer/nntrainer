@@ -39,6 +39,20 @@
 
 static std::mutex rope_init_mtx;
 
+/** Guards precompute_freqs' shared scratch: `thetas` is a process-wide
+ *  inline static that every layer's fp16 AND fp32 table builds clear and
+ *  refill, and `rope_freq_cache` inserts mutate the shared map. The
+ *  pipeline producer's prefix walk and the training thread's host rope
+ *  path both reach here once tables go stale, and two concurrent builds
+ *  interleave the thetas fill (one thread's clear lands in the middle of
+ *  the other's fill -- a garbage table gets cached under the winner's key
+ *  and every later use of that key computes rope from wrong frequencies).
+ *  Distinct from rope_init_mtx: callers hold that one and call into
+ *  precompute_freqs (ensure_rope_flat_lut), so a shared mutex would
+ *  self-deadlock; the lock order rope_init_mtx -> rope_freq_build_mtx is
+ *  the only one that occurs. */
+static std::mutex rope_freq_build_mtx;
+
 // Minimum prefill step_size for routing attention/RoPE onto the GPU paths.
 // Below the threshold the prefill falls to the host path. The threshold no
 // longer depends on head_dim (the parameter is ignored): x86 returns 1 for
@@ -1057,6 +1071,12 @@ void MHACoreLayer::finalize(nntrainer::InitLayerContext &context) {
      * attention arms instead of trainForwarding(). */
     forward_only =
       std::get<props::ForwardOnly>(mha_core_props).get() && for_training;
+    // A forward_only block prefills one fixed sequence per step and never
+    // decodes, so it never reads the OHWI K/V mirror the image arm needs:
+    // keep it on the flash arm, or the prebuild below allocates a dead
+    // S_max-row mirror per layer (2 x 28 x 2 MiB on the qwen3-0.6B hybrid).
+    if (forward_only)
+      img_arm_want = false;
     const bool train_path = for_training && !forward_only;
 
     /**
@@ -5533,6 +5553,28 @@ void MHACoreLayer::precompute_freqs(int head_dim, unsigned int seq_len,
     std::to_string(rope_partial_rotary_factor);
 
   auto cache_iter = rope_freq_cache.find(cache_key);
+  if (cache_iter != rope_freq_cache.end()) {
+    if (is_fp16) {
+#ifdef ENABLE_FP16
+      freqs_cos_fp16 = &cache_iter->second.cos_fp16;
+      freqs_sin_fp16 = &cache_iter->second.sin_fp16;
+#endif
+    } else {
+      freqs_cos = &cache_iter->second.cos;
+      freqs_sin = &cache_iter->second.sin;
+    }
+    return;
+  }
+
+  // Serialize the whole build: the shared `thetas` scratch, the map insert
+  // and the table fill. Two submitters (pipeline producer's walk + training
+  // thread) missing on DIFFERENT keys interleave the thetas fill and cache a
+  // table computed from a half-cleared scratch; the wrong table then serves
+  // every later rope of that key (persistent, silent corruption). See the
+  // note at rope_freq_build_mtx.
+  std::lock_guard<std::mutex> build_lock(rope_freq_build_mtx);
+  // Re-check under the lock: the racing thread may have built this key.
+  cache_iter = rope_freq_cache.find(cache_key);
   if (cache_iter != rope_freq_cache.end()) {
     if (is_fp16) {
 #ifdef ENABLE_FP16

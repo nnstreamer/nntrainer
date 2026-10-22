@@ -182,25 +182,31 @@ public:
 
   /**
    * @brief Whether a kernel enqueued on this queue may still be running.
-   * @details Set by every dispatch not followed by a drain here; cleared by a
-   * drain or a blocking map. A host reader of a shared-memory operand needs to
-   * wait for its producer only while this is set.
+   * @details An enqueue/drain epoch pair in the .cpp (see s_queue_epoch):
+   *          every dispatch not followed by a drain advances the epoch; a
+   *          drain or a blocking map records the epoch it retired. A host
+   *          reader of a shared-memory operand needs to wait for its producer
+   *          only while the two differ. The pair rather than one boolean so a
+   *          concurrent submitter's enqueue cannot be erased by another
+   *          thread's drain completing after it (a plain store(false) raced
+   *          exactly that way).
    * @return true when a kernel may still be in flight
    */
   bool kernelsMayBeInFlight() const;
 
   /**
    * @brief Drain the queue and reset the in-flight state.
-   * @details clFinish alone is not enough: the in-flight flag is cleared only
+   * @details clFinish alone is not enough: the in-flight state is retired only
    *          by the enqueue paths that drain (a blocking map, an unmap on a
    *          coarse-grain device, a dispatch under the coarse-SVM drain), so a
-   *          teardown that merely calls clFinish leaves the flag set forever.
-   *          The next model in the process then reads kernelsMayBeInFlight()
-   *          as true for its whole life, which sends every gated host/CL
-   *          branch (swiglu, residual add, HostOperand) down the device path
-   *          for an FP32-activation run. Clears the flag after the finish and
-   *          also drops the undrained-SVM-plane set: its entries are
-   *          dispatch-epoch state, and a finished queue has retired them all.
+   *          teardown that merely calls clFinish leaves the state "busy"
+   *          forever. The next model in the process then reads
+   *          kernelsMayBeInFlight() as true for its whole life, which sends
+   *          every gated host/CL branch (swiglu, residual add, HostOperand)
+   *          down the device path for an FP32-activation run. Retires the
+   *          epoch after the finish and also drops the undrained-SVM-plane
+   *          set: its entries are dispatch-epoch state, and a finished queue
+   *          has retired them all.
    */
   void drainAndResetInFlight();
 

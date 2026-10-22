@@ -403,7 +403,45 @@ int TrainingDataGenerator::next(float **input, float **label, bool *last) {
     reshuffle();
   *last = epoch_done;
 
+  // [pipeline] publish this sample's ids in production order for the
+  // producer thread (the boundary hidden state it computes trains nothing;
+  // see publishIdsToPipeline()). The padded width is the graph's, so the
+  // producer's prefix reads the same plane the input placeholder would.
+  if (ids_ring_enabled_) {
+    {
+      std::lock_guard<std::mutex> lk(ids_ring_m_);
+      ids_ring_.emplace_back(s.ids, used);
+    }
+    ids_ring_cv_.notify_all();
+  }
+
   return ML_ERROR_NONE;
+}
+
+bool TrainingDataGenerator::pipelinePopIds(unsigned int n,
+                                           std::vector<int32_t> &ids,
+                                           unsigned int &used) {
+  // (void)n: the producer pops strictly in production order, one sample per
+  // prefix run, and it is the ring's only consumer -- the front entry IS the
+  // n-th produced sample. The parameter documents the caller's position.
+  (void)n;
+  std::unique_lock<std::mutex> lk(ids_ring_m_);
+  ids_ring_cv_.wait(lk,
+                    [this] { return !ids_ring_open_ || !ids_ring_.empty(); });
+  if (!ids_ring_open_ || ids_ring_.empty())
+    return false;
+  ids = std::move(ids_ring_.front().first);
+  used = ids_ring_.front().second;
+  ids_ring_.pop_front();
+  return true;
+}
+
+void TrainingDataGenerator::pipelineCloseIds() {
+  {
+    std::lock_guard<std::mutex> lk(ids_ring_m_);
+    ids_ring_open_ = false;
+  }
+  ids_ring_cv_.notify_all();
 }
 
 int trainingDataGenCb(float **input, float **label, bool *last,

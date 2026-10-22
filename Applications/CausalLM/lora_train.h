@@ -24,8 +24,11 @@
 #define __LORA_TRAIN_H__
 
 #include <atomic>
+#include <condition_variable>
+#include <deque>
 #include <functional>
 #include <limits>
+#include <mutex>
 #include <random>
 #include <string>
 #include <tokenizers_cpp.h>
@@ -134,6 +137,28 @@ public:
    */
   size_t inputCacheBytes(size_t row_width) const;
 
+  /**
+   * @brief Publish every produced sample's token ids to the pipeline's
+   *        producer thread (see Transformer::setHybridPipelineProducer()).
+   * @details next() pushes {ids, used} in production order under a mutex; the
+   *          producer thread pops them one step behind (the dataset worker
+   *          with buffer_size=2 is ahead of the trainer by one sample). The
+   *          ids are the sample's own -- the same values the input
+   *          placeholder receives -- so the producer's prefix run trains
+   *          nothing; it only computes the boundary hidden state.
+   */
+  void publishIdsToPipeline(bool on) { ids_ring_enabled_ = on; }
+
+  /**
+   * @brief Blocking pop of the @a n-th published sample (0-based, production
+   *        order). Returns false when training ends first (the ring closed).
+   */
+  bool pipelinePopIds(unsigned int n, std::vector<int32_t> &ids,
+                      unsigned int &used);
+
+  /** @brief Close the ring and wake any pop blocked on it. */
+  void pipelineCloseIds();
+
 private:
   struct Sample {
     std::vector<int32_t> ids; /**< full tokenized sample, unpadded */
@@ -164,6 +189,14 @@ private:
                         unsigned int max_samples);
   void loadPreTokenizedFile(const std::string &path, unsigned int max_samples);
   void reshuffle();
+
+  /** publishIdsToPipeline(): samples in production order for the pipeline's
+   *  producer thread; guarded by ids_ring_m_, awaited on ids_ring_cv_ */
+  std::mutex ids_ring_m_;
+  std::condition_variable ids_ring_cv_;
+  std::deque<std::pair<std::vector<int32_t>, unsigned int>> ids_ring_;
+  bool ids_ring_enabled_ = false;
+  bool ids_ring_open_ = true;
 };
 
 /**
@@ -212,6 +245,12 @@ struct TrainParams {
    * context (1.43 GB PSS against 0.6 GB host-only, for a hand-off worth 0.2 ms
    * a sample). */
   std::string hybrid_trunk_path;
+  /** --hybrid_trunk only: how many of the frozen blocks [0, S) run on the GPU
+   *  (G). Blocks [G, S) stay on the host as frozen FP32 forward-only blocks.
+   *  0 = all of them (G = S, the default); values past S clamp to S. The lever
+   *  rebalances GPU/CPU load per step -- on a device where the GPU half is the
+   *  slow one, a smaller G hands frozen blocks back to the host. */
+  unsigned int gpu_prefix_layers = 0;
   float clip_grad = -1.0f;       ///< gradient clip global norm (-1 = config)
   bool train_norms = false;      ///< also train RMSNorm gammas
   bool lora_qat = false;         ///< fake-quantize loraA/loraB to int4
@@ -239,6 +278,12 @@ struct TrainParams {
    *  single-graph walk is serial today, so this is the default behaviour and
    * the flag only keeps the older measurement switches meaningful. */
   bool hybrid_sync = false;
+  /** --hybrid_trunk only: sample-level pipelining of the frozen prefix. Moves
+   *  the prefix's walk ahead of each step's forward (the seam a producer
+   *  thread takes over later); the math is unchanged, so losses must stay
+   *  bit-identical with the flag off. Also switches the dataset to a 2-slot
+   *  iteration queue, the shape the producer thread needs. */
+  bool hybrid_pipeline = false;
   /** --hybrid_trunk only: send the frozen range's base-weight GEMMs to the GPU
    *  through FullyConnectedLayer's verified offload (it checks its first calls
    *  against the host dot it replaces). OFF by default, and not a fast path

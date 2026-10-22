@@ -50,10 +50,12 @@
 #include <tie_word_embedding.h>
 #include <transpose_cl.h>
 
+#include <atomic>
 #include <cstdlib>
 #include <filesystem>
 #include <mutex>
 #include <system_error>
+#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 #include <util_func.h>
@@ -602,6 +604,31 @@ ClContext::registerClKernel(const std::string &kernel_string,
   // reduction-shape half of the determinism contract.
   // NNTR_CL_KERNEL_RING=K is the explicit diagnostic override; K=1
   // reproduces the old singleton deliberately, as a bisection aid.
+  //
+  // Cross-thread rotation was not safe, and no rotation scheme could be:
+  // (i) the rotation index was a plain read-modify-write, so two submitters
+  // could be handed the SAME clone at the same time; (ii) even when they were
+  // not, the object a thread binds and the object it enqueues are paired only
+  // by convention -- between one thread's SetKernelArguments and its enqueue,
+  // another thread could be handed the same clone, re-bind it, and the first
+  // enqueue would then capture the other caller's arguments. The pipeline
+  // producer's prefix walk and the training thread dispatch the same
+  // rmsnorm / quantize / GEMM kernels through this one path, so the race was
+  // live whenever those overlapped. A per-clone mutex around bind+enqueue
+  // would close it but serialises the submitters on the hottest path.
+  //
+  // The form that holds here is THREAD AFFINITY: each thread claims one
+  // clone slot per key -- once, under the map lock, with an atomic
+  // fetch_add deciding the slot -- and thereafter always gets the SAME
+  // clone object for that key. Two submitters are therefore never handed the
+  // same clone, so the argument cache inside opencl::Kernel (plain per-object
+  // state whose soundness note already assumes "dispatched from the
+  // single-threaded forward path") is sound again, and a re-bind can never
+  // interleave with another thread's bind/enqueue because the other thread
+  // holds a different object for the whole run. More submitters than clones
+  // would wrap the fetch_add and put two threads on one clone -- a regression
+  // to the old hazard, never a new one; the app's two submitters against the
+  // default K=8 sit far below that.
   {
     static const int ring_k = []() {
       const char *r = std::getenv("NNTR_CL_KERNEL_RING");
@@ -621,22 +648,63 @@ ClContext::registerClKernel(const std::string &kernel_string,
       return (int)v;
     }();
     if (ring_k > 1) {
-      static std::unordered_map<
-        std::string, std::pair<std::vector<SharedPtrClKernel>, size_t>>
+      // One fixed-size clone vector per key. The outer map and its one-time
+      // growth are guarded by ring_map_mtx; once a vector holds its clones it
+      // is NEVER resized again, so the shared_ptrs it holds stay valid for
+      // the life of the process.
+      static std::unordered_map<std::string, std::vector<SharedPtrClKernel>>
         ring_map;
-      auto &slot = ring_map[key];
-      auto &clones = slot.first;
-      if ((int)clones.size() < ring_k) {
-        std::string ks = kernel_string, kn = kernel_name, co = compile_options;
-        SharedPtrClKernel kp = std::make_shared<opencl::Kernel>();
-        if (clCreateKernel(ks, kn, co, kp)) {
-          clones.push_back(kp);
-          return clones.back();
+      static std::mutex ring_map_mtx;
+      // Next slot to hand out per key. Atomic so two threads claiming the
+      // same key simultaneously cannot land on the same slot; the modulo is
+      // against the final (fixed) clone count, taken inside the lock.
+      static std::unordered_map<std::string, std::atomic<unsigned>> claim_idx;
+      // This thread's claimed clone per key. The shared_ptr COPY is what the
+      // hot path hands out, so the hot path is one thread-local hash lookup
+      // with no lock and no shared-state access at all. A nullptr entry
+      // records "this key has no clones" (every clCreateKernel failed) and
+      // falls through to the single-object map below.
+      static thread_local std::unordered_map<std::string, SharedPtrClKernel>
+        affinity;
+
+      auto af = affinity.find(key);
+      if (af == affinity.end()) {
+        SharedPtrClKernel mine;
+        {
+          std::lock_guard<std::mutex> lock(ring_map_mtx);
+          auto &clones = ring_map[key];
+          if (clones.size() < (size_t)ring_k) {
+            // Build ALL the clones this key will ever have, under the lock
+            // that publishes them. A partial build cannot serve a claim: the
+            // claim index modulo the final size would name a slot that does
+            // not exist yet.
+            std::string ks, kn, co;
+            while (clones.size() < (size_t)ring_k) {
+              ks = kernel_string;
+              kn = kernel_name;
+              co = compile_options;
+              SharedPtrClKernel kp = std::make_shared<opencl::Kernel>();
+              if (!clCreateKernel(ks, kn, co, kp))
+                break; // driver refused this kernel: single-object fallback
+              clones.push_back(std::move(kp));
+            }
+          }
+          if (!clones.empty()) {
+            const unsigned n = (unsigned)clones.size();
+            const unsigned idx = claim_idx[key].fetch_add(1) % n;
+            mine = clones[idx];
+          }
+          // clones empty -> mine stays null: every clone creation failed, and
+          // the process falls back to the single-object map for this key.
         }
-        // Clone creation failed: fall through to the single-object path.
+        affinity.emplace(key, mine);
+        if (mine)
+          return mine;
+        // mine == null: fall through to the single-object path.
       } else {
-        slot.second = (slot.second + 1) % clones.size();
-        return clones[slot.second];
+        if (af->second)
+          return af->second;
+        // Recorded single-object key: fall through.
       }
     }
   }

@@ -98,13 +98,33 @@ bool coarseGrainSVMOnly() {
 }
 
 /**
- * @brief True while a kernel enqueued on the queue may still be running: set by
- * every NDRange enqueue that was not followed by a drain here, cleared by a
- * drain here or by a blocking map (which waits for everything before it).
- * Another clFinish elsewhere leaves it set; the cost of that is one clFinish
- * on an idle queue before the next shared-memory unmap, never a missed one.
+ * @brief Whether a kernel enqueued on the queue may still be running, as an
+ * epoch pair: every NDRange enqueue advances s_queue_epoch, and a drain that
+ * has waited for the queue (a drain here, or a blocking map, which waits for
+ * everything enqueued before it) records its epoch in s_finished_epoch. The
+ * queue is busy exactly while the two differ.
+ *
+ * The boolean this replaces was racy across threads in one direction: a
+ * thread's blocking map waits only for the commands enqueued BEFORE it, but
+ * the store(false) it issues afterwards landed whenever the map returned --
+ * so a concurrent submitter's store(true) (a kernel enqueued behind the map)
+ * was silently overwritten, and that submitter's next explicit-cpu node read
+ * "queue idle" while its own kernel was still running and skipped its
+ * coherence barrier. Epochs cannot lose that update: the submitter advances
+ * the epoch, the map's finish records the older one, and the two differ until
+ * someone drains again. Single-threaded behaviour is unchanged (an enqueue
+ * with no interleaved drain is busy; after a drain it is idle).
  */
-std::atomic<bool> s_kernels_in_flight{false};
+std::atomic<unsigned long long> s_queue_epoch{0};
+std::atomic<unsigned long long> s_finished_epoch{0};
+
+/** The busy predicate every enqueue/drain path and kernelsMayBeInFlight() read.
+ *  A free function, not a member: the drain sites above use it before the
+ *  class body declares anything. */
+bool queueBusy() {
+  return s_queue_epoch.load(std::memory_order_relaxed) !=
+         s_finished_epoch.load(std::memory_order_relaxed);
+}
 
 } // namespace
 
@@ -409,8 +429,12 @@ bool CommandQueueManager::enqueueSVMMap(void *svm_ptr, size_t size,
     return false;
   }
   // A blocking map returns only after every earlier command has completed.
+  // Record the epoch the wait retired, not "idle": a kernel another thread
+  // enqueued behind this map must keep the queue busy (see the epoch note
+  // above s_queue_epoch).
   if (blocking == CL_TRUE)
-    s_kernels_in_flight.store(false, std::memory_order_relaxed);
+    s_finished_epoch.store(s_queue_epoch.load(std::memory_order_relaxed),
+                           std::memory_order_relaxed);
   return true;
 }
 
@@ -425,11 +449,11 @@ bool CommandQueueManager::enqueueSVMUnmap(void *svm_ptr, cl_event *event) {
   // (needsCoarseSVMDrain) hid this by keeping the queue idle at every unmap;
   // this is the one ordering that drain was providing, kept on its own so the
   // drain can be turned off without it.
-  if (s_kernels_in_flight.load(std::memory_order_relaxed) &&
-      coarseGrainSVMOnly()) {
+  if (queueBusy() && coarseGrainSVMOnly()) {
     clFinish(command_queue_);
     Kernel::clearUndrainedSvmPlanes();
-    s_kernels_in_flight.store(false, std::memory_order_relaxed);
+    s_finished_epoch.store(s_queue_epoch.load(std::memory_order_relaxed),
+                           std::memory_order_relaxed);
   }
   cl_int error_code =
     clEnqueueSVMUnmap(command_queue_, svm_ptr, 0, nullptr, event);
@@ -453,18 +477,18 @@ bool CommandQueueManager::enqueueSVMUnmap(void *svm_ptr, cl_event *event) {
   return true;
 }
 
-bool CommandQueueManager::kernelsMayBeInFlight() const {
-  return s_kernels_in_flight.load(std::memory_order_relaxed);
-}
+bool CommandQueueManager::kernelsMayBeInFlight() const { return queueBusy(); }
 
 void CommandQueueManager::drainAndResetInFlight() {
   clFinish(command_queue_);
   // Every enqueued command has completed, so nothing is in flight any more --
   // and the undrained-plane set is dispatch-epoch state the finished queue
   // has retired. Reset both: see the header for what a stale flag does to the
-  // next model in the process.
+  // next model in the process. The finish retires the epoch as of NOW: a
+  // kernel another thread enqueues after this line keeps the queue busy.
   Kernel::clearUndrainedSvmPlanes();
-  s_kernels_in_flight.store(false, std::memory_order_relaxed);
+  s_finished_epoch.store(s_queue_epoch.load(std::memory_order_relaxed),
+                         std::memory_order_relaxed);
 }
 
 bool CommandQueueManager::coarseGrainSVM() const {
@@ -532,9 +556,10 @@ bool CommandQueueManager::DispatchCommand(
   if (touched_svm && needsCoarseSVMDrain()) {
     clFinish(command_queue_);
     Kernel::clearUndrainedSvmPlanes();
-    s_kernels_in_flight.store(false, std::memory_order_relaxed);
+    s_finished_epoch.store(s_queue_epoch.load(std::memory_order_relaxed),
+                           std::memory_order_relaxed);
   } else {
-    s_kernels_in_flight.store(true, std::memory_order_relaxed);
+    s_queue_epoch.fetch_add(1, std::memory_order_relaxed);
   }
 
   return true;
@@ -590,9 +615,10 @@ bool CommandQueueManager::DispatchCommand(
   if (touched_svm && needsCoarseSVMDrain()) {
     clFinish(command_queue_);
     Kernel::clearUndrainedSvmPlanes();
-    s_kernels_in_flight.store(false, std::memory_order_relaxed);
+    s_finished_epoch.store(s_queue_epoch.load(std::memory_order_relaxed),
+                           std::memory_order_relaxed);
   } else {
-    s_kernels_in_flight.store(true, std::memory_order_relaxed);
+    s_queue_epoch.fetch_add(1, std::memory_order_relaxed);
   }
 
   return true;
@@ -634,9 +660,10 @@ void CommandQueueManager::enqueueKernel(const cl_kernel kernel,
   if (touched_svm && needsCoarseSVMDrain()) {
     clFinish(command_queue_);
     Kernel::clearUndrainedSvmPlanes();
-    s_kernels_in_flight.store(false, std::memory_order_relaxed);
+    s_finished_epoch.store(s_queue_epoch.load(std::memory_order_relaxed),
+                           std::memory_order_relaxed);
   } else {
-    s_kernels_in_flight.store(true, std::memory_order_relaxed);
+    s_queue_epoch.fetch_add(1, std::memory_order_relaxed);
   }
 }
 

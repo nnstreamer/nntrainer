@@ -3053,6 +3053,13 @@ int NeuralNetwork::train_run(
     double perf_step_ms =
       std::chrono::duration<double, std::milli>(perf_t0 - perf_last).count();
     perf_last = perf_t0;
+    // [pipeline] the sample-level pipelining hook: runs the frozen device
+    // range of the CURRENT sample (inputs are already bound) ahead of the
+    // tail's forward, so a later producer thread can take the same walk over
+    // without re-ordering anything inside the step. No-op unless installed
+    // (see setPreForwardHook()).
+    if (pre_forward_hook_)
+      pre_forward_hook_();
     forwarding(true, stop_cb, stop_user_data);
     perf_clock::time_point perf_t1 = perf_clock::now();
     backwarding(iter++, stop_cb, stop_user_data);

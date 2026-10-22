@@ -288,6 +288,42 @@ public:
   }
 
   /**
+   * @brief     Install a hook that runs before each training iteration's
+   *            forward (after the inputs were bound).
+   *
+   * Sample-level pipelining of a graph whose frozen region runs on the device:
+   * the hook walks the frozen range (forwardRange()) while the plan still
+   * treats the walk as part of THIS step, so without it the range would run
+   * from inside the forward override and any concurrency (a producer thread
+   * running the next sample's range under the current step) would have no
+   * seam to attach to. In the serial configuration it simply moves the range
+   * ahead of the tail's forward call; the math is unchanged. Runs on the
+   * training thread.
+   */
+  void setPreForwardHook(std::function<void()> hook) {
+    pre_forward_hook_ = std::move(hook);
+  }
+
+  /**
+   * @brief     Rebind the first input placeholder to an external tensor
+   *            without touching the labels.
+   *
+   * Sample-level pipelining: the producer thread runs the frozen range of the
+   * NEXT sample while the training thread trains on the current one, so it
+   * needs the input placeholder to point at its own token plane.
+   * setInputsLabels() cannot be used here -- it would clear the label binding
+   * the current step still reads. A pure pointer swap (fillPlaceholder's
+   * setData path); the placeholder is read only by the range's first node, and
+   * the next setInputsLabels() rebinding supersedes this one.
+   */
+  void setInputPlaceholder(const Tensor &t) {
+    auto const &names = model_graph.getInputList();
+    NNTR_THROW_IF(names.empty(), std::invalid_argument)
+      << "setInputPlaceholder: the graph has no input placeholder";
+    model_graph.setExternalTensors({t}, {names[0]});
+  }
+
+  /**
    * @brief     Forward Propagation of the neural network
    * @param[in] input List of Input Tensors taken by the neural network
    * @param[in] label List of Label Tensors for the model
@@ -828,6 +864,9 @@ private:
 
   /** see setForwardOverride() */
   std::function<bool(NeuralNetwork *, bool)> forward_override_;
+
+  /** see setPreForwardHook() */
+  std::function<void()> pre_forward_hook_;
 
   using FlexiblePropTypes =
     std::tuple<props::Epochs, props::TrainingBatchSize, props::SavePath,
