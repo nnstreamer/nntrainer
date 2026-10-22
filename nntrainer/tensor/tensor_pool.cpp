@@ -14,6 +14,7 @@
  * @todo   check before allocate that finalize is done
  */
 
+#include <algorithm>
 #include <cstdlib>
 #include <memory_pool.h>
 #include <nntrainer_log.h>
@@ -139,6 +140,29 @@ Tensor *TensorPool::view(const std::string &name, const std::string &reference,
      TensorPool::DependentDetails{parent_idx, adjusted_offset}});
 }
 
+namespace {
+/**
+ * @brief Decide whether this request belongs to the pipeline band.
+ *
+ * @param engine compute engine of the producing layer
+ * @param name tensor name in the pool
+ * @param boundary_names registered boundary tensor names
+ *
+ * @details The band holds the tensors the GPU prefix produces (engine == GPU)
+ * plus the boundary tensors that carry GPU-region data across to the CPU
+ * region (e.g. the frozen-prefix cast output): placing those in the band keeps
+ * a pipelined consumer of them race-free against the band's CPU side.
+ */
+bool isPipelineBandTensor(ml::train::LayerComputeEngine engine,
+                          const std::string &name,
+                          const std::vector<std::string> &boundary_names) {
+  if (engine == ml::train::LayerComputeEngine::GPU)
+    return true;
+  return std::find(boundary_names.begin(), boundary_names.end(), name) !=
+         boundary_names.end();
+}
+} // namespace
+
 /**
  * @brief finalize the requested tensors
  *
@@ -148,6 +172,45 @@ Tensor *TensorPool::view(const std::string &name, const std::string &reference,
 void TensorPool::finalize(const MemoryPlanner &planner,
                           unsigned int start_order, unsigned int end_order) {
   mem_pool->clear();
+  /** [p2] Pipeline band opt-in: NNTR_PIPE_BAND=1 partitions the GPU-region
+   *  tensors (engine==gpu producers) into their own offset band, planned
+   *  before everything else, so a pipelined execution cannot let the next
+   *  sample's GPU prefix overwrite the previous sample's live CPU region.
+   *  The frozen-prefix cast output sits at the GPU/CPU boundary and carries
+   *  GPU-region data into the CPU region, so it joins the band by name.
+   *  Read here (finalize time, once per plan) rather than at request time so
+   *  the flag can be flipped any time before allocation without threading a
+   *  setter through every request call site. */
+  static const bool env_pipe_band = [] {
+    const char *e = std::getenv("NNTR_PIPE_BAND");
+    return e != nullptr && e[0] == '1';
+  }();
+  if (env_pipe_band)
+    pipeline_band_ = true;
+  if (pipeline_band_) {
+    /** Boundary tensors: the frozen-prefix cast (FP16 -> FP32) is the handoff
+     *  the CPU tail's first node consumes; its output belongs to the GPU band
+     *  together with the data it carries. Named rather than engine-tagged
+     *  because its producer (the cast layer) is a CPU node. The ":out0" form
+     *  is the pool name of the cast layer's output (the bare name alone
+     *  never matches a request). */
+    addPipelineBoundaryTensor("frozen_prefix_cast");
+    addPipelineBoundaryTensor("frozen_prefix_cast:out0");
+    /** FP32-prefix mode (NNTR_GPU_FP32=1): the frozen-prefix cast node does
+     *  not exist, so the name above never matches a request and the split
+     *  marker would never fire -- every tensor stayed "band", the two-pass
+     *  partition collapsed to one pass, and the planner reused tail bytes
+     *  for prefix planes the concurrent producer walk rewrites. The app
+     *  names the actual split node (the last frozen block's output) here;
+     *  unset in the FP16 mode, whose verified split marker stays the cast. */
+    if (const char *b = std::getenv("NNTR_PIPE_BOUNDARY")) {
+      const std::string base(b);
+      if (!base.empty()) {
+        addPipelineBoundaryTensor(base);
+        addPipelineBoundaryTensor(base + ":out0");
+      }
+    }
+  }
   unsigned int bytes_requested = 0;
   /// [DIAG] NNTR_POOL_DUMP=<file>: append every planned tensor (pool, name,
   /// bytes, validity [start, end), lifespan) and the planned pool size
@@ -161,6 +224,18 @@ void TensorPool::finalize(const MemoryPlanner &planner,
    *  persist_end_order is for checking if the end order is updated */
   bool persist_end_order = false;
   unsigned int old_end_order = end_order;
+  /** True while the request stream is still inside the producer's prefix
+   *  range; flips when the first registered boundary tensor is requested
+   *  (see the band membership rule below). */
+  bool prefix_phase = true;
+  /** Earliest validity_start seen while still in the prefix phase -- the
+   *  band's window opens here. Band tensors that stay alive across the
+   *  split have their validity widened to open at this order (see below). */
+  unsigned int band_first_start = end_order + 1;
+  /** The first boundary tensor's validity_start -- where the tail's window
+   *  opens (the compiled order the producer's walk stops before). Set when
+   *  the first boundary tensor is requested. */
+  unsigned int pipeline_split_order = end_order + 1;
 
   for (auto &spec : pool) {
 
@@ -232,14 +307,68 @@ void TensorPool::finalize(const MemoryPlanner &planner,
      * 3. requestMemory for all the tensors and set their tokens
      * @note +1 is to make the validity_end exlusive in the interval range
      */
+    /** Pipeline band membership: GPU-produced activations plus everything the
+     *  producer's prefix walk touches. Requests arrive in graph order, so the
+     *  first boundary tensor's request marks the prefix/tail split: tensors
+     *  requested before it are the prefix's CPU-side buffers (the input copy,
+     *  the per-block inv_rms, the frozen KV caches) whose producers are CPU
+     *  nodes the engine rule alone misses -- leaving them in the rest region
+     *  lets them alias the tail's live activations while sample i+1's prefix
+     *  runs behind sample i's tail. Only collected when the band partition is
+     *  on, so the off path is bit-identical to before. */
+    const bool boundary_hit =
+      pipeline_band_ &&
+      std::find(pipeline_boundary_names.begin(), pipeline_boundary_names.end(),
+                spec.tensor->getName()) != pipeline_boundary_names.end();
+    if (boundary_hit)
+      prefix_phase = false;
+    /** While the band is on, every prefix-phase request widens the band's
+     *  window opening; a boundary tensor's validity is then widened to open
+     *  at that same order. Without this the planner (validity-based reuse)
+     *  lets the boundary output share bytes with a prefix plane whose window
+     *  closed before the boundary opened -- sound sequentially, but the
+     *  producer runs sample i+1's prefix WHILE sample i's tail still reads
+     *  the boundary, and the walk's early nodes (layer0_ffn_norm, order 3)
+     *  overwrote the boundary's first 128KiB mid-step (device dump: cast
+     *  output at offset 6422528 == layer{0..23}_attention_norm/ffn_norm/
+     *  attention_out/ffn_down planes; layer{N}_wq/attention/decoder_add at
+     *  6553600 covering its second half). Widening the boundary's start to
+     *  the band's first order makes its window overlap every prefix window,
+     *  so the planner gives it bytes nothing else in the band can reuse.
+     *  Cost: the boundary plane(s) (~256KiB each). Tail tensors are already
+     *  disjoint from the band by the two-pass layout. */
+    if (prefix_phase)
+      band_first_start = std::min(band_first_start, validity_start);
+    if (boundary_hit)
+      pipeline_split_order = validity_start;
+    const bool is_pipeline =
+      pipeline_band_ &&
+      (boundary_hit || prefix_phase ||
+       isPipelineBandTensor(details->engine, spec.tensor->getName(),
+                            pipeline_boundary_names));
+    /** The same argument covers every OTHER band tensor that is alive across
+     *  the split: the tail's MHA weight buffer layer{24..27}_attention:out0
+     *  is engine-tagged into the band, its window sits inside the tail's, and
+     *  the planner happily laid it over the prefix's wq/attention planes --
+     *  the walk then rewrote the tail's attention weights mid-softmax
+     *  (attention_out garbage with every input probe control-identical). Any
+     *  band tensor whose window reaches past the split must open at the
+     *  band's first order, so its bytes cannot come from (or be reused by) a
+     *  prefix plane the concurrent walk is writing. Prefix-phase tensors that
+     *  span the whole step (the frozen KV caches, [0, 728)) already open at
+     *  0; the walk's own boundary output (layer23_decoder_output, [457,459))
+     *  widens to 0 with no reuse lost (nothing shares its bytes). */
+    if (is_pipeline && validity_end + 1 > pipeline_split_order)
+      validity_start = std::min(validity_start, band_first_start);
     details->token = mem_pool->requestMemory(
       spec.tensor->getMemoryBytes(), validity_start, validity_end + 1,
-      details->exec_order, details->lifespan, spec.is_weight_grad);
+      details->exec_order, details->lifespan, spec.is_weight_grad, is_pipeline);
     if (dump)
-      std::fprintf(dump, "T %p %s %zu %u %u %d\n", (void *)this,
+      std::fprintf(dump, "T %p %s %zu %u %u %d %d\n", (void *)this,
                    spec.tensor->getName().c_str(),
                    spec.tensor->getMemoryBytes(), validity_start,
-                   validity_end + 1, static_cast<int>(details->lifespan));
+                   validity_end + 1, static_cast<int>(details->lifespan),
+                   static_cast<int>(is_pipeline));
 #ifdef DEBUG
     if (details->token == 0)
       throw std::runtime_error("Received invalid token from memory pool");
@@ -250,6 +379,7 @@ void TensorPool::finalize(const MemoryPlanner &planner,
 
   /** 4. finalizeLayout for the memory pool. */
   if (bytes_requested > 0) {
+    mem_pool->setPipelineBand(pipeline_band_);
     double efficiency = mem_pool->planLayout(planner);
     ml_logd("Memory layout efficiency = %lf", efficiency);
   }
@@ -278,7 +408,6 @@ void TensorPool::setBatchSize(const std::string &name, unsigned int batch) {
 void TensorPool::allocate(bool init) {
   if (minMemoryRequirement() == 0)
     return;
-
   /** Configure the residency planner for this pool. What the allocator can
    *  produce decides what placements are available at all; the application's
    *  declared boundaries decide the two places the engine heuristic cannot
@@ -353,6 +482,19 @@ void TensorPool::allocate(bool init) {
    *  plane is the first question any footprint number raises. */
   opencl::ClMemAcctScope _acct_plane(pool_tag_.c_str());
 #endif
+  /** [p8] Band-split opt-in. With the pipeline band active on an SVM
+   *  allocator, ask the pool to put the tail (rest) region in its own host
+   *  allocation so the producer's band map/unmap cannot retire the tail's
+   *  dirty lines through allocation-wide cache maintenance. Off by default --
+   *  NNTR_TAIL_HOST=1 opts in -- so every measured number without the
+   *  variable is the pre-p8 layout, byte for byte. */
+  if (pipeline_band_) {
+    static const bool env_tail_host = [] {
+      const char *e = std::getenv("NNTR_TAIL_HOST");
+      return e != nullptr && e[0] == '1';
+    }();
+    mem_pool->setBandSplit(env_tail_host);
+  }
   mem_pool->allocate();
 
   /** set the pointers using the token for all the tensors */
@@ -369,9 +511,12 @@ void TensorPool::allocate(bool init) {
     auto bound = spec.tensor->getMemoryData();
     if (const char *path = std::getenv("NNTR_POOL_DUMP")) {
       if (FILE *f = std::fopen(path, "a")) {
-        std::fprintf(f, "A %p %s %p\n", (void *)this,
+        /** 4th field: planned offset within the pool, for band-partition
+         *  analysis (GPU band vs CPU band offset ranges). */
+        size_t off = mem_pool->getTokenOffset(details->token);
+        std::fprintf(f, "A %p %s %p %zu\n", (void *)this,
                      spec.tensor->getName().c_str(),
-                     bound ? bound->getAddr<void>() : nullptr);
+                     bound ? bound->getAddr<void>() : nullptr, off);
         std::fclose(f);
       }
     }
@@ -490,6 +635,16 @@ std::vector<std::string> TensorPool::getSourceNames() const {
  * @brief     Expand the lifespan of the tensor with the given name
  *
  */
+void TensorPool::setPipelineBand(bool enable) { pipeline_band_ = enable; }
+
+void TensorPool::addPipelineBoundaryTensor(const std::string &name) {
+  if (std::find(pipeline_boundary_names.begin(), pipeline_boundary_names.end(),
+                name) == pipeline_boundary_names.end())
+    pipeline_boundary_names.push_back(name);
+}
+
+bool TensorPool::getPipelineBand() const { return pipeline_band_; }
+
 TensorPool::RequestSpec &
 TensorPool::expandLifespan(const std::string &name,
                            const std::vector<unsigned> &exec_order,

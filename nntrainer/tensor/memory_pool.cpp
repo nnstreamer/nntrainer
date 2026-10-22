@@ -56,7 +56,8 @@ size_t system_page_size() {
 unsigned int MemoryPool::requestMemory(size_t bytes, unsigned int start_time,
                                        unsigned int end_time,
                                        std::vector<unsigned int> exec_order,
-                                       TensorLifespan lifespan, bool is_wgrad) {
+                                       TensorLifespan lifespan, bool is_wgrad,
+                                       bool is_pipeline) {
   if (bytes == 0)
     throw std::invalid_argument("Requesting memory of 0 size");
 
@@ -82,6 +83,7 @@ unsigned int MemoryPool::requestMemory(size_t bytes, unsigned int start_time,
   memory_validity.push_back({start_time, end_time});
   memory_exec_order.push_back(exec_order);
   memory_is_wgrad.push_back(is_wgrad);
+  memory_is_pipeline.push_back(is_pipeline);
   if (is_wgrad)
     n_wgrad++;
 
@@ -103,8 +105,76 @@ double MemoryPool::planLayout(const MemoryPlanner &planner) {
   if (min_pool_size == 0)
     min_pool_size = calcMinMemoryRequirement();
 
-  pool_size = planner.planLayout(memory_size, memory_validity, memory_offset,
-                                 memory_is_wgrad, n_wgrad);
+  const bool use_band =
+    pipeline_band_ &&
+    std::any_of(memory_is_pipeline.begin(), memory_is_pipeline.end(),
+                [](bool p) { return p; });
+
+  if (!use_band) {
+    pool_size = planner.planLayout(memory_size, memory_validity, memory_offset,
+                                   memory_is_wgrad, n_wgrad);
+    band_end_ = 0;
+  } else {
+    /**
+     * Pipeline band partition (two-pass):
+     * pass 1 plans the pipeline-band tensors (GPU-region activations and the
+     * boundary outputs) in their own validity space starting at offset 0 --
+     * their internal reuse is planned exactly as before, just relocated.
+     * pass 2 plans the remaining tensors after the band's end offset, so no
+     * CPU-region tensor can alias a GPU-region one when sample i's tail runs
+     * while sample i+1's prefix executes.
+     */
+    const size_t n_req = memory_size.size();
+    std::vector<size_t> pipe_size;
+    std::vector<size_t> rest_size;
+    std::vector<std::pair<unsigned int, unsigned int>> pipe_validity;
+    std::vector<std::pair<unsigned int, unsigned int>> rest_validity;
+    std::vector<bool> pipe_wgrad;
+    std::vector<bool> rest_wgrad;
+    std::vector<unsigned int> pipe_loc;
+    std::vector<unsigned int> rest_loc;
+    /** is_wgrad flag must be consistent within the subset for the planner's
+     * n_wgrad bookkeeping: count wgrads per subset. */
+    size_t pipe_n_wgrad = 0;
+    size_t rest_n_wgrad = 0;
+
+    pipe_size.reserve(n_req);
+    rest_size.reserve(n_req);
+    for (size_t idx = 0; idx < n_req; ++idx) {
+      if (memory_is_pipeline[idx]) {
+        pipe_size.push_back(memory_size[idx]);
+        pipe_validity.push_back(memory_validity[idx]);
+        pipe_wgrad.push_back(memory_is_wgrad[idx]);
+        pipe_n_wgrad += memory_is_wgrad[idx] ? 1 : 0;
+        pipe_loc.push_back(idx);
+      } else {
+        rest_size.push_back(memory_size[idx]);
+        rest_validity.push_back(memory_validity[idx]);
+        rest_wgrad.push_back(memory_is_wgrad[idx]);
+        rest_n_wgrad += memory_is_wgrad[idx] ? 1 : 0;
+        rest_loc.push_back(idx);
+      }
+    }
+
+    memory_offset.assign(n_req, 0);
+
+    std::vector<size_t> pipe_offset;
+    size_t band_size = planner.planLayout(pipe_size, pipe_validity, pipe_offset,
+                                          pipe_wgrad, pipe_n_wgrad);
+
+    std::vector<size_t> rest_offset;
+    size_t rest_size_total = planner.planLayout(
+      rest_size, rest_validity, rest_offset, rest_wgrad, rest_n_wgrad);
+
+    for (size_t i = 0; i < pipe_loc.size(); ++i)
+      memory_offset[pipe_loc[i]] = pipe_offset[i];
+    for (size_t i = 0; i < rest_loc.size(); ++i)
+      memory_offset[rest_loc[i]] = rest_offset[i] + band_size;
+
+    pool_size = band_size + rest_size_total;
+    band_end_ = band_size;
+  }
+
   if (pool_size < min_pool_size || !validateLayout())
     throw std::runtime_error("Planned layout is not feasible");
 
@@ -166,13 +236,46 @@ void MemoryPool::allocate() {
   // For ClSVMAllocator this returns SVM memory directly addressable
   // by both host and device; the base allocator returns page-aligned
   // host memory that is not zero-initialised.
-  allocator_->alloc(&mem_pool, pool_size, system_page_size());
-  owned_buffers_.push_back(mem_pool);
+  //
+  // [p8] Pipeline-band split allocation. With the band partition active on an
+  // SVM allocator, the tail (rest) region belongs to tensors only the HOST
+  // touches (the trainable CPU blocks) while the band region is what the GPU
+  // prefix walks. On a coarse-grain SVM allocation the producer's blocking
+  // map/unmap of a band tensor makes the driver do allocation-wide cache
+  // maintenance, and a maintenance sweep that also retires the dirty lines of
+  // the tail region the training thread is writing at the same moment reads
+  // back as run-to-run drift. Two allocations make that impossible: the
+  // driver's maintenance for one cannot reach the other's pages.
+  //
+  // Default (band off, or non-SVM allocator, or the split declined): the
+  // single allocation as before -- byte-identical layout, same numbers.
+  const bool split_band = band_split_requested_ && band_end_ > 0 &&
+                          band_end_ < pool_size && allocator_->isSVM();
+  band_split_active_ = split_band;
+  if (split_band) {
+    allocator_->alloc(&mem_pool, band_end_, system_page_size());
+    rest_pool_ = nullptr;
+    MemAllocator base_allocator; // the plain host allocator, not the SVM one
+    base_allocator.alloc(&rest_pool_, pool_size - band_end_,
+                         system_page_size());
+    owned_buffers_.push_back(mem_pool);
+    owned_buffers_.push_back(rest_pool_);
+    for (size_t i = 0; i < memory_offset.size(); ++i) {
+      const size_t off = memory_offset[i];
+      memory_ptrs.push_back(
+        off < band_end_ ? static_cast<char *>(mem_pool) + off
+                        : static_cast<char *>(rest_pool_) + (off - band_end_));
+    }
+  } else {
+    allocator_->alloc(&mem_pool, pool_size, system_page_size());
+    rest_pool_ = nullptr;
+    owned_buffers_.push_back(mem_pool);
 
-  // Hand out per-token slices off the same buffer at planned offsets.
-  for (size_t i = 0; i < memory_offset.size(); ++i) {
-    char *ptr = static_cast<char *>(mem_pool) + memory_offset[i];
-    memory_ptrs.push_back(ptr);
+    // Hand out per-token slices off the same buffer at planned offsets.
+    for (size_t i = 0; i < memory_offset.size(); ++i) {
+      char *ptr = static_cast<char *>(mem_pool) + memory_offset[i];
+      memory_ptrs.push_back(ptr);
+    }
   }
 
 #ifdef PROFILE
@@ -279,11 +382,13 @@ std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
   // GPU then reads zeros through its own mapping and the model
   // answers something else, silently. The flags belong to the TOKEN, not to
   // the allocator: no memory, no planes.
-  mem_data->setSVM(shared != nullptr && allocator_->isSVM());
+  mem_data->setSVM(shared != nullptr && allocator_->isSVM() &&
+                   tokenInBand(idx));
   // Host addressability is taken from the allocator alone (a null-slice token
   // is not special-cased here): a device-only plane (cudaMalloc) must be
   // staged, never dereferenced, and the allocator is the only thing that knows.
-  mem_data->setHostAddressable(allocator_->isHostAddressable());
+  mem_data->setHostAddressable(allocator_->isHostAddressable() ||
+                               rest_pool_ != nullptr);
   return mem_data;
 }
 
@@ -293,6 +398,14 @@ void MemoryPool::deallocate() {
   // backends would corrupt the heap (e.g. clSVMFree on host memory),
   // so the allocator_ shared_ptr is the single source of truth.
   for (void *buf : owned_buffers_) {
+    if (rest_pool_ != nullptr && buf == rest_pool_) {
+      // [p8] the split tail buffer came from the BASE host allocator, never
+      // from the SVM allocator -- handing it to clSVMFree would be a heap
+      // corruption. This is the one pointer whose release path differs.
+      MemAllocator base_allocator;
+      base_allocator.free(buf);
+      continue;
+    }
     allocator_->free(buf);
 #ifdef PROFILE
     PROFILE_MEM_DEALLOC(buf);
@@ -301,10 +414,12 @@ void MemoryPool::deallocate() {
   owned_buffers_.clear();
 
   mem_pool = nullptr;
+  rest_pool_ = nullptr;
   memory_size.clear();
   memory_validity.clear();
   memory_exec_order.clear();
   memory_is_wgrad.clear();
+  memory_is_pipeline.clear();
   memory_ptrs.clear();
 }
 
@@ -421,10 +536,13 @@ void MemoryPool::clear() {
   planned_memory_size_.clear();
   file_offset.clear();
   memory_is_wgrad.clear();
+  memory_is_pipeline.clear();
 
   pool_size = 0;
   min_pool_size = 0;
   n_wgrad = 0;
+  band_end_ = 0;
+  band_split_active_ = false;
 }
 
 bool MemoryPool::isAllocated() const {

@@ -467,6 +467,18 @@ void *ClBufferPool::devicePlaneBaseLocked(size_t span) {
   if (device_plane_ != nullptr || device_plane_failed_)
     return device_plane_;
 
+  /** [p8] With the band-split allocation, the shared "plane" is two
+   *  allocations: band [0, bandEnd) SVM, tail [bandEnd, size) host. A
+   *  USE_HOST_PTR window can only describe ONE contiguous allocation, so it
+   *  covers the band region alone -- the only region device-resident tensors
+   *  come from (the residency planner classifies engine=cpu producers SVM/HOST,
+   *  and every engine=GPU producer's tensors are in the band). A device
+   *  sub-buffer for a tail offset would otherwise silently map the wrong
+   *  memory; refusing it here keeps the failure loud instead. */
+  const size_t aliasable = bandSplitActive() ? bandEnd() : span;
+  if (aliasable < span)
+    span = aliasable;
+
   auto *cc = clContext();
   if (cc == nullptr)
     return nullptr;
@@ -556,11 +568,6 @@ void *ClBufferPool::devicePlaneBaseLocked(size_t span) {
       ml_logw("ClBufferPool: the device plane cannot be aliased: there is no "
               "contiguous shared plane (per-offset path); using a private "
               "plane");
-    } else if (size() < span) {
-      ml_logw("ClBufferPool: the device plane cannot be aliased: the shared "
-              "plane (%zu B) is smaller than the device span (%zu B); using a "
-              "private plane",
-              size(), span);
     } else {
       /** A VIEW, not an allocation: these bytes are the shared plane's, which
        *  the ledger already counted as `svm tensor_pool`. Charging them again
@@ -673,7 +680,12 @@ void *ClBufferPool::createDeviceBufferLocked(size_t offset) {
     opencl::clGetDeviceInfo(dev, CL_DEVICE_MEM_BASE_ADDR_ALIGN,
                             sizeof(align_bits), &align_bits, nullptr);
     const size_t align = align_bits ? align_bits / 8u : 0u;
-    const size_t span = size();
+    /** [p8] the sub-buffer window only covers the region the device plane
+     *  describes: the band allocation when the band split is active. A tail
+     *  offset cannot be a window on the band's memory -- refuse it here so it
+     *  takes the private-buffer fallback (and its loud reason) instead of
+     *  reading the wrong bytes. */
+    const size_t span = bandSplitActive() ? bandEnd() : size();
     if (align != 0 && offset % align == 0 && bytes <= span &&
         offset <= span - bytes) {
       cl_mem base = static_cast<cl_mem>(devicePlaneBaseLocked(span));

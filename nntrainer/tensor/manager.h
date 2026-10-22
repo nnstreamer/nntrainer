@@ -201,6 +201,32 @@ public:
   }
 
   /**
+   * @brief Enable the pipeline band partition of the activation pool's layout
+   *
+   * @param enable true to plan GPU-region activations in their own band
+   *
+   * @note Must be called before allocateTensors()/finalizeTensorPool().
+   *       Precondition for GPU/CPU sample-level pipelining (a single-graph
+   *       hybrid training run): without the band, the planner's whole-pool
+   *       reuse lets the next sample's GPU prefix overwrite the live CPU
+   *       region of the previous sample's step.
+   */
+  void setPipelineBand(bool enable) { tensor_pool.setPipelineBand(enable); }
+
+  /**
+   * @brief Register a tensor name as a pipeline boundary tensor
+   *
+   * @param name tensor name in the activation pool (e.g. "frozen_prefix_cast")
+   *
+   * @details Boundary tensors carry GPU-region data into the CPU region; they
+   *          are planned inside the GPU band so a pipelined read of them
+   *          cannot race the CPU band.
+   */
+  void addPipelineBoundaryTensor(const std::string &name) {
+    tensor_pool.addPipelineBoundaryTensor(name);
+  }
+
+  /**
    * @brief Move Construct a new Manager object
    *
    */

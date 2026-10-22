@@ -120,6 +120,40 @@ public:
                 unsigned int end_order);
 
   /**
+   * @brief Enable the pipeline band partition of this pool's layout
+   *
+   * @param enable true to plan GPU-region activations (engine==gpu producers
+   *        plus the registered boundary tensors) in their own band, ahead of
+   *        every other tensor. Must be called before finalize(); the request
+   *        path flags each tensor with the band membership this consumes.
+   *
+   * @details When a training graph runs a GPU prefix per sample while the
+   *          CPU tail of the previous sample is still live, the planner's
+   *          default whole-pool reuse lets the next sample's GPU writes
+   *          alias the live CPU region. Partitioning the two groups into
+   *          disjoint offset bands is the precondition for overlapping them.
+   */
+  void setPipelineBand(bool enable);
+
+  /**
+   * @brief Register a tensor (by request name) as a pipeline boundary tensor
+   *
+   * @param name the tensor's pool name (e.g. the frozen-prefix cast output)
+   *
+   * @details Boundary tensors sit at the GPU/CPU transition: they are produced
+   *          after the GPU region ends but carry GPU-region data into the CPU
+   *          region, so they must share the GPU band to stay race-free. Names
+   *          that are not in the pool (yet) are kept and matched at finalize()
+   *          time, when the specs exist.
+   */
+  void addPipelineBoundaryTensor(const std::string &name);
+
+  /**
+   * @brief Is the pipeline band partition enabled for this pool
+   */
+  bool getPipelineBand() const;
+
+  /**
    * @brief Set the batch size for the inputs/outputs of the layers
    */
   void setBatchSize(const std::string &name, unsigned int batch);
@@ -550,6 +584,13 @@ private:
                      without re-resolving from the engine. */
   std::shared_ptr<MemoryPool> mem_pool;      /**< memory pool for the tensors */
   std::unique_ptr<CacheLoader> cache_loader; /**< async loader for cache pool */
+
+  bool pipeline_band_ =
+    false; /**< plan the GPU-region group in its own band (see finalize) */
+  std::vector<std::string>
+    pipeline_boundary_names; /**< tensor names at the GPU/CPU boundary that
+                                  belong to the pipeline band despite a CPU
+                                  producer */
 
   /**
    * @brief     Check if the lifespan leads to long term valitidy

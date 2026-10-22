@@ -100,7 +100,7 @@ public:
     size_t bytes, unsigned int start_time, unsigned int end_time,
     std::vector<unsigned int> exec_order = std::vector<unsigned int>(),
     TensorLifespan lifespan = TensorLifespan::MAX_LIFESPAN,
-    bool is_wgrad = false) override;
+    bool is_wgrad = false, bool is_pipeline = false) override;
   /**
    * @brief Get the allocated cache
    *

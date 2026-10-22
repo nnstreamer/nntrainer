@@ -58,6 +58,7 @@ public:
    */
   explicit MemoryPool(std::shared_ptr<MemAllocator> allocator) :
     mem_pool(nullptr),
+    rest_pool_(nullptr),
     pool_size(0),
     min_pool_size(0),
     n_wgrad(0),
@@ -78,6 +79,7 @@ public:
    * @param exec_order execution orders of this memory
    * @param lifespan lifespan of memory
    * @param is_wgrad check if the tensor is weight gradient
+   * @param is_pipeline mark the tensor as belonging to the pipeline band
    *
    * @return The token to get the pointer for this memory after allocation
    * @note start_time is inclusive, but end_time is exclusive
@@ -87,7 +89,7 @@ public:
     size_t bytes, unsigned int start_time, unsigned int end_time,
     std::vector<unsigned int> exec_order = std::vector<unsigned int>(),
     TensorLifespan lifespan = TensorLifespan::MAX_LIFESPAN,
-    bool is_wgrad = false);
+    bool is_wgrad = false, bool is_pipeline = false);
 
   /**
    * @brief Plan the layout with memory planner
@@ -103,8 +105,30 @@ public:
    * @details planLayout can be called multiple times as this does not perform
    * any allocation but rather just plans the layout and stores the layout.
    * Subsequent call to this function will overwrite any existing layout.
+   *
+   * @details When pipeline_band_ is set, the requests are planned in two
+   * passes: pipeline-band tensors first in their own validity space (their
+   * internal reuse is preserved), then the remaining tensors after the band's
+   * end offset. This keeps step i's CPU-region tensors from aliasing step
+   * i+1's GPU-region tensors when execution overlaps.
    */
   double planLayout(const MemoryPlanner &planner);
+
+  /**
+   * @brief Enable the pipeline band partition for this pool
+   *
+   * @param enable true to partition pipeline-band tensors into their own band
+   *
+   * @note Must be called before planLayout(), e.g. while requests are being
+   *       registered. Tensors enter the band only when flagged at
+   *       requestMemory() time.
+   */
+  void setPipelineBand(bool enable) { pipeline_band_ = enable; }
+
+  /**
+   * @brief Was the pipeline band partition requested for this pool
+   */
+  bool getPipelineBand() const { return pipeline_band_; }
 
   /**
    * @brief Do the allocation of memory
@@ -241,6 +265,68 @@ public:
    */
   std::shared_ptr<MemAllocator> getAllocator() const { return allocator_; }
 
+  /**
+   * @brief Get the planned offset of a token
+   *
+   * @param idx The token received from requestMemory
+   *
+   * @return The planned offset within the pool, 0 when unknown (before
+   *         planLayout, or an out-of-range token). Diagnostic use: band
+   *         partition dumps read this to report GPU-band vs CPU-band ranges.
+   */
+  size_t getTokenOffset(unsigned int idx) const {
+    if (idx == 0 || idx > memory_offset.size())
+      return 0;
+    return memory_offset[idx - 1];
+  }
+
+  /**
+   * @brief Is this token's planned slice inside the pipeline band region?
+   *
+   * @param idx token (1-based)
+   * @return true when the band split is active and the token's offset falls
+   *         in [0, band_end). Only meaningful after planLayout().
+   *
+   * @details [p8] With the band split allocation on, the band region is the
+   *          SVM allocation and the rest region is the host allocation; a
+   *          token's SVM-ness follows its REGION, not the allocator (every
+   *          OpenCL kernel-binding gate reads MemoryData::isSVM(), and a
+   *          host-region tensor handed to a kernel as an SVM pointer would be
+   *          UB on a coarse-grain device).
+   */
+  bool tokenInBand(unsigned int idx) const {
+    if (!band_split_active_ || idx == 0 || idx > memory_offset.size())
+      return true;
+    return memory_offset[idx - 1] < band_end_;
+  }
+
+  /**
+   * @brief Request that allocate() split the band region off the shared
+   *        allocation (see the [p8] note in allocate()).
+   *
+   * @details Must be called before planLayout(). Ignored (the single
+   *          allocation is kept) when the pool has no band partition, the
+   *          allocator is not SVM, or the split is refused at allocate() --
+   *          the flag is an advisory, the layout is unchanged either way.
+   *          Only the OpenCL SVM allocator path has a driver whose map/unmap
+   *          maintenance motivates this.
+   */
+  void setBandSplit(bool enable) { band_split_requested_ = enable; }
+
+  /**
+   * @brief Did allocate() actually split the band region into its own buffer?
+   *
+   * @details The two-plane pool (ClBufferPool) reads this plus bandEnd() to
+   *          know its USE_HOST_PTR device-plane alias can only cover the band
+   *          region: the tail bytes live in a second allocation the device
+   *          plane does not describe (and, measured on this model, no device
+   *          tensor needs them -- rest offsets classify SVM/HOST).
+   */
+  bool bandSplitActive() const { return band_split_active_; }
+
+  /** @brief Byte offset where the band region ends (0 without the split). */
+  size_t bandEnd() const { return band_end_; }
+
 protected:
   /**
    * @brief  Get memory offset
@@ -344,9 +430,30 @@ private:
   std::vector<bool>
     memory_is_wgrad; /**< index for identification of weight gradient */
 
+  std::vector<bool>
+    memory_is_pipeline; /**< index for identification of pipeline-band tensors
+                             (GPU-region activations + boundary outputs) */
+
+  bool pipeline_band_ = false; /**< plan pipeline-band tensors in their own
+                                    band ahead of the rest (see planLayout) */
+
   void *mem_pool; /**< single contiguous pool buffer (allocate path); for
                        allocateFSU() this stays null and per-element
                        buffers live in owned_buffers_ */
+
+  void *rest_pool_; /**< [p8] band-split second buffer holding the tail (rest)
+                         region [band_end, pool_size) -- plain host memory from
+                         MemAllocator::alloc, NOT the SVM allocator. Null
+                         whenever the split is inactive. */
+
+  /** [p8] end of the band region in bytes (planLayout, band mode only). 0
+   *  outside band mode. */
+  size_t band_end_ = 0;
+  /** [p8] set at allocate() when the split actually happened. */
+  bool band_split_active_ = false;
+  /** [p8] advisory from setBandSplit(): split the tail off the SVM
+   *  allocation at allocate() when the pool is banded and SVM-backed. */
+  bool band_split_requested_ = false;
 
   size_t pool_size; /**< memory requirement for this pool */
 
