@@ -20,6 +20,9 @@
 #include <engine.h> // does this build have a gpu context at all
 #include <env_compat.h>
 #include <model.h>
+#if defined(ENABLE_OPENCL)
+#include <opencl_loader.h> // [gpumem] ledger dump (NNTR_GPU_MEM_ACCT=1)
+#endif
 
 #include <algorithm>
 #include <chrono>
@@ -668,6 +671,9 @@ int runLoraTraining(const TrainParams &params_in, TrainProgressCb callback,
     // The frozen region is part of this graph and comes from this file: there
     // is no second model left to load.
     model.load_weight_lora(weight_file, params.resume_lora_path);
+#if defined(ENABLE_OPENCL)
+    nntrainer::opencl::clMemAcctDump("after-load");
+#endif
 
     auto *tokenizer = model.getTokenizer();
     if (tokenizer == nullptr)
@@ -756,6 +762,9 @@ int runLoraTraining(const TrainParams &params_in, TrainProgressCb callback,
     bridge.epoch_start = std::chrono::steady_clock::now();
     model.train(onEpochComplete, &bridge, onEpochStop, &bridge,
                 iteration_wrapper, nullptr);
+#if defined(ENABLE_OPENCL)
+    nntrainer::opencl::clMemAcctDump("after-train");
+#endif
 
     std::cout << "training complete; best "
               << (bridge.params.validate ? "valid_loss=" : "train_loss=")
