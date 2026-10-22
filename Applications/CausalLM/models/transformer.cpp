@@ -2266,7 +2266,10 @@ Tensor Transformer::createAttention(const int layer_id, int seq_len,
     withKey("max_new_tokens", std::to_string(NUM_TO_GENERATE)),
     withKey("is_causal", IS_CAUSAL ? "true" : "false"),
     withKey("use_gemm_attention",
-            causallm_gemm_attention(USE_FLASH_ATTENTION) ? "true" : "false")};
+            causallm_gemm_attention(USE_FLASH_ATTENTION) ? "true" : "false"),
+    withKey("engine", eng)};
+  for (const auto &p : act_props)
+    mha_props.push_back(p);
   if (layer_id < FROZEN_PREFIX)
     mha_props.push_back(withKey("forward_only", "true"));
   LayerHandle mha(createLayer("mha_core", mha_props));

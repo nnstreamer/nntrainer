@@ -95,6 +95,7 @@ private:
   std::tuple<props::RMS_NORM_GAMMA_INIT, nntrainer::props::Epsilon,
              nntrainer::props::SkipPrefill>
     rms_props;
+  nntrainer::Tensor gamma_fp16;
 };
 
 } // namespace causallm

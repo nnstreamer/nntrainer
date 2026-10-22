@@ -540,11 +540,11 @@ int runLoraTraining(const TrainParams &params_in, TrainProgressCb callback,
                 << std::endl;
 
     const bool prefix_on_gpu = hybrid && gpu_present;
-    const std::string tensor_type =
-      nntr_cfg.value("model_tensor_type", std::string("FP32-FP32"));
-    const bool frozen_fp16 =
-      prefix_on_gpu && tensor_type.size() >= 4 &&
-      tensor_type.compare(tensor_type.size() - 4, 4, "FP16") == 0;
+    // When prefix runs on GPU, run GPU activations in FP16 for 2x memory
+    // reduction and Adreno FP16 kernel acceleration (unless NNTR_GPU_FP32=1).
+    const bool gpu_force_fp32 = std::getenv("NNTR_GPU_FP32") != nullptr &&
+                                std::atoi(std::getenv("NNTR_GPU_FP32")) != 0;
+    const bool frozen_fp16 = prefix_on_gpu && !gpu_force_fp32;
 
     if (prefix_on_gpu) {
       model.setFrozenPrefixEngine(frozen_blocks, "gpu", frozen_fp16);

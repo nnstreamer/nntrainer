@@ -172,14 +172,26 @@ void RMSNormLayerGPU::incremental_forwarding(
   // the residency path; FP16 never reaches the host norm further down, which
   // serves only FP32 activations that are not on the SVM plane. The kernel
   // folds gamma in.
-  const bool fp16 =
+  const bool in_out_fp16 =
     in.getDataType() == ml::train::TensorDim::DataType::FP16 &&
-    gamma.getDataType() == ml::train::TensorDim::DataType::FP16 &&
     out.getDataType() == ml::train::TensorDim::DataType::FP16;
-  if (fp16) {
+  if (in_out_fp16) {
+    if (gamma.getDataType() == ml::train::TensorDim::DataType::FP32) {
+      if (gamma_fp16.empty() || gamma_fp16.size() != gamma.size()) {
+        ml::train::TensorDim g_dim = gamma.getDim();
+        g_dim.setDataType(ml::train::TensorDim::DataType::FP16);
+        gamma_fp16 = nntrainer::Tensor(g_dim, true);
+        gamma_fp16.copyData(gamma);
+      }
+    }
+    nntrainer::Tensor &eff_gamma =
+      (gamma.getDataType() == ml::train::TensorDim::DataType::FP16)
+        ? gamma
+        : gamma_fp16;
+
     const auto in_md = in.getMemoryData();
     const auto out_md = out.getMemoryData();
-    const auto g_md = gamma.getMemoryData();
+    const auto g_md = eff_gamma.getMemoryData();
     const bool use_svm = in_md && in_md->isSVM() && out_md && out_md->isSVM() &&
                          g_md && g_md->isSVM();
     // Static residency: each of the input and the output binds the plane its
@@ -198,7 +210,7 @@ void RMSNormLayerGPU::incremental_forwarding(
     const bool out_clmem = clmem_ok && out.isClMem() && out.getClMem();
     void *in_cl = in_clmem ? in.getClMem() : nullptr;
     void *out_cl = out_clmem ? out.getClMem() : nullptr;
-    _FP16 *gamma_p = gamma.getData<_FP16>();
+    _FP16 *gamma_p = eff_gamma.getData<_FP16>();
     // Fused norm and residual add: a second input is the residual stream, so
     // out = rmsnorm(in) * gamma + residual runs in one kernel and the separate
     // addition layer -- and the dispatch idle between the two -- disappears.

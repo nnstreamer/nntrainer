@@ -142,7 +142,10 @@ Tensor Qwen3Transformer::createAttention(const int layer_id, int seq_len,
             getModelFeatures().decode_gpu ? "true" : "false"),
     withKey("gpu_decode_rope",
             getModelFeatures().decode_rope_gpu ? "true" : "false"),
-    withKey("gpu_ohwi_rope", getModelFeatures().decode_gpu ? "true" : "false")};
+    withKey("gpu_ohwi_rope", getModelFeatures().decode_gpu ? "true" : "false"),
+    withKey("engine", eng)};
+  for (const auto &p : act_props)
+    mha_props.push_back(p);
   if (layer_id < FROZEN_PREFIX)
     mha_props.push_back(withKey("forward_only", "true"));
   LayerHandle mha(createLayer("mha_core", mha_props));
