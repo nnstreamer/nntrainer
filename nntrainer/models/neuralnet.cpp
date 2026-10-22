@@ -40,6 +40,7 @@
 #if defined(ENABLE_OPENCL)
 #include <blas_kernel_interface.h> // cl_fc_release_caches
 #include <blas_kernels.h>          // cl_queue_drain_and_reset
+#include <opencl_kernel.h>         // Kernel::clearUndrainedSvmPlanes
 #endif
 #include <chrono>
 #include <mutex>
@@ -154,6 +155,12 @@ Tensor mapExternalTensor(float *buf, const TensorDim &dim) {
 }
 
 } // namespace
+
+/** True on a thread currently executing a forwardRange() walk (the pipeline
+ *  producer's prefix run). The per-node drain sites read it to keep their
+ *  coherence barrier without touching the process-wide queue bookkeeping the
+ *  concurrent training thread's own drains depend on (see forwardRange()). */
+static thread_local bool nntrainer_range_walk_thread = false;
 
 NeuralNetwork::NeuralNetwork() :
   model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm(),
@@ -563,11 +570,22 @@ void NeuralNetwork::forwardRange(unsigned int from, unsigned int to,
   // passes. No outputs come back; the prefix's output is consumed in place.
   if (from >= to)
     return;
+  // Range walks run on the pipeline producer thread while the training
+  // thread's step is in flight. The per-node drains below must then NOT
+  // touch the process-wide queue bookkeeping the training thread's own
+  // drains test: drainAndResetInFlight() retires the queue's in-flight
+  // epoch, which would be a lie about the tail's concurrent kernels and
+  // make its explicit-cpu nodes skip their coherence barrier (stale reads,
+  // loss drift). Mark this thread so the drain sites can pick the
+  // epoch-preserving form; the training thread never calls forwardRange()
+  // (it walks through forwarding()).
+  nntrainer_range_walk_thread = true;
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
     makeForwardingOp();
   auto never_stop = [](void *) { return false; };
   model_graph.forwardingRange(from, to, training, forwarding_op, never_stop,
                               nullptr);
+  nntrainer_range_walk_thread = false;
 }
 
 int NeuralNetwork::getNodeOrder(const std::string &node_name) {
@@ -631,6 +649,44 @@ NeuralNetwork::makeForwardingOp() {
         (exec_mode == ExecutionMode::INFERENCE and !fsu_mode)) {
       model_graph.flushCacheExcept(f);
       node->forwarding(training);
+#if defined(ENABLE_OPENCL)
+      {
+        // A device FC with FP16 output in a TRAIN graph (the FP16 frozen
+        // prefix of a CPU+GPU LoRA run) races whatever reads its output
+        // next: the v8c dispatch leaves the queue-busy / undrained-plane
+        // state the readers test unset, and the readers see the plane before
+        // the GEMM lands (FP16 hybrid loss off from sample 0, run-to-run
+        // nondeterministic; draining after every such FC matches the CPU run
+        // per sample). Drain there until the dispatch bookkeeping is fixed.
+        // [s0] NNTR_FP16_FC_DRAIN=0 disables this drain (the s0 root-cause
+        // bisect control arm; the drain returns when the env is unset).
+        static const int fp16_fc_drain = []() {
+          const char *e = std::getenv("NNTR_FP16_FC_DRAIN");
+          return e ? std::atoi(e) : 1;
+        }();
+        // A range walk (the pipeline producer's prefix run) drains for ITS
+        // OWN coherence only: plain clFinish + this thread's plane set,
+        // leaving the queue's in-flight epoch alone -- it guards the
+        // concurrent training thread's kernels too, and retiring it here
+        // would make the tail's explicit-cpu nodes skip their barrier
+        // (loss drift). Same waits, no shared-state writes.
+        auto queue_drain = []() {
+          if (nntrainer_range_walk_thread) {
+            nntrainer::cl_queue_finish();
+            opencl::Kernel::clearUndrainedSvmPlanes();
+          } else {
+            nntrainer::cl_queue_drain_and_reset();
+          }
+        };
+        if (fp16_fc_drain == 1 && exec_mode == ExecutionMode::TRAIN &&
+            node->isComputeEngineGPU() &&
+            node->getType() == "fully_connected" &&
+            node->getOutput(0).getDataType() == Tdatatype::FP16 &&
+            Engine::Global().isContextRegistered("gpu")) {
+          queue_drain();
+        }
+      }
+#endif
       if (nntr_env_on("NNTR_W_SUM")) {
         // The same fingerprint for a node's weights and the memory class of its
         // operands. A layer that outputs zeros while its inputs are fine is
@@ -764,7 +820,6 @@ NeuralNetwork::makeForwardingOp() {
   };
 }
 
-/**
 /**
  * @brief     forward propagation using layers object which has layer
  */
