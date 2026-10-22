@@ -39,16 +39,19 @@
 #endif
 
 #include <algorithm> // std::min (prefillChunk clamp)
+#include <condition_variable>
 #include <context.h> // nntrainer::ModelFeatures (T11)
 #include <dataset.h>
 #include <future> // async tokenizer load (round-13 init overlap)
 #include <layer.h>
 #include <map>
+#include <memory>
 #include <model.h>
 #include <mutex>
 #include <random>
 #include <stdexcept>
 #include <tensor_api.h>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -140,7 +143,12 @@ public:
   /**
    * @brief Destroy the Transformer object
    */
-  virtual ~Transformer() {}
+  virtual ~Transformer();
+
+  // out-of-line: PIPE (unique_ptr<PipelineProducerState>) is an incomplete
+  // type here, so the destructor that destroys it must live in the .cpp
+  Transformer(const Transformer &) = delete;
+  Transformer &operator=(const Transformer &) = delete;
 
   /**
    * @brief Initialize and Construct the Transformer model
@@ -306,6 +314,50 @@ public:
     FROZEN_CACHE_BYTES = max_bytes;
   }
   bool frozenCacheEnabled() const { return FROZEN_CACHE && FROZEN_PREFIX > 0; }
+
+  /**
+   * @brief Run the frozen prefix walk ahead of each step's forward instead of
+   *        from inside it (sample-level pipelining, serial form).
+   *
+   * The two-region walk normally runs from the forward override: [0, split)
+   * then the trainable tail, back to back. Splitting them over a hook that
+   * fires before the step's forward (see
+   * nntrainer::NeuralNetwork::setPreForwardHook()) changes nothing about the
+   * math -- same nodes, same order, the prefix just runs first -- but it is
+   * the seam a producer thread takes over later: the hook becomes the
+   * producer's job and the override restores its boundary from the staging
+   * slot. Until that lands, this only reorders the walk and must leave every
+   * loss bit-identical.
+   */
+  void setHybridPipeline(bool on) { HYBRID_PIPELINE = on; }
+  bool hybridPipelineEnabled() const { return HYBRID_PIPELINE; }
+
+  /**
+   * @brief Hand the pipelined prefix to a producer thread (stage 2).
+   *
+   * @param ids_pop blocking source of the next sample's token ids in
+   *        production order (see TrainingDataGenerator::pipelinePopIds);
+   *        returns false when training ends
+   * @param close_ids called once when training ends, to release a pop blocked
+   *        on an empty ring
+   *
+   * While the training thread runs a step's tail (forward and backward), the
+   * producer runs the NEXT sample's frozen range [0, split) -- everything but
+   * the boundary cast -- on the graph, reads the cast's FP16 input on the
+   * host (after a queue drain) and stages the FP32 boundary in one of two
+   * slots. The step's pre-forward hook waits for its slot and restores the
+   * boundary into the graph's split output. The producer touches only
+   * pipeline-band tensors (see NNTR_PIPE_BAND) and its own input rebind, so
+   * the two threads share no live CPU-region tensor. Requires
+   * setHybridPipeline(true) and NNTR_PIPE_BAND=1; training must not have
+   * started yet.
+   */
+  void setHybridPipelineProducer(
+    std::function<bool(unsigned int, std::vector<int32_t> &, unsigned int &)>
+      ids_pop,
+    std::function<void()> close_ids);
+  bool hybridPipelineProducerOn() const { return PIPELINE_PRODUCER_ON; }
+
   /** bytes of frozen hidden state the cache may hold (0 = unbounded) */
   size_t getFrozenCacheBudgetBytes() const { return FROZEN_CACHE_BYTES; }
   /** bytes it actually holds now: rows are added only while they fit, so this
@@ -1215,9 +1267,36 @@ protected:
   bool FROZEN_PREFIX_FP16 = false;
   /** see setFrozenCache() */
   bool FROZEN_CACHE = false;
+  /** see setHybridPipeline(): run the frozen prefix ahead of the step's
+   *  forward (the pipelining seam) rather than from inside the override */
+  bool HYBRID_PIPELINE = false;
   size_t FROZEN_CACHE_BYTES = 0;
   unsigned long FROZEN_PREFIX_RUNS = 0;
   unsigned long FROZEN_CACHE_HITS = 0;
+
+  /** see setHybridPipelineProducer() */
+  bool PIPELINE_PRODUCER_ON = false;
+  std::function<bool(unsigned int, std::vector<int32_t> &, unsigned int &)>
+    PIPELINE_IDS_POP;
+  std::function<void()> PIPELINE_IDS_CLOSE;
+
+  /**
+   * @brief Start the pipeline producer thread (stage 2). Called from train()
+   *        once the tensors exist and the input dims are known; wires the
+   *        pre-forward hook to the staging handshake and spawns the thread.
+   * @param split_past last node of the frozen range + 1 (the cast node's
+   *        index + 1; the producer's walk excludes the cast)
+   */
+  void startPipelineProducer(unsigned int split_past);
+
+  /** @brief Stop the producer thread and release a pop blocked on the ring. */
+  void stopPipelineProducer();
+
+  /** producer-thread state, guarded by PIPE_M; null/0 before train() */
+  // raw pointer: the state type is only defined in transformer.cpp, and a
+  // unique_ptr member would make every derived class's destructor need it.
+  // Owned and freed by stopPipelineProducer() / the destructor.
+  struct PipelineProducerState *PIPE = nullptr;
 
   /**
    * @brief Install the two-region walk of the training graph on the model's own

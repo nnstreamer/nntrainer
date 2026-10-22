@@ -36,6 +36,7 @@
 
 #include <app_context.h>
 #if defined(ENABLE_OPENCL)
+#include <blas_kernels.h> // cl_queue_finish (producer's boundary snapshot)
 #include <cl_context.h> // GPU registration goes via the Engine facade now; the
 // header is OpenCL-only -> guard for the no-OpenCL build.
 #endif
@@ -129,6 +130,10 @@ ModelType strToModelType(std::string model_type) {
 /**
  * @brief Construct a Transformer and initialize shared config state.
  */
+Transformer::~Transformer() {
+  stopPipelineProducer(); // frees PIPE (a no-op unless a run left it behind)
+}
+
 Transformer::Transformer(json &cfg, json &generation_cfg, json &nntr_cfg,
                          ModelType model_type) {
 
@@ -693,6 +698,341 @@ static std::string frozenPrefixEndNode(int frozen_prefix) {
   return "layer" + std::to_string(frozen_prefix - 1) + "_decoder_output";
 }
 
+/**
+ * @brief State shared by the training thread's pre-forward hook and the
+ *        pipeline's producer thread (see
+ *        Transformer::setHybridPipelineProducer()).
+ *
+ * Two staging slots hold the next samples' boundary rows (the frozen range's
+ * output, FP32, one plane per slot). The handshake, in step order:
+ *   producer: run sample k's range, stage its boundary, produced_gen = k+1
+ *   hook (step k): wait produced_gen >= k+1, copy slot k%2 into the graph's
+ *   split output, tail_started = k+1 (permits the producer's sample k+1 run)
+ * The producer's range run therefore overlaps the PREVIOUS step's tail
+ * forward+backward: it starts when that step's tail starts (its split output
+ * and input plane are dead to the training thread by then -- the tail reads
+ * the boundary only through its first node, and the backwarding never touches
+ * the frozen prefix, whose nodes are all upstream of every trainable one), and
+ * it writes only pipeline-band tensors plus its own staging slots.
+ */
+struct PipelineProducerState {
+  std::mutex m;
+  std::condition_variable cv_hook; ///< produced_gen advanced
+  std::condition_variable cv_prod; ///< tail_started advanced / stop
+  unsigned long produced_gen = 0;  ///< boundaries staged so far
+  unsigned long tail_started = 0;  ///< steps whose tail forward has begun
+  bool stop = false;
+  bool failed = false; ///< producer hit an exception
+  std::string fail_msg;
+  std::thread worker;
+  unsigned int rows = 1;       ///< batch rows of the input plane
+  unsigned int split_past = 0; ///< last frozen node + 1 (cast included)
+  std::vector<std::vector<char>> staging; ///< 2 slots x boundary plane bytes
+  std::vector<char> ids_plane;            ///< producer's own input plane (FP32)
+  nntrainer::TensorDim ids_dim;           ///< the plane's dim (= placeholder's)
+  nntrainer::Tensor ids_tensor; ///< the plane as a Tensor, for the rebind
+};
+
+void Transformer::setHybridPipelineProducer(
+  std::function<bool(unsigned int, std::vector<int32_t> &, unsigned int &)>
+    ids_pop,
+  std::function<void()> close_ids) {
+  PIPELINE_IDS_POP = std::move(ids_pop);
+  PIPELINE_IDS_CLOSE = std::move(close_ids);
+  PIPELINE_PRODUCER_ON = true;
+  // The pool partition is a precondition: without it the planner lets the
+  // next sample's GPU prefix overwrite the live CPU region of the step being
+  // trained. It is read once, at tensor-pool finalize time, so it has to be
+  // set here -- before the allocation that train() triggers.
+  nntrainer::nntr_setenv("NNTR_PIPE_BAND", "1", 0);
+  // The pool's partition-split marker is the frozen-prefix cast node's
+  // request -- but that node exists only when the prefix runs FP16
+  // activations (FROZEN_PREFIX_FP16, transformer.cpp constructModel). In the
+  // FP32-prefix mode (NNTR_GPU_FP32=1) there is no cast, the cast name never
+  // appears in the pool's request stream, and the pool's prefix/tail split
+  // never fired: every tensor stayed "band" and the planner laid the tail's
+  // live activations over prefix planes the concurrent walk rewrites
+  // (measured FP32 producer dump: 1566/1566 band-marked, 192 byte-overlapping
+  // prefix<->tail reuse pairs, e.g. layer0_attention_norm:out0 sharing
+  // offset 24182784 with layer24_attention_norm:inv_rms -- losses wrong from
+  // step 0 and nondeterministic across runs). Name the actual split node --
+  // the last frozen block's output, which the producer stages -- so the
+  // marker exists in both prefix dtype modes. No-op for FP16: the cast is
+  // requested BEFORE the split node's output in stream order? No -- the
+  // split node's output precedes the cast; naming both would move the FP16
+  // split marker one node earlier, so this env is deliberately set only when
+  // the cast node is absent, leaving the verified FP16 layout untouched.
+  if (!FROZEN_PREFIX_FP16)
+    nntrainer::nntr_setenv("NNTR_PIPE_BOUNDARY",
+                           frozenPrefixEndNode(FROZEN_PREFIX).c_str(), 0);
+}
+
+void Transformer::startPipelineProducer(unsigned int split_past) {
+  auto *nn = static_cast<nntrainer::NeuralNetwork *>(model.get());
+  // The tensors the handshake moves: the graph's input placeholder (the
+  // producer rebinds it to its own token plane) and the split output (the
+  // hook copies the staged boundary into it). Resolved with the same
+  // suffix fallback as installFrozenPrefixWalk().
+  auto find_tensor = [nn](const std::string &base) -> nntrainer::Tensor * {
+    for (const char *suffix : {"", ":out0", ":input0", ":0"})
+      if (auto *t = nn->getTensor(base + suffix))
+        return t;
+    return nullptr;
+  };
+  nntrainer::Tensor *input = nullptr;
+  for (const auto &node : nn->getFlatGraph()) {
+    if (node->getType() == "input") {
+      input = find_tensor(node->getName());
+      break;
+    }
+  }
+  nntrainer::Tensor *split_out =
+    find_tensor(frozenPrefixEndNode(FROZEN_PREFIX));
+  NNTR_THROW_IF(!input || !split_out, std::runtime_error)
+    << "pipeline producer: the input placeholder or the split output tensor "
+       "is not addressable, so there is nowhere to rebind or stage";
+
+  PIPE = new PipelineProducerState();
+  PIPE->rows = input->batch();
+  PIPE->split_past = split_past;
+  const size_t plane_bytes = split_out->getMemoryBytes();
+  PIPE->staging.assign(2, std::vector<char>(plane_bytes, 0));
+  // The producer's own token plane: same dim and dtype as the placeholder, so
+  // the rebind is a pure pointer swap onto storage the producer owns.
+  const nntrainer::TensorDim &in_dim = input->getDim();
+  const size_t in_bytes = (size_t)in_dim.getDataLen() * sizeof(float);
+  PIPE->ids_plane.assign(in_bytes, 0);
+  PIPE->ids_dim = in_dim;
+
+  const unsigned int rows = PIPE->rows;
+  // The boundary the tail consumes is the SPLIT NODE's output itself
+  // (layer<N-1>_decoder_output, FP16 when the frozen prefix is FP16): the
+  // FP16->FP32 boundary cast is the TAIL's first node -- "split after
+  // compiled node split_past" puts the cast in the tail range -- so the
+  // producer stages the pre-cast plane and the tail still runs its own cast,
+  // exactly as the serial form did.
+  auto *trunk_out = find_tensor(frozenPrefixEndNode(FROZEN_PREFIX));
+  NNTR_THROW_IF(!trunk_out, std::runtime_error)
+    << "pipeline producer: " << frozenPrefixEndNode(FROZEN_PREFIX)
+    << " (the prefix's boundary plane) is not addressable, so the boundary "
+       "cannot be staged";
+
+  // The pre-forward hook becomes the consumer half of the handshake: restore
+  // this step's staged boundary, then release the producer. (Stage 1's hook
+  // -- run the range right here -- is superseded; setPreForwardHook replaces
+  // it.) The cache-on stage-1 hook is likewise replaced: the producer takes
+  // the whole prefix side, cache included, so "cache hit, no prefix" holds.
+  unsigned long step = 0;
+  nn->setPreForwardHook([this, split_out, step](void) mutable {
+    auto *p = PIPE;
+    std::unique_lock<std::mutex> lk(p->m);
+    p->cv_hook.wait(
+      lk, [&] { return p->produced_gen >= step + 1 || p->stop || p->failed; });
+    NNTR_THROW_IF(p->failed, std::runtime_error)
+      << "pipeline producer thread failed: " << p->fail_msg;
+    NNTR_THROW_IF(p->stop, std::runtime_error)
+      << "pipeline producer stopped before staging step " << step;
+    const size_t plane_bytes = split_out->getMemoryBytes();
+    // [p8] The boundary tensor lives in the pipeline band -- an OpenCL SVM
+    // allocation on the GPU path -- and this write happens on the TRAINING
+    // thread while the producer's next walk is already enqueueing kernels
+    // against the same allocation. Every other host touch of a shared-plane
+    // tensor goes through a map (HostOperand, the residual add, the staging
+    // read below); this one did not, so the unmap the producer enqueues and
+    // this raw store could interleave on the driver's coarse-grain shadow.
+    // Map it the same way the staging side is mapped: the blocking map waits
+    // out any kernel the producer has in flight, and the unmap hands the
+    // bytes back to the device view before the tail's first node reads them.
+    // The map must cover the WRITE direction (read_only=false) -- this is the
+    // producer of the boundary bytes for this step.
+#if defined(ENABLE_OPENCL)
+    if (nntrainer::Engine::Global().isContextRegistered("gpu")) {
+      nntrainer::cl_svm_map_force(split_out->getData<char>(), plane_bytes,
+                                  /*read_only=*/false);
+      std::memcpy(split_out->getData<char>(), p->staging[step % 2].data(),
+                  plane_bytes);
+      nntrainer::cl_svm_unmap_force(split_out->getData<char>());
+    } else
+#endif
+      std::memcpy(split_out->getData<char>(), p->staging[step % 2].data(),
+                  plane_bytes);
+    p->tail_started = step + 1;
+    lk.unlock();
+    p->cv_prod.notify_all();
+    ++step;
+  });
+
+  PIPE->worker =
+    std::thread([this, nn, split_out, trunk_out, plane_bytes, rows] {
+      auto *p = PIPE;
+      unsigned long sample = 0;
+      try {
+        for (;; sample++) {
+          // Fetch this prefix run's batch rows' ids, then wait until the
+          // training thread's tail has started (from there its backwarding
+          // never touches the frozen range, and its tail forward is done with
+          // the split output's first node -- the only node that reads it).
+          // Sample 0 needs no wait: the training thread has not bound
+          // anything yet.
+          std::vector<std::vector<int32_t>> row_ids(rows);
+          std::vector<unsigned int> row_used(rows);
+          for (unsigned int r = 0; r < rows; ++r) {
+            std::vector<int32_t> one;
+            unsigned int u = 0;
+            if (!PIPELINE_IDS_POP((unsigned)sample, one, u))
+              return; // training over, ring closed
+            row_ids[r] = std::move(one);
+            row_used[r] = u;
+          }
+          {
+            std::unique_lock<std::mutex> lk(p->m);
+            if (sample > 0)
+              p->cv_prod.wait(
+                lk, [&] { return p->tail_started >= sample || p->stop; });
+            if (p->stop)
+              return;
+          }
+          // Fill the producer's own token plane the same way the generator
+          // fills the placeholder: used ids, then zero padding.
+          const size_t width = p->ids_plane.size() / (rows * sizeof(float));
+          float *plane = reinterpret_cast<float *>(p->ids_plane.data());
+          for (unsigned int r = 0; r < rows; ++r) {
+            float *row = plane + (size_t)r * width;
+            const unsigned int u = std::min<unsigned>(row_used[r], width);
+            for (size_t i = 0; i < width; ++i)
+              row[i] = i < u ? static_cast<float>(row_ids[r][i]) : 0.0f;
+          }
+          // Rebind the placeholder to the producer's plane. The training
+          // thread reads the placeholder only through the range's first node,
+          // and its next setInputsLabels() rebind supersedes this one.
+          // Tensor(dim, buf) COPIES the buffer into its own allocation
+          // (float_tensor.cpp ctor), so the plane must be filled BEFORE the
+          // tensor is (re)built -- and rebuilt per sample, since the last
+          // construction predates this sample's fill.
+          p->ids_tensor = nntrainer::Tensor(p->ids_dim, plane);
+          nn->setInputPlaceholder(p->ids_tensor);
+
+          // The boundary rows land in this sample's staging slot, either
+          // restored from the frozen cache or host-cast from the walk's FP16
+          // output. The cache keys are the same hashes the override's cache
+          // path builds -- a row's token-plane bytes and the row stride.
+          std::vector<char> &slot = p->staging[sample % 2];
+          const size_t in_bytes = p->ids_plane.size();
+          const size_t in_stride = in_bytes / rows;
+          std::vector<std::string> keys(rows);
+          bool all_hit = FROZEN_CACHE;
+          if (FROZEN_CACHE) {
+            for (unsigned int r = 0; r < rows; ++r) {
+              const char *raw = p->ids_plane.data() + (size_t)r * in_stride;
+              uint64_t h = 1469598103934665603ull; // FNV-1a
+              for (size_t i = 0; i < in_stride; ++i) {
+                h ^= (unsigned char)raw[i];
+                h *= 1099511628211ull;
+              }
+              std::string key((const char *)&h, sizeof(h));
+              key.append((const char *)&in_stride, sizeof(in_stride));
+              if (FROZEN_CACHE_MAP.find(key) == FROZEN_CACHE_MAP.end())
+                all_hit = false;
+              keys[r] = std::move(key);
+            }
+          }
+          bool filled = false;
+          if (all_hit) {
+            const size_t out_stride = plane_bytes / rows;
+            for (unsigned int r = 0; r < rows; ++r) {
+              const std::vector<char> &row = FROZEN_CACHE_MAP[keys[r]];
+              NNTR_THROW_IF(row.size() != out_stride, std::runtime_error)
+                << "pipeline producer: a cached row is " << row.size()
+                << " bytes but the boundary row is " << out_stride;
+              std::memcpy(slot.data() + (size_t)r * out_stride, row.data(),
+                          out_stride);
+            }
+            FROZEN_CACHE_HITS += rows;
+            filled = true;
+          }
+          if (!filled) {
+            // The full prefix, the same range the serial form ran: the
+            // boundary cast is the TAIL's first node, not part of this
+            // range, so nothing here writes a plane the training thread's
+            // tail is reading. The walk's last node produces the boundary
+            // plane on the device; the host copy below must see it.
+            nn->forwardRange(0, p->split_past, /*training=*/true);
+#if defined(ENABLE_OPENCL)
+            if (nntrainer::Engine::Global().isContextRegistered("gpu")) {
+              // The walk's device writes become host-visible through a
+              // BLOCKING SVM map: this driver's shadow for the aliased
+              // planner plane is only materialized by the map (a bare
+              // clFinish + read returned stale TAIL bytes), and the copy
+              // must happen WHILE MAPPED, before the unmap enqueue passes
+              // over the shadow (correct HEAD bytes, stale TAIL bytes).
+              // The map's one side effect -- storing s_kernels_in_flight =
+              // false -- is neutralized by the per-node drains below
+              // running in flag-preserving form on this thread (see
+              // neuralnet.cc forwardRange): the flag belongs to the
+              // concurrent training thread's barrier decisions too.
+              nntrainer::cl_svm_map_force(trunk_out->getData<char>(),
+                                          plane_bytes, true);
+              std::memcpy(slot.data(), trunk_out->getData<char>(), plane_bytes);
+              nntrainer::cl_svm_unmap_force(trunk_out->getData<char>());
+            } else
+#endif
+              std::memcpy(slot.data(), trunk_out->getData<char>(), plane_bytes);
+            {
+              std::lock_guard<std::mutex> lk(p->m);
+              FROZEN_PREFIX_RUNS += rows;
+              if (FROZEN_CACHE) {
+                const size_t out_stride = plane_bytes / rows;
+                for (unsigned int r = 0; r < rows; ++r) {
+                  if (keys[r].empty() || FROZEN_CACHE_MAP.count(keys[r]))
+                    continue;
+                  if (FROZEN_CACHE_BYTES != 0 &&
+                      FROZEN_CACHE_USED + out_stride > FROZEN_CACHE_BYTES)
+                    break;
+                  const char *src = slot.data() + (size_t)r * out_stride;
+                  auto inserted = FROZEN_CACHE_MAP.emplace(
+                    keys[r], std::vector<char>(src, src + out_stride));
+                  if (inserted.second)
+                    FROZEN_CACHE_USED += out_stride;
+                }
+              }
+            }
+          }
+          {
+            std::lock_guard<std::mutex> lk(p->m);
+            p->produced_gen = sample + 1;
+          }
+          p->cv_hook.notify_all();
+        }
+      } catch (const std::exception &e) {
+        std::lock_guard<std::mutex> lk(p->m);
+        p->failed = true;
+        p->fail_msg = e.what();
+        p->cv_hook.notify_all();
+      }
+    });
+}
+
+void Transformer::stopPipelineProducer() {
+  if (!PIPE)
+    return;
+  {
+    std::lock_guard<std::mutex> lk(PIPE->m);
+    PIPE->stop = true;
+  }
+  // Close the ids ring FIRST: a producer blocked on a pop of a sample that
+  // will never come (training ended) wakes only through it; PIPE's own cvs
+  // cannot reach it while it waits on the ring.
+  if (PIPELINE_IDS_CLOSE)
+    PIPELINE_IDS_CLOSE();
+  PIPE->cv_prod.notify_all();
+  PIPE->cv_hook.notify_all();
+  if (PIPE->worker.joinable())
+    PIPE->worker.join();
+  delete PIPE;
+  PIPE = nullptr;
+  PIPELINE_IDS_CLOSE = nullptr;
+}
+
 void Transformer::installFrozenPrefixWalk() {
   // A named frozen range is worth installing whichever engine runs it: the
   // split is what lets epochs 2.. skip the range (--frozen_cache), so a host
@@ -771,14 +1111,52 @@ void Transformer::installFrozenPrefixWalk() {
     << " has no addressable output tensor, so a cached hidden state has "
        "nowhere to go";
 
+  // [pipeline] sample-level pipelining: the frozen range's walk moves from
+  // the forward override to a hook that fires before the step's forward
+  // (after the inputs were bound, so the prefix reads the sample the step is
+  // about to train). Same nodes, same order -- the boundary ends up in
+  // split_out either way -- only the point in the step where it runs changes,
+  // so every loss must stay bit-identical. Serial form: the hook runs the
+  // range itself on the training thread. Stage 2 (setHybridPipelineProducer)
+  // REPLACES this hook at train() time: then the hook only restores the
+  // boundary from a staging slot the producer thread filled under the
+  // previous step, and the override below restores it (the frozen-cache hit
+  // path already demonstrates that restore-from-a-copy shape).
+  if (HYBRID_PIPELINE) {
+    // The cache-off hook: run the range unconditionally. The cache-on variant
+    // (hash, restore-or-run, fill) replaces it below when FROZEN_CACHE is set,
+    // so a cache hit also skips the range from the hook.
+    nn->setPreForwardHook([nn, split_past](void) {
+      nn->forwardRange(0, split_past, /*training=*/true);
+    });
+  }
+
   nn->setForwardOverride([this, nn, input, split_out, split_past, total,
                           end_node](nntrainer::NeuralNetwork *self,
                                     bool training) {
     auto run_tail = [&]() { self->forwardRange(split_past, total, training); };
 
-    if (!FROZEN_CACHE) {
+    // [pipeline] the hook ran the prefix already (or the producer staged it
+    // and the hook restored it from staging): the boundary is in split_out,
+    // so this walk owns the tail only. The hook fires from the TRAINING
+    // iteration only (it is invoked from train_for_iteration, before its
+    // forwarding call), so an eval forward (validation / testing) still
+    // arrives here with the prefix unrun and walks the whole graph itself
+    // below.
+    if (HYBRID_PIPELINE && training) {
+      run_tail();
+      return true;
+    }
+
+    // In producer mode the producer thread owns FROZEN_CACHE_MAP (it hashes,
+    // fills and restores under PIPE's mutex). An eval forward arriving here
+    // would touch the map concurrently with the producer, so the eval walk
+    // just recomputes the range: validation re-runs the prefix per sample,
+    // which it always did when the cache was off.
+    if (!FROZEN_CACHE || (PIPELINE_PRODUCER_ON && !training)) {
       self->forwardRange(0, split_past, training);
-      ++FROZEN_PREFIX_RUNS;
+      if (!PIPELINE_PRODUCER_ON || training)
+        ++FROZEN_PREFIX_RUNS;
       run_tail();
       return true;
     }
@@ -890,6 +1268,65 @@ void Transformer::installFrozenPrefixWalk() {
     return true;
   });
 
+  // [pipeline] With the cache enabled the hook takes the WHOLE prefix side
+  // (hash, restore-or-run, cache fill) so a cache hit also skips the range
+  // from the hook -- "cache hit, no prefix" holds in the pipelined shape too.
+  // Installed after the override so the capture below sees the same tensors.
+  if (HYBRID_PIPELINE && FROZEN_CACHE) {
+    nn->setPreForwardHook(
+      [this, nn, input, split_out, split_past](void) mutable {
+        const size_t rows = input->batch();
+        const size_t in_bytes = input->getMemoryBytes();
+        const size_t out_bytes = split_out->getMemoryBytes();
+        const size_t in_stride = in_bytes / rows;
+        const size_t out_stride = out_bytes / rows;
+
+        std::vector<std::string> keys(rows);
+        bool all_hit = true;
+        for (size_t r = 0; r < rows; ++r) {
+          const char *raw = input->getData<char>() + r * in_stride;
+          uint64_t h = 1469598103934665603ull; // FNV-1a
+          for (size_t i = 0; i < in_stride; ++i) {
+            h ^= (unsigned char)raw[i];
+            h *= 1099511628211ull;
+          }
+          std::string key((const char *)&h, sizeof(h));
+          key.append((const char *)&in_stride, sizeof(in_stride));
+          if (FROZEN_CACHE_MAP.find(key) == FROZEN_CACHE_MAP.end())
+            all_hit = false;
+          keys[r] = std::move(key);
+        }
+
+        if (all_hit) {
+          for (size_t r = 0; r < rows; ++r) {
+            const std::vector<char> &row = FROZEN_CACHE_MAP[keys[r]];
+            NNTR_THROW_IF(row.size() != out_stride, std::runtime_error)
+              << "frozen prefix cache: a cached row is " << row.size()
+              << " bytes but the graph's split output row is " << out_stride;
+            std::memcpy(split_out->getData<char>() + r * out_stride, row.data(),
+                        out_stride);
+          }
+          FROZEN_CACHE_HITS += rows;
+          return;
+        }
+
+        nn->forwardRange(0, split_past, /*training=*/true);
+        FROZEN_PREFIX_RUNS += rows;
+        for (size_t r = 0; r < rows; ++r) {
+          if (keys[r].empty() || FROZEN_CACHE_MAP.count(keys[r]))
+            continue;
+          if (FROZEN_CACHE_BYTES != 0 &&
+              FROZEN_CACHE_USED + out_stride > FROZEN_CACHE_BYTES)
+            break;
+          const char *p = split_out->getData<char>() + r * out_stride;
+          auto inserted = FROZEN_CACHE_MAP.emplace(
+            keys[r], std::vector<char>(p, p + out_stride));
+          if (inserted.second)
+            FROZEN_CACHE_USED += out_stride;
+        }
+      });
+  }
+
   std::cout << "frozen prefix: blocks [0, " << FROZEN_GPU_END << ") on engine="
             << (FROZEN_PREFIX_ENGINE.empty() ? layerEngine()
                                              : FROZEN_PREFIX_ENGINE)
@@ -926,8 +1363,29 @@ void Transformer::train(
   if (!iteration_cb)
     iteration_cb = [](unsigned int, float, void *) {};
 
-  if (model->train({}, stop_cb, stop_data, epoch_complete_cb, epoch_data,
-                   iteration_cb, iteration_data)) {
+  // [pipeline stage 2] spawn the producer for the whole train() call: its
+  // prefix runs overlap the steps' tails, its staging slots feed the
+  // pre-forward hook, and both die with this call. (The pool partition it
+  // needs was enabled at setHybridPipelineProducer() time -- the env is read
+  // at tensor-pool finalize, before this call.)
+  if (HYBRID_PIPELINE && PIPELINE_PRODUCER_ON && FROZEN_PREFIX > 0) {
+    auto *nn = static_cast<nntrainer::NeuralNetwork *>(model.get());
+    const int split = nn->getNodeOrder(frozenPrefixEndNode(FROZEN_PREFIX));
+    NNTR_THROW_IF(split < 0, std::runtime_error)
+      << "pipeline producer: split node not found";
+    startPipelineProducer((unsigned int)split + 1);
+  }
+
+  int rc = 0;
+  try {
+    rc = model->train({}, stop_cb, stop_data, epoch_complete_cb, epoch_data,
+                      iteration_cb, iteration_data);
+  } catch (...) {
+    stopPipelineProducer(); // closes the ids ring before joining
+    throw;
+  }
+  stopPipelineProducer();
+  if (rc) {
     throw std::runtime_error("Training failed.");
   }
 }
@@ -2273,6 +2731,10 @@ Tensor Transformer::createAttention(const int layer_id, int seq_len,
     withKey("engine", eng)};
   for (const auto &p : act_props)
     mha_props.push_back(p);
+  // Every frozen block's attention runs forward_only: the GPU prefix [0, G)
+  // needs the prefill path (see props::ForwardOnly), and a host frozen block
+  // [G, S) of a G<S split needs no training tensors either -- backwarding
+  // never reaches it (nothing trainable consumes its output).
   if (layer_id < FROZEN_PREFIX)
     mha_props.push_back(withKey("forward_only", "true"));
   LayerHandle mha(createLayer("mha_core", mha_props));

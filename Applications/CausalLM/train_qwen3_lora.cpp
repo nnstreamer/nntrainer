@@ -18,6 +18,7 @@
 
 #include <dataset.h>
 #include <engine.h> // does this build have a gpu context at all
+#include <env_compat.h>
 #include <model.h>
 
 #include <algorithm>
@@ -101,6 +102,16 @@ void printUsage(const char *prog) {
     << "                        forward-only blocks (S = the frozen count,\n"
     << "                        --lora_last_n back). Default: n = S, the\n"
     << "                        whole frozen prefix on the GPU.\n"
+    << "  --hybrid_pipeline     with --hybrid_trunk: move the frozen prefix's\n"
+    << "                        walk ahead of each step's forward "
+       "(sample-level\n"
+    << "                        pipelining, serial form -- the producer "
+       "thread\n"
+    << "                        that overlaps it with the step lands with the\n"
+    << "                        memory-pool partition). NNTR_HYBRID_PIPE=1 is\n"
+    << "                        the same switch as an env. Losses are "
+       "expected\n"
+    << "                        bit-identical with this off.\n"
     << "  --activation_ckpt     activation checkpointing: recompute each\n"
     << "                        trained decoder block's activations before\n"
     << "                        its backward instead of keeping them (lower\n"
@@ -579,6 +590,42 @@ int runLoraTraining(const TrainParams &params_in, TrainProgressCb callback,
     if (hybrid && gpu_present && params.gpu_base_gemm) {
       nntrainer::nntr_setenv("NNTR_TRAIN_BASE_GPU", "1", 0);
     }
+    // [pipeline] the flag must be set BEFORE initializeForTraining(): the
+    // walk installer reads it at compile time to decide whether the prefix
+    // runs inside the forward override (serial form) or from the pre-forward
+    // hook. Set after, the override still sees it (a runtime read) and skips
+    // the prefix while no hook exists to run it -- the prefix never runs at
+    // all. Moved here from the dataset block below, where the first wiring
+    // put it.
+    // Stage 2: with the producer on, the prefix moves to a producer thread
+    // entirely (the hook only restores its staged boundary), so the ids have
+    // to reach it in production order -- the generator publishes them.
+    // NNTR_PIPE_PRODUCER=1 opts in explicitly.
+    // --hybrid_pipeline alone keeps the verified stage-1 serial form. The pool
+    // partition (band) is a producer-only precondition: with the serial form
+    // the prefix runs on the training thread inside the hook, nothing overlaps,
+    // and the band's changed layout (re-aligned offsets, "118/232 aligned") is
+    // measured to shift the losses off bit-identical -- so the band env is set
+    // only under this gate.
+    if ((params.hybrid_pipeline || nntr_env_on("NNTR_HYBRID_PIPE")) &&
+        nntr_env_on("NNTR_PIPE_PRODUCER")) {
+      // Set here, in the same process window as the other env knobs, because
+      // the pool reads it once at tensor finalize -- measured on-device, a
+      // setenv from inside the model object (setHybridPipelineProducer) did
+      // not reach it, while this site does.
+      nntrainer::nntr_setenv("NNTR_PIPE_BAND", "1", 0);
+      model.setHybridPipeline(true);
+      data_gen->publishIdsToPipeline(true);
+      model.setHybridPipelineProducer(
+        [&gen = *data_gen](unsigned int n, std::vector<int32_t> &ids,
+                           unsigned int &used) {
+          return gen.pipelinePopIds(n, ids, used);
+        },
+        [&gen = *data_gen]() { gen.pipelineCloseIds(); });
+      std::cout << "pipeline:     frozen prefix on a producer thread "
+                   "(boundary staged under the previous step's tail)"
+                << std::endl;
+    }
     // The frozen region's output depends on nothing training changes -- its
     // weights are frozen and a sample's token ids never change -- so from epoch
     // 2 a repeated sample can skip it. Budgeted in bytes; samples past the
@@ -654,8 +701,20 @@ int runLoraTraining(const TrainParams &params_in, TrainProgressCb callback,
     // lifespan partition of the pool, not a second pool), and until it lands
     // the single graph is serial -- which is also the only configuration whose
     // memory is bounded.
+    //
+    // --hybrid_pipeline moves the prefix's walk ahead of each step's forward
+    // (Transformer::setHybridPipeline): no overlap yet, the seam a producer
+    // thread takes over later. It still takes the 2-slot queue now -- the
+    // shape the producer needs, and harmless with one slot free per step.
+    // The flag itself is set up above, next to the frozen-prefix setters:
+    // initializeForTraining() compiles the graph and installs the walk, so
+    // the flag has to exist by then. What remains here is only the queue
+    // shape the producer needs.
+    bool pipeline = params.hybrid_pipeline || nntr_env_on("NNTR_HYBRID_PIPE");
     std::shared_ptr<ml::train::Dataset> dataset = ml::train::createDataset(
       ml::train::DatasetType::GENERATOR, trainingDataGenCb, data_gen.get());
+    if (pipeline)
+      dataset->setProperty({"buffer_size=2"});
     model.setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset);
 
     // Validation keeps its own generator so its rows never mix into the
@@ -777,6 +836,8 @@ int main(int argc, char *argv[]) {
         params.activation_ckpt = true;
       else if (arg == "--hybrid_sync")
         params.hybrid_sync = true;
+      else if (arg == "--hybrid_pipeline")
+        params.hybrid_pipeline = true;
       else if (arg == "--frozen_cache")
         params.frozen_cache = true;
       else if (arg == "--gpu_base_gemm")
