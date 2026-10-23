@@ -439,6 +439,15 @@ public:
    */
   template <typename T = float>
   static Tensor &gelu(Tensor const &t_in, Tensor &t_out) {
+#ifdef ENABLE_FP16
+    // Callers may invoke gelu() without a template argument on an FP16 tensor
+    // (T defaults to float); dispatch on the tensor's real type so the FP32
+    // kernel never reinterprets half-width storage.
+    if constexpr (!std::is_same_v<T, _FP16>) {
+      if (t_in.getDataType() == Tdatatype::FP16)
+        return gelu<_FP16>(t_in, t_out);
+    }
+#endif
     // FP32-only vectorized kernel below; see tanhGelu() for why a non-float
     // tensor must not be reinterpreted as float here.
     if constexpr (!std::is_same_v<T, float>) {
@@ -520,6 +529,14 @@ public:
    */
   template <typename T = float>
   static Tensor &tanhGelu(Tensor const &t_in, Tensor &t_out) {
+#ifdef ENABLE_FP16
+    // Same runtime dispatch as gelu(): an FP16 tensor takes the FP16 path even
+    // when the caller left T at its float default.
+    if constexpr (!std::is_same_v<T, _FP16>) {
+      if (t_in.getDataType() == Tdatatype::FP16)
+        return tanhGelu<_FP16>(t_in, t_out);
+    }
+#endif
     // The vectorized kernel is FP32-only. Dispatching a non-float tensor to it
     // would reinterpret T data as float and read/write size()*4 bytes out of a
     // size()*sizeof(T) buffer — an out-of-bounds write for FP16. Compute in
