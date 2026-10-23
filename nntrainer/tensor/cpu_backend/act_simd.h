@@ -112,7 +112,8 @@ static inline void nntr_silu_inplace_f32(float *p, size_t n) {
 static inline void nntr_quantize_affine_i8(const float *src, int8_t *dst,
                                            size_t n, float inv, float off) {
   size_t i = 0;
-#if defined(__ARM_NEON)
+  // FCVTAS (vcvtaq) is AArch64-only; armv7 NEON takes the scalar loop.
+#if defined(__ARM_NEON) && defined(__aarch64__)
   const float32x4_t vinv = vdupq_n_f32(inv);
   const float32x4_t voff = vdupq_n_f32(off);
   const int32x4_t vm128 = vdupq_n_s32(-128);
@@ -147,7 +148,8 @@ static inline void nntr_quantize_affine_i8(const float *src, int8_t *dst,
 static inline float nntr_absmax_f32(const float *src, size_t n) {
   float am = 0.f;
   size_t i = 0;
-#if defined(__ARM_NEON)
+  // The across-vector max (vmaxvq) is AArch64-only.
+#if defined(__ARM_NEON) && defined(__aarch64__)
   float32x4_t vm = vdupq_n_f32(0.f);
   for (; i + 3 < n; i += 4)
     vm = vmaxq_f32(vm, vabsq_f32(vld1q_f32(src + i)));

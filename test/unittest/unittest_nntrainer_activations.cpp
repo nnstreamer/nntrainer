@@ -473,7 +473,7 @@ TEST(nntrainer_activation, gelu_fp16_01_p) {
   nntrainer::Tensor results(batch, channel, height, width, t_type_fp16);
   results = nntrainer::ActiFunc::gelu(input, results);
 
-  const __fp16 *data = results.getData<__fp16>();
+  const _FP16 *data = results.getData<_FP16>();
   ASSERT_NE(nullptr, data);
 
   const float fp16_tol = 1e-2f;
@@ -515,7 +515,7 @@ TEST(nntrainer_activation, tanh_gelu_fp16_01_p) {
   nntrainer::Tensor results(batch, channel, height, width, t_type_fp16);
   results = nntrainer::ActiFunc::tanhGelu(input, results);
 
-  const __fp16 *data = results.getData<__fp16>();
+  const _FP16 *data = results.getData<_FP16>();
   ASSERT_NE(nullptr, data);
 
   const float fp16_tol = 1e-2f;

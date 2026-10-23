@@ -267,7 +267,7 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
                 std::memcpy(d, s, (size_t)Ci);
               } else if (asym) {
                 unsigned int c = 0;
-#if defined(__ARM_NEON)
+#if defined(__ARM_NEON) && defined(__aarch64__)
                 // q' = round((q + 128) * mult) - 128, saturating to int8.
                 // FRINTA (vrndaq) rounds ties away from zero, matching
                 // std::round; the rounded value is an exact integer float so

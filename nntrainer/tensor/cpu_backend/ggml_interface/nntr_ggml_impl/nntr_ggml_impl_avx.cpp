@@ -22,6 +22,7 @@
 #include <cstring>
 #include <math.h>
 #include <stddef.h>
+#include <stdexcept>
 #include <stdint.h>
 #include <tensor_dim.h>
 

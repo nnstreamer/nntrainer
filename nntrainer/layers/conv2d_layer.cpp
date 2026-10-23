@@ -335,7 +335,7 @@ static inline float convBiasActRow(float *row, const float *bias,
                                    unsigned int C, int act) {
   float am = 0.f;
   unsigned int cc = 0;
-#if defined(__ARM_NEON)
+#if defined(__ARM_NEON) && defined(__aarch64__)
   float32x4_t vam = vdupq_n_f32(0.f);
   const float32x4_t one = vdupq_n_f32(1.f);
   const float32x4_t three = vdupq_n_f32(3.f);
@@ -2229,7 +2229,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
               float *op = outp + ((size_t)oh * Wo + ow) * Cout;
               const int w0 = ow * sw - pleft;
               unsigned int cb = 0;
-#if defined(__ARM_NEON)
+#if defined(__ARM_NEON) && defined(__aarch64__)
               for (; cb + 15 < Cout; cb += 16) {
                 float32x4_t a0 = vdupq_n_f32(0.f), a1 = vdupq_n_f32(0.f);
                 float32x4_t a2 = vdupq_n_f32(0.f), a3 = vdupq_n_f32(0.f);
@@ -3176,7 +3176,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       // ON (opt-out NNTR_DW_NHWC_CHAN=0); restricted to C%4==0 + stride1 +
       // dilation1 + FP32 weights. Falls through to `dw_vec` (ow-vectorized)
       // otherwise.
-#ifdef __ARM_NEON
+#if defined(__ARM_NEON) && defined(__aarch64__)
       const bool dw_chan = (C % 4) == 0 && stride[0].get() == 1 &&
                            stride[1].get() == 1 && dilation[0].get() == 1 &&
                            dilation[1].get() == 1 &&
@@ -3547,7 +3547,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
         // NNTR_CONV_FUSED_GROUPS=0 -> GEMM/scalar). Restricted to FP32 weights
         // (F==float) + icg==1 + OW>=4.
         const char *__fused_env = std::getenv("NNTR_CONV_FUSED_GROUPS");
-#ifdef __ARM_NEON
+#if defined(__ARM_NEON) && defined(__aarch64__)
         const bool use_fused =
           (__fused_env == nullptr || std::string(__fused_env) != "0") &&
           icg == 1 && ocg >= 1 && fh * fw >= 1 && OW >= 4 &&

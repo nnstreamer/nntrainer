@@ -969,9 +969,9 @@ void __ggml_q8_0_q8_0_indirect_GEMM_fp16(const unsigned int M,
       if (tile.size() < tile_needed)
         tile.resize(tile_needed);
       for (unsigned int r = r0; r < r1; r += 4) {
-        gather_conv_act_rows_fp16(tile, in, geom, (int)r, 4);
+        gather_conv_act_rows_fp16(tile.data(), in, geom, (int)r, 4);
         __ggml_quantize_mat_q8_0_4x8(
-          tile, QA_ptr + (size_t)(r / 4) * qa_4_rows_size, K);
+          tile.data(), QA_ptr + (size_t)(r / 4) * qa_4_rows_size, K);
       }
     });
   }

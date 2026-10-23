@@ -1028,6 +1028,8 @@ void gemm_q4_0(const unsigned int M, std::vector<unsigned int> Ns,
                const unsigned int K, const float *A, const unsigned int lda,
                std::vector<void *> Bs, std::vector<unsigned int> ldbs,
                std::vector<float *> Cs, std::vector<unsigned int> ldcs);
+
+/**
  * @brief q8_0 GEMM (scalar fallback). See __fallback_gemm_q8_0 for semantics.
  */
 template <typename T = float>

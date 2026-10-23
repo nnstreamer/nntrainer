@@ -148,7 +148,13 @@ inline int32_t dotI8(const int8_t *a, const int8_t *b, unsigned int len) {
     acc = vpadalq_s16(acc, vmull_s8(vget_low_s8(va), vget_low_s8(vb)));
     acc = vpadalq_s16(acc, vmull_s8(vget_high_s8(va), vget_high_s8(vb)));
   }
+#if defined(__aarch64__)
   int32_t sum = vaddvq_s32(acc);
+#else
+  // armv7 has no across-vector add (vaddvq); reduce pairwise instead.
+  const int32x2_t half = vadd_s32(vget_low_s32(acc), vget_high_s32(acc));
+  int32_t sum = vget_lane_s32(vpadd_s32(half, half), 0);
+#endif
   for (; i < len; ++i)
     sum += (int32_t)a[i] * (int32_t)b[i];
   return sum;
