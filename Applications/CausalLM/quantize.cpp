@@ -115,10 +115,12 @@ namespace {
  * @brief Map of string data type names to DataType enum values
  */
 const std::map<std::string, DataType> dtype_str_map = {
-  {"FP32", DataType::FP32}, {"FP16", DataType::FP16},
-  {"Q4_0", DataType::Q4_0}, {"Q6_K", DataType::Q6_K},
-  {"Q4_K", DataType::Q4_K}, {"Q8_0", DataType::Q8_0},
-  {"QS4CX", DataType::QS4CX}, {"NONE", DataType::NONE}};
+  {"FP32", DataType::FP32},   {"FP16", DataType::FP16},
+  {"Q4_0", DataType::Q4_0},   {"Q6_K", DataType::Q6_K},
+  {"Q4_K", DataType::Q4_K},   {"Q8_0", DataType::Q8_0},
+  {"QINT4", DataType::QINT4}, {"QS4CX", DataType::QS4CX},
+  {"NONE", DataType::NONE},
+};
 
 /**
  * @brief Map of string ISA names to ISA enum values
@@ -190,8 +192,13 @@ std::string dataTypeToStr(DataType dt) {
  *        "<fc>-FP16" (fp16 norms), an FP32-FP32 source yields "<fc>-FP32".
  */
 std::string buildModelTensorType(const std::string &fc_dtype,
-                                 const std::string &act_dtype) {
-  return fc_dtype + "-" + act_dtype;
+                                 const std::string &src_tensor_type) {
+  auto dash = src_tensor_type.find('-');
+  std::string act =
+    (dash != std::string::npos && dash + 1 < src_tensor_type.size())
+      ? src_tensor_type.substr(dash + 1)
+      : std::string("FP32");
+  return fc_dtype + "-" + act;
 }
 
 /**
@@ -427,6 +434,11 @@ void registerAllModels() {
 #endif
 #if !defined(_WIN32)
   factory.registerModel(
+    "XLMRobertaForMaskedLM", [](json cfg, json generation_cfg, json nntr_cfg) {
+      return std::make_unique<causallm::XLMRobertaForMaskedLM>(
+        cfg, generation_cfg, nntr_cfg);
+    });
+  factory.registerModel(
     "BertDecoder", [](json cfg, json generation_cfg, json nntr_cfg) {
       // BertDecoder hardcodes its dimensions; tensor dtypes come from
       // nntr_config (FP32 for the source model). The graph is built FP32 to
@@ -524,7 +536,15 @@ void printUsage(const char *prog) {
     << "                        is repacked bit-identically.\n"
     << "  --help, -h            Show this help message\n"
     << "\n"
-    << "Supported data types: FP32, FP16, Q4_0, Q8_0, Q6_K, Q4_K\n"
+    << "Supported data types: FP32, FP16, Q4_0, Q8_0, Q6_K, Q4_K, QS4CX\n"
+    << "  int4 = QS4CX (per-channel int4: plain nibbles + fp32 scales) is the\n"
+    << "  canonical int4 weight format for GPU/NPU FC/lm_head. The legacy "
+       "QINT4\n"
+    << "  target is still accepted, and existing QINT4-FP16 .bin files still "
+       "load\n"
+    << "  (transcoded losslessly to QS4CX at read time), but prefer QS4CX for "
+       "new\n"
+    << "  models.\n"
     << "Supported ISA options: DEFAULT (current platform), X86, ARM\n"
     << "\n"
     << "Examples:\n"
@@ -944,7 +964,7 @@ int main(int argc, char *argv[]) {
   // FP32 activations against Q8_0 weights run ggml's W8A8 path (activations are
   // dynamically re-quantized to Q8_0 per block); FP16 keeps the activations in
   // half precision, which roughly halves the end-to-end quantization error.
-  std::string act_dtype_str = "FP32";
+  std::string act_dtype_str = ""; // empty: follow the source model_tensor_type
   std::string isa_str = "DEFAULT";
   std::string output_bin_name = "";
   std::string target_config_path = "";
@@ -1113,13 +1133,82 @@ int main(int argc, char *argv[]) {
     std::string src_weight_path = model_path + "/" + original_bin;
     std::string dst_weight_path = output_dir + "/" + output_bin_name;
 
+    // Sidecar layout for the PLE and embedding0 tables. By default (kAuto)
+    // a table goes to its own mmap'd file whenever the model qualifies: the
+    // runtime then reads only the rows of the tokens it sees instead of every
+    // backend keeping a resident copy of the whole table (for Gemma-4 with a
+    // Q6_K embedding that is about 2.1 GiB). The payload path is injected
+    // into nntr_cfg so the model wires sidecar_export_path onto the layer
+    // during save. --ple_sidecar / --embd_sidecar turn an unqualified model
+    // into an error; --no_*sidecar keep the table inside the model file.
+    const bool quantized_embd =
+      (embd_dtype == DataType::Q4_0 || embd_dtype == DataType::Q6_K);
+    auto sidecar_blocker = [&](bool table_present, const char *absent_why,
+                               const char *existing_key) -> std::string {
+      if (output_format != "bin")
+        return "supports only the 'bin' output format";
+      if (!quantized_embd)
+        return "requires --embd_dtype Q4_0 or Q6_K (got " +
+               dataTypeToStr(embd_dtype) + ")";
+      if (!table_present)
+        return absent_why;
+      if (!nntr_cfg.value(existing_key, std::string()).empty())
+        return std::string("source model already uses a sidecar (") +
+               existing_key + " set); nothing to extract";
+      return "";
+    };
+    auto resolve_mode = [](SidecarMode mode, const std::string &blocker,
+                           const char *flag) {
+      if (mode == SidecarMode::kOff)
+        return false;
+      if (blocker.empty())
+        return true;
+      if (mode == SidecarMode::kOn)
+        throw std::invalid_argument(std::string(flag) + " " + blocker);
+      return false;
+    };
+
+    const bool has_ple = cfg.contains("hidden_size_per_layer_input") &&
+                         cfg["hidden_size_per_layer_input"].is_number() &&
+                         cfg["hidden_size_per_layer_input"].get<int>() > 0;
+    bool ple_sidecar =
+      resolve_mode(ple_mode,
+                   sidecar_blocker(has_ple,
+                                   "requires a model with per-layer embeddings "
+                                   "(config.json hidden_size_per_layer_input)",
+                                   "ple_file_name"),
+                   "--ple_sidecar");
+
+    // embedding0 is gated on an UNTIED lm_head: a tied head shares the table
+    // and scans every row per decode step, so a sidecar would fault the
+    // whole file back in and save nothing.
+    const bool untied =
+      nntr_cfg.contains("lmhead_untie") && nntr_cfg["lmhead_untie"].get<bool>();
+    bool embd_sidecar = resolve_mode(
+      embd_mode,
+      sidecar_blocker(untied,
+                      "requires an untied lm_head (lmhead_untie=true); a "
+                      "tied lm_head shares the embedding table and would "
+                      "gain nothing",
+                      "embedding_file_name"),
+      "--embd_sidecar");
+
+    const std::string sidecar_base = sidecarBaseName(output_bin_name);
+    const std::string ple_payload_name = sidecar_base + "_ple.bin";
+    const std::string ple_manifest_name = sidecar_base + "_ple.json";
+    const std::string embd_payload_name = sidecar_base + "_embd.bin";
+    const std::string embd_manifest_name = sidecar_base + "_embd.json";
+    if (ple_sidecar)
+      nntr_cfg["ple_sidecar_export"] = output_dir + "/" + ple_payload_name;
+    if (embd_sidecar)
+      nntr_cfg["embd_sidecar_export"] = output_dir + "/" + embd_payload_name;
+
     std::string architecture =
       cfg["architectures"].get<std::vector<std::string>>()[0];
     const json &network_cfg =
       cfg.contains("text_config") && cfg["text_config"].is_object()
         ? cfg["text_config"]
         : cfg;
-    int num_layers = network_cfg["num_hidden_layers"].get<int>();
 
     // The SigLIP2 vision encoder nests its layer count under cfg["encoder"] and
     // the BERT decoder under cfg["decoder"] when a combined config.json is
@@ -1146,7 +1235,7 @@ int main(int argc, char *argv[]) {
       dec_layers = cfg.at("decoder").value("num_hidden_layers", 4);
       num_layers = enc_layers + dec_layers;
     } else {
-      num_layers = cfg["num_hidden_layers"].get<int>();
+      num_layers = network_cfg["num_hidden_layers"].get<int>();
     }
 
     std::cout << "  Architecture: " << architecture << "\n";
@@ -1370,13 +1459,30 @@ int main(int argc, char *argv[]) {
     new_nntr_cfg["fc_layer_dtype"] = dataTypeToStr(fc_dtype);
     new_nntr_cfg["embedding_dtype"] = dataTypeToStr(embd_dtype);
     new_nntr_cfg["lmhead_dtype"] = dataTypeToStr(lmhead_dtype);
+    if (target_moe_cache_size.has_value())
+      new_nntr_cfg["moe_cache_size"] = *target_moe_cache_size;
     // The encoder's patch conv is quantized alongside the FCs for Q8_0 (the
     // NCHW conv runs the same interleaved int8 GEMM); record its dtype so the
     // runtime graph declares the matching weight tensor.
     if ((is_encoder || is_caption) && fc_dtype == DataType::Q8_0)
       new_nntr_cfg["patch_embed_dtype"] = dataTypeToStr(fc_dtype);
+    // --act_dtype overrides the activation half of model_tensor_type (e.g.
+    // W8A16 from an FP32 source); otherwise it follows the source model.
     new_nntr_cfg["model_tensor_type"] =
-      buildModelTensorType(dataTypeToStr(fc_dtype), act_dtype_str);
+      act_dtype_str.empty()
+        ? buildModelTensorType(dataTypeToStr(fc_dtype), src_tensor_type)
+        : dataTypeToStr(fc_dtype) + "-" + act_dtype_str;
+    // *_sidecar_export are extraction-time keys only — the runtime keys are
+    // ple_file_name / embedding_file_name, pointing at the manifests next to
+    // the model file.
+    new_nntr_cfg.erase("ple_sidecar_export");
+    new_nntr_cfg.erase("embd_sidecar_export");
+    if (ple_sidecar)
+      new_nntr_cfg["ple_file_name"] = ple_manifest_name;
+    if (embd_sidecar)
+      new_nntr_cfg["embedding_file_name"] = embd_manifest_name;
+    for (auto &[key, value] : orig_path_cfg.items())
+      new_nntr_cfg[key] = value;
 
     // model_dir was injected only to let the orchestrator resolve weight files
     // during this run; drop it so the saved config is portable (the runtime

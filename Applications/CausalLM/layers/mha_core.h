@@ -148,21 +148,6 @@ public:
 };
 
 /**
- * @brief UseGemmAttention property
- *
- * Opt-in toggle for the GEMM / flash-attention path (built and verified for the
- * ARM FP16 device build; forced off on x86 / non-FP16 builds). Defaults to the
- * reference-attention path so existing behavior is preserved.
- */
-class UseGemmAttention : public nntrainer::Property<bool> {
-public:
-  UseGemmAttention(bool value = false) { set(value); };
-  static constexpr const char *key =
-    "use_gemm_attention";                    /**< unique key to access */
-  using prop_tag = nntrainer::bool_prop_tag; /**< property type */
-};
-
-/**
  * @brief AttnLogitSoftcapping
  */
 class AttnLogitSoftcapping : public nntrainer::Property<float> {
@@ -185,13 +170,13 @@ public:
 
 /**
  * @brief CrossAttention property
- * @note When true, the layer runs in static read-only cross-attention mode
- *       (Option B): inputs 3/4 (cache_key/cache_value) are treated as a
- *       fully-populated encoder K/V cache of @c enc_len rows; the query
- *       (input 0) attends over ALL @c enc_len cached rows, inputs 1/2 (K/V)
- *       are NOT written into the cache, and cache_index is NOT advanced.
- *       Only meaningful in external-cache (5-input) mode. Default false so
- *       existing self-attention callers see byte-identical behaviour.
+ * @note When true, the layer runs in static read-only cross-attention mode:
+ *       inputs 3/4 (cache_key/cache_value) are treated as a fully-populated
+ *       encoder K/V cache of @c enc_len rows; the query (input 0) attends
+ *       over ALL @c enc_len cached rows, inputs 1/2 (K/V) are NOT written
+ *       into the cache, and cache_index is NOT advanced. Only meaningful in
+ *       external-cache (5-input) mode. Default false so existing
+ *       self-attention callers see byte-identical behaviour.
  */
 class CrossAttention : public nntrainer::Property<bool> {
 public:
@@ -199,6 +184,105 @@ public:
   static constexpr const char *key =
     "cross_attention";                       /**< unique key to access */
   using prop_tag = nntrainer::bool_prop_tag; /**< property type */
+};
+
+/**
+ * @brief AttnFp32Accum property
+ * @note On an ENABLE_FP16 Android build an FP32-activation model normally
+ *       narrows Q/K/V to fp16 and runs the all-fp16 NEON attention kernels
+ *       (fp16 accumulation). When true, the fp32 Q/K/V are passed through as
+ *       on desktop: the kernels read the fp16-stored cache converted to fp32
+ *       and accumulate in fp32, matching the desktop result bit for bit at the
+ *       cost of the fp16 kernels' speed. Used by the ScreenAI encoder/decoder,
+ *       whose caption token parity breaks under fp16 accumulation. Default
+ *       false keeps every existing model on its current path.
+ */
+class AttnFp32Accum : public nntrainer::Property<bool> {
+public:
+  AttnFp32Accum(bool value = false) { set(value); };
+  static constexpr const char *key =
+    "attn_fp32_accum";                       /**< unique key to access */
+  using prop_tag = nntrainer::bool_prop_tag; /**< property type */
+};
+
+/**
+ * @brief UseGemmAttention property
+ * @note  Optional GEMM-based attention path for the non-causal (encoder) case.
+ *        QK and AV are computed with (s)gemm per head instead of the per-row
+ *        dot kernels, improving cache reuse for large sequence lengths.
+ */
+class UseGemmAttention : public nntrainer::Property<bool> {
+public:
+  UseGemmAttention(bool value = false) { set(value); };
+  static constexpr const char *key = "use_gemm_attention";
+  using prop_tag = nntrainer::bool_prop_tag;
+};
+
+/**
+ * @brief GpuDecodeAttn property (per-model decode-GPU gate).
+ * @note  When true, the M=1 (decode) attention runs the validated GPU flash /
+ *        OHWI image-attention path instead of bouncing K/V to the host NEON
+ *        path. Mirrors the NNTR_MHA_GPU_DECODE env flag's flash-attention half
+ *        ((B)), but per-LAYER so it can be DEFAULT-ON only for the models where
+ *        decode flash attention is token-identical (gemma4, gemma2). The env
+ *        flag, when set, forces it on globally (testing override). Default
+ *        false keeps the host decode attention.
+ */
+class GpuDecodeAttn : public nntrainer::Property<bool> {
+public:
+  GpuDecodeAttn(bool value = false) { set(value); };
+  static constexpr const char *key = "gpu_decode_attn";
+  using prop_tag = nntrainer::bool_prop_tag;
+};
+
+/**
+ * @brief KvWindowRing property (the model's default for the KV ring).
+ * @note  The value causallm::kvRingEnabled() falls back to when
+ *        NNTR_KV_WINDOW_RING is unset. It must equal the owning model's
+ *        Transformer::kvRingByDefault(): the model sizes the cache plane with
+ *        that value and this layer indexes the plane with this one. Default
+ *        false keeps the ring an explicit opt-in.
+ */
+class KvWindowRing : public nntrainer::Property<bool> {
+public:
+  KvWindowRing(bool value = false) { set(value); };
+  static constexpr const char *key = "kv_window_ring";
+  using prop_tag = nntrainer::bool_prop_tag;
+};
+
+/**
+ * @brief GpuDecodeRope property (per-model decode-GPU gate).
+ * @note  When true, the M=1 (decode) RoPE runs on the GPU (rope_inplace_f16_cl)
+ *        so Q/K stay SVM-resident and lower_q/lower_kv drains are skipped.
+ *        Mirrors the NNTR_MHA_GPU_DECODE env flag's GPU-RoPE half ((A)), but
+ *        per-LAYER so it is DEFAULT-ON only where decode GPU-RoPE is
+ *        token-identical (gemma4). gemma2 diverges on GPU-RoPE-decode, so it
+ *        keeps this false (flash attention + host RoPE). Still gated off by the
+ *        NNTR_NO_GPU_ROPE kill-switch. The env flag, when set, forces it on
+ *        globally (testing override). Default false keeps the host decode RoPE.
+ */
+class GpuDecodeRope : public nntrainer::Property<bool> {
+public:
+  GpuDecodeRope(bool value = false) { set(value); };
+  static constexpr const char *key = "gpu_decode_rope";
+  using prop_tag = nntrainer::bool_prop_tag;
+};
+
+/**
+ * @brief GpuOhwiRope property (per-model Adreno OHWI decode-RoPE gate).
+ * @note  When true, the M=1 (decode) RoPE on the OHWI image-attention path
+ *        (NNTR_KV_IMG_ATTN) runs on the GPU (rope_inplace_f16_cl) so Q/K stay
+ *        SVM-resident and the per-layer lower_q/lower_kv drain (16-35ms/token)
+ *        is skipped. DEFAULT-ON where it is token-identical (gemma4 +32%,
+ *        gemma2 +8%); qwen3 diverges (head_dim=128 / q-k-norm), so it stays
+ *        false. The NNTR_OHWI_GPU_ROPE env forces it on globally (override);
+ *        NNTR_NO_GPU_ROPE kills it. Default false keeps the host decode RoPE.
+ */
+class GpuOhwiRope : public nntrainer::Property<bool> {
+public:
+  GpuOhwiRope(bool value = false) { set(value); };
+  static constexpr const char *key = "gpu_ohwi_rope";
+  using prop_tag = nntrainer::bool_prop_tag;
 };
 
 /**
@@ -362,17 +446,6 @@ public:
     ml::train::TensorDim &cache_value_step_dim, nntrainer::Tensor &sink_step);
 
   /**
-   * @brief GEMM / flash-attention path for one attention step (ARM FP16 device
-   *        build; gated by use_gemm_attention). Falls back to the reference
-   *        per-row attention kernels elsewhere.
-   */
-  WIN_EXPORT void gemm_attention(nntrainer::Tensor &query_step,
-                                 nntrainer::Tensor &b_cached_key,
-                                 nntrainer::Tensor &b_cached_value,
-                                 nntrainer::Tensor &attention_output_step,
-                                 unsigned int N_kv, unsigned int N_q,
-                                 unsigned int cache_from);
-  /**
    * @brief Run one batch of an FP32-activation layer on the device attention.
    * @details The device arms (RoPE, image / flash attention) take FP16
    * operands in shared virtual memory. This narrows Q/K/V into FP16 planes on
@@ -471,11 +544,13 @@ private:
     nntrainer::props::OutputShape, nntrainer::props::DropOutRate,
     nntrainer::props::ReturnAttentionWeight,
     nntrainer::props::AverageAttentionWeight, nntrainer::props::MaxTimestep,
-    props::SlidingWindow, props::MaxNewTokens, props::RopeTheta, props::UseRope,
-    props::MaxPositionEmbeddings, props::UseSink, props::RopeScalingType,
-    props::RopeScalingFactor, props::RopePartialRotaryFactor,
-    props::RopeScalingMaxPositionEmbeddings, props::AttnLogitSoftcapping,
-    props::IsCausal, props::UseGemmAttention, props::CrossAttention>
+    props::SlidingWindow, props::InitSeqLen, props::MaxNewTokens,
+    props::RopeTheta, props::UseRope, props::MaxPositionEmbeddings,
+    props::UseSink, props::RopeScalingType, props::RopeScalingFactor,
+    props::RopePartialRotaryFactor, props::RopeScalingMaxPositionEmbeddings,
+    props::AttnLogitSoftcapping, props::IsCausal, props::UseGemmAttention,
+    props::GpuDecodeAttn, props::GpuDecodeRope, props::GpuOhwiRope,
+    props::KvWindowRing, props::CrossAttention, props::AttnFp32Accum>
     mha_core_props; /**< mha_core layer properties */
 
   /** softmax activation operation */
@@ -545,13 +620,123 @@ private:
   float attn_logit_softcapping = 0.0f;
   bool is_causal;
   bool use_gemm_attention = false;
-  bool skip_prefill = false;
   /**
-   * @brief static read-only cross-attention mode (Option B). See
-   *        props::CrossAttention. Default false; guards every cross-attn change
-   *        so self-attention callers are unaffected.
+   * @brief static read-only cross-attention mode. See props::CrossAttention.
+   *        Default false; guards every cross-attn change so self-attention
+   *        callers are unaffected.
    */
   bool cross_attention = false;
+  /** @brief fp32-accumulating attention for FP32-activation models on an
+   *         ENABLE_FP16 Android build. See props::AttnFp32Accum. */
+  bool attn_fp32_accum = false;
+
+  /**
+   * @brief Adreno image-attention path (paper §3.7/§3.8). gpu_native runs
+   *        prefill attention by reading K/V through image2d_from_buffer
+   *        (read_imageui texture cache) — ~9x faster than the SVM buffer
+   *        flash kernel on Adreno. The layer-graph KV cache is SVM, which
+   *        cannot back an image (clCreateImage needs a cl_mem handle), so we
+   *        keep per-layer cl_mem OHWI mirrors of K (layout [H_kv, S_max, d])
+   *        and reversed-V ([H_kv, d, S_max]) plus their image2d views. Each
+   *        prefill step scatters this step's rotated K / raw V from the SVM
+   *        cache slice into the mirrors (k_scatter_ohwi_cl /
+   *        v_scatter_ohwi_t_cl); attention then reads the images. Lazy-init on
+   *        the first prefill step. Stored as void* so the layer header stays
+   *        free of the OpenCL headers (cast to cl_mem in the .cpp).
+   *        Gated by NNTR_KV_IMG_ATTN — Adreno only, since read_imageui fails
+   *        to build on Intel NEO (use_image_attn: -1 unprobed, 0 off, 1 on).
+   */
+  void *k_buf_ohwi = nullptr;
+  void *v_buf_ohwi = nullptr;
+  void *k_image_ohwi = nullptr;
+  void *v_image_ohwi = nullptr;
+  void *v_image_ohwi_pp = nullptr; /**< NNTR_KV_VIMG_PP second
+                                       full view over the same buffer */
+  unsigned int v_img_pp_n = 0;     /**< calls so far (alternates the view) */
+  bool kv_mirror_init = false;
+  unsigned int kv_mirror_S_max = 0;
+  /** [kimg-pack] shift folded into the K image view; see kimg_gsh_for(). Set
+   *  once at finalize from max_timestep so every layer's K mirror and the
+   *  kernels (KIMG_GSH) agree. 0 = today's one-row-per-(head,seq) view. */
+  unsigned int kv_kimg_gsh = 0;
+  /** [kv-window-ring] Absolute KV position held in mirror row 0. Always 0 for
+   *  a linear (non-ringed) layer. A ringed layer's mirror is only ring-cap
+   *  rows high and slides: it holds the absolute rows [kv_mirror_base,
+   *  kv_{k,v}_valid_to), and the image kernels are handed mirror-local
+   *  positions (absolute - base). Attention depends only on position
+   *  DIFFERENCES once K is rotated, so the result is the linear one. */
+  unsigned int kv_mirror_base = 0;
+  /** [kvring-decode] Rows the mirror is BUILT with for a ringed layer, from
+   *  causallm::kvMirrorRows(kv_ring_cap, W, chunk) -- what ONE launch reads
+   *  back ((W-1) + C + 63), not the whole ring. 0 = derive as before (the KV
+   *  cache height, i.e. max_timestep for a linear layer). Both mirror-creation
+   *  sites (the finalize prebuild and the lazy engage) read this one field, so
+   *  they cannot disagree -- a disagreement makes mirror_fits false, and a
+   *  ringed layer then throws rather than reading stale rows. */
+  unsigned int kv_mirror_rows_want = 0;
+  int use_image_attn = -1;
+  /** [determinism] Whether THIS layer's attention arm is the image path, from
+   *  causallm::imageAttnLayer(local_window_size, max_timestep) at finalize.
+   *  The fast default puts every layer on the image path; the reproducible
+   *  arm (NNTR_DETERMINISTIC=1) routes a layer to the buffer/flash kernels by
+   *  a per-layer rule -- so the arm is a per-LAYER fact, not a per-process
+   *  one. Everything that used to read the process-wide
+   *  env answer (the decode-RoPE suppression, the Q-staging target, the
+   *  no-drain K/V chain, the OHWI decode RoPE) reads this instead, so the
+   *  stages of one layer cannot disagree about which arm it is on. Distinct
+   *  from use_image_attn, which is the RUNTIME state (-1 unprobed, and it
+   *  latches to 0 when mirror creation is refused). */
+  bool img_arm_want = false;
+
+  /**
+   * @brief Tight-stride V image view + mirror content tracking (texture-cache
+   *        cliff fix, NNTR_KV_VTIGHT=0 disables). A V image pitch sized to the
+   *        allocation cap (S_max, e.g. 2048) instead of the live sequence
+   *        wastes texture cache on padding (sv_matmul 63 -> 41ms at M=843 when
+   *        tight). v_image_tight is a view over the SAME v_buf_ohwi with
+   *        stride kv_v_img_S; kv_v_cur_stride is the stride the buffer's
+   *        CURRENT contents were scattered at (a stride change invalidates
+   *        them); kv_{k,v}_valid_to track which rows [0, n) the mirrors hold
+   *        (decode writes the SVM cache only, so a follow-up prefill
+   *        back-fills the gap from the SVM cache before engaging the image
+   *        attention).
+   */
+  void *v_image_tight = nullptr;
+  unsigned int kv_v_img_S = 0;
+  unsigned int kv_v_cur_stride = 0;
+  unsigned int kv_v_valid_to = 0;
+  unsigned int kv_k_valid_to = 0;
+
+  /**
+   * @brief NNTR_MHA_CLMEM slab-sync watermark: concat SVM slab rows [0, n)
+   *        hold valid K/V. In that mode the prefill window writes ONLY the
+   *        OHWI mirrors (no SVM side-fill); host readers (decode NEON,
+   *        gemm_attention, flash fallback) gather the missing rows back
+   *        from the mirrors first (k/v_gather_ohwi, one drained sync).
+   */
+  unsigned int kv_slab_synced_to = 0;
+
+  /**
+   * @brief GEMM-based flash attention for one batch (covers both encoder
+   *        non-causal and causal-LLM prefill paths).
+   *        2-phase: (1) de-interleave Q (num_heads_Q heads) and K/V
+   *        (num_heads_KV heads) into shared contiguous [H,N,d] buffers; (2)
+   *        balanced parallel_for over (h_q, query_block) units with online
+   *        softmax over key-blocks (shgemm QK -> NEON exp -> shgemm AV).
+   *        GQA: h_kv = h_q / gqa_size. Causal: key-block upper-bound break
+   *        + in-block boundary mask. Sliding window: key-block lower-bound
+   *        skip + in-block lower mask.
+   * @param[in] N_kv      total cache length (= cache_to, keys [0, N_kv))
+   * @param[in] N_q       step length (= step_size, rows of the output)
+   * @param[in] cache_from absolute starting position of queries in the cache
+   *                      (so q_abs(i) = cache_from + i, k_abs(k) = k)
+   */
+  void gemm_attention(nntrainer::Tensor &query_step,
+                      nntrainer::Tensor &b_cached_key,
+                      nntrainer::Tensor &b_cached_value,
+                      nntrainer::Tensor &attention_output_step,
+                      unsigned int N_kv, unsigned int N_q,
+                      unsigned int cache_from);
 
   enum INOUT_INDEX {
     /** input index */

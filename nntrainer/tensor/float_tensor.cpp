@@ -779,9 +779,9 @@ void FloatTensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
   unsigned int K = getDim().width();
   Tdatatype input_dtype = input[0]->getDataType();
 
-  // Handle standard inputs
-  if (input_dtype != Tdatatype::Q4_0 && input_dtype != Tdatatype::Q8_0 &&
-      input_dtype != Tdatatype::QINT4) {
+  // Handle standard inputs. The batched fast path is Q4_0-only: int4 weights
+  // are QS4CX and go through the per-item dot above.
+  if (input_dtype != Tdatatype::Q4_0) {
     for (unsigned int i = 0; i < input.size(); ++i) {
       dot(*input[i], *output[i], trans, trans_in, beta);
     }

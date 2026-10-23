@@ -185,6 +185,8 @@ unsigned int TensorDim::getDataTypeSize() const {
     return sizeof(uint8_t);
   case TensorDim::DataType::Q8_0:
     return sizeof(uint8_t);
+  case TensorDim::DataType::QS4CX:
+    return sizeof(uint8_t);
   default:
     return sizeof(float);
   }
@@ -426,6 +428,8 @@ std::ostream &operator<<(std::ostream &out, TensorDim const &d) {
     type_ = "Q4_0";
   } else if (d.getDataType() == ml::train::TensorDim::DataType::Q8_0) {
     type_ = "Q8_0";
+  } else if (d.getDataType() == ml::train::TensorDim::DataType::QS4CX) {
+    type_ = "QS4CX";
   } else {
     type_ = "Unknown";
   }

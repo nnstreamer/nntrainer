@@ -862,6 +862,33 @@ endif
 
 include $(BUILD_EXECUTABLE)
 
+# HVX device bring-up test. Needs the Hexagon SDK for the FastRPC headers
+# and the generated stub, so it is skipped entirely when the SDK is absent.
+# Build the skel first: test/htp/build.sh
+ifdef HEXAGON_SDK_ROOT
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := unittest_hvx_add
+LOCAL_CFLAGS := -Igoogletest/include -pthread -fexceptions -O3 -DNDK_BUILD=1
+LOCAL_CXXFLAGS += -std=c++17 -frtti -fexceptions
+LOCAL_LDLIBS := -llog -landroid
+
+LOCAL_SRC_FILES := \
+	 ../unittest/unittest_hvx_kernels.cpp \
+	 ../htp/generated/nntr_hvx_stub.c
+
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/../htp/generated \
+	 $(HEXAGON_SDK_ROOT)/incs \
+	 $(HEXAGON_SDK_ROOT)/incs/stddef \
+	 $(HEXAGON_SDK_ROOT)/ipc/fastrpc/incs
+
+LOCAL_LDLIBS += -L$(HEXAGON_SDK_ROOT)/ipc/fastrpc/remote/ship/android_aarch64 \
+	 -lcdsprpc
+
+LOCAL_STATIC_LIBRARIES := googletest_main
+
+include $(BUILD_EXECUTABLE)
+endif
 # unittest_nntrainer_q8_0_tensor
 include $(CLEAR_VARS)
 

@@ -41,8 +41,10 @@ enum class QScheme : uint16_t {
   Q4_Kx8 = 0x03,
   Q6_K = 0x4,
   Q4_0 = 0x5,
-  Q8_0 = 0x6,
-  QS4CX = 0x7,
+  QS4CX = 0x6,
+  // Appended after QS4CX: the scheme id is written into every quantized
+  // record, so existing QS4CX files keep reading back as QS4CX.
+  Q8_0 = 0x7,
   /** this is for custom use */
   CUSTOM_QUANTIZER_01 = 0x10,
   CUSTOM_QUANTIZER_02 = 0x11,

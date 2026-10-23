@@ -850,6 +850,24 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
                 std::invalid_argument)
     << "Failed to initialize: Calculated patch end is over int max";
 
+  // inline fused activation (set by the FusionRealizer): build the same
+  // ActiFunc a standalone ActivationLayer would, for a value-identical
+  // epilogue.
+  auto &fused_act = std::get<props::FusedActivation>(conv_props);
+  rejectFusedActivationOnTrainingGraph(fused_act, context.getExecutionMode(),
+                                       "Conv2D");
+  if (!fused_act.empty() && fused_act.get() != ActivationType::ACT_NONE) {
+    if (context.getActivationDataType() == TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+      acti_func.setActiFunc<_FP16>(fused_act.get());
+#else
+      throw std::invalid_argument("[Conv2D] fused fp16 act needs enable-fp16");
+#endif
+    } else {
+      acti_func.setActiFunc<float>(fused_act.get());
+    }
+  }
+
   // Forward scratch (groups==1 path only): the im2col column buffer and the
   // quantized-GEMM output are otherwise heap-allocated on every forwarding()
   // call. Request them once here (planned into the shared activation arena,
@@ -1464,33 +1482,28 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
     }
   }
 
-  // Fused activation epilogue. When the graph sets activation=swish on the
-  // conv, apply SiLU in-place on the freshly written output instead of
-  // materializing a separate Activation layer (which would read the conv
-  // output back from memory and write a second full tensor). Only SiLU is
-  // fused here (YOLOv11's conv activation); any other activation type is left
-  // to a dedicated Activation layer in the graph.
-  if (auto &act = std::get<props::FusedActivation>(conv_props);
-      !act.empty() && act.get() == ActivationType::ACT_SWISH) {
-    const size_t n = hidden_.size();
+  // fused activation epilogue (value-identical to a standalone
+  // ActivationLayer). SiLU -- the YOLO conv activation -- takes the
+  // vectorized in-place kernel; every other activation runs the generic
+  // ActiFunc, in-place for relu/sigmoid/tanh, else via a temp copy.
+  auto &fused_act = std::get<props::FusedActivation>(conv_props);
+  if (!fused_act.empty() && fused_act.get() != ActivationType::ACT_NONE) {
+    if (fused_act.get() == ActivationType::ACT_SWISH) {
+      const size_t n = hidden_.size();
 #ifdef ENABLE_FP16
-    if (hidden_.getDataType() == nntrainer::Tdatatype::FP16) {
-      convApplySwishInplace(hidden_.getData<_FP16>(), n);
-    } else
+      if (hidden_.getDataType() == nntrainer::Tdatatype::FP16) {
+        convApplySwishInplace(hidden_.getData<_FP16>(), n);
+      } else
 #endif
-    {
-      convApplySwishInplace(hidden_.getData<float>(), n);
+      {
+        convApplySwishInplace(hidden_.getData<float>(), n);
+      }
+    } else if (acti_func.supportInPlace()) {
+      acti_func.run_fn(hidden_, hidden_);
+    } else {
+      Tensor in_copy = hidden_.clone();
+      acti_func.run_fn(in_copy, hidden_);
     }
-  }
-
-  if (std::getenv("NNTR_CONV_PROBE") && context.getName() == "conv0/conv") {
-    std::cerr << "[CONV_PROBE] " << context.getName()
-              << " format=" << (int)hidden_.getFormat()
-              << " C=" << out_dim.channel() << " H=" << out_dim.height()
-              << " W=" << out_dim.width() << std::endl;
-    const float *p = hidden_.getData<float>();
-    for (int i = 0; i < 8; ++i)
-      std::cerr << "  [" << i << "]=" << p[i] << std::endl;
   }
 }
 

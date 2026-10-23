@@ -137,7 +137,7 @@ void __ggml_repack_q8_0_to_q8_0_4(void *dst, void *src, size_t data_size,
  *        Weights must be repacked with __ggml_repack_q8_0_to_q8_0_4 (done at
  *        quantisation time for ISA::ARM). Requires N % 4 == 0.
  */
-void __ggml_q8_0_4x4_q8_0_GEMM(const unsigned int M, const unsigned int N,
+void __ggml_q8_0_4x8_smmla_q8_0_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int K, const float *A,
                                const unsigned int lda, const void *B,
                                const unsigned int ldb, float *C,

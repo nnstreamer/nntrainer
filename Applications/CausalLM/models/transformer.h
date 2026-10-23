@@ -782,6 +782,10 @@ protected:
                                         "use_flash_attention". */
 
   // Performance metrics
+  // Zero-initialized: [perf-split] added fields (ttft_ms, first_token_ms,
+  // decode_steady_*, prefill_drain_ms) that only the nntrainer CausalLM path
+  // fills, so every other model (QNN, lfm2, embedding) has to report 0 rather
+  // than whatever was on the heap.
   TransformerPerformanceMetrics performance_metrics{};
 
   bool has_run_ = false;

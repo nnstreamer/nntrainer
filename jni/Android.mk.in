@@ -83,9 +83,8 @@ LOCAL_SRC_FILES     := @MESON_NNTRAINER_SRCS@
 LOCAL_C_INCLUDES    := @MESON_NNTRAINER_INCS@ $(ML_API_INCLUDE)
 LOCAL_EXPORT_C_INCLUDES  := $(LOCAL_C_INCLUDES)
 
-LOCAL_ARM_NEON      := true
-LOCAL_CFLAGS        += -pthread -fexceptions @MESON_CFLAGS@ @ML_API_COMMON@
-LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions @ML_API_COMMON@ @MESON_CXXFLAGS@
+LOCAL_CFLAGS        += -pthread -fexceptions @MESON_CFLAGS@
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions @MESON_CXXFLAGS@
 # Opt-in lower-peak-memory inference planner (off by default). The YOLOv11
 # inference build sets ENABLE_MEMORY_PLANNER_V3=1 on the ndk-build command line.
 ifeq ($(ENABLE_MEMORY_PLANNER_V3), 1)

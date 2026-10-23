@@ -842,7 +842,7 @@ void __ggml_q8_0_q8_0_GEMM(const unsigned int M, const unsigned int N,
  * All column partitions are kept multiples of 4 so every kernel call sees
  * whole weight super-blocks (N %% 32 == 0 is guaranteed by the quantiser).
  */
-void __ggml_q8_0_4x4_q8_0_GEMM(const unsigned int M, const unsigned int N,
+void __ggml_q8_0_4x8_smmla_q8_0_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int K, const float *A,
                                const unsigned int lda, const void *B,
                                const unsigned int ldb, float *C,

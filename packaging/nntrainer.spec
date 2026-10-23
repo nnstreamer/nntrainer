@@ -587,6 +587,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/tensor_wrap_specs.h
 %{_includedir}/nntrainer/cpu_backend.h
 %{_includedir}/nntrainer/compute_ops.h
+%{_includedir}/nntrainer/cpu_ops_table.h
 %{_includedir}/nntrainer/conv_indirect.h
 %{_includedir}/nntrainer/context_data.h
 %{_includedir}/nntrainer/fallback_internal.h

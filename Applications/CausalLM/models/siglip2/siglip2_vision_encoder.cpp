@@ -466,7 +466,8 @@ Tensor Siglip2VisionEncoder::createAttention(const int layer_id, Tensor input) {
                  withKey("num_heads_kv", std::to_string(NUM_HEADS)),
                  withKey("max_timestep", std::to_string(NUM_PATCHES + 1)),
                  withKey("is_causal", "false"), withKey("use_rope", "false"),
-                 withKey("rope_theta", std::to_string(ROPE_THETA))}));
+                 withKey("rope_theta", std::to_string(ROPE_THETA)),
+                 withKey("attn_fp32_accum", "true")}));
   Tensor context = attention({query, key, value});
 
   // Output projection

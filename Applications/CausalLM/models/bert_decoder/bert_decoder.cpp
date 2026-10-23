@@ -315,7 +315,7 @@ Tensor BertDecoder::createSelfAttentionBlock(int layer_id, Tensor h) {
      withKey("num_heads_kv", BD_NUM_HEADS / BD_GQA_SIZE),
      withKey("max_timestep", std::to_string(BD_MAX_SEQ_LEN)),
      withKey("rope_theta", ROPE_THETA), withKey("use_rope", "false"),
-     withKey("is_causal", "true")}));
+     withKey("is_causal", "true"), withKey("attn_fp32_accum", "true")}));
   Tensor a = mha({q, k, v, cache_k, cache_v});
 
   // Output projection (attention.output.dense): unit=256, bias enabled
@@ -422,7 +422,8 @@ Tensor BertDecoder::createCrossAttentionBlock(int layer_id, Tensor h,
      withKey("num_heads_kv", BD_NUM_HEADS / BD_GQA_SIZE),
      withKey("max_timestep", std::to_string(BD_ENC_LEN)),
      withKey("rope_theta", ROPE_THETA), withKey("use_rope", "false"),
-     withKey("is_causal", "false"), withKey("cross_attention", "true")}));
+     withKey("is_causal", "false"), withKey("cross_attention", "true"),
+     withKey("attn_fp32_accum", "true")}));
   Tensor a = mha({q, k, v, cross_k, cross_v});
 
   // Output projection (crossattention.output.dense): bias enabled.

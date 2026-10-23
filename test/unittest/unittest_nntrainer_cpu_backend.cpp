@@ -11,6 +11,7 @@
 #include "int4_utils.h"
 #include "nntrainer_test_util.h"
 #include "q4_0_utils.h"
+#include <cfloat>
 #include <conv_indirect.h>
 #include <cpu_backend.h>
 #include <cstring>
@@ -1687,6 +1688,108 @@ DECLARE_transform_int4_test_K_N(1024, 648, 32);
 DECLARE_transform_int4_test_K_N(1024, 648, 64);
 DECLARE_transform_int4_test_K_N(1024, 648, 128);
 DECLARE_transform_int4_test_K_N(3072, 8192, 32);
+
+#if defined(__x86_64__) || defined(_M_X64)
+/**
+ * @brief Random plain QS4CX weight: N rows of ceil(K/2) bytes (every nibble
+ * value 0..15 occurs, including the bytes' unused high nibble at odd K) plus
+ * N per-row scales of mixed magnitude.
+ */
+static void make_qs4cx_weight(size_t N, size_t K, std::mt19937 &gen,
+                              std::vector<uint8_t> &w,
+                              std::vector<float> &scale) {
+  std::uniform_int_distribution<int> byte(0, 255);
+  std::uniform_real_distribution<float> sc(1e-3f, 0.2f);
+  w.resize(N * ((K + 1) / 2));
+  for (auto &b : w)
+    b = static_cast<uint8_t>(byte(gen));
+  scale.resize(N);
+  for (auto &v : scale)
+    v = sc(gen);
+}
+
+/**
+ * @brief The x86 qai8dx x qs4cx fp32 GEMM against the scalar reference
+ * (online qa8dx quantization + __fallback_matmul_mxn_mxk_nxk_f32_qa8dx_qs4cx).
+ * The dot products are exact integers, so the results must match bit for
+ * bit, including odd M / N / K tails.
+ */
+static void run_qs4cx_f32_vs_reference(size_t M, size_t N, size_t K) {
+  std::mt19937 gen(static_cast<unsigned>(M * 7919 + N * 131 + K));
+  std::uniform_real_distribution<float> dist(-3.0f, 3.0f);
+  std::vector<float> lhs(M * K);
+  for (auto &v : lhs)
+    v = dist(gen);
+  std::vector<uint8_t> w;
+  std::vector<float> scale;
+  make_qs4cx_weight(N, K, gen, w, scale);
+
+  std::vector<float> out(M * N, -1.0f), ref(M * N, -2.0f);
+  nntrainer::gemm_qai8dxp_qsi4cxp_rhs_unpacked(
+    M, N, K, lhs.data(), w.data(), scale.data(), out.data(), 0, true);
+
+  std::vector<int8_t> lhs_q(M * (K + sizeof(int32_t) + sizeof(float)));
+  nntrainer::__fallback_quant_qa8dx_f32(M, K, lhs.data(), lhs_q.data());
+  nntrainer::__fallback_matmul_mxn_mxk_nxk_f32_qa8dx_qs4cx(
+    M, N, K, lhs_q.data(), w.data(), scale.data(), ref.data(), -FLT_MAX,
+    FLT_MAX);
+
+  EXPECT_EQ(std::memcmp(out.data(), ref.data(), out.size() * sizeof(float)), 0)
+    << "M=" << M << " N=" << N << " K=" << K;
+}
+
+TEST(nntrainer_cpu_backend_standalone, qs4cx_f32_gemm_vs_reference) {
+  run_qs4cx_f32_vs_reference(1, 1, 1);
+  run_qs4cx_f32_vs_reference(1, 37, 129);
+  run_qs4cx_f32_vs_reference(3, 70, 64);
+  run_qs4cx_f32_vs_reference(5, 33, 31);
+  run_qs4cx_f32_vs_reference(17, 96, 257);
+  run_qs4cx_f32_vs_reference(2, 300, 1536);
+}
+
+#ifdef ENABLE_FP16
+/**
+ * @brief The x86 QS4CX x fp16-activation GEMM against the scalar reference
+ * __fallback_gemm_qs4cx_fp16(). The kernel keeps the reference's ascending-k
+ * fp32 summation per output, so the fp16 results must match bit for bit,
+ * with and without beta, across odd M / N / K tails.
+ */
+static void run_qs4cx_fp16_vs_reference(size_t M, size_t N, size_t K,
+                                        float beta) {
+  std::mt19937 gen(static_cast<unsigned>(M * 7919 + N * 131 + K + 17));
+  std::uniform_real_distribution<float> dist(-4.0f, 4.0f);
+  std::vector<_FP16> lhs(M * K);
+  for (auto &v : lhs)
+    v = static_cast<_FP16>(dist(gen));
+  std::vector<uint8_t> w;
+  std::vector<float> scale;
+  make_qs4cx_weight(N, K, gen, w, scale);
+
+  std::vector<_FP16> out(M * N), ref(M * N);
+  for (size_t i = 0; i < M * N; ++i)
+    out[i] = ref[i] = static_cast<_FP16>(dist(gen));
+
+  nntrainer::gemm_qs4cx_fp16(M, N, K, lhs.data(), w.data(), scale.data(),
+                             out.data(), beta);
+  nntrainer::__fallback_gemm_qs4cx_fp16(M, N, K, lhs.data(), w.data(),
+                                        scale.data(), ref.data(), beta);
+
+  EXPECT_EQ(std::memcmp(out.data(), ref.data(), out.size() * sizeof(_FP16)), 0)
+    << "M=" << M << " N=" << N << " K=" << K << " beta=" << beta;
+}
+
+TEST(nntrainer_cpu_backend_standalone, qs4cx_fp16_gemm_vs_reference) {
+  run_qs4cx_fp16_vs_reference(1, 1, 1, 0.0f);
+  run_qs4cx_fp16_vs_reference(1, 37, 129, 0.0f);
+  run_qs4cx_fp16_vs_reference(3, 70, 64, 0.0f);
+  run_qs4cx_fp16_vs_reference(5, 33, 63, 1.0f);
+  run_qs4cx_fp16_vs_reference(9, 8, 65, 0.5f);
+  run_qs4cx_fp16_vs_reference(17, 96, 257, 0.0f);
+  run_qs4cx_fp16_vs_reference(1, 1000, 1536, 0.0f);
+  run_qs4cx_fp16_vs_reference(300, 72, 200, 0.0f);
+}
+#endif
+#endif
 
 /**
  * @brief Independent naive im2col reference (the textbook definition, with no

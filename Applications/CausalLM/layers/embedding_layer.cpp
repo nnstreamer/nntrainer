@@ -845,11 +845,11 @@ void EmbeddingLayer::finalize(nntrainer::InitLayerContext &context) {
   NNTR_THROW_IF(input_dim.channel() != 1, std::invalid_argument)
     << "Embedding layer takes only one for channel size";
 
-  NNTR_THROW_IF(!has_quantized_lut && input_dim.getDataType() !=
-                                        nntrainer::TensorDim::DataType::FP32,
-                std::invalid_argument)
-    << "Embedding layer takes only FP32 input data";
-
+  // [merge 2026-06-30] OURS: no FP32-input throw — our FP16-activation models
+  // build input0 as plain FP16-default (no explicit FP32 input layer).
+  // [merge 2026-07-08] upstream d87ff6dd3 pins the input DTYPE to FP32
+  // unconditionally (kept above): token ids > 2048 are not exactly
+  // representable in FP16 and our lookup reads ids via getAddress<float>.
   auto &weight_regularizer =
     std::get<nntrainer::props::WeightRegularizer>(*layer_impl_props);
   auto &weight_regularizer_constant =
@@ -1271,7 +1271,8 @@ void EmbeddingLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
 
     const auto wt = ggml_lut ? quant_lut->ggml_dtype : weight_p->getDataType();
     const bool row_quant = (wt == nntrainer::TensorDim::DataType::Q6_K ||
-                            wt == nntrainer::TensorDim::DataType::Q4_0);
+                            wt == nntrainer::TensorDim::DataType::Q4_0 ||
+                            wt == nntrainer::TensorDim::DataType::Q8_0);
     // Per-channel 4-bit symmetric embedding table (upstream QS4CX support).
     // finalize() stores it transposed as (out_dim, in_dim) so the per-channel
     // scale vector has in_dim entries; the row decoder takes the token id as
@@ -1295,6 +1296,8 @@ void EmbeddingLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       qs4cx_lut ? quant_lut->row_bytes
                 : ((wt == nntrainer::TensorDim::DataType::Q6_K)
                      ? 210 * ((static_cast<size_t>(out_dim) + 255) / 256)
+                   : (wt == nntrainer::TensorDim::DataType::Q8_0)
+                     ? 34 * ((static_cast<size_t>(out_dim) + 31) / 32)
                      : 18 * ((static_cast<size_t>(out_dim) + 31) / 32));
     // The scale block follows all the nibble rows, so it starts where the
     // payload's row region ends.
@@ -1376,50 +1379,6 @@ void EmbeddingLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
           throw std::invalid_argument(
             "input word index is greater than in_dim");
         }
-      } else if (weight.getDataType() == nntrainer::TensorDim::DataType::Q4_0) {
-        ///@note this should be replaced with quantizer operation
-        int num_blocks_per_row = (weight.width() + 32 - 1) / 32;
-        const void *src = (void *)((char *)weight.getData<uint8_t>() +
-                                   (18 * num_blocks_per_row) * embed_idx);
-        if (out_tensor.getDataType() == nntrainer::TensorDim::DataType::FP32) {
-          nntrainer::dequantize_row_q4_0(src, out_tensor.getData(), out_dim);
-        } else {
-          // dequantize_row_* writes FP32; under a non-FP32 (e.g. FP16)
-          // activation, writing straight into out_tensor corrupts the embedding
-          // (and overruns the buffer by 2x). Dequantize into an FP32 temp then
-          // cast into the activation dtype.
-          nntrainer::TensorDim fp32_dim(
-            {1, 1, 1, out_dim}, nntrainer::TensorDim::TensorType(
-                                  out_tensor_dim.getFormat(),
-                                  nntrainer::TensorDim::DataType::FP32));
-          nntrainer::Tensor tmp(fp32_dim, true);
-          nntrainer::dequantize_row_q4_0(src, tmp.getData(), out_dim);
-          out_tensor.copyData(tmp);
-        }
-      } else if (weight.getDataType() == nntrainer::TensorDim::DataType::Q8_0) {
-        ///@note this should be replaced with quantizer operation
-        // Each block_q8_0 is 34 bytes: one fp16 scale + 32 int8 quants.
-        int num_blocks_per_row = (weight.width() + 32 - 1) / 32;
-        const void *src = (void *)((char *)weight.getData<uint8_t>() +
-                                   (34 * num_blocks_per_row) * embed_idx);
-        if (out_tensor.getDataType() == nntrainer::TensorDim::DataType::FP32) {
-          nntrainer::dequantize_row_q8_0(src, out_tensor.getData(), out_dim);
-        } else {
-          // dequantize_row_* writes FP32; under a non-FP32 (e.g. FP16)
-          // activation, writing straight into out_tensor corrupts the embedding
-          // (and overruns the buffer by 2x). Dequantize into an FP32 temp then
-          // cast into the activation dtype.
-          nntrainer::TensorDim fp32_dim(
-            {1, 1, 1, out_dim}, nntrainer::TensorDim::TensorType(
-                                  out_tensor_dim.getFormat(),
-                                  nntrainer::TensorDim::DataType::FP32));
-          nntrainer::Tensor tmp(fp32_dim, true);
-          nntrainer::dequantize_row_q8_0(src, tmp.getData(), out_dim);
-          out_tensor.copyData(tmp);
-        }
-      } else {
-        out_tensor.copyData(cur_weight);
-      }
 
         nntrainer::Tensor out_tensor =
           batchsliced_hidden.getSharedDataTensor(out_tensor_dim, out_dim * (i));
@@ -1450,6 +1409,9 @@ void EmbeddingLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
             const void *row = quant_table + row_stride * embed_idx;
             if (wt == nntrainer::TensorDim::DataType::Q6_K)
               nntrainer::dequantize_row_q6_K(const_cast<void *>(row),
+                                             tmp.data(), out_dim);
+            else if (wt == nntrainer::TensorDim::DataType::Q8_0)
+              nntrainer::dequantize_row_q8_0(const_cast<void *>(row),
                                              tmp.data(), out_dim);
             else
               nntrainer::dequantize_row_q4_0(const_cast<void *>(row),
@@ -1614,49 +1576,37 @@ void EmbeddingLayer::save(std::ofstream &file,
         size_t N = dim.width();
 
         if (dtype == nntrainer::TensorDim::DataType::Q4_0) {
-
-          // Skip quantization for bias-like tensors (1D with height == 1)
-          // as they are not suitable for Q4_0 block quantization
-          if (K == 1) {
-            weight.save(file);
-          } else {
-            NNTR_THROW_IF(N % 32 != 0, std::invalid_argument)
-              << "Q4_0 embedding quantization requires width to be "
-                 "divisible by 32, but got width="
-              << N;
-            //////////////////////////////////////////////////////////////////
-            ///@note Please note that Embedding layer doesn't need to be
-            /// transposed!
-            //////////////////////////////////////////////////////////////////
-            nntrainer::Tensor quant_weight(dim.batch(), dim.channel(), K, N,
-                                           {nntrainer::Tformat::NCHW, dtype});
-            nntrainer::quantize_q4_0(weight.getData<float>(),
-                                     quant_weight.getData<uint8_t>(), K, N,
-                                     nullptr);
-            quant_weight.save(file);
-          }
+          // NOTE: the former "skip quantization when K == 1" bypass was
+          // removed upstream — it silently wrote FP32 bytes into a Q4_0 bin
+          // and corrupted the file. Callers pick the dtype per tensor via the
+          // quantize.cpp dtype_map instead.
+          NNTR_THROW_IF(N % 32 != 0, std::invalid_argument)
+            << "Q4_0 embedding quantization requires width to be "
+               "divisible by 32, but got width="
+            << N;
+          //////////////////////////////////////////////////////////////////
+          ///@note Please note that Embedding layer doesn't need to be
+          /// transposed!
+          //////////////////////////////////////////////////////////////////
+          nntrainer::Tensor quant_weight(dim.batch(), dim.channel(), K, N,
+                                         {nntrainer::Tformat::NCHW, dtype});
+          nntrainer::quantize_q4_0(weight.getData<float>(),
+                                   quant_weight.getData<uint8_t>(), K, N,
+                                   nullptr);
+          quant_weight.save(out);
         } else if (dtype == nntrainer::TensorDim::DataType::Q8_0) {
-
-          // Skip quantization for bias-like tensors (1D with height == 1)
-          // as they are not suitable for Q8_0 block quantization
-          if (K == 1) {
-            weight.save(file);
-          } else {
-            NNTR_THROW_IF(N % 32 != 0, std::invalid_argument)
-              << "Q8_0 embedding quantization requires width to be "
-                 "divisible by 32, but got width="
-              << N;
-            //////////////////////////////////////////////////////////////////
-            ///@note Please note that Embedding layer doesn't need to be
-            /// transposed!
-            //////////////////////////////////////////////////////////////////
-            nntrainer::Tensor quant_weight(dim.batch(), dim.channel(), K, N,
-                                           {nntrainer::Tformat::NCHW, dtype});
-            nntrainer::quantize_q8_0(weight.getData<float>(),
-                                     quant_weight.getData<uint8_t>(), K, N,
-                                     nullptr);
-            quant_weight.save(file);
-          }
+          NNTR_THROW_IF(N % 32 != 0, std::invalid_argument)
+            << "Q8_0 embedding quantization requires width to be "
+               "divisible by 32, but got width="
+            << N;
+          // Same plain row layout as Q4_0: the lookup table is never
+          // transposed, each row is ceil(N/32) block_q8_0 (34 bytes each).
+          nntrainer::Tensor quant_weight(dim.batch(), dim.channel(), K, N,
+                                         {nntrainer::Tformat::NCHW, dtype});
+          nntrainer::quantize_q8_0(weight.getData<float>(),
+                                   quant_weight.getData<uint8_t>(), K, N,
+                                   nullptr);
+          quant_weight.save(out);
         } else if (dtype == nntrainer::TensorDim::DataType::Q6_K) {
           //////////////////////////////////////////////////////////////////
           ///@note Please note that Embedding layer doesn't need to be
