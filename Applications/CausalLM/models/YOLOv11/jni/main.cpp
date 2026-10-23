@@ -77,6 +77,77 @@ extern "C" void openblas_set_num_threads(int);
 using ml::train::createLayer;
 using ml::train::LayerHandle;
 using ml::train::Tensor;
+
+/**
+ * @brief Adapts FP32 host buffers to model->inference()'s float* contract.
+ *
+ * inference() reads each input and returns each output in the graph's
+ * declared dtype. An FP16-activation preset declares an FP16 input and
+ * produces FP16 outputs, so the input is narrowed to _FP16 once before the
+ * timed runs and the outputs are widened back to float afterwards.
+ */
+struct InferenceIO {
+  std::vector<float *> in; /**< buffers to pass to inference() */
+#ifdef ENABLE_FP16
+  std::vector<std::vector<_FP16>> in16; /**< narrowed FP16 inputs */
+#endif
+  std::vector<std::vector<float>> out32;      /**< widened FP32 outputs */
+  std::vector<ml::train::TensorDim> out_dims; /**< output dimensions */
+  bool fp16 = false; /**< true for an FP16-activation preset */
+
+  /**
+   * @brief Prepare the inputs for @a model
+   * @param model initialized model
+   * @param src FP32 input buffers
+   * @param use_fp16 true when the graph runs FP16 activations
+   */
+  InferenceIO(ml::train::Model &model, const std::vector<float *> &src,
+              bool use_fp16) :
+    in(src), fp16(use_fp16) {
+#ifdef ENABLE_FP16
+    if (!fp16)
+      return;
+    auto in_dims = model.getInputDimension();
+    in16.resize(src.size());
+    for (size_t i = 0; i < src.size(); ++i) {
+      if (in_dims[i].getDataType() != ml::train::TensorDim::DataType::FP16)
+        continue;
+      const size_t n = in_dims[i].getDataLen();
+      in16[i].resize(n);
+      for (size_t j = 0; j < n; ++j)
+        in16[i][j] = static_cast<_FP16>(src[i][j]);
+      in[i] = reinterpret_cast<float *>(in16[i].data());
+    }
+    out_dims = model.getOutputDimension();
+#else
+    (void)model;
+#endif
+  }
+
+  /**
+   * @brief Widen FP16 outputs of inference() to float
+   * @param outs pointers returned by inference()
+   * @return FP32 views of the outputs (owned by this object)
+   */
+  std::vector<float *> widen(std::vector<float *> outs) {
+#ifdef ENABLE_FP16
+    if (!fp16)
+      return outs;
+    out32.assign(outs.size(), {});
+    for (size_t i = 0; i < outs.size() && i < out_dims.size(); ++i) {
+      if (out_dims[i].getDataType() != ml::train::TensorDim::DataType::FP16)
+        continue;
+      const size_t n = out_dims[i].getDataLen();
+      const _FP16 *h = reinterpret_cast<const _FP16 *>(outs[i]);
+      out32[i].resize(n);
+      for (size_t j = 0; j < n; ++j)
+        out32[i][j] = static_cast<float>(h[j]);
+      outs[i] = out32[i].data();
+    }
+#endif
+    return outs;
+  }
+};
 using ModelHandle = std::unique_ptr<ml::train::Model>;
 
 // Graph block builders live in yolov11_graph.h; layer registration,
@@ -431,10 +502,8 @@ int main(int argc, char *argv[]) {
 #else
     auto input = loadBin(input_path);
 #endif
-    // The inference() API is FP32 by contract: always hand it the plain FP32
-    // image. When the graph input is declared FP16 the framework converts
-    // FP32->FP16 at the binding boundary (mapExternalTensor) through the Tensor
-    // system — no app-side conversion.
+    // inference() reads the input in the graph's declared dtype, so an FP16
+    // preset gets its image narrowed to FP16 by InferenceIO below.
     // When the graph is NHWC, the input bytes must also be NHWC-ordered
     // ([N,H,W,C]); input_832.bin is stored NCHW, so transpose here.
     if (preset_nhwc || std::getenv("YOLO_NHWC")) {
@@ -447,6 +516,7 @@ int main(int argc, char *argv[]) {
       input.swap(nhwc);
     }
     std::vector<float *> in_ptr = {input.data()};
+    InferenceIO io(*model, in_ptr, fp16_act);
 
     // Inference timing. YOLO_BENCH_ITERS (default 1) controls how many timed
     // forward passes to run; the average wall-clock is reported and the last
@@ -459,10 +529,11 @@ int main(int argc, char *argv[]) {
     double total_ms = 0.0;
     for (int it = 0; it < bench_iters; ++it) {
       auto t0 = std::chrono::steady_clock::now();
-      outs = model->inference(1, in_ptr, std::vector<float *>());
+      outs = model->inference(1, io.in, std::vector<float *>());
       auto t1 = std::chrono::steady_clock::now();
       total_ms += std::chrono::duration<double, std::milli>(t1 - t0).count();
     }
+    outs = io.widen(outs);
     std::cout << "Inference done (" << outs.size() << " scale outputs)."
               << std::endl;
     std::cout << "Inference time: " << (total_ms / bench_iters)
