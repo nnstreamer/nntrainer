@@ -534,8 +534,8 @@ public:
               unsigned int K = dim.height();
               unsigned int N = dim.width();
 
-              // Bias-like tensors (height == 1) have no K axis to block along,
-              // so they stay FP32 -- same rule as the Q4_0 branch above.
+              // Skip quantization for bias-like tensors (1D with height == 1)
+              // as they are not suitable for Q8_0 block quantization
               if (K == 1) {
                 weight.save(file);
               } else {
@@ -544,25 +544,33 @@ public:
                      "divisible by 32, but got height="
                   << K << ", width=" << N;
 
-                // nntr_gemm_q8_0_q8_0's contract is: weights are plain
-                // block_q8_0 packed [N rows x K/32 blocks], explicitly NOT
-                // interleaved (unlike Q4_0, whose kernel wants an ISA-specific
-                // x4/x8 layout and therefore needs repack_q4_0 here). An FC
-                // weight is stored [K, N], so transpose to [N, K] first and
-                // then quantize row-wise; no repack, and the file is portable
-                // across ISAs.
                 Tensor weight_t = weight.transpose("0:2:1");
                 Tensor quant_weight(dim.batch(), dim.channel(), K, N,
                                     {Tformat::NCHW, dtype});
                 std::vector<char> tmp(quant_weight.size());
 
-                // Channel-wise: one scale per output channel, that is per
-                // row of the transposed [N, K] weight, not one per 32-element
-                // block.
-                nntr_quantize_q8_0_per_channel(weight_t.getData<float>(),
-                                               tmp.data(), N, K);
-                std::memcpy(quant_weight.getData<uint8_t>(), tmp.data(),
-                            quant_weight.size());
+                // Two Q8_0 FC encodings share the block_q8_0 byte layout:
+                //  * default: per-32-block scales, quantized to plain rows and
+                //    then repacked for the target ISA (q8_0x4 interleaved for
+                //    the ARM SMMLA FC kernels via gemm_q8_0_fp32, plain
+                //    pass-through for X86, see FloatTensor::dotQnK);
+                //  * NNTR_W8A8_PERCH: channel-wise -- one scale per output
+                //    channel, i.e. per row of the transposed [N, K] weight,
+                //    not one per block. Plain rows, no repack, portable
+                //    across ISAs; consumed by int8_gemm::gemmPerChannelA8.
+                static const bool perch_quant =
+                  std::getenv("NNTR_W8A8_PERCH") != nullptr;
+                if (perch_quant) {
+                  nntr_quantize_q8_0_per_channel(weight_t.getData<float>(),
+                                                 tmp.data(), N, K);
+                  std::memcpy(quant_weight.getData<uint8_t>(), tmp.data(),
+                              quant_weight.size());
+                } else {
+                  quantize_q8_0(weight_t.getData<float>(), tmp.data(), N, K,
+                                nullptr);
+                  repack_q8_0(quant_weight.getData<uint8_t>(), tmp.data(),
+                              quant_weight.size(), N, K, target_isa);
+                }
                 quant_weight.save(file);
               }
             } else if (dtype == TensorDim::DataType::QS4CX) {

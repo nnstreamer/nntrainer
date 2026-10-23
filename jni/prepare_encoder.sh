@@ -49,11 +49,7 @@ function _untar_encoder {
   fi
 
   if [ ${TARGET_VERSION} == "0.2" ]; then
-    if [ -d "../Applications/CausalLM" ]; then
-      cp -f json.hpp ../Applications/CausalLM/
-    else
-      cp -f json.hpp ../Applications/CausalLM/
-    fi
+    cp -f json.hpp ../Applications/CausalLM/
     mv -f ctre-unicode.hpp json.hpp encoder.hpp ../Applications/LLaMA/jni/
     echo "[Encoder] Finish moving encoder \n"
   fi

@@ -34,7 +34,7 @@ NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
 	$(ML_API_COMMON_INCLUDES)
 
 # causallm custom layers used by the pose head.
-CAUSALLM_LAYERS := $(NNTRAINER_ROOT)/Applications/CausalLM/layers
+CAUSALLM_LAYERS := $(NNTRAINER_ROOT)/Applications/causallm/layers
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := nntrainer

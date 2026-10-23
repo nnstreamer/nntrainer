@@ -26,14 +26,14 @@
 
 #include "jni/fastvit_attention_layer.h"
 #include "jni/fastvit_keyword_graph.h"
-#include "model_base.h"
+#include "transformer.h"
 
 namespace causallm {
 
 /**
  * @brief FastViTKeyword model (quantization/build wrapper).
  */
-class FastViTKeywordModel : public Model {
+class FastViTKeywordModel : public Transformer {
 public:
   FastViTKeywordModel(json &cfg, json &generation_cfg, json &nntr_cfg) {
     (void)cfg;

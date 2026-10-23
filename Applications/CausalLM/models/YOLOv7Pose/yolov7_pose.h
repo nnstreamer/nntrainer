@@ -25,7 +25,7 @@
 #include <model.h>
 
 #include "jni/yolov7_pose_graph.h"
-#include "model_base.h"
+#include "transformer.h"
 #include "rtmcc_head.h"
 
 namespace causallm {
@@ -33,7 +33,7 @@ namespace causallm {
 /**
  * @brief YOLOv7ReIDtiny pose model (quantization/build wrapper).
  */
-class Yolov7Pose : public Model {
+class Yolov7Pose : public Transformer {
 public:
   Yolov7Pose(json &cfg, json &generation_cfg, json &nntr_cfg) {
     // conv_dtype is read by nntr_quantize from nntr_config.json; nothing else

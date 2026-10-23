@@ -702,7 +702,7 @@ def convert(args):
     if args.emit_nntr_config:
         fc_dtype_cfg = {"q4_0": "Q4_0", "q6_k": "Q6_K", "fp32": "FP32"}[args.fc_dtype]
         cfg = {
-            "model_type": "causallm",
+            "model_type": "CausalLM",
             "model_tensor_type": f"{fc_dtype_cfg}-FP32",
             "model_file_name": os.path.basename(args.output),
             "fc_layer_dtype": fc_dtype_cfg,

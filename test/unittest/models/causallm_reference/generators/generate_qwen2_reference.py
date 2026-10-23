@@ -29,7 +29,7 @@ from transformers import Qwen2Config, Qwen2ForCausalLM
 THIS_DIR = pathlib.Path(__file__).resolve().parent
 # generators -> causallm_reference -> models -> unittest -> test -> repo root
 REPO_ROOT = THIS_DIR.parents[4]
-CONVERTER_DIR = (REPO_ROOT / "Applications" / "causallm" / "res" / "qwen2"
+CONVERTER_DIR = (REPO_ROOT / "Applications" / "CausalLM" / "res" / "qwen2"
                  / "qwen2-0.5b")
 # Fixtures live one level up, next to this generators/ directory.
 DEFAULT_OUT = THIS_DIR.parent / "qwen2_tiny"
@@ -164,7 +164,7 @@ def write_nntr_configs(out_dir: pathlib.Path, bin_name: str,
         "max_seq_len": 8,
         "model_file_name": bin_name,
         "model_tensor_type": "FP32-FP32",
-        "model_type": "causallm",
+        "model_type": "CausalLM",
         "num_to_generate": 1,
         "tokenizer_file": tokenizer_path,
     }

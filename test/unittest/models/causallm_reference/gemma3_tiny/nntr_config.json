@@ -8,7 +8,7 @@
   "max_seq_len": 8,
   "model_file_name": "nntr_gemma3_tiny_fp32.bin",
   "model_tensor_type": "FP32-FP32",
-  "model_type": "causallm",
+  "model_type": "CausalLM",
   "num_to_generate": 1,
   "tokenizer_file": "tokenizer.json"
 }

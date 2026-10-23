@@ -22,7 +22,6 @@
 #include <cstring>
 #include <math.h>
 #include <stddef.h>
-#include <stdexcept>
 #include <stdint.h>
 #include <tensor_dim.h>
 
@@ -4010,6 +4009,54 @@ void NNTR_Q4_0_8X8_FN(nntr_gemv_q4_0_8x8_q8_0)(int n, float *__restrict s,
   return;
 }
 
+#ifndef NNTR_GGML_AVXVNNI_VARIANT
+#ifdef NNTR_HAVE_AVXVNNI_TU
+#include <cpuid.h>
+
+/**
+ * @brief true when the CPU runs AVX-VNNI (CPUID.(EAX=7,ECX=1):EAX[4]).
+ * The AVX2 build already presumes the OS saves the YMM state.
+ */
+static bool nntr_cpu_has_avxvnni() {
+  unsigned int a = 0, b = 0, c = 0, d = 0;
+  if (!__get_cpuid_count(7, 1, &a, &b, &c, &d))
+    return false;
+  return (a >> 4) & 1u;
+}
+
+/** @brief AVX-VNNI bodies, built in nntr_ggml_impl_avxvnni.cpp */
+void nntr_gemm_q4_0_8x8_q8_0_avxvnni(int n, float *__restrict s, size_t bs,
+                                     const void *__restrict vx,
+                                     const void *__restrict vy, int nr, int nc);
+/** @brief AVX-VNNI bodies, built in nntr_ggml_impl_avxvnni.cpp */
+void nntr_gemv_q4_0_8x8_q8_0_avxvnni(int n, float *__restrict s, size_t bs,
+                                     const void *__restrict vx,
+                                     const void *__restrict vy, int nr, int nc);
+
+static const bool nntr_use_avxvnni = nntr_cpu_has_avxvnni();
+#endif
+
+void nntr_gemm_q4_0_8x8_q8_0(int n, float *__restrict s, size_t bs,
+                             const void *__restrict vx,
+                             const void *__restrict vy, int nr, int nc) {
+#ifdef NNTR_HAVE_AVXVNNI_TU
+  if (nntr_use_avxvnni)
+    return nntr_gemm_q4_0_8x8_q8_0_avxvnni(n, s, bs, vx, vy, nr, nc);
+#endif
+  nntr_gemm_q4_0_8x8_q8_0_avx2(n, s, bs, vx, vy, nr, nc);
+}
+
+void nntr_gemv_q4_0_8x8_q8_0(int n, float *__restrict s, size_t bs,
+                             const void *__restrict vx,
+                             const void *__restrict vy, int nr, int nc) {
+#ifdef NNTR_HAVE_AVXVNNI_TU
+  if (nntr_use_avxvnni)
+    return nntr_gemv_q4_0_8x8_q8_0_avxvnni(n, s, bs, vx, vy, nr, nc);
+#endif
+  nntr_gemv_q4_0_8x8_q8_0_avx2(n, s, bs, vx, vy, nr, nc);
+}
+#endif // NNTR_GGML_AVXVNNI_VARIANT
+#ifndef NNTR_GGML_AVXVNNI_VARIANT
 // ============================================================================
 // Q8_0 x Q8_0 GEMM (AVX2) -- phase C-1 of native Q8_0 support
 //
@@ -4075,6 +4122,69 @@ void nntr_gemv_q8_0_q8_0(int n, float *__restrict s, size_t bs,
   // can dispatch them.
   (void)nr;
   nntr_gemm_q8_0_q8_0(n, s, bs, vx, vy, 1, nc);
+}
+
+void nntr_gemm_q8_0x4_q8_0x4(int n, float *__restrict s, size_t bs,
+                             const void *__restrict vx,
+                             const void *__restrict vy, int nr, int nc) {
+  const int qk = QK8_0;
+  const int nb = n / qk;
+  assert(n % qk == 0);
+  assert(nr % 4 == 0);
+
+  const block_q8_0x4 *a_sbase = (const block_q8_0x4 *)vy; // act    [nr/4][nb]
+  const block_q8_0x4 *b_sbase = (const block_q8_0x4 *)vx; // weight [nc/4][nb]
+
+  // Scalar reference of the NEON SMMLA kernel: per-block int32 accumulation in
+  // the same bi order, so results are bit-identical across implementations.
+  for (int m = 0; m < nr; ++m) {
+    const block_q8_0x4 *a = a_sbase + (size_t)(m / 4) * nb;
+    const int ar = m % 4;
+    for (int j = 0; j < nc; ++j) {
+      const block_q8_0x4 *b = b_sbase + (size_t)(j / 4) * nb;
+      const int wr = j % 4;
+      float acc = 0.0f;
+      for (int bi = 0; bi < nb; ++bi) {
+        int32_t si = 0;
+        for (int sub = 0; sub < 4; ++sub)
+          for (int c = 0; c < 8; ++c)
+            si += (int32_t)a[bi].qs[32 * sub + ar * 8 + c] *
+                  (int32_t)b[bi].qs[32 * sub + wr * 8 + c];
+        acc += nntr_fp16_to_fp32(a[bi].d[ar]) * nntr_fp16_to_fp32(b[bi].d[wr]) *
+               (float)si;
+      }
+      s[(size_t)m * bs + j] = acc;
+    }
+  }
+}
+
+void nntr_gemv_q8_0x4_q8_0(int n, float *__restrict s, size_t bs,
+                           const void *__restrict vx,
+                           const void *__restrict vy, int nc) {
+  (void)bs;
+  const int qk = QK8_0;
+  const int nb = n / qk;
+  assert(n % qk == 0);
+  assert(nc % 4 == 0);
+
+  const block_q8_0 *a = (const block_q8_0 *)vy; // one activation row [nb]
+  const block_q8_0x4 *b_sbase = (const block_q8_0x4 *)vx; // weights [nc/4][nb]
+
+  for (int j = 0; j < nc; ++j) {
+    const block_q8_0x4 *b = b_sbase + (size_t)(j / 4) * nb;
+    const int wr = j % 4;
+    float acc = 0.0f;
+    for (int bi = 0; bi < nb; ++bi) {
+      int32_t si = 0;
+      for (int sub = 0; sub < 4; ++sub)
+        for (int c = 0; c < 8; ++c)
+          si += (int32_t)a[bi].qs[8 * sub + c] *
+                (int32_t)b[bi].qs[32 * sub + wr * 8 + c];
+      acc += nntr_fp16_to_fp32(a[bi].d) * nntr_fp16_to_fp32(b[bi].d[wr]) *
+             (float)si;
+    }
+    s[j] = acc;
+  }
 }
 
 // FP32-output plain Q8_0xQ8_0 GEMM (scalar reference). The x86 indirect-conv
@@ -4229,3 +4339,4 @@ void nntr_gemm_q8_0_q8_0_fp16(int n, NNTR_GGML_FP16 *__restrict s, size_t bs,
     "only; callers must gate on supports_gemm_q8_0_indirect_conv_q8_0()");
 }
 #endif // ENABLE_FP16
+#endif // NNTR_GGML_AVXVNNI_VARIANT

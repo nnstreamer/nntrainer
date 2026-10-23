@@ -31,7 +31,7 @@ THIS_DIR = pathlib.Path(__file__).resolve().parent
 # generators -> causallm_reference -> models -> unittest -> test -> repo root
 REPO_ROOT = THIS_DIR.parents[4]
 # weight_converter.py lives in res/gemma3
-CONVERTER_DIR = REPO_ROOT / "Applications" / "causallm" / "res" / "gemma3"
+CONVERTER_DIR = REPO_ROOT / "Applications" / "CausalLM" / "res" / "gemma3"
 # Fixtures live one level up, next to this generators/ directory.
 DEFAULT_OUT = THIS_DIR.parent / "gemma3_tiny"
 
@@ -177,7 +177,7 @@ def write_nntr_configs(out_dir: pathlib.Path, bin_name: str,
         "max_seq_len": 8,
         "model_file_name": bin_name,
         "model_tensor_type": "FP32-FP32",
-        "model_type": "causallm",
+        "model_type": "CausalLM",
         "num_to_generate": 1,
         "tokenizer_file": tokenizer_path,
     }

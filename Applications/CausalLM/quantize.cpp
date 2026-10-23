@@ -103,6 +103,11 @@
 #include "qwen3_embedding.h"
 #include "qwen3_moe_causallm.h"
 #include "qwen3_slim_moe_causallm.h"
+#include "siglip2/siglip2_vision_encoder.h"
+#if !defined(_WIN32)
+#include "bert_decoder/bert_decoder.h"
+#include "screenai_caption/screenai_caption.h"
+#endif
 #if !defined(_WIN32) && !defined(__ANDROID__)
 #include "ced/ced_transformer.h"
 #include "timm_vit/timm_vit_transformer.h"
@@ -120,10 +125,12 @@ namespace {
  * @brief Map of string data type names to DataType enum values
  */
 const std::map<std::string, DataType> dtype_str_map = {
-  {"FP32", DataType::FP32}, {"FP16", DataType::FP16},
-  {"Q4_0", DataType::Q4_0}, {"Q6_K", DataType::Q6_K},
-  {"Q4_K", DataType::Q4_K}, {"QS4CX", DataType::QS4CX},
-  {"Q8_0", DataType::Q8_0}, {"NONE", DataType::NONE}};
+  {"FP32", DataType::FP32},   {"FP16", DataType::FP16},
+  {"Q4_0", DataType::Q4_0},   {"Q6_K", DataType::Q6_K},
+  {"Q4_K", DataType::Q4_K},   {"Q8_0", DataType::Q8_0},
+  {"QINT4", DataType::QINT4}, {"QS4CX", DataType::QS4CX},
+  {"NONE", DataType::NONE},
+};
 
 /**
  * @brief Map of string ISA names to ISA enum values
@@ -170,8 +177,7 @@ DataType strToDataType(const std::string &s) {
   auto it = dtype_str_map.find(upper);
   if (it == dtype_str_map.end()) {
     throw std::invalid_argument("Unsupported data type: " + s +
-                                ". Supported: FP32, FP16, Q4_0, Q6_K, "
-                                "Q4_K, QS4CX, Q8_0");
+                                ". Supported: FP32, FP16, Q4_0, Q8_0, Q6_K, Q4_K, QS4CX");
   }
   return it->second;
 }
@@ -518,6 +524,15 @@ void printUsage(const char *prog) {
     << "  --embd_dtype <type>   Target dtype for embedding (default: FP32)\n"
     << "  --lmhead_dtype <type> Target dtype for LM head (default: same as "
        "embd_dtype)\n"
+    << "  --act_dtype <type>    Activation dtype recorded in "
+       "model_tensor_type\n"
+    << "                        (default: FP32). Options: FP32, FP16. With "
+       "Q8_0\n"
+    << "                        weights, FP32 selects the W8A8 path (ggml "
+       "re-quantizes\n"
+    << "                        activations to Q8_0); FP16 selects W8A16, "
+       "which is\n"
+    << "                        markedly more accurate.\n"
     << "  --conv_dtype <type>   Target dtype for conv layers (default: FP32 / "
        "read from nntr_config).\n"
     << "                        Vision models only; surface conv names via the "
@@ -1004,6 +1019,11 @@ int main(int argc, char *argv[]) {
   std::string fc_dtype_str = "Q4_0";
   std::string embd_dtype_str = "FP32";
   std::string lmhead_dtype_str = "";
+  // Activation dtype of the emitted model_tensor_type ("<weight>-<activation>").
+  // FP32 activations against Q8_0 weights run ggml's W8A8 path (activations are
+  // dynamically re-quantized to Q8_0 per block); FP16 keeps the activations in
+  // half precision, which roughly halves the end-to-end quantization error.
+  std::string act_dtype_str = "FP32";
   std::string conv_dtype_str =
     ""; // empty = FP32 (default: don't quantize convs)
   std::string isa_str = "DEFAULT";
@@ -1024,6 +1044,13 @@ int main(int argc, char *argv[]) {
       embd_dtype_str = argv[++i];
     } else if (arg == "--lmhead_dtype" && i + 1 < argc) {
       lmhead_dtype_str = argv[++i];
+    } else if (arg == "--act_dtype" && i + 1 < argc) {
+      act_dtype_str = argv[++i];
+      if (act_dtype_str != "FP32" && act_dtype_str != "FP16") {
+        std::cerr << "Unknown activation dtype: " << act_dtype_str
+                  << " (expected 'FP32' or 'FP16')\n";
+        return EXIT_FAILURE;
+      }
     } else if (arg == "--conv_dtype" && i + 1 < argc) {
       conv_dtype_str = argv[++i];
     } else if (arg == "--isa" && i + 1 < argc) {
@@ -1188,13 +1215,76 @@ int main(int argc, char *argv[]) {
     std::string src_weight_path = model_path + "/" + original_bin;
     std::string dst_weight_path = output_dir + "/" + output_bin_name;
 
-    // LLM backbones report num_hidden_layers and timm-style ViT configs (CED
-    // included) report depth; pure conv vision models (e.g. YOLOv11) report
-    // neither, so fall back to 0 — buildLayerDtypeMap's FC loop is a no-op
-    // then and the model's getQuantizableLayerNames() supplies the conv names.
-    int num_layers = cfg.contains("num_hidden_layers")
-                       ? cfg["num_hidden_layers"].get<int>()
-                       : cfg.value("depth", 0);
+    // Sidecar layout for the PLE and embedding0 tables. By default (kAuto)
+    // a table goes to its own mmap'd file whenever the model qualifies: the
+    // runtime then reads only the rows of the tokens it sees instead of every
+    // backend keeping a resident copy of the whole table (for Gemma-4 with a
+    // Q6_K embedding that is about 2.1 GiB). The payload path is injected
+    // into nntr_cfg so the model wires sidecar_export_path onto the layer
+    // during save. --ple_sidecar / --embd_sidecar turn an unqualified model
+    // into an error; --no_*sidecar keep the table inside the model file.
+    const bool quantized_embd =
+      (embd_dtype == DataType::Q4_0 || embd_dtype == DataType::Q6_K);
+    auto sidecar_blocker = [&](bool table_present, const char *absent_why,
+                               const char *existing_key) -> std::string {
+      if (output_format != "bin")
+        return "supports only the 'bin' output format";
+      if (!quantized_embd)
+        return "requires --embd_dtype Q4_0 or Q6_K (got " +
+               dataTypeToStr(embd_dtype) + ")";
+      if (!table_present)
+        return absent_why;
+      if (!nntr_cfg.value(existing_key, std::string()).empty())
+        return std::string("source model already uses a sidecar (") +
+               existing_key + " set); nothing to extract";
+      return "";
+    };
+    auto resolve_mode = [](SidecarMode mode, const std::string &blocker,
+                           const char *flag) {
+      if (mode == SidecarMode::kOff)
+        return false;
+      if (blocker.empty())
+        return true;
+      if (mode == SidecarMode::kOn)
+        throw std::invalid_argument(std::string(flag) + " " + blocker);
+      return false;
+    };
+
+    const bool has_ple = cfg.contains("hidden_size_per_layer_input") &&
+                         cfg["hidden_size_per_layer_input"].is_number() &&
+                         cfg["hidden_size_per_layer_input"].get<int>() > 0;
+    bool ple_sidecar =
+      resolve_mode(ple_mode,
+                   sidecar_blocker(has_ple,
+                                   "requires a model with per-layer embeddings "
+                                   "(config.json hidden_size_per_layer_input)",
+                                   "ple_file_name"),
+                   "--ple_sidecar");
+
+    // embedding0 is gated on an UNTIED lm_head: a tied head shares the table
+    // and scans every row per decode step, so a sidecar would fault the
+    // whole file back in and save nothing.
+    const bool untied =
+      nntr_cfg.contains("lmhead_untie") && nntr_cfg["lmhead_untie"].get<bool>();
+    bool embd_sidecar = resolve_mode(
+      embd_mode,
+      sidecar_blocker(untied,
+                      "requires an untied lm_head (lmhead_untie=true); a "
+                      "tied lm_head shares the embedding table and would "
+                      "gain nothing",
+                      "embedding_file_name"),
+      "--embd_sidecar");
+
+    const std::string sidecar_base = sidecarBaseName(output_bin_name);
+    const std::string ple_payload_name = sidecar_base + "_ple.bin";
+    const std::string ple_manifest_name = sidecar_base + "_ple.json";
+    const std::string embd_payload_name = sidecar_base + "_embd.bin";
+    const std::string embd_manifest_name = sidecar_base + "_embd.json";
+    if (ple_sidecar)
+      nntr_cfg["ple_sidecar_export"] = output_dir + "/" + ple_payload_name;
+    if (embd_sidecar)
+      nntr_cfg["embd_sidecar_export"] = output_dir + "/" + embd_payload_name;
+
     std::string architecture =
       cfg["architectures"].get<std::vector<std::string>>()[0];
     const json &network_cfg =
@@ -1227,7 +1317,13 @@ int main(int argc, char *argv[]) {
       dec_layers = cfg.at("decoder").value("num_hidden_layers", 4);
       num_layers = enc_layers + dec_layers;
     } else {
-      num_layers = network_cfg["num_hidden_layers"].get<int>();
+      // LLM backbones report num_hidden_layers and timm-style ViT configs
+      // (CED included) report depth; pure conv vision models report neither,
+      // so fall back to 0: buildLayerDtypeMap's FC loop is then a no-op and
+      // the model's getQuantizableLayerNames() supplies the conv names.
+      num_layers = network_cfg.contains("num_hidden_layers")
+                     ? network_cfg["num_hidden_layers"].get<int>()
+                     : network_cfg.value("depth", 0);
     }
 
     std::cout << "  Architecture: " << architecture << "\n";
@@ -1463,6 +1559,15 @@ int main(int argc, char *argv[]) {
     new_nntr_cfg["fc_layer_dtype"] = dataTypeToStr(fc_dtype);
     new_nntr_cfg["embedding_dtype"] = dataTypeToStr(embd_dtype);
     new_nntr_cfg["lmhead_dtype"] = dataTypeToStr(lmhead_dtype);
+    if (target_moe_cache_size.has_value())
+      new_nntr_cfg["moe_cache_size"] = *target_moe_cache_size;
+    // The encoder's patch conv is quantized alongside the FCs for Q8_0 (the
+    // NCHW conv runs the same interleaved int8 GEMM); record its dtype so the
+    // runtime graph declares the matching weight tensor.
+    if ((is_encoder || is_caption) && fc_dtype == DataType::Q8_0)
+      new_nntr_cfg["patch_embed_dtype"] = dataTypeToStr(fc_dtype);
+    // --act_dtype overrides the activation half of model_tensor_type (e.g.
+    // W8A16 from an FP32 source); otherwise it follows the source model.
     if (conv_dtype != DataType::FP32 && conv_dtype != DataType::NONE)
       new_nntr_cfg["conv_dtype"] = dataTypeToStr(conv_dtype);
     new_nntr_cfg["model_tensor_type"] =

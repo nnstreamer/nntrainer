@@ -66,7 +66,7 @@ Tensor *TensorPool::request(const std::string &name, const TensorDim &dim,
   return registerRequestSpec(
     {is_weight_grad,
      std::make_unique<Tensor>(dim, false, init, name, qs, is_virtual),
-     TensorPool::SourceDetails{0, lifespan, exec_order, {}}});
+     TensorPool::SourceDetails{0, lifespan, exec_order, {}, engine}});
 }
 
 /**

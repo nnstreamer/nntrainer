@@ -49,10 +49,10 @@ on so every layer runs channel-last (no per-conv transposes).
 ```bash
 # 0. build (transformer feature gates the whole causallm tree)
 meson setup build -Denable-transformer=true -Denable-app=true
-ninja -C build Applications/CausalLM/models/YOLOv7Pose/jni/yolov7_pose_infer \
-               Applications/CausalLM/nntr_quantize
+ninja -C build Applications/causallm/models/YOLOv7Pose/jni/yolov7_pose_infer \
+               Applications/causallm/nntr_quantize
 
-cd Applications/CausalLM/res/yolov7_pose
+cd Applications/causallm/res/yolov7_pose
 
 # 1. FP32 weights: PyTorch .pt -> nntrainer safetensors
 #    Accepts either a state_dict or a full torch.save(model) object; if the
@@ -70,11 +70,11 @@ python3 make_input.py --image sample.jpg --out /path/res
 
 # 1c. stage 1 (W32A32) inference  (pass an ABSOLUTE input path)
 YOLO_TENSOR_TYPE=w32a32 YOLO_WEIGHTS=/path/res/yolov7_pose.safetensors \
-  ../../../../build/Applications/CausalLM/models/YOLOv7Pose/jni/yolov7_pose_infer \
+  ../../../../build/Applications/causallm/models/YOLOv7Pose/jni/yolov7_pose_infer \
   /path/res /path/res/input_320.bin
 
 # 2. Q8_0 weights via nntr_quantize (uses nntrainer's own packing)
-../../../../build/Applications/CausalLM/nntr_quantize /path/res \
+../../../../build/Applications/causallm/nntr_quantize /path/res \
   --conv_dtype Q8_0 --output_format safetensors \
   --output_bin yolov7_pose_q8_0.safetensors -o /path/res
 
@@ -132,7 +132,7 @@ python3 verify_parity.py \
 
 ```bash
 export ANDROID_NDK=/path/to/android-ndk
-cd Applications/CausalLM/models/YOLOv7Pose
+cd Applications/causallm/models/YOLOv7Pose
 ./build_android.sh                 # libnntrainer + yolov7_pose_infer
 ./install_android.sh /path/res     # push binary + libs + weights + input
 # then run on device (see script output)

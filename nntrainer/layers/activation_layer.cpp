@@ -74,12 +74,18 @@ void ActivationLayer::finalize(InitLayerContext &context) {
 void ActivationLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
-
   // W8A8 int8-resident GELU pass-through (NNTR_W8A8): see geluQint8.
   if (std::getenv("NNTR_W8A8") != nullptr && geluQint8(input_, hidden_))
     return;
 
-  acti_func.run_fn(input_, hidden_);
+  // Backend-neutral whole-op dispatch: one call, no preprocessor branch, no
+  // backend name. The CPU table delegates every non-gelu mode back to this very
+  // same ActiFunc, so each existing mode stays value-identical; acti_func is
+  // kept for the backward path, which has no whole-op yet.
+  const TensorDim in_dim = input_.getDim();
+  input_.getOps()->activation(
+    input_, hidden_, act_type_int,
+    in_dim.batch() * in_dim.channel() * in_dim.height(), /*row_offset=*/0);
 }
 
 bool ActivationLayer::geluQint8(Tensor const &input_, Tensor &hidden_) {
@@ -144,14 +150,25 @@ void ActivationLayer::incremental_forwarding(RunLayerContext &context,
   const unsigned int rows_in_batch = input_dim.channel() * input_dim.height();
 
   for (unsigned int b = 0; b < hidden_.batch(); ++b) {
-    Tensor input_step = input_.getSharedDataTensor(
-      input_step_dim, b * input_dim.getFeatureLen(), true);
-    Tensor hidden_step = hidden_.getSharedDataTensor(
-      hidden_step_dim, b * hidden_dim.getFeatureLen(), true);
-
-    if (std::getenv("NNTR_W8A8") != nullptr && geluQint8(input_step, hidden_step))
-      continue;
-    acti_func.run_fn(input_step, hidden_step);
+    // W8A8 int8-resident GELU pass-through (NNTR_W8A8): see geluQint8. The
+    // step views exist only for this check; the generic path below works on
+    // (rows, offset) numbers so a backend op can read residency state.
+    if (std::getenv("NNTR_W8A8") != nullptr) {
+      TensorDim in_step_dim = input_dim;
+      in_step_dim.batch(1);
+      in_step_dim.height(input_dim.height() > 1 ? (to - from) : 1u);
+      TensorDim out_step_dim = hidden_.getDim();
+      out_step_dim.batch(1);
+      out_step_dim.height(in_step_dim.height());
+      Tensor input_step = input_.getSharedDataTensor(
+        in_step_dim, b * input_dim.getFeatureLen(), true);
+      Tensor hidden_step = hidden_.getSharedDataTensor(
+        out_step_dim, b * hidden_.getDim().getFeatureLen(), true);
+      if (geluQint8(input_step, hidden_step))
+        continue;
+    }
+    input_.getOps()->activation(input_, hidden_, act_type_int, rows_per_batch,
+                                b * rows_in_batch);
   }
 }
 

@@ -1,13 +1,9 @@
-// SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2023 Samsung Electronics Co., Ltd. All Rights Reserved.
- *
- * @file   tokenizers_c.h
- * @date   13 Jul 2026
- * @brief  C binding to tokenizers rust library
- * @see    https://github.com/nntrainer/nntrainer
+ *  Copyright (c) 2023 by Contributors
+ * @file tokenizers_c.h
+ * @brief C binding to tokenizers rust library
  * @author Contributors
- * @bug    No known bugs
+ * @bug No known bugs
  */
 #ifndef TOKENIZERS_C_H_
 #define TOKENIZERS_C_H_

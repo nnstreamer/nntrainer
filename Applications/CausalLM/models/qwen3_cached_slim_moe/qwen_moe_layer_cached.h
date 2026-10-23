@@ -33,7 +33,6 @@
 #include <causallm_common_properties.h>
 #include <common_properties.h>
 #include <layer_impl.h>
-#include <mutex>
 #include <list>
 
 namespace causallm {

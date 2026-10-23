@@ -794,13 +794,6 @@ private:
   std::vector<Tensor> fp32_output_cache;
 
   /**
-   * @brief Owned FP32 copies of non-FP32 model outputs, materialized by the
-   * float* inference() overload (whose contract is FP32). Kept here so the
-   * returned float* stay valid until the next inference() call.
-   */
-  std::vector<Tensor> fp32_output_cache;
-
-  /**
    * @brief   Print Options when printing layer info
    */
   typedef enum {

@@ -134,6 +134,8 @@ private:
   std::array<unsigned int, 4> lora_idx;   /**< indices of the lora weights */
   std::unique_ptr<nntrainer::Quantizer> quantizer;
   bool skip_prefill = false;
+  ActiFunc acti_func; /**< inline fused activation; inert unless
+                           fused_activation is set by the FusionRealizer */
 
   /**
    * @brief W8A8 int8-resident GEMM + epilogue for the MLP FC path.

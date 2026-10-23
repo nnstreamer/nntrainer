@@ -35,9 +35,36 @@
 #define WCHAR_P std::string &
 #endif
 
-#include "model_base.h"
+#include <algorithm> // std::min (prefillChunk clamp)
+#include <context.h> // nntrainer::ModelFeatures (T11)
+#include <future>    // async tokenizer load (round-13 init overlap)
+#include <layer.h>
+#include <map>
+#include <model.h>
+#include <mutex>
+#include <random>
+#include <stdexcept>
+#include <tensor_api.h>
+#include <utility>
+#include <vector>
+
+#include <limits.h>
+
+#include "json.hpp"
+#include "kv_ring.h" // kvRingCap / effectivePrefillChunk (shared with mha_core)
+#include "performance_metrics.h"
+#include <fstream>
+#include <tokenizers_c.h>
+#include <tokenizers_cpp.h>
 
 namespace causallm {
+
+/*** ALIAS ****/
+using LayerHandle = ml::train::LayerHandle;
+using Tensor = ml::train::Tensor;
+using ModelHandle = std::unique_ptr<ml::train::Model>;
+
+using json = nlohmann::json;
 
 /**
  * @brief Model Type Enum
@@ -86,7 +113,7 @@ public:
 /**
  * @brief Transformer Class
  */
-WIN_EXPORT class Transformer : public Model {
+WIN_EXPORT class Transformer {
 
 public:
   /**
@@ -117,6 +144,21 @@ public:
   virtual void initialize();
 
   /**
+   * @brief Load the model weights from a file
+   * @note Ends with repack_weight() unless the model swaps its weights (FSU),
+   * so every load path leaves the CPU GEMM's packed weights ready.
+   */
+  virtual void load_weight(const std::string &weight_path);
+
+  /**
+   * @brief Repack all QS4CX weights after loading
+   * @note load_weight() already calls it; calling it again is a no-op, since
+   * every weight packs at most once.
+   * @note Prepares weights for efficient computation by eagerly packing them
+   */
+  virtual void repack_weight();
+
+  /**
    * @brief Names of layers whose weights the offline quantizer should convert.
    *
    * The standard CausalLM quantizer (nntr_quantize) builds a per-layer
@@ -134,6 +176,81 @@ public:
   virtual std::vector<std::string> getQuantizableLayerNames() const {
     return {};
   }
+
+  /**
+   * @brief The activation-plane height (== the largest prefill block) this
+   *        request wants, in query rows.
+   * @param prompt_tokens the prompt this request will prefill (0 = unknown).
+   * @details The pack's init_seq_len is a DEFAULT plane height, not a
+   * capability: the plane is [init_seq_len x width] for every activation the
+   * planner sizes, so it is charged on EVERY run, while the block it enables is
+   * only worth paying for on a run whose prompt is actually that long
+   * (measured, 919-token prompt, Adreno: plane 4096 costs +375 MiB of
+   * honest footprint over plane 1024 and buys 0 -- the prompt is one block
+   * either way).
+   *
+   * So the height follows the prompt: round it up to the 64-row grid the qk
+   * m-tiling and the score sub-blocking assume, bound it above by the validated
+   * block (kPrefillBlockCap, itself bounded by max_seq_len -- and max_seq_len
+   * is already clamped to max_position_embeddings by setupParameters), and
+   * never go BELOW the height the pack shipped, so no pack can lose a plane it
+   * was tuned with. A prompt past the cap is not truncated: it is fed in
+   * cap-sized chunks (prefillDriveChunk()).
+   */
+  unsigned int prefillPlaneFor(unsigned int prompt_tokens) const;
+
+  /**
+   * @brief Rebuild the graph at the plane this request needs, if it needs more.
+   * @param prompt_tokens the prompt this request will prefill.
+   * @return true when the graph was rebuilt (INIT_SEQ_LEN changed).
+   * @details Only the caller knows the prompt, and the prompt is known only
+   * after load(); the plane, in contrast, is fixed when the graph is BUILT --
+   * every layer derives its own geometry from INIT_SEQ_LEN in constructModel()
+   * (the `init_seq_len` property mha_core sizes its ring capacity and its KV
+   * mirror from, the {1,1,1,INIT_SEQ_LEN} input, the attention plane). There is
+   * no in-place resize: NetworkGraph::resetInputDimension() needs
+   * Layer::updateTensorsByInputDimensions(), which all but a handful of layers
+   * (and no CausalLM layer) implement -- it throws "currently not supported".
+   *
+   * Rebuilding the whole graph at the new height is therefore the only way to
+   * move the plane that cannot leave one consumer disagreeing with another:
+   * initialize() re-derives ALL of it from the one number. The price is one
+   * extra weight load (measured on device: 756 ms for the 1.5B, 280 ms for the
+   * 0.3B, both mmap-backed and page-cache warm on the second pass) paid once,
+   * on the first long prompt only -- against 1.6 s (0.3B 16K) to 5.3 s (1.5B
+   * 16K) of prefill that the larger block saves on that same request.
+   *
+   * Refused (returns false, keeping today's behaviour) when: the resolved
+   * attention arm is not one a bigger block pays off on
+   * (causallm::prefillBlockPays(), which carries the per-arm measurement), the
+   * model does not chunk its prefill by design, NNTR_INIT_SEQ_LEN pinned the
+   * plane, the graph is not initialized, no weight path was recorded (a caller
+   * that built the weights some other way), FSU/memory-swap is on, or the
+   * target is not taller than the current plane. The old graph is released
+   * BEFORE the new one is built, so the peak is max(old, new) and not their sum
+   * -- and nothing else is live at that moment either: the plane grows before
+   * the first prefill, so the K/V mirrors, the score scratch and the KV cache
+   * (all allocated lazily at or after the first forward) do not exist yet.
+   */
+  bool growPrefillPlane(unsigned int prompt_tokens);
+
+  /**
+   * @brief Save the weight to a file
+   */
+  virtual void save_weight(const std::string &weight_path);
+  /**
+   * @brief Save the weight to a file with type conversion
+   * @param weight_path Path to save the weight file
+   * @param dtype Global target data type for all layers (NONE = keep original)
+   * @param layer_dtype_map Per-layer data type overrides (layer_name -> dtype)
+   * @param target_isa Target ISA for quantization (default: DEFAULT)
+   */
+  virtual void
+  save_weight(const std::string &weight_path,
+              ml::train::TensorDim::DataType dtype,
+              const std::map<std::string, ml::train::TensorDim::DataType>
+                &layer_dtype_map = {},
+              ml::train::ISA target_isa = ml::train::ISA::DEFAULT);
 
   /**
    * @brief Token position at or beyond which a captured decode-step graph
@@ -592,6 +709,17 @@ protected:
    * @brief register CustomLayers
    */
   virtual void registerCustomLayers();
+
+  /**
+   * @brief Get model format from weight file extension.
+   * @param weight_path Path to the weight file.
+   * @return Model format for the given file extension.
+   */
+  virtual ml::train::ModelFormat
+  formatFromExtension(const std::string &weight_path);
+
+  bool is_initialized = false; /**< Flag to check if the model is initialized */
+  ModelHandle model;
 
   /** tokenizer */
   std::unique_ptr<tokenizers::Tokenizer> tokenizer;

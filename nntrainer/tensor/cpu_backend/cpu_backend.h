@@ -18,6 +18,7 @@
   defined(__ANDROID__) || defined(__arm__) || defined(_M_ARM) ||               \
   defined(_M_ARM64)
 #include <arm_compute_backend.h>
+#define NNTR_CPU_HAS_Q6_K_Q8_K_DOT 1
 // The im2col-fused q4_0 conv GEMM rides the ARM i8mm 4x8 micro-kernel; only the
 // ARM backend implements it. Single source of truth for both the ComputeOps
 // supports_*() flag and the conv layer's path/scratch selection.
@@ -25,6 +26,7 @@
 #elif defined(__x86_64__) || defined(__i586__) || defined(_M_X64) ||           \
   defined(_M_IX86)
 #include <x86_compute_backend.h>
+#define NNTR_CPU_HAS_Q6_K_Q8_K_DOT 1
 #define NNTR_HAS_Q4_0_INDIRECT_CONV 0
 #else
 #include <fallback.h>
@@ -1112,6 +1114,29 @@ extern void gemm_q4_0(const unsigned int M, const unsigned int N,
                       const unsigned int K, const T *A, const unsigned int lda,
                       const void *B, const unsigned int ldb, T *C,
                       const unsigned int ldc);
+
+/**
+ * @brief q4_0 GEMM against several weights : A (M,K) * Ws[i].T (Ns[i],K)
+ *
+ * Quantizes A to q8_0 once and walks every weight inside a single parallel
+ * region, so the activation packing and the thread barrier are paid once
+ * rather than once per weight. Only profitable for M > 1.
+ *
+ * @param M Original row size of output
+ * @param Ns Original col size of each output
+ * @param K Hidden size, shared by every weight
+ * @param A Input activation to be online-runtime quantized to q8_0 format
+ * @param lda Leading dimension of A
+ * @param Bs Offline-quantized transposed weights
+ * @param ldbs Leading dimension of each B
+ * @param Cs float* outputs
+ * @param ldcs Leading dimension of each C
+ */
+extern void gemm_q4_0(const unsigned int M, std::vector<unsigned int> Ns,
+                      const unsigned int K, const float *A,
+                      const unsigned int lda, std::vector<void *> Bs,
+                      std::vector<unsigned int> ldbs, std::vector<float *> Cs,
+                      std::vector<unsigned int> ldcs);
 
 /**
  * @brief q8_0 GEMM : A (M,K) * W.T (N,K) = O (M,N)

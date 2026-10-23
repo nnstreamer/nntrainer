@@ -26,7 +26,7 @@ We investigated `https://github.sec.samsung.net/RS8-ARGlass-SW/video-highlight-t
   - **P3:** `[10, 13], [16, 30], [33, 23]`
   - **P4:** `[30, 61], [62, 45], [59, 119]`
   - **P5:** `[116, 90], [156, 198], [373, 326]`
-- **Output Layout:** The model merges P3/P4/P5 outputs into a single concatenated `[25200, 85]` matrix with `sigmoid` pre-applied. 
+- **Output Layout:** The model merges P3/P4/P5 outputs into a single concatenated `[25200, 85]` matrix with `sigmoid` pre-applied.
 
 ---
 

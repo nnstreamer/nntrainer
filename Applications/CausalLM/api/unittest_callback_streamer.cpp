@@ -38,7 +38,7 @@ int cancel_on_first_callback(const char *delta, void *user_data) {
 
 } // namespace
 
-TEST(CausalLMCallbackStreamerTest, ForwardsDeltaAndUserData) {
+TEST(CausalLmCallbackStreamerTest, ForwardsDeltaAndUserData) {
   CallbackState state;
   CallbackStreamer streamer;
   callback_streamer_init(&streamer, append_callback, &state);
@@ -51,7 +51,7 @@ TEST(CausalLMCallbackStreamerTest, ForwardsDeltaAndUserData) {
   EXPECT_EQ(streamer.cancelled, 0);
 }
 
-TEST(CausalLMCallbackStreamerTest, CallbackNonZeroIsStickyCancellation) {
+TEST(CausalLmCallbackStreamerTest, CallbackNonZeroIsStickyCancellation) {
   CallbackState state;
   CallbackStreamer streamer;
   callback_streamer_init(&streamer, cancel_on_first_callback, &state);
@@ -64,7 +64,7 @@ TEST(CausalLMCallbackStreamerTest, CallbackNonZeroIsStickyCancellation) {
   EXPECT_EQ(streamer.cancelled, 7);
 }
 
-TEST(CausalLMCallbackStreamerTest, NullSafeWrappersIgnoreMissingHooks) {
+TEST(CausalLmCallbackStreamerTest, NullSafeWrappersIgnoreMissingHooks) {
   CallbackState state;
   BaseStreamer empty = {nullptr};
 
@@ -77,6 +77,6 @@ TEST(CausalLMCallbackStreamerTest, NullSafeWrappersIgnoreMissingHooks) {
   EXPECT_EQ(state.calls, 0);
 }
 
-TEST(CausalLMCallbackStreamerTest, NullInitIsIgnored) {
+TEST(CausalLmCallbackStreamerTest, NullInitIsIgnored) {
   EXPECT_NO_THROW(callback_streamer_init(nullptr, append_callback, nullptr));
 }

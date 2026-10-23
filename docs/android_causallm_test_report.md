@@ -1,4 +1,4 @@
-# causallm Reference Tests — Android Verification Report
+# CausalLM Reference Tests — Android Verification Report
 
 **Branch:** `test/reference`  
 **Date:** 2026-06-18
@@ -142,14 +142,14 @@ On ARM with FP16 enabled, the `float*` overload of this function is intentionall
 (`neon_impl_fp16.cpp:2257`) because it accumulates squared values in FP16, which overflows for
 typical LayerNorm input ranges. DeBERTa-v2's LayerNorm inputs exceed FP16 max (~65504).
 
-The causallm custom `rms_norm.cpp` and `reshaped_rms_norm.cpp` already guard against this:
+The CausalLM custom `rms_norm.cpp` and `reshaped_rms_norm.cpp` already guard against this:
 ```cpp
 // DO NOT USE rms_norm_wrt_width_fp16_intrinsic. It causes overflow!
 ```
 
 #### Fix
 
-Switch to the FP32-accumulator variant — the same fix already applied to the causallm layers:
+Switch to the FP32-accumulator variant — the same fix already applied to the CausalLM layers:
 
 ```diff
 -nntrainer::rms_norm_wrt_width_fp16_intrinsic(src, dst, row_count, W, epsilon);

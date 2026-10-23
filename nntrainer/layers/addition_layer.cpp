@@ -104,14 +104,13 @@ void AdditionLayer::forwarding(RunLayerContext &context, bool training) {
       }
     }
   } else {
-    /** @todo check possibility for in-place of addition layer */
     for (unsigned int idx = 0; idx < context.getNumInputs(); ++idx) {
       const Tensor &input_ = context.getInput(idx);
-      if (!idx) {
-        hidden_.copy(input_);
-      } else {
-        hidden_.add_i(input_);
-      }
+      // The first operand copies into hidden, the rest accumulate. The active
+      // backend's op table picks the residency path: the CPU table runs the
+      // same host copy/add this used to call inline, an accelerator can keep
+      // the residual stream in device memory.
+      hidden_.getOps()->residual_op(hidden_, input_, /*accumulate=*/idx != 0);
     }
   }
 

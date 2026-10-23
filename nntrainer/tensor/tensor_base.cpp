@@ -345,21 +345,15 @@ void TensorBase::calculateFlattenDot(
     ml_logw("Warning: support only for rank of dot matrix <= 2 with trans");
   }
 
-  bool is_nhwc = (getFormat() == Tformat::NHWC && dim.rank() > 2);
-  bool input_is_nhwc = (input.getFormat() == Tformat::NHWC && input.getDim().rank() > 2);
-
+  const bool is_nhwc = (getFormat() == Tformat::NHWC);
   if (is_nhwc) {
     first_three_flat = batch() * height() * width();
     last_axis = channel();
-  } else {
-    first_three_flat = batch() * channel() * height();
-    last_axis = width();
-  }
-
-  if (input_is_nhwc) {
     input_first_three_flat = input.batch() * input.height() * input.width();
     input_last_axis = input.channel();
   } else {
+    first_three_flat = batch() * channel() * height();
+    last_axis = width();
     input_first_three_flat = input.batch() * input.channel() * input.height();
     input_last_axis = input.width();
   }
@@ -367,10 +361,14 @@ void TensorBase::calculateFlattenDot(
   if (!trans && !trans_in) {
     if (last_axis != input_first_three_flat) {
       std::stringstream ss;
-      ss << "Error: incompatible dimensions for dot product. "
-         << "this: [" << batch() << "," << channel() << "," << height() << "," << width() << "] (format=" << static_cast<int>(getFormat()) << "), "
-         << "input: [" << input.batch() << "," << input.channel() << "," << input.height() << "," << input.width() << "] (format=" << static_cast<int>(input.getFormat()) << "), "
-         << "last_axis: " << last_axis << ", input_first_three_flat: " << input_first_three_flat;
+      ss << "Error: incompatible dimensions for dot product. this: ["
+         << batch() << "," << channel() << "," << height() << "," << width()
+         << "] (format=" << static_cast<int>(getFormat()) << "), input: ["
+         << input.batch() << "," << input.channel() << "," << input.height()
+         << "," << input.width() << "] (format="
+         << static_cast<int>(input.getFormat())
+         << "), last_axis: " << last_axis
+         << ", input_first_three_flat: " << input_first_three_flat;
       throw std::runtime_error(ss.str());
     }
     K = input_first_three_flat; /** == last_axis */

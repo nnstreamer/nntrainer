@@ -30,7 +30,7 @@ from transformers import Qwen2Config, Qwen2ForCausalLM
 
 THIS_DIR = pathlib.Path(__file__).resolve().parent
 REPO_ROOT = THIS_DIR.parents[4]
-CONVERTER_DIR = (REPO_ROOT / "Applications" / "causallm" / "res" / "qwen2"
+CONVERTER_DIR = (REPO_ROOT / "Applications" / "CausalLM" / "res" / "qwen2"
                  / "qwen2-0.5b")
 sys.path.insert(0, str(CONVERTER_DIR))
 from weight_converter import save_qwen2_for_nntrainer  # noqa: E402

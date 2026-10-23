@@ -1,13 +1,10 @@
-// SPDX-License-Identifier: Apache-2.0
+
 /**
- * Copyright (C) 2023 Samsung Electronics Co., Ltd. All Rights Reserved.
- *
+ * Copyright (c) 2023 by Contributors
  * @file   huggingface_tokenizer.cpp
- * @date   13 Jul 2026
  * @brief  Huggingface tokenizer
- * @see    https://github.com/nntrainer/nntrainer
- * @author Contributors
- * @bug    No known bugs
+ * @author Donghak PARK <donghak.park@samsung.com>
+ * @bug    No known bugs except for NYI items
  */
 #include <env_compat.h>
 #include <tokenizers_c.h>

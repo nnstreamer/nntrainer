@@ -61,6 +61,11 @@
 #include "qwen3_slim_moe_causallm.h"
 #include "timm_vit/timm_vit_transformer.h"
 #include "siglip2/siglip2_vision_encoder.h"
+#if !defined(_WIN32) && !defined(__ANDROID__)
+#include "ced/ced_transformer.h"
+#endif
+#include "FastViTKeyword/fastvit_keyword_model.h"
+#include "YOLOv7Pose/yolov7_pose.h"
 #if !defined(_WIN32)
 #include "bert_decoder/bert_decoder.h"
 #include "screenai_caption/screenai_caption.h"
@@ -217,6 +222,24 @@ void registerAllModels() {
       "Lfm2ForCausalLM", [](json cfg, json generation_cfg, json nntr_cfg) {
         return std::make_unique<causallm::Lfm2CausalLM>(cfg, generation_cfg,
                                                         nntr_cfg);
+      });
+#if !defined(_WIN32) && !defined(__ANDROID__)
+    causallm::Factory::Instance().registerModel(
+      "CedForAudioClassification",
+      [](json cfg, json generation_cfg, json nntr_cfg) {
+        return std::make_unique<causallm::CedTransformer>(cfg, generation_cfg,
+                                                          nntr_cfg);
+      });
+#endif
+    causallm::Factory::Instance().registerModel(
+      "YOLOv7ReIDtiny", [](json cfg, json generation_cfg, json nntr_cfg) {
+        return std::make_unique<causallm::Yolov7Pose>(cfg, generation_cfg,
+                                                      nntr_cfg);
+      });
+    causallm::Factory::Instance().registerModel(
+      "FastViTKeyword", [](json cfg, json generation_cfg, json nntr_cfg) {
+        return std::make_unique<causallm::FastViTKeywordModel>(
+          cfg, generation_cfg, nntr_cfg);
       });
     causallm::Factory::Instance().registerModel(
       "Siglip2VisionEncoder",

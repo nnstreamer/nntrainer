@@ -182,7 +182,7 @@ def main():
     ap.add_argument('--fp32', required=True, help='corrected FP32 safetensors')
     ap.add_argument('--out', required=True, help='output Q8_0 safetensors')
     ap.add_argument('--ref-q8', default='/home/seungbaek/projects/nntrainer_ref2/'
-                        'Applications/CausalLM/models/FastViTKeyword/res/'
+                        'Applications/causallm/models/FastViTKeyword/res/'
                         'fastvit_keyword_q8_0.safetensors',
                     help='working-format q8_0 file to read the quantized key set from')
     args = ap.parse_args()

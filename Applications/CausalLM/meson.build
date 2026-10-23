@@ -38,6 +38,9 @@ causallm_src = [
     # compiled into libcausallm exactly once so every consumer .so (the api lib
     # and the optional model plugin) shares a single Factory (see factory.h).
     meson.current_source_dir() / 'factory.cpp',
+    # FastViTKeyword's attention layer is referenced by model_registry.cpp
+    # (FastViTKeywordModel registers it), so it lives in libcausallm itself.
+    meson.current_source_dir() / 'models/FastViTKeyword/jni/fastvit_attention_layer.cpp',
 ]
 
 executable_src = [
@@ -68,15 +71,21 @@ causallm_layer_dependencies += [
     causallm_deberta_attention_layer_dep,
     causallm_shared_fully_connected_layer_dep,
     causallm_per_layer_slice_dep,
-    causallm_scalar_multiply_dep,
-    causallm_logit_softcapping_dep,
-    causallm_rtmcc_gau_dep,
-    causallm_rtmcc_head_dep,
     causallm_causal_conv1d_dep,
     causallm_custom_multiply_dep,
+    # scalar_multiply and logit_softcapping are core nntrainer layers
+    causallm_rtmcc_gau_dep,
+    causallm_rtmcc_head_dep,
     causallm_xi_pooling_dep,
 ]
 
+# Additive CUDA backend: the model TUs (transformer/causal_lm/gemma4) include
+# cuda_context.h to register layers on the cuda context, which pulls cuda.h ->
+# they need the CUDA toolkit include path. cuda_dep is defined in the root
+# meson.build only when enable-cuda is set.
+if get_option('enable-cuda')
+    causallm_layer_dependencies += cuda_dep
+endif
 
 subdir('models')
 
@@ -350,7 +359,6 @@ e = executable('nntr_causallm',
 
 quantize_src = [
     meson.current_source_dir() / 'quantize.cpp',
-    meson.current_source_dir() / 'models/FastViTKeyword/jni/fastvit_attention_layer.cpp',
 ]
 
 e_quantize = executable('nntr_quantize',
@@ -582,6 +590,8 @@ if get_option('enable-test')
         meson.source_root() / 'test' / 'unittest' / 'models' / 'unittest_causallm_tinybert_reference.cpp',
         meson.source_root() / 'test' / 'unittest' / 'models' / 'unittest_causallm_deberta_v2_reference.cpp',
         meson.source_root() / 'test' / 'unittest' / 'models' / 'unittest_causallm_xlm_roberta_reference.cpp',
+        meson.source_root() / 'test' / 'unittest' / 'models' / 'unittest_causallm_lfm2.cpp',
+        meson.source_root() / 'test' / 'unittest' / 'models' / 'unittest_causallm_lfm2_reference.cpp',
       ],
       dependencies: [
         nntrainer_dep,

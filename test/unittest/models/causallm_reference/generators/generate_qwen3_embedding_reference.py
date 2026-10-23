@@ -30,7 +30,7 @@ from transformers import Qwen3Config, Qwen3ForCausalLM
 THIS_DIR = pathlib.Path(__file__).resolve().parent
 # generators -> causallm_reference -> models -> unittest -> test -> repo root
 REPO_ROOT = THIS_DIR.parents[4]
-CONVERTER_DIR = (REPO_ROOT / "Applications" / "causallm" / "res" / "qwen3"
+CONVERTER_DIR = (REPO_ROOT / "Applications" / "CausalLM" / "res" / "qwen3"
                  / "qwen3-0.6b")
 DEFAULT_OUT = THIS_DIR.parent / "qwen3_embedding_tiny"
 

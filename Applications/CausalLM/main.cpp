@@ -45,23 +45,6 @@
 #include "bert_decoder/bert_decoder.h"
 #include "screenai_caption/screenai_caption.h"
 #endif
-#include "gptoss_causallm.h"
-#if !defined(_WIN32) && !defined(__ANDROID__)
-#include "multilingual_tinybert_16mb.h"
-#endif
-#include "qwen2_causallm.h"
-#include "qwen2_embedding.h"
-#include "xlm_roberta.h"
-#if !defined(_WIN32)
-#include "qwen3_cached_slim_moe_causallm.h"
-#endif
-#include "lfm2_causallm.h"
-#include "qwen3_causallm.h"
-#include "qwen3_embedding.h"
-#include "qwen3_moe_causallm.h"
-#include "qwen3_slim_moe_causallm.h"
-#include "ced/ced_transformer.h"
-#include "timm_vit/timm_vit_transformer.h"
 #include <models/gemma3/function.h>
 #if !defined(_WIN32)
 #include <sys/resource.h>
@@ -552,113 +535,7 @@ int main(int argc, char *argv[]) {
   };
 
   /** Register all runnable causallm models to factory */
-  causallm::Factory::Instance().registerModel(
-    "LlamaForCausalLM", [](json cfg, json generation_cfg, json nntr_cfg) {
-      return std::make_unique<causallm::CausalLM>(cfg, generation_cfg,
-                                                  nntr_cfg);
-    });
-  causallm::Factory::Instance().registerModel(
-    "Qwen2ForCausalLM", [](json cfg, json generation_cfg, json nntr_cfg) {
-      return std::make_unique<causallm::Qwen2CausalLM>(cfg, generation_cfg,
-                                                       nntr_cfg);
-    });
-  causallm::Factory::Instance().registerModel(
-    "Qwen2Embedding", [](json cfg, json generation_cfg, json nntr_cfg) {
-      return std::make_unique<causallm::Qwen2Embedding>(cfg, generation_cfg,
-                                                        nntr_cfg);
-    });
-  causallm::Factory::Instance().registerModel(
-    "Qwen3ForCausalLM", [](json cfg, json generation_cfg, json nntr_cfg) {
-      return std::make_unique<causallm::Qwen3CausalLM>(cfg, generation_cfg,
-                                                       nntr_cfg);
-    });
-  causallm::Factory::Instance().registerModel(
-    "Qwen3MoeForCausalLM", [](json cfg, json generation_cfg, json nntr_cfg) {
-      return std::make_unique<causallm::Qwen3MoECausalLM>(cfg, generation_cfg,
-                                                          nntr_cfg);
-    });
-  causallm::Factory::Instance().registerModel(
-    "Qwen3SlimMoeForCausalLM",
-    [](json cfg, json generation_cfg, json nntr_cfg) {
-      return std::make_unique<causallm::Qwen3SlimMoECausalLM>(
-        cfg, generation_cfg, nntr_cfg);
-    });
-#if !defined(_WIN32)
-  causallm::Factory::Instance().registerModel(
-    "Qwen3CachedSlimMoeForCausalLM",
-    [](json cfg, json generation_cfg, json nntr_cfg) {
-      return std::make_unique<causallm::Qwen3CachedSlimMoECausalLM>(
-        cfg, generation_cfg, nntr_cfg);
-    });
-#endif
-  causallm::Factory::Instance().registerModel(
-    "Qwen3Embedding", [](json cfg, json generation_cfg, json nntr_cfg) {
-      return std::make_unique<causallm::Qwen3Embedding>(cfg, generation_cfg,
-                                                        nntr_cfg);
-    });
-  causallm::Factory::Instance().registerModel(
-    "GptOssForCausalLM", [](json cfg, json generation_cfg, json nntr_cfg) {
-      return std::make_unique<causallm::GptOssForCausalLM>(cfg, generation_cfg,
-                                                           nntr_cfg);
-    });
-#if !defined(_WIN32)
-  causallm::Factory::Instance().registerModel(
-    "GptOssCachedSlimCausalLM",
-    [](json cfg, json generation_cfg, json nntr_cfg) {
-      return std::make_unique<causallm::GptOssCachedSlimCausalLM>(
-        cfg, generation_cfg, nntr_cfg);
-    });
-#endif
-  causallm::Factory::Instance().registerModel(
-    "Gemma3ForCausalLM", [](json cfg, json generation_cfg, json nntr_cfg) {
-      return std::make_unique<causallm::Gemma3CausalLM>(cfg, generation_cfg,
-                                                        nntr_cfg);
-    });
-  causallm::Factory::Instance().registerModel(
-    "Gemma4ForCausalLM", [](json cfg, json generation_cfg, json nntr_cfg) {
-      return std::make_unique<causallm::Gemma4CausalLM>(cfg, generation_cfg,
-                                                        nntr_cfg);
-    });
-  causallm::Factory::Instance().registerModel(
-    "EmbeddingGemma", [](json cfg, json generation_cfg, json nntr_cfg) {
-      return std::make_unique<causallm::EmbeddingGemma>(cfg, generation_cfg,
-                                                        nntr_cfg);
-    });
-  causallm::Factory::Instance().registerModel(
-    "DebertaV2", [](json cfg, json generation_cfg, json nntr_cfg) {
-      return std::make_unique<causallm::DebertaV2>(cfg, generation_cfg,
-                                                   nntr_cfg);
-    });
-#if !defined(_WIN32) && !defined(__ANDROID__)
-  causallm::Factory::Instance().registerModel(
-    "MultilingualTinyBert", [](json cfg, json generation_cfg, json nntr_cfg) {
-      return std::make_unique<causallm::MultilingualTinyBert>(
-        cfg, generation_cfg, nntr_cfg);
-    });
-#endif
-#if !defined(_WIN32)
-  causallm::Factory::Instance().registerModel(
-    "XLMRobertaForMaskedLM", [](json cfg, json generation_cfg, json nntr_cfg) {
-      return std::make_unique<causallm::XLMRobertaForMaskedLM>(
-        cfg, generation_cfg, nntr_cfg);
-    });
-#endif
-  causallm::Factory::Instance().registerModel(
-    "TimmViT", [](json cfg, json generation_cfg, json nntr_cfg) {
-      return std::make_unique<causallm::TimmViTTransformer>(cfg, generation_cfg,
-                                                            nntr_cfg);
-    });
-  causallm::Factory::Instance().registerModel(
-    "CedForAudioClassification",
-    [](json cfg, json generation_cfg, json nntr_cfg) {
-      return std::make_unique<causallm::CedTransformer>(cfg, generation_cfg,
-                                                        nntr_cfg);
-    });
-  causallm::Factory::Instance().registerModel(
-    "Lfm2ForCausalLM", [](json cfg, json generation_cfg, json nntr_cfg) {
-      return std::make_unique<causallm::Lfm2CausalLM>(cfg, generation_cfg,
-                                                      nntr_cfg);
-    });
+  causallm::registerAllModels();
 
   // Validate arguments
   if (argc < 2) {
@@ -808,13 +685,9 @@ int main(int argc, char *argv[]) {
       generation_cfg = causallm::LoadJsonFile(generation_config_path);
     }
     json nntr_cfg = causallm::LoadJsonFile(model_path + "/nntr_config.json");
-    // Resolve relative paths in nntr_config.json against the model directory.
-    // Iterate by value (const std::string) rather than by reference: the
-    // initializer list holds const char * literals that are converted to
-    // temporary std::string objects, and binding those temporaries to a
-    // const reference is flagged by -Werror=range-loop-construct.
     for (const std::string key :
          {"tokenizer_file", "embedding_file_name", "ple_file_name",
+          "model_file_name", "binary_config_path", "image_newline_path",
           "sample_input", "yolo_ref_dir"}) {
       resolveNntrConfigPath(nntr_cfg, key, model_path);
     }

@@ -14,8 +14,8 @@
 #ifndef __CAUSALLM_FACTORY_H__
 #define __CAUSALLM_FACTORY_H__
 
-#include "model_base.h"
 #include <ostream>
+#include <transformer.h>
 #include <unordered_map>
 
 namespace causallm {
@@ -25,7 +25,8 @@ namespace causallm {
  */
 class Factory {
 public:
-  using Creator = std::function<std::unique_ptr<Model>(json &, json &, json &)>;
+  using Creator =
+    std::function<std::unique_ptr<Transformer>(json &, json &, json &)>;
 
   /**
    * @brief   Get the single process-wide Factory instance.
@@ -49,8 +50,9 @@ public:
     creators[key] = creator;
   }
 
-  std::unique_ptr<Model> create(const std::string &key, json &cfg,
-                                json &generation_cfg, json &nntr_cfg) const {
+  std::unique_ptr<Transformer> create(const std::string &key, json &cfg,
+                                      json &generation_cfg,
+                                      json &nntr_cfg) const {
     auto it = creators.find(key);
     if (it != creators.end()) {
       return (it->second)(cfg, generation_cfg, nntr_cfg);

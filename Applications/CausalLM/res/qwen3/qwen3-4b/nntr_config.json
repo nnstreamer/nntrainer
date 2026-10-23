@@ -1,5 +1,5 @@
 {
-    "model_type": "causallm",
+    "model_type": "CausalLM",
     "model_tensor_type": "FP32-FP32",
     "model_file_name": "nntr_qwen3_4b_fp32.bin",
 

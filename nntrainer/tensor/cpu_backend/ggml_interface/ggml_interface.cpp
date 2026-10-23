@@ -76,10 +76,6 @@ void __ggml_dequantize_row_q4_K(const void *x_raw, float *y, int64_t k) {
   nntr_dequantize_row_q4_K(x_raw, y, k);
 }
 
-void __ggml_dequantize_row_q8_0(const void *x_raw, float *y, int64_t k) {
-  nntr_dequantize_row_q8_0(x_raw, y, k);
-}
-
 void __ggml_dequantize_row_q6_K(const void *x, float *y, int64_t k) {
   nntr_dequantize_row_q6_K(x, y, k);
 }
@@ -153,35 +149,11 @@ void __ggml_repack_q4_K_to_q4_K_8(void *dst, void *src, size_t data_size,
   nntr_repack_q4_K_to_q4_K_8_bl(dst, 8, src, data_size, M, N);
 }
 
-/**
- * @brief Dispatch Q8_0 x Q8_0 GEMM through the common ggml interface
- */
-void __ggml_q8_0_q8_0_GEMM(const unsigned int M, const unsigned int N,
-                           const unsigned int K, const float *A,
-                           const unsigned int lda, const void *B,
-                           const unsigned int ldb, float *C,
-                           const unsigned int ldc) {
-  (void)lda;
-  (void)ldb;
-
-  // Online-quantise A row-by-row to Q8_0 in a scratch buffer the SIMD
-  // micro-kernel reads back. nntr_quantize_row_q8_0 produces the exact
-  // block_q8_0 layout (fp16 scale + 32 int8 quants per 32-element block).
-  const unsigned int nb_per_row = K / QK8_0;
-  const size_t qa_row_bytes = sizeof(block_q8_0) * nb_per_row;
-
-  std::vector<char> QA(static_cast<size_t>(M) * qa_row_bytes);
-  for (unsigned int m = 0; m < M; ++m) {
-    nntr_quantize_row_q8_0(A + static_cast<size_t>(m) * K,
-                           QA.data() + static_cast<size_t>(m) * qa_row_bytes,
-                           static_cast<int64_t>(K));
-  }
-
-  // One unified inner kernel for now; a GEMV specialisation + Q8_0x8
-  // interleaved weight layout to match the Q4_0 8x8 micro-tile is a
-  // follow-up.
-  nntr_gemm_q8_0_q8_0(static_cast<int>(K), C, ldc, B, QA.data(),
-                      static_cast<int>(M), static_cast<int>(N));
+void __ggml_repack_q8_0_to_q8_0_4(void *dst, void *src, size_t data_size,
+                                  const unsigned int M, const unsigned int N) {
+  // The SMMLA q8_0x4 kernels consume the 8-byte interleave (block_q8_0x4 with
+  // qs[32*sub + row*8 + c]), i.e. the same layout as __ggml_repack_q8_0_to_q8_0_4x8.
+  nntr_repack_q8_0_to_q8_0_4_bl(dst, 8, src, data_size, M, N);
 }
 
 /**

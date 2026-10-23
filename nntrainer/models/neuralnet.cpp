@@ -127,12 +127,23 @@ Tensor mapExternalTensor(float *buf, const TensorDim &dim,
 
   switch (dim.getDataType()) {
   case TensorDim::DataType::FP16: {
-    // The inference()/external-tensor API delivers FP32 data by contract
-    // (float *buf). For an FP16 graph input we must genuinely convert
-    // FP32->FP16 through the Tensor system, not reinterpret the FP32 bytes as
-    // half. Map the buffer as its real FP32 type, then copyData() into an
-    // owning FP16 tensor (HalfTensor::copyData performs the conversion). The
-    // returned tensor owns its buffer, so it stays valid after this call.
+    // Two incompatible contracts share this entry point:
+    //  * inference() (convert_fp32_to_fp16 == true): the API delivers FP32
+    //    data by contract (float *buf). For an FP16 graph input we must
+    //    genuinely convert FP32->FP16 through the Tensor system, not
+    //    reinterpret the FP32 bytes as half. Map the buffer as its real FP32
+    //    type, then copyData() into an owning FP16 tensor.
+    //  * incremental_inference() (convert_fp32_to_fp16 == false): callers
+    //    (CausalLM KV / cross-attention cache placeholders) pass buffers that
+    //    ALREADY hold fp16 bits, cast to float*. Converting would read
+    //    dataLen*4 bytes from a dataLen*2-byte buffer (a 2x out-of-bounds
+    //    read that faults on allocators with guard pages, e.g. Android
+    //    scudo), and the converted COPY would also break the external-cache
+    //    write-back contract (the graph must write K/V into the caller's
+    //    buffer). Reinterpret-map instead, which is the historical behavior.
+    if (!convert_fp32_to_fp16)
+      return Tensor::Map<uint16_t>(reinterpret_cast<uint16_t *>(buf), bytes,
+                                   dim, 0);
     TensorDim fp32_dim = dim;
     fp32_dim.setDataType(TensorDim::DataType::FP32);
     const unsigned int fp32_bytes = static_cast<unsigned int>(
@@ -525,12 +536,6 @@ int NeuralNetwork::reinitialize() {
   return status;
 }
 
-#include <list>
-static std::list<std::vector<char>> global_buffers;
-static std::mutex global_buffers_mtx;
-static std::vector<std::pair<void*, size_t>> global_mmaps;
-static std::mutex global_mmaps_mtx;
-
 /**
  * @brief     free layers
  */
@@ -740,8 +745,59 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
     auto f = std::get<0>(node->getExecutionOrder());
     if (exec_mode == ExecutionMode::TRAIN or
         (exec_mode == ExecutionMode::INFERENCE and !fsu_mode)) {
-      model_graph.flushCacheExcept(f);
-      node->incremental_forwarding(from, to, training);
+      // Per-layer timing, opt-in via NNTR_LAYER_PROFILE so it costs nothing
+      // when unset. Emits one TSV line per layer per call:
+      //   LAYERPROF <span> <layer name> <ns>
+      // where <span> is (to - from), i.e. > 1 for prefill and 1 for decode.
+      static const bool layer_profile =
+        std::getenv("NNTR_LAYER_PROFILE") != nullptr;
+      if (layer_profile) {
+        auto start_layer = std::chrono::high_resolution_clock::now();
+        model_graph.flushCacheExcept(f);
+        node->incremental_forwarding(from, to, training);
+        auto end_layer = std::chrono::high_resolution_clock::now();
+        auto duration_ = std::chrono::duration_cast<std::chrono::nanoseconds>(
+          end_layer - start_layer);
+        std::cout << "LAYERPROF\t" << (to - from) << "\t" << node->getName()
+                  << "\t" << duration_.count() << "\n";
+      } else {
+        model_graph.flushCacheExcept(f);
+        node->incremental_forwarding(from, to, training);
+      }
+#if defined(ENABLE_OPENCL) && ENABLE_OPENCL == 1
+      // Debug: NNTR_DUMP_ROWS_DIR=<dir> writes each node's output rows of the
+      // prefill step (to - from > 1). Inert when unset.
+      // NNTR_DUMP_ROWS_HASH prints a per-node hash instead of
+      // writing files, so it needs no directory; =2 covers the decode steps
+      // (to - from == 1) as well.
+      static const char *dump_hash = std::getenv("NNTR_DUMP_ROWS_HASH");
+      static const char *dump_dir_env = std::getenv("NNTR_DUMP_ROWS_DIR");
+      static const char *dump_dir = dump_dir_env != nullptr
+                                      ? dump_dir_env
+                                      : (dump_hash != nullptr ? "." : nullptr);
+      static const bool dump_decode =
+        dump_hash != nullptr && std::atoi(dump_hash) >= 2;
+      if (dump_dir != nullptr && (to - from > 1 || dump_decode) &&
+          node->getNumOutputs() > 0) {
+        static const char *match = std::getenv("NNTR_DUMP_ROWS_MATCH");
+        static unsigned int seq = 0;
+        if (match == nullptr ||
+            node->getName().find(match) != std::string::npos) {
+#if defined(ENABLE_CUDA) && ENABLE_CUDA == 1
+          // On the cuda engine the dump reads the node output on the host, so
+          // the stream this node's kernels were submitted on has to have
+          // drained first or the hash is taken on rows the GPU has not written
+          // yet -- which reads as nondeterminism that belongs to the
+          // instrument, not to the model. Engine-gated: a no-op, and no CUDA
+          // context created, on every non-cuda run.
+          nntrainer::cuda::drain_if_async();
+#endif
+          debug_dump_rows_cl(node->getName(), node->getOutput(0), to - from,
+                             dump_dir, seq);
+        }
+        ++seq;
+      }
+#endif
     } else {
       model_graph.checkLoadComplete(f);
       node->incremental_forwarding(from, to, training);
@@ -998,18 +1054,6 @@ public:
   explicit WeightFileReadAhead(int) {}
 };
 #endif
-
-/**
- * @brief A block-quantized weight is laid out as [N rows, K cols]. An FC weight
- * is stored [1, 1, K, N] so N=width, K=height. A conv filter is stored
- * [out_ch, in_ch, kh, kw] so N=out_ch=batch and K=in_ch*kh*kw (CRS). Returns
- * (N, K) for the appropriate interpretation; batch>1 marks a conv filter.
- */
-inline std::pair<unsigned int, unsigned int> quantRowsCols(const TensorDim &d) {
-  if (d.batch() > 1) // conv filter: out_ch rows of CRS
-    return {d.batch(), d.channel() * d.height() * d.width()};
-  return {d.width(), d.height()}; // FC weight [1,1,K,N]
-}
 
 /**
  * @brief A block-quantized weight is laid out as [N rows, K cols]. An FC weight
@@ -1528,22 +1572,79 @@ void NeuralNetwork::load(const std::string &file_path,
         start_from += size;
         alt_total += alt_size;
       }
-      size_t size = weight->getVariable().getMemoryBytes();
-      auto tensor_data_type = weight->getDim().getDataType();
-      weight->getVariableRef().setFileOffset(start_from);
-      ///@todo instead of checking the data type,
-      /// we may need to create a common parent class for
-      /// quantized tensors, requiring qparam to be saved
-      /// and creating a common interface to check if qparam is needed
-      /// this kind of type checking should be avoided
-      if (tensor_data_type != TensorDim::DataType::FP32 &&
-          tensor_data_type != TensorDim::DataType::FP16 &&
-          tensor_data_type != TensorDim::DataType::Q6_K &&
-          tensor_data_type != TensorDim::DataType::Q4_0 &&
-          tensor_data_type != TensorDim::DataType::Q8_0 &&
-          tensor_data_type != TensorDim::DataType::QS4CX) {
-        // for tensor with qparam
-        size += sizeof(uint16_t);
+    }
+  };
+  // Start from the padded stride: it is what every package exported before the
+  // writer switched holds, and it is never the smaller of the two, so the
+  // memory already planned from it stays an upper bound if the file turns out
+  // to be trimmed.
+  walk_records(true);
+
+  // Tell the two QS4CX record strides apart, per FILE. The record has no
+  // version field and the .bin no per-tensor dtype, so nothing in the file
+  // says which stride the exporter used -- but a file is written by one
+  // exporter, so one stride holds throughout. Mixed-stride files are not
+  // representable here and are not supported: a file that pairs records from
+  // two exporters is read wholly at whichever stride wins below, and every
+  // record written at the other one is misread. Two signals settle it:
+  //
+  //  - Size, when it can speak. total_trimmed <= actual < total_padded can
+  //    only be the trimmed layout, because no tail makes a padded file that
+  //    short.
+  //  - The first record's own bytes, when size cannot. save() appends a tail
+  //    after the weight body (the adam optimiser block, then 8 bytes of
+  //    training metadata), and the two totals differ by only sum(floor(N/2))
+  //    -- 8 bytes already for a single 16-channel weight -- so a trimmed file
+  //    with a tail that long reaches total_padded and its size stops meaning
+  //    anything. qs4cxRecordStride() reads the record instead, which the tail
+  //    cannot touch.
+  //
+  // Anything neither signal can judge keeps reading as padded, as before -- but
+  // it says so, because that is the one outcome that can be silently wrong: a
+  // trimmed file read as padded keeps its nibbles in place and slides every
+  // per-channel scale by floor(N/2) bytes, so the output stays plausible while
+  // each channel is scaled by a neighbour's factor. The gap the two signals
+  // leave is a file whose first QS4CX record is narrow (N < 8, so fewer than
+  // four pad bytes for the probe to read) and whose strides differ in total by
+  // no more than save()'s tail.
+  const auto weight_path = (v.size() == 2) ? v[1] : v[0];
+  const size_t total_padded = start_from;
+  const size_t total_trimmed = alt_total;
+  if (format == ml::train::ModelFormat::MODEL_FORMAT_BIN &&
+      qs4cx_stride_differs) {
+    std::error_code ec;
+    const auto file_bytes = std::filesystem::file_size(weight_path, ec);
+    if (!ec) {
+      const size_t actual = static_cast<size_t>(file_bytes);
+      bool trimmed = (total_trimmed <= actual && actual < total_padded);
+      if (!trimmed && total_padded <= actual && first_qs4cx_found) {
+        switch (qs4cxRecordStride(weight_path, first_qs4cx_offset,
+                                  first_qs4cx_height, first_qs4cx_width)) {
+        case Qs4cxRecordStride::TRIMMED:
+          trimmed = true;
+          break;
+        case Qs4cxRecordStride::PADDED:
+          break;
+        case Qs4cxRecordStride::UNDECIDED:
+          ml_logw(
+            "weight file '%s' (%zu bytes) fits neither QS4CX record stride "
+            "exclusively (padded total %zu, trimmed total %zu) and its first "
+            "QS4CX record (%zu x %zu) is too narrow to read the stride off, "
+            "so it is being read at the PADDED stride. If this file was "
+            "exported by a build that wrote the trimmed stride, its "
+            "per-channel scales are read from the wrong offset and the output "
+            "will be plausible but wrong",
+            weight_path.c_str(), actual, total_padded, total_trimmed,
+            first_qs4cx_height, first_qs4cx_width);
+          break;
+        }
+      }
+      if (trimmed) {
+        walk_records(false);
+        ml_logi("weight file '%s' matches the trimmed QS4CX record stride "
+                "(%zu bytes) rather than the padded one (%zu); reading it as "
+                "trimmed",
+                weight_path.c_str(), total_trimmed, total_padded);
       }
     }
   }
@@ -2123,15 +2224,15 @@ void NeuralNetwork::load(const std::string &file_path,
         const std::string &name = weight->getName();
         auto it = name_offset_map.find(name);
         if (it == name_offset_map.end()) {
-          // The graph expects this weight but the safetensors file has no
-          // tensor of that name, so it silently keeps its uninitialized
-          // contents (garbage) -> the layer then computes NaN/inf downstream.
-          // Warn loudly: this is almost always a name-mismatch between the
-          // weight converter/quantizer output and the graph's weight names.
-          ml_logw("[load] weight '%s' not found in safetensors; it stays "
-                  "UNINITIALIZED (expect NaN). Check the converter/quantizer "
-                  "produced this exact tensor name.",
-                  name.c_str());
+          // A missing tensor means the weight keeps whatever bytes its buffer
+          // held (typically uninitialized), which surfaces as silently wrong
+          // outputs — e.g. a converter that wrote "layer:weight" where the
+          // runtime tensor is named "layer:filter". Warn loudly instead of
+          // failing so partial files (LoRA-style overlays) still load.
+          ml_logw("safetensors: no tensor named '%s' in %s; weight left "
+                  "unloaded",
+                  name.c_str(), f_path.c_str());
+          ++missing_weights;
           continue;
         }
         const size_t file_off = data_base + it->second.first;
@@ -2178,43 +2279,6 @@ void NeuralNetwork::load(const std::string &file_path,
       NNTR_THROW_IF((model_file_fd == -1), std::invalid_argument)
         << "Cannot open safetensors file: " << f_path;
 
-      void *shared_mmap_ptr = MAP_FAILED;
-      size_t shared_f_size = 0;
-      std::vector<char> shared_file_data;
-
-      if (MMAP_READ) {
-#if !defined(_WIN32)
-        struct stat st {};
-        if (::fstat(model_file_fd, &st) != -1) {
-          shared_f_size = static_cast<size_t>(st.st_size);
-          shared_mmap_ptr = ::mmap(nullptr, shared_f_size, PROT_READ, MAP_PRIVATE, model_file_fd, 0);
-          if (shared_mmap_ptr != MAP_FAILED) {
-            std::lock_guard<std::mutex> lock(global_mmaps_mtx);
-            global_mmaps.push_back({shared_mmap_ptr, shared_f_size});
-          }
-        }
-#endif
-      }
-
-      // If mmap failed, read into a fallback buffer ONCE
-      if (MMAP_READ && shared_mmap_ptr == MAP_FAILED) {
-#if !defined(_WIN32)
-        struct stat st {};
-        if (::fstat(model_file_fd, &st) != -1) {
-          shared_f_size = static_cast<size_t>(st.st_size);
-          shared_file_data.resize(shared_f_size);
-          std::ifstream f(f_path, std::ios::binary);
-          if (f.is_open()) {
-            f.read(shared_file_data.data(), shared_f_size);
-            f.close();
-          }
-          std::lock_guard<std::mutex> lock(global_buffers_mtx);
-          global_buffers.push_back(std::move(shared_file_data));
-          shared_mmap_ptr = global_buffers.back().data();
-        }
-#endif
-      }
-
       std::vector<std::thread> threads;
       threads.reserve(model_graph.size());
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
@@ -2251,10 +2315,32 @@ void NeuralNetwork::load(const std::string &file_path,
             CloseHandle(hMap);
             CloseHandle(hFile);
 #else
-            if (shared_mmap_ptr != MAP_FAILED) {
-              char *view = static_cast<char *>(shared_mmap_ptr);
-              node->read(view, false, exec_mode, fsu_mode, std::numeric_limits<size_t>::max(), true, model_file_fd);
-            }
+            int fd = ::open(f_path.c_str(), O_RDONLY);
+            NNTR_THROW_IF((fd == -1), std::invalid_argument)
+              << "Cannot open safetensors file: " << f_path;
+
+            struct stat st {};
+            NNTR_THROW_IF((::fstat(fd, &st) == -1), std::invalid_argument)
+              << "Cannot stat safetensors file: " << f_path;
+
+            const size_t f_size = static_cast<size_t>(st.st_size);
+            void *mmap_ptr =
+              ::mmap(nullptr, f_size, PROT_READ, MAP_PRIVATE, fd, 0);
+            ::close(fd);
+            NNTR_THROW_IF((mmap_ptr == MAP_FAILED), std::runtime_error)
+              << "mmap failed for safetensors file: " << f_path;
+
+            // Streaming read, not a scattered one -- see the sibling site
+            // in the positional .bin arm above for the fault census that
+            // retired POSIX_MADV_RANDOM here.
+            (void)::posix_madvise(mmap_ptr, f_size, POSIX_MADV_SEQUENTIAL);
+
+            char *view = static_cast<char *>(mmap_ptr);
+            node->read(view, false, exec_mode, fsu_mode,
+                       std::numeric_limits<size_t>::max(), true, model_file_fd);
+
+            (void)::posix_madvise(mmap_ptr, f_size, POSIX_MADV_DONTNEED);
+            ::munmap(mmap_ptr, f_size);
 #endif
           }
         });
@@ -2313,10 +2399,6 @@ void NeuralNetwork::load(const std::string &file_path,
             const safetensors::TensorEntry *e = eit->second;
             if (!e->nntr_dtype.empty())
               continue; // quantized / native payload: skip
-            if (var.getDataType() == ml::train::TensorDim::DataType::Q8_0 ||
-                var.getDataType() == ml::train::TensorDim::DataType::Q4_0 ||
-                var.getDataType() == ml::train::TensorDim::DataType::Q6_K)
-              continue; // Skip quantized tensors since copyData is not supported on them
             auto file_dt = fileFloatDType(e->dtype);
             if (file_dt == ml::train::TensorDim::DataType::NONE)
               continue;
@@ -2571,6 +2653,29 @@ NeuralNetwork::inference(unsigned int batch_size,
     const Tensor &out_t = *out.get();
     if (out_t.getDataType() == TensorDim::DataType::FP32) {
       output.push_back(out_t.getData());
+    } else if (out_t.getDataType() == TensorDim::DataType::QINT8 &&
+               out_t.getScale<float>() != nullptr &&
+               out_t.getScale<float>()[0] != 0.0f) {
+      // A QINT8-typed graph output (W8A8 int8-resident models) carries a real
+      // per-tensor scale: hand the caller dequantized values, not int8 codes.
+      // The per-channel W8A8 mode (NNTR_W8A8_PERCH, unless NNTR_W8A8_SYM)
+      // encodes activations asymmetrically as x = (q + 128) * s - kActOff,
+      // the same formula conv2d_layer.cpp's epilogue produces.
+      static const bool perch_asym =
+        std::getenv("NNTR_W8A8_PERCH") != nullptr &&
+        std::getenv("NNTR_W8A8_SYM") == nullptr;
+      constexpr float kActOff = 0.27846455f;
+      TensorDim fp32_dim = out_t.getDim();
+      fp32_dim.setDataType(TensorDim::DataType::FP32);
+      fp32_output_cache.emplace_back(fp32_dim, true);
+      const int8_t *q = out_t.getData<int8_t>();
+      const float sc = out_t.getScale<float>()[0];
+      float *dst = fp32_output_cache.back().getData<float>();
+      const size_t n = out_t.size();
+      for (size_t i = 0; i < n; ++i)
+        dst[i] = perch_asym ? ((float)q[i] + 128.f) * sc - kActOff
+                            : (float)q[i] * sc;
+      output.push_back(dst);
     } else {
       fp32_output_cache.emplace_back(out_t.clone(TensorDim::DataType::FP32));
       output.push_back(fp32_output_cache.back().getData());

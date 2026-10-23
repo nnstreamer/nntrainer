@@ -404,7 +404,7 @@ template <>
 void gemm_q8_0(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {
-  return __ggml_q8_0_q8_0_GEMM(M, N, K, A, lda, B, ldb, C, ldc);
+  return __ggml_q8_0_4x8_smmla_q8_0_GEMM(M, N, K, A, lda, B, ldb, C, ldc);
 }
 
 void gemm_q4_0(const unsigned int M, std::vector<unsigned int> Ns,
