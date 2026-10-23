@@ -363,7 +363,7 @@ def main(weights, out):
             sd_to_load = ckpt["model_state_dict"]
         else:
             sd_to_load = ckpt
-        
+
         # Align prefix: map "model." -> "_fastViT.model."
         new_sd = {}
         for k, v in sd_to_load.items():

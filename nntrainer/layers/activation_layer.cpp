@@ -119,8 +119,7 @@ bool ActivationLayer::geluQint8(Tensor const &input_, Tensor &hidden_) {
   const float inv = amax > 0.f ? 127.f / amax : 0.f;
   int8_t *qo = hidden_.getData<int8_t>();
   for (unsigned int i = 0; i < n; ++i)
-    qo[i] = (int8_t)std::max(
-      -128.f, std::min(127.f, std::round(fo[i] * inv)));
+    qo[i] = (int8_t)std::max(-128.f, std::min(127.f, std::round(fo[i] * inv)));
   hidden_.getScale<float>()[0] = sc;
   return true;
 }

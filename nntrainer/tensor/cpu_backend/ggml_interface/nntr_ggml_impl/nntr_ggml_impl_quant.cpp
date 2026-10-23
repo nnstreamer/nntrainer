@@ -930,10 +930,14 @@ void dequantize_row_q8_0_impl(const block_q8_0 *__restrict x,
     __m256i ep2 = _mm256_cvtepi8_epi32(raw_high);
     __m256i ep3 = _mm256_cvtepi8_epi32(_mm_srli_si128(raw_high, 8));
 
-    _mm256_storeu_ps(y + i * 32 + 0, _mm256_mul_ps(_mm256_cvtepi32_ps(ep0), factor));
-    _mm256_storeu_ps(y + i * 32 + 8, _mm256_mul_ps(_mm256_cvtepi32_ps(ep1), factor));
-    _mm256_storeu_ps(y + i * 32 + 16, _mm256_mul_ps(_mm256_cvtepi32_ps(ep2), factor));
-    _mm256_storeu_ps(y + i * 32 + 24, _mm256_mul_ps(_mm256_cvtepi32_ps(ep3), factor));
+    _mm256_storeu_ps(y + i * 32 + 0,
+                     _mm256_mul_ps(_mm256_cvtepi32_ps(ep0), factor));
+    _mm256_storeu_ps(y + i * 32 + 8,
+                     _mm256_mul_ps(_mm256_cvtepi32_ps(ep1), factor));
+    _mm256_storeu_ps(y + i * 32 + 16,
+                     _mm256_mul_ps(_mm256_cvtepi32_ps(ep2), factor));
+    _mm256_storeu_ps(y + i * 32 + 24,
+                     _mm256_mul_ps(_mm256_cvtepi32_ps(ep3), factor));
   }
 #else
   for (int64_t i = 0; i < nb; i++) {

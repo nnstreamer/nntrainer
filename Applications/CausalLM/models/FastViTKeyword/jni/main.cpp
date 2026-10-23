@@ -15,7 +15,8 @@
  * Architecture:
  *   Model 1 (NHWC): input[1,3,320,320] -> backbone -> [1,1024,10,10] (NHWC)
  *   Transpose: [1,1024,10,10] (NHWC) -> [1,1024,10,10] (NCHW)
- *   Model 2 (NCHW): [1,1024,10,10] -> GAP -> head -> {logits[507], features[512]}
+ *   Model 2 (NCHW): [1,1024,10,10] -> GAP -> head -> {logits[507],
+ * features[512]}
  *
  * Usage: fastvit_keyword_split_infer [RES_DIR] [INPUT_BIN]
  *   RES_DIR   dir with weights/ and input bins
@@ -24,11 +25,12 @@
  * Env vars:
  *   KEYWORD_IMGSZ       Input image size (square, default 320).
  *   KEYWORD_VERIFY      If set, compare outputs to PyTorch references.
- *   KEYWORD_WEIGHTS     Override weights path (default: fastvit_keyword_q8_0.safetensors)
- *   KEYWORD_NHWC_WEIGHTS  Override backbone weights path
- *   KEYWORD_NCHW_WEIGHTS  Override head weights path
+ *   KEYWORD_WEIGHTS     Override weights path (default:
+ * fastvit_keyword_q8_0.safetensors) KEYWORD_NHWC_WEIGHTS  Override backbone
+ * weights path KEYWORD_NCHW_WEIGHTS  Override head weights path
  *
  * @author Seungbaek Hong <sb92.hong@samsung.com>
+ * @bug    No known bugs except for NYI items
  */
 
 #include <algorithm>
@@ -84,7 +86,6 @@ std::vector<float> loadBin(const std::string &path) {
 
 /** @brief Save a float buffer to a binary file. */
 
-
 /** @brief Register the FastViT custom layers with the global AppContext. */
 void registerCustomLayers() {
   auto &app_ctx = nntrainer::AppContext::Global();
@@ -128,13 +129,17 @@ int main(int argc, char *argv[]) {
                         std::getenv("YOLO_VERIFY") != nullptr;
 
     // Weight paths: split into backbone (NHWC) and head (NCHW)
-    std::string backbone_weights = RES_DIR + "/fastvit_keyword_q8_0.safetensors";
+    std::string backbone_weights =
+      RES_DIR + "/fastvit_keyword_q8_0.safetensors";
     if (const char *wenv = std::getenv("KEYWORD_NHWC_WEIGHTS"))
-      backbone_weights = (wenv[0] == '/') ? std::string(wenv) : RES_DIR + "/" + wenv;
+      backbone_weights =
+        (wenv[0] == '/') ? std::string(wenv) : RES_DIR + "/" + wenv;
 
-    std::string head_weights = RES_DIR + "/fastvit_keyword_head_q8_0.safetensors";
+    std::string head_weights =
+      RES_DIR + "/fastvit_keyword_head_q8_0.safetensors";
     if (const char *wenv = std::getenv("KEYWORD_NCHW_WEIGHTS"))
-      head_weights = (wenv[0] == '/') ? std::string(wenv) : RES_DIR + "/" + wenv;
+      head_weights =
+        (wenv[0] == '/') ? std::string(wenv) : RES_DIR + "/" + wenv;
 
     std::cout << "[FastViTKeyword-Split] imgsz=" << imgsz
               << " proj_target=" << proj_target_dim
@@ -152,9 +157,10 @@ int main(int argc, char *argv[]) {
 
     ModelHandle backbone_model =
       ml::train::createModel(ml::train::ModelType::NEURAL_NET);
-    backbone_model->setProperty({nntrainer::withKey("batch_size", "1"),
-                                 nntrainer::withKey("tensor_format", "NHWC"),
-                                 nntrainer::withKey("model_tensor_type", "FP32-FP32")});
+    backbone_model->setProperty(
+      {nntrainer::withKey("batch_size", "1"),
+       nntrainer::withKey("tensor_format", "NHWC"),
+       nntrainer::withKey("model_tensor_type", "FP32-FP32")});
 
     // Build backbone graph with Q8_0 weight dtype
     fastvit_keyword::quantizableConvs().clear();
@@ -164,11 +170,11 @@ int main(int argc, char *argv[]) {
     // The model tensor_format=NHWC tells nntrainer to lay out all activation
     // tensors in NHWC internally. Input is provided as NCHW float32 and
     // the graph handles the conversion.
-    auto backbone_input = Tensor(
-      ml::train::TensorDim(1, 3, imgsz, imgsz,
-                           ml::train::TensorDim::Format::NHWC,
-                           ml::train::TensorDim::DataType::FP32),
-      "input0");
+    auto backbone_input =
+      Tensor(ml::train::TensorDim(1, 3, imgsz, imgsz,
+                                  ml::train::TensorDim::Format::NHWC,
+                                  ml::train::TensorDim::DataType::FP32),
+             "input0");
 
     auto backbone_out = fastvit_keyword::buildBackbone(backbone_input);
 
@@ -189,14 +195,14 @@ int main(int argc, char *argv[]) {
 
     ModelHandle head_model =
       ml::train::createModel(ml::train::ModelType::NEURAL_NET);
-    head_model->setProperty({nntrainer::withKey("batch_size", "1"),
-                             nntrainer::withKey("tensor_format", "NCHW"),
-                             nntrainer::withKey("model_tensor_type", "FP32-FP32")});
+    head_model->setProperty(
+      {nntrainer::withKey("batch_size", "1"),
+       nntrainer::withKey("tensor_format", "NCHW"),
+       nntrainer::withKey("model_tensor_type", "FP32-FP32")});
 
     // Head input: backbone output [1, 1024, 10, 10] in NCHW format
     auto head_input = Tensor(
-      ml::train::TensorDim(1, 1024, 10, 10,
-                           ml::train::TensorDim::Format::NCHW,
+      ml::train::TensorDim(1, 1024, 10, 10, ml::train::TensorDim::Format::NCHW,
                            ml::train::TensorDim::DataType::FP32),
       "head_input0");
 
@@ -223,9 +229,10 @@ int main(int argc, char *argv[]) {
     // --- Run backbone (NHWC) ---
     std::cout << "\n--- Running backbone (NHWC) ---" << std::endl;
     double total_ms = 0.0;
-    int bench_iters = std::getenv("KEYWORD_BENCH_ITERS")
-                        ? std::max(1, std::atoi(std::getenv("KEYWORD_BENCH_ITERS")))
-                        : 1;
+    int bench_iters =
+      std::getenv("KEYWORD_BENCH_ITERS")
+        ? std::max(1, std::atoi(std::getenv("KEYWORD_BENCH_ITERS")))
+        : 1;
 
     std::vector<float *> backbone_outs;
     for (int it = 0; it < bench_iters; ++it) {
@@ -276,8 +283,7 @@ int main(int argc, char *argv[]) {
     std::vector<float *> head_in_ptr = {backbone_nchw.data()};
     for (int it = 0; it < bench_iters; ++it) {
       auto t0 = std::chrono::steady_clock::now();
-      head_outs =
-        head_model->inference(1, head_in_ptr, std::vector<float *>());
+      head_outs = head_model->inference(1, head_in_ptr, std::vector<float *>());
       auto t1 = std::chrono::steady_clock::now();
       head_ms += std::chrono::duration<double, std::milli>(t1 - t0).count();
     }
@@ -286,7 +292,8 @@ int main(int argc, char *argv[]) {
     std::cout << "Total inference: " << ((total_ms + head_ms) / bench_iters)
               << " ms" << std::endl;
 
-    // Output: head_outs[0] = logits [1, 507, 1, 1], head_outs[1] = features [1, 512, 1, 1]
+    // Output: head_outs[0] = logits [1, 507, 1, 1], head_outs[1] = features [1,
+    // 512, 1, 1]
     const float *logits = head_outs[0];
     const float *features = head_outs[1];
 

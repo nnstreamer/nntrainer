@@ -10,6 +10,7 @@
  *         Head     : 3-scale Detect head (nc = 4)
  *
  * @author Seungbaek Hong <sb92.hong@samsung.com>
+ * @bug    No known bugs except for NYI items
  */
 
 #ifndef __YOLOV7_TINY_GRAPH_H__
@@ -49,8 +50,7 @@ inline bool convQuantEligible(int in_ch, int out_ch, int k) {
 inline Tensor conv(const std::string &name, int in_ch, int out_ch, int k,
                    int stride, int padding, Tensor input, bool conv_q = false) {
   std::vector<std::string> props = {
-    nntrainer::withKey("name", name),
-    nntrainer::withKey("kernel_size", {k, k}),
+    nntrainer::withKey("name", name), nntrainer::withKey("kernel_size", {k, k}),
     nntrainer::withKey("filters", out_ch),
     nntrainer::withKey("stride", {stride, stride}),
     nntrainer::withKey("padding", padding)};
@@ -82,12 +82,12 @@ inline Tensor concat(const std::string &name, std::vector<Tensor> xs) {
 
 inline Tensor maxpool(const std::string &name, int k, int stride, int pad,
                       Tensor input) {
-  LayerHandle mp(createLayer(
-    "pooling2d", {nntrainer::withKey("name", name),
-                  nntrainer::withKey("pooling", "max"),
-                  nntrainer::withKey("pool_size", {k, k}),
-                  nntrainer::withKey("stride", {stride, stride}),
-                  nntrainer::withKey("padding", pad)}));
+  LayerHandle mp(
+    createLayer("pooling2d", {nntrainer::withKey("name", name),
+                              nntrainer::withKey("pooling", "max"),
+                              nntrainer::withKey("pool_size", {k, k}),
+                              nntrainer::withKey("stride", {stride, stride}),
+                              nntrainer::withKey("padding", pad)}));
   return mp(input);
 }
 
@@ -95,10 +95,10 @@ inline Tensor maxpool(const std::string &name, int k, int stride, int pad,
 inline Tensor elan(const std::string &name, int c_in, int c_out,
                    int c_bottleneck, int n_blocks, Tensor input,
                    bool conv_q = false) {
-  auto x1 = convBnLeaky(name + ".conv1", c_in, c_bottleneck, 1, 1, 0, input,
-                        conv_q);
-  auto x = convBnLeaky(name + ".conv2", c_in, c_bottleneck, 1, 1, 0, input,
-                       conv_q);
+  auto x1 =
+    convBnLeaky(name + ".conv1", c_in, c_bottleneck, 1, 1, 0, input, conv_q);
+  auto x =
+    convBnLeaky(name + ".conv2", c_in, c_bottleneck, 1, 1, 0, input, conv_q);
   std::vector<Tensor> cbs;
   auto prev = x;
   for (int j = 0; j < n_blocks; ++j) {
@@ -136,14 +136,15 @@ inline Tensor upSample(const std::string &name, int c_in, int c_out,
                        int route_ch, Tensor input, Tensor route,
                        bool conv_q = false) {
   int c_hidden = c_out / 2;
-  auto c1 = convBnLeaky(name + ".base.conv1", c_in, c_hidden, 1, 1, 0, input, conv_q);
+  auto c1 =
+    convBnLeaky(name + ".base.conv1", c_in, c_hidden, 1, 1, 0, input, conv_q);
   LayerHandle up(
     createLayer("upsample2d", {nntrainer::withKey("name", name + "/up"),
                                nntrainer::withKey("upsample", "nearest"),
                                nntrainer::withKey("kernel_size", "2,2")}));
   auto x_up = up(c1);
-  auto c2 =
-    convBnLeaky(name + ".base.conv2", route_ch, c_hidden, 1, 1, 0, route, conv_q);
+  auto c2 = convBnLeaky(name + ".base.conv2", route_ch, c_hidden, 1, 1, 0,
+                        route, conv_q);
   return concat(name + "/cat", {x_up, c2});
 }
 
@@ -151,7 +152,8 @@ inline Tensor upSample(const std::string &name, int c_in, int c_out,
 inline Tensor downSample(const std::string &name, int c_in, int c_out,
                          int route_ch, Tensor input, Tensor route,
                          bool conv_q = false) {
-  auto c1 = convBnLeaky(name + ".base.conv", c_in, c_out, 3, 2, 1, input, conv_q);
+  auto c1 =
+    convBnLeaky(name + ".base.conv", c_in, c_out, 3, 2, 1, input, conv_q);
   return concat(name + "/cat", {c1, route});
 }
 
@@ -175,8 +177,8 @@ inline std::vector<Tensor> buildBackbone(Tensor xIn, bool conv_q = false) {
   auto prev = b1;
   for (int i = 2; i <= 4; ++i) {
     auto mp = maxpool(p + "." + std::to_string(i) + "/mp", 2, 2, 0, prev);
-    auto e = elan(p + "." + std::to_string(i) + ".elan", chs[i-2], outs[i-2], chs[i-2], 2, mp,
-                  conv_q);
+    auto e = elan(p + "." + std::to_string(i) + ".elan", chs[i - 2],
+                  outs[i - 2], chs[i - 2], 2, mp, conv_q);
     nodes.push_back(e);
     prev = e;
   }
@@ -194,25 +196,35 @@ inline std::vector<Tensor> buildNeck(const std::string &prefix,
   auto spp = sppcspc(prefix + ".spp", 512, 256, b4, conv_q); // 256
 
   // feature_up.0: up(spp) + route b3(256) -> elan -> 128
-  auto up0_cat = upSample(prefix + ".feature_up.0", 256, 256, 256, spp, b3, conv_q);
-  auto up0 = elan(prefix + ".feature_up.0.elan", 256, 128, 64, 2, up0_cat, conv_q);
+  auto up0_cat =
+    upSample(prefix + ".feature_up.0", 256, 256, 256, spp, b3, conv_q);
+  auto up0 =
+    elan(prefix + ".feature_up.0.elan", 256, 128, 64, 2, up0_cat, conv_q);
 
   // feature_up.1: up(up0) + route b2(128) -> elan -> 64
-  auto up1_cat = upSample(prefix + ".feature_up.1", 128, 128, 128, up0, b2, conv_q);
-  auto up1 = elan(prefix + ".feature_up.1.elan", 128, 64, 32, 2, up1_cat, conv_q);
+  auto up1_cat =
+    upSample(prefix + ".feature_up.1", 128, 128, 128, up0, b2, conv_q);
+  auto up1 =
+    elan(prefix + ".feature_up.1.elan", 128, 64, 32, 2, up1_cat, conv_q);
 
   // feature_down.0: down(up1) + route up0(128) -> elan -> 128
-  auto down0_cat = downSample(prefix + ".feature_down.0", 64, 128, 128, up1, up0, conv_q);
-  auto down0 = elan(prefix + ".feature_down.0.elan", 256, 128, 64, 2, down0_cat, conv_q);
+  auto down0_cat =
+    downSample(prefix + ".feature_down.0", 64, 128, 128, up1, up0, conv_q);
+  auto down0 =
+    elan(prefix + ".feature_down.0.elan", 256, 128, 64, 2, down0_cat, conv_q);
 
   // feature_down.1: down(down0) + route spp(256) -> elan -> 256
-  auto down1_cat = downSample(prefix + ".feature_down.1", 128, 256, 256, down0, spp, conv_q);
-  auto down1 = elan(prefix + ".feature_down.1.elan", 512, 256, 128, 2, down1_cat, conv_q);
+  auto down1_cat =
+    downSample(prefix + ".feature_down.1", 128, 256, 256, down0, spp, conv_q);
+  auto down1 =
+    elan(prefix + ".feature_down.1.elan", 512, 256, 128, 2, down1_cat, conv_q);
 
   // ends layers (stride 8, 16, 32 final convs)
   auto p3_end = convBnLeaky(prefix + ".ends.0", 64, 128, 3, 1, 1, up1, conv_q);
-  auto p4_end = convBnLeaky(prefix + ".ends.1", 128, 256, 3, 1, 1, down0, conv_q);
-  auto p5_end = convBnLeaky(prefix + ".ends.2", 256, 512, 3, 1, 1, down1, conv_q);
+  auto p4_end =
+    convBnLeaky(prefix + ".ends.1", 128, 256, 3, 1, 1, down0, conv_q);
+  auto p5_end =
+    convBnLeaky(prefix + ".ends.2", 256, 512, 3, 1, 1, down1, conv_q);
 
   return {p3_end, p4_end, p5_end};
 }
@@ -232,7 +244,8 @@ inline std::vector<Tensor> buildHead(const std::vector<Tensor> &neck_nodes,
 }
 
 // ---- full network ---------------------------------------------------------
-inline std::vector<Tensor> buildBackboneNeckHead(Tensor xIn, int nc, bool conv_q = false) {
+inline std::vector<Tensor> buildBackboneNeckHead(Tensor xIn, int nc,
+                                                 bool conv_q = false) {
   auto backbone = buildBackbone(xIn, conv_q);
   auto neck = buildNeck("backbone.features", backbone, conv_q);
   auto head = buildHead(neck, nc, conv_q);

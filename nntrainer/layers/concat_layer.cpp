@@ -69,10 +69,14 @@ void ConcatLayer::finalize(InitLayerContext &context) {
         continue;
       NNTR_THROW_IF(input_dim_0[i] != dim[i], std::runtime_error)
         << "Error: concat layer requires same shape from all input layers "
-           "along non-concat dimension. Mismatch at dim " << i << ". "
-           << "input_dim_0: [" << input_dim_0.batch() << "," << input_dim_0.channel() << "," << input_dim_0.height() << "," << input_dim_0.width() << "], "
-           << "input_dim[" << idx << "]: [" << dim.batch() << "," << dim.channel() << "," << dim.height() << "," << dim.width() << "]. "
-           << "concat_dimension: " << concat_dimension;
+           "along non-concat dimension. Mismatch at dim "
+        << i << ". "
+        << "input_dim_0: [" << input_dim_0.batch() << ","
+        << input_dim_0.channel() << "," << input_dim_0.height() << ","
+        << input_dim_0.width() << "], "
+        << "input_dim[" << idx << "]: [" << dim.batch() << "," << dim.channel()
+        << "," << dim.height() << "," << dim.width() << "]. "
+        << "concat_dimension: " << concat_dimension;
     }
     concat_dim_val += dim[concat_dimension];
   }
@@ -180,15 +184,15 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
       for (unsigned int idx = 0; idx < context.getNumInputs(); idx++) {
         Tensor &input = context.getInput(idx);
         if (input.getDataType() == TensorDim::DataType::QINT8) {
-          q8_out_scale = std::max(
-            q8_out_scale, input.getScale<float>()[0]);
+          q8_out_scale = std::max(q8_out_scale, input.getScale<float>()[0]);
         } else if (input.getDataType() == TensorDim::DataType::FP32) {
           float amax = 0.f;
           const float *d = input.getData<float>();
           const size_t sz = input.size();
           for (size_t i = 0; i < sz; ++i) {
             float a = std::fabs(d[i]);
-            if (a > amax) amax = a;
+            if (a > amax)
+              amax = a;
           }
           // Match the asymmetric scale formula used everywhere else in the
           // W8A8/PERCH path (conv2d_layer.cpp's epilogue): symmetric amax/127
@@ -198,9 +202,9 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
             std::getenv("NNTR_W8A8_PERCH") != nullptr &&
             std::getenv("NNTR_W8A8_SYM") == nullptr;
           constexpr float kActOff = 0.27846455f;
-          float sc = amax > 0.f ? (asym_scale ? (amax + kActOff) / 255.f
-                                              : amax / 127.f)
-                                : 1.f;
+          float sc = amax > 0.f
+                       ? (asym_scale ? (amax + kActOff) / 255.f : amax / 127.f)
+                       : 1.f;
           q8_out_scale = std::max(q8_out_scale, sc);
         }
       }
@@ -217,17 +221,21 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
             const float sc = input.getScale<float>()[0];
             int8_t qmin = 127, qmax = -128;
             for (size_t i = 0; i < input.size(); ++i) {
-              if (q[i] < qmin) qmin = q[i];
-              if (q[i] > qmax) qmax = q[i];
+              if (q[i] < qmin)
+                qmin = q[i];
+              if (q[i] > qmax)
+                qmax = q[i];
             }
             std::cerr << "[CONCATDBG] " << context.getName() << " input[" << idx
-                       << "] scale=" << sc << " qmin=" << (int)qmin
-                       << " qmax=" << (int)qmax << " n=" << input.size()
-                       << " ptr=" << (const void *)q << "\n" << std::flush;
+                      << "] scale=" << sc << " qmin=" << (int)qmin
+                      << " qmax=" << (int)qmax << " n=" << input.size()
+                      << " ptr=" << (const void *)q << "\n"
+                      << std::flush;
           }
         }
         std::cerr << "[CONCATDBG] " << context.getName()
-                   << " q8_out_scale=" << q8_out_scale << "\n" << std::flush;
+                  << " q8_out_scale=" << q8_out_scale << "\n"
+                  << std::flush;
       }
     }
     unsigned int c_offset = 0;
@@ -240,16 +248,15 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
           int8_t *dst = output.getData<int8_t>();
           const float mult = input.getScale<float>()[0] / q8_out_scale;
           const bool identity = std::fabs(mult - 1.f) < 1e-12f;
-          // Per-channel W8A8 (default asymmetric): tensors use the shared-offset
-          // affine code x = (q + 128) * s - C. Because C is COMMON to every
-          // branch it cancels in the rescale --
+          // Per-channel W8A8 (default asymmetric): tensors use the
+          // shared-offset affine code x = (q + 128) * s - C. Because C is
+          // COMMON to every branch it cancels in the rescale --
           //   q' = round((q + 128) * s_i / s_o) - 128
           // -- so only the +-128 shift differs from the symmetric formula (and
           // s_o = max(s_i) still exactly covers the union range). The identity
           // (mult == 1) memcpy is unchanged in both conventions.
-          static const bool asym =
-            std::getenv("NNTR_W8A8_PERCH") != nullptr &&
-            std::getenv("NNTR_W8A8_SYM") == nullptr;
+          static const bool asym = std::getenv("NNTR_W8A8_PERCH") != nullptr &&
+                                   std::getenv("NNTR_W8A8_SYM") == nullptr;
           auto &tm = ThreadManager::Global();
           for (unsigned int b = 0; b < B; ++b) {
             const size_t base = (size_t)b * HW;
@@ -260,11 +267,12 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
                 std::memcpy(d, s, (size_t)Ci);
               } else if (asym) {
                 unsigned int c = 0;
-    #if defined(__ARM_NEON)
-                // q' = round((q + 128) * mult) - 128, saturating to int8. FRINTA
-                // (vrndaq) rounds ties away from zero, matching std::round; the
-                // rounded value is an exact integer float so vcvtq truncates it
-                // losslessly, and the saturating narrows reproduce the clamp.
+#if defined(__ARM_NEON)
+                // q' = round((q + 128) * mult) - 128, saturating to int8.
+                // FRINTA (vrndaq) rounds ties away from zero, matching
+                // std::round; the rounded value is an exact integer float so
+                // vcvtq truncates it losslessly, and the saturating narrows
+                // reproduce the clamp.
                 const float32x4_t vmult = vdupq_n_f32(mult);
                 const float32x4_t v128 = vdupq_n_f32(128.f);
                 auto proc = [&](int32x4_t a) {
@@ -287,7 +295,7 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
                   int16x8_t n1 = vcombine_s16(vqmovn_s32(r2), vqmovn_s32(r3));
                   vst1q_s8(d + c, vcombine_s8(vqmovn_s16(n0), vqmovn_s16(n1)));
                 }
-    #endif
+#endif
                 for (; c < Ci; ++c) {
                   float q = std::round(((float)s[c] + 128.f) * mult) - 128.f;
                   d[c] = (int8_t)std::max(-128.f, std::min(127.f, q));
@@ -304,9 +312,8 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
           const float *src = input.getData<float>();
           int8_t *dst = output.getData<int8_t>();
           const float inv = 1.f / q8_out_scale;
-          static const bool asym =
-            std::getenv("NNTR_W8A8_PERCH") != nullptr &&
-            std::getenv("NNTR_W8A8_SYM") == nullptr;
+          static const bool asym = std::getenv("NNTR_W8A8_PERCH") != nullptr &&
+                                   std::getenv("NNTR_W8A8_SYM") == nullptr;
           auto &tm = ThreadManager::Global();
           for (unsigned int b = 0; b < B; ++b) {
             const size_t base = (size_t)b * HW;
@@ -381,8 +388,8 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
             const int8_t *s = src + (base + p) * Ci;
             float *d = dst + (base + p) * out_dim.channel() + c_offset;
             for (unsigned int c = 0; c < Ci; ++c) {
-              d[c] = asym ? ((float)s[c] + 128.f) * sc - kActOff
-                          : sc * (float)s[c];
+              d[c] =
+                asym ? ((float)s[c] + 128.f) * sc - kActOff : sc * (float)s[c];
             }
           });
         }
@@ -407,7 +414,7 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
           constexpr float kActOff = 0.27846455f;
           for (size_t i = 0; i < output.size(); ++i)
             buf[i] = perch_asym_env ? ((float)q[i] + 128.f) * sc - kActOff
-                                     : sc * (float)q[i];
+                                    : sc * (float)q[i];
         } else if (output.getDataType() == TensorDim::DataType::FP32) {
           const float *d = output.getData<float>();
           std::copy(d, d + output.size(), buf.begin());

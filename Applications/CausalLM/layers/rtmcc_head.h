@@ -18,6 +18,7 @@
  *         Inference only, FP32 activations.
  *
  * @author Seungbaek Hong <sb92.hong@samsung.com>
+ * @bug    No known bugs except for NYI items
  */
 
 #ifndef __RTMCC_HEAD_LAYER_H__
@@ -101,7 +102,7 @@ public:
 
   WIN_EXPORT void
   exportTo(nntrainer::Exporter &exporter,
-           const ml::train::ExportMethods &method) const override {};
+           const ml::train::ExportMethods &method) const override{};
 
   WIN_EXPORT const std::string getType() const override {
     return RTMCCHeadLayer::type;

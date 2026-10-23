@@ -13,6 +13,7 @@
  *         (and, for w8a32, quantized by nntr_quantize --conv_dtype Q8_0).
  *
  * @author Seungbaek Hong <sb92.hong@samsung.com>
+ * @bug    No known bugs except for NYI items
  */
 
 #include <algorithm>
@@ -27,8 +28,8 @@
 #include <string>
 #include <vector>
 
-#include "yolov7_pose_graph.h"
 #include "rtmcc_head.h"
+#include "yolov7_pose_graph.h"
 #include <app_context.h>
 #include <engine.h>
 #include <layer.h>
@@ -72,8 +73,14 @@ std::vector<Keypoint> decodeSimcc(const float *pose) {
     int bx = 0, by = 0;
     float mx = rx[0], my = ry[0];
     for (int i = 1; i < SIMCC_BINS; ++i) {
-      if (rx[i] > mx) { mx = rx[i]; bx = i; }
-      if (ry[i] > my) { my = ry[i]; by = i; }
+      if (rx[i] > mx) {
+        mx = rx[i];
+        bx = i;
+      }
+      if (ry[i] > my) {
+        my = ry[i];
+        by = i;
+      }
     }
     float score = std::min(mx, my);
     if (score <= 0.0f) {
@@ -108,8 +115,7 @@ int main(int argc, char **argv) {
   openblas_set_num_threads(4);
 
   std::string res_dir = (argc > 1) ? argv[1] : ".";
-  std::string input_path =
-    (argc > 2) ? argv[2] : res_dir + "/input_320.bin";
+  std::string input_path = (argc > 2) ? argv[2] : res_dir + "/input_320.bin";
   std::cout << "[Pose] RES_DIR=" << res_dir << " INPUT=" << input_path
             << std::endl;
 
@@ -178,9 +184,10 @@ int main(int argc, char **argv) {
         preset_q = true;
         // NNTR_W8A8_FP32W: keep conv weights FP32 in the file and let the
         // per-channel path quantize them ONCE, directly from FP32, at load
-        // (__ggml_q8ch_prepare_conv_weight's fp32_src path) with an FP32 per-channel scale.
-        // This matches the S0 simulation's per-channel scheme exactly (81/87);
-        // a Q8_0 conv file instead double-quantizes (per-block int8 in the file
+        // (__ggml_q8ch_prepare_conv_weight's fp32_src path) with an FP32
+        // per-channel scale. This matches the S0 simulation's per-channel
+        // scheme exactly (81/87); a Q8_0 conv file instead double-quantizes
+        // (per-block int8 in the file
         // -> per-channel requant at load), which costs the borderline keypoint
         // (80/87). Compute stays int8 (weights are quantized once, cached), so
         // there is no speed change -- only the on-disk weights are larger.
@@ -201,10 +208,10 @@ int main(int argc, char **argv) {
       } else if (s == "w8a32" || s == "W8A32") {
         // Q8_0 weights + FP32 activations (NHWC). The FP32-activation Q8_0
         // indirect conv kernel (FloatTensor::convQ4_0Indirect ->
-        // __ggml_q8_0_q8_0_indirect_GEMM_fp32) keeps activations in FP32 between
-        // layers (no FP16 rounding accumulation) with int8 SMMLA compute, so
-        // this recovers ~FP32 pose accuracy at int8 speed. Same weight file as
-        // w8a16 (no re-quantize).
+        // __ggml_q8_0_q8_0_indirect_GEMM_fp32) keeps activations in FP32
+        // between layers (no FP16 rounding accumulation) with int8 SMMLA
+        // compute, so this recovers ~FP32 pose accuracy at int8 speed. Same
+        // weight file as w8a16 (no re-quantize).
         model->setProperty(
           {nntrainer::withKey("model_tensor_type", "FP32-FP32")});
         preset_nhwc = true;
@@ -238,17 +245,18 @@ int main(int argc, char **argv) {
 
     auto input_dtype = fp16_act ? ml::train::TensorDim::DataType::FP16
                                 : ml::train::TensorDim::DataType::FP32;
-    auto x = Tensor(
-      ml::train::TensorDim(1, 3, INPUT_SIZE, INPUT_SIZE,
-                           ml::train::TensorDim::Format::NCHW, input_dtype),
-      "input0");
+    auto x = Tensor(ml::train::TensorDim(1, 3, INPUT_SIZE, INPUT_SIZE,
+                                         ml::train::TensorDim::Format::NCHW,
+                                         input_dtype),
+                    "input0");
 
     // pose_base_v311.pt is pose-only (no ReID head). Enable the ReID branch
     // (second neck "features_feat" + head_feat) only for a merged checkpoint.
     bool with_reid = std::getenv("YOLO_WITH_REID") != nullptr;
 
     auto nodes = yolov7_pose::buildBackbone(x, preset_q);
-    auto pose_feat = yolov7_pose::buildNeck("backbone.features", nodes, preset_q);
+    auto pose_feat =
+      yolov7_pose::buildNeck("backbone.features", nodes, preset_q);
     auto pose_out = yolov7_pose::buildPoseHead(pose_feat, preset_q);
 
     std::vector<Tensor> graph_outputs = {pose_out};
@@ -257,7 +265,8 @@ int main(int argc, char **argv) {
         yolov7_pose::buildNeck("backbone.features_feat", nodes, preset_q);
       graph_outputs.push_back(yolov7_pose::buildReidHead(reid_feat));
     }
-    std::cout << "[Pose] ReID head: " << (with_reid ? "on" : "off") << std::endl;
+    std::cout << "[Pose] ReID head: " << (with_reid ? "on" : "off")
+              << std::endl;
 
     auto t_compile0 = std::chrono::steady_clock::now();
     // Everything from process start to here: binary/library startup, arg
@@ -266,20 +275,18 @@ int main(int argc, char **argv) {
     // covers the equivalent work on its side).
     double setup_ms =
       std::chrono::duration<double, std::milli>(t_compile0 - t_start).count();
-    if (int ret = model->compile(x, graph_outputs,
-                                 ml::train::ExecutionMode::INFERENCE))
+    if (int ret =
+          model->compile(x, graph_outputs, ml::train::ExecutionMode::INFERENCE))
       throw std::runtime_error("compile failed: " + std::to_string(ret));
-    double compile_ms =
-      std::chrono::duration<double, std::milli>(
-        std::chrono::steady_clock::now() - t_compile0)
-        .count();
+    double compile_ms = std::chrono::duration<double, std::milli>(
+                          std::chrono::steady_clock::now() - t_compile0)
+                          .count();
 
     std::string weights_path = res_dir + "/" + weights_default;
     if (const char *w = std::getenv("YOLO_WEIGHTS"))
       weights_path = (w[0] == '/') ? std::string(w) : res_dir + "/" + w;
     auto t_load0 = std::chrono::steady_clock::now();
-    model->load(weights_path,
-                ml::train::ModelFormat::MODEL_FORMAT_SAFETENSORS);
+    model->load(weights_path, ml::train::ModelFormat::MODEL_FORMAT_SAFETENSORS);
     double load_ms = std::chrono::duration<double, std::milli>(
                        std::chrono::steady_clock::now() - t_load0)
                        .count();

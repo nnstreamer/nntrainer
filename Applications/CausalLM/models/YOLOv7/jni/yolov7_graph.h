@@ -7,6 +7,7 @@
  * @brief  YOLOv7 box-detector graph block builders (inline, header-only).
  *
  * @author Seungbaek Hong <sb92.hong@samsung.com>
+ * @bug    No known bugs except for NYI items
  */
 
 #ifndef __YOLOV7_GRAPH_H__
@@ -85,8 +86,9 @@ inline Tensor downConv(const std::string &name, int in_ch, int out_ch,
                        Tensor input, bool conv_q40 = false) {
   // convBnSilu already appends "/conv" to the name it is given, so pass `name`
   // directly. Passing `name + "/conv"` here would double it to ".../conv/conv",
-  // which no longer matches the safetensors weight key ".../conv:filter" and the
-  // weight loader silently skips it (random-init conv -> divergent backbone).
+  // which no longer matches the safetensors weight key ".../conv:filter" and
+  // the weight loader silently skips it (random-init conv -> divergent
+  // backbone).
   return convBnSilu(name, in_ch, out_ch, 3, 2, 1, input, conv_q40);
 }
 

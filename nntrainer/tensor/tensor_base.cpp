@@ -361,12 +361,12 @@ void TensorBase::calculateFlattenDot(
   if (!trans && !trans_in) {
     if (last_axis != input_first_three_flat) {
       std::stringstream ss;
-      ss << "Error: incompatible dimensions for dot product. this: ["
-         << batch() << "," << channel() << "," << height() << "," << width()
+      ss << "Error: incompatible dimensions for dot product. this: [" << batch()
+         << "," << channel() << "," << height() << "," << width()
          << "] (format=" << static_cast<int>(getFormat()) << "), input: ["
          << input.batch() << "," << input.channel() << "," << input.height()
-         << "," << input.width() << "] (format="
-         << static_cast<int>(input.getFormat())
+         << "," << input.width()
+         << "] (format=" << static_cast<int>(input.getFormat())
          << "), last_axis: " << last_axis
          << ", input_first_three_flat: " << input_first_three_flat;
       throw std::runtime_error(ss.str());

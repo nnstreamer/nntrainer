@@ -137,8 +137,8 @@ void nntr_gemm_q8_0x4_q8_0x4(int n, float *__restrict s, size_t bs,
  *        weights GEMV, FP32 output. Requires nc % 4 == 0.
  */
 void nntr_gemv_q8_0x4_q8_0(int n, float *__restrict s, size_t bs,
-                           const void *__restrict vx,
-                           const void *__restrict vy, int nc);
+                           const void *__restrict vx, const void *__restrict vy,
+                           int nc);
 
 /**
  * @brief FP32-output Q8_0 x Q8_0 GEMM. Same numerics as nntr_gemm_q8_0_q8_0 but
@@ -251,7 +251,6 @@ int nntr_repack_q4_0_to_q4_0_4_bl(void *__restrict dst, int interleave_block,
 int nntr_repack_q4_0_to_q4_0_8_bl(void *__restrict dst, int interleave_block,
                                   const void *__restrict data, size_t data_size,
                                   size_t nrow, size_t k);
-
 
 /**
  * @brief Repack Q4_K data to Q4_K 8-block layout

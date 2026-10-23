@@ -6,6 +6,7 @@
  * @date   7 July 2026
  * @brief  Multi-head attention custom layer for FastViT-S12 stage 3.
  * @author Seungbaek Hong <sb92.hong@samsung.com>
+ * @bug    No known bugs except for NYI items
  */
 
 #include "fastvit_attention_layer.h"
@@ -36,7 +37,8 @@ void FastViTAttentionLayer::finalize(nntrainer::InitLayerContext &context) {
   head_dim_ = C / num_heads_;
 
   nntrainer::TensorDim out_dim(in_dim.batch(), C, in_dim.height(),
-                               in_dim.width(), in_dim.getFormat(), in_dim.getDataType());
+                               in_dim.width(), in_dim.getFormat(),
+                               in_dim.getDataType());
   context.setOutputDimensions({out_dim});
 }
 
@@ -66,10 +68,9 @@ void FastViTAttentionLayer::forwarding(nntrainer::RunLayerContext &context,
 
   // Output may also be FP16 — compute in FP32 then cast back.
   nntrainer::TensorDim out_dim = out.getDim();
-  nntrainer::Tensor out_fp32(out_dim.batch(), out_dim.channel(),
-                             out_dim.height(), out_dim.width(),
-                             out_dim.getFormat(),
-                             ml::train::TensorDim::DataType::FP32);
+  nntrainer::Tensor out_fp32(
+    out_dim.batch(), out_dim.channel(), out_dim.height(), out_dim.width(),
+    out_dim.getFormat(), ml::train::TensorDim::DataType::FP32);
   float *out_data = out_fp32.getData();
 
   multiHeadAttention(in_data, out_data, B, C, H, W, num_heads, head_dim, scale);
@@ -78,9 +79,7 @@ void FastViTAttentionLayer::forwarding(nntrainer::RunLayerContext &context,
   if (out.getDataType() != ml::train::TensorDim::DataType::FP32) {
     out.copy(out_fp32);
   }
-
 }
-
 
 void FastViTAttentionLayer::multiHeadAttention(const float *qkv, float *out,
                                                int B, int C, int H, int W,

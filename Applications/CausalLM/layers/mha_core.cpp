@@ -715,8 +715,7 @@ MHACoreLayer::MHACoreLayer() :
     props::RopePartialRotaryFactor(), props::RopeScalingMaxPositionEmbeddings(),
     props::AttnLogitSoftcapping(), props::IsCausal(), props::UseGemmAttention(),
     props::GpuDecodeAttn(), props::GpuDecodeRope(), props::GpuOhwiRope(),
-    props::KvWindowRing(), props::CrossAttention(),
-    props::AttnFp32Accum()),
+    props::KvWindowRing(), props::CrossAttention(), props::AttnFp32Accum()),
   sm(nntrainer::ActivationType::ACT_SOFTMAX),
   epsilon(1e-3),
   cache_index(0),
@@ -2270,17 +2269,17 @@ void MHACoreLayer::one_batch_incremental_forwarding(
   // (RoPE-K / scatter / copy of key_step, value_step) is skipped; only the
   // attention read over the full cache runs. Self-attention is unchanged.
   if (!cross_attention) {
-  if (kv_int8) {
-    // KV int8 path (paper section 3.7): Q RoPE in fp16 as usual, K RoPE
-    // in-place on the fp16 key_step buffer, then quantize key_step and
-    // value_step to int8 cache + per-(token, head) fp16 scale. V has no
-    // RoPE so it's a direct quantize.
-    if (use_rope) {
-      apply_rotary_emb_tensor_v2(query_step, query_step, head_dim, cache_index,
-                                 true);
-      apply_rotary_emb_tensor_v2(key_step, key_step, head_dim, cache_index,
-                                 true);
-    }
+    if (kv_int8) {
+      // KV int8 path (paper section 3.7): Q RoPE in fp16 as usual, K RoPE
+      // in-place on the fp16 key_step buffer, then quantize key_step and
+      // value_step to int8 cache + per-(token, head) fp16 scale. V has no
+      // RoPE so it's a direct quantize.
+      if (use_rope) {
+        apply_rotary_emb_tensor_v2(query_step, query_step, head_dim,
+                                   cache_index, true);
+        apply_rotary_emb_tensor_v2(key_step, key_step, head_dim, cache_index,
+                                   true);
+      }
 #ifdef ENABLE_FP16
     // Slice the int8 cache + fp16 scale for this batch/step window.
     const size_t scale_feature_len =
@@ -2328,8 +2327,8 @@ void MHACoreLayer::one_batch_incremental_forwarding(
     NNTR_THROW_IF(true, std::invalid_argument)
       << "NNTR_KV_INT8 requires ENABLE_FP16";
 #endif
-  } else if (use_rope) {
-    bool gpu_rope_done = false;
+    } else if (use_rope) {
+      bool gpu_rope_done = false;
 #ifdef ENABLE_FP16
 #if defined(ENABLE_OPENCL) // GPU concat-RoPE (rope_inplace_f16_cl) path
     // GPU-resident RoPE (residency): rotate Q in place and K into its cache
@@ -3240,14 +3239,14 @@ void MHACoreLayer::one_batch_incremental_forwarding(
 #endif
       }
     }
-  } else {
-    // No-RoPE path: host scatters/copies read K/V on the host -- lower first.
-    lower_kv();
-    const bool kv_ohwi_active =
-      is_kv_ohwi_enabled() && !kv_int8 &&
-      key_step.getDataType() == ml::train::TensorDim::DataType::FP16 &&
-      cache_key.getDataType() == ml::train::TensorDim::DataType::FP16;
-    if (kv_ohwi_active) {
+    } else {
+      // No-RoPE path: host scatters/copies read K/V on the host -- lower first.
+      lower_kv();
+      const bool kv_ohwi_active =
+        is_kv_ohwi_enabled() && !kv_int8 &&
+        key_step.getDataType() == ml::train::TensorDim::DataType::FP16 &&
+        cache_key.getDataType() == ml::train::TensorDim::DataType::FP16;
+      if (kv_ohwi_active) {
 #ifdef ENABLE_FP16
       scatter_k_concat_to_ohwi_fp16(
         reinterpret_cast<const uint16_t *>(key_step.getData<_FP16>()),
@@ -3258,11 +3257,11 @@ void MHACoreLayer::one_batch_incremental_forwarding(
       NNTR_THROW_IF(true, std::invalid_argument)
         << "NNTR_KV_OHWI requires ENABLE_FP16";
 #endif
-    } else {
-      b_cache_key_step.copyData(key_step);
-    }
+      } else {
+        b_cache_key_step.copyData(key_step);
+      }
     b_cache_value_step.copyData(value_step);
-  }
+    }
 
   } // !cross_attention: cache write
 

@@ -34,8 +34,11 @@ void shgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
             const _FP16 *B, const unsigned int ldb, const float beta, float *C,
             const unsigned int ldc) {
   if (std::getenv("NNTR_SHGEMM_DEBUG")) {
-    fprintf(stderr, "[SHGEMM] order=%u TransA=%d TransB=%d M=%u N=%u K=%u lda=%u ldb=%u ldc=%u alpha=%f beta=%f\n",
-            TStorageOrder, (int)TransA, (int)TransB, M, N, K, lda, ldb, ldc, alpha, beta);
+    fprintf(stderr,
+            "[SHGEMM] order=%u TransA=%d TransB=%d M=%u N=%u K=%u lda=%u "
+            "ldb=%u ldc=%u alpha=%f beta=%f\n",
+            TStorageOrder, (int)TransA, (int)TransB, M, N, K, lda, ldb, ldc,
+            alpha, beta);
     fflush(stderr);
   }
   // B is stored as [K,N] if !TransB, or [N,K] if TransB (row-major), so it
@@ -46,18 +49,28 @@ void shgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
   const unsigned int b_cols_ld = ldb;
   size_t b_elems = (size_t)b_rows * b_cols_ld;
   if (std::getenv("NNTR_SHGEMM_DEBUG")) {
-    fprintf(stderr, "[SHGEMM] b_rows=%u b_cols_ld(ldb)=%u b_elems=%zu (N*K=%zu)\n",
+    fprintf(stderr,
+            "[SHGEMM] b_rows=%u b_cols_ld(ldb)=%u b_elems=%zu (N*K=%zu)\n",
             b_rows, b_cols_ld, b_elems, (size_t)N * K);
     fflush(stderr);
   }
   float *B_ = new float[N * K];
   scopy(N * K, B, 1, B_, 1);
   if (std::getenv("NNTR_SHGEMM_DEBUG")) {
-    size_t nnan_src=0, nnan_A=0, nnan_conv=0;
-    for (size_t i=0;i<(size_t)N*K;++i) if (std::isnan((float)B[i])) nnan_src++;
-    for (size_t i=0;i<(size_t)N*K;++i) if (std::isnan(B_[i])) nnan_conv++;
-    for (size_t i=0;i<(size_t)M*K;++i) if (std::isnan(A[i])) nnan_A++;
-    fprintf(stderr, "[SHGEMM] pre-gemm: B(fp16-src) nan=%zu B_(converted) nan=%zu A(weight) nan=%zu\n", nnan_src, nnan_conv, nnan_A);
+    size_t nnan_src = 0, nnan_A = 0, nnan_conv = 0;
+    for (size_t i = 0; i < (size_t)N * K; ++i)
+      if (std::isnan((float)B[i]))
+        nnan_src++;
+    for (size_t i = 0; i < (size_t)N * K; ++i)
+      if (std::isnan(B_[i]))
+        nnan_conv++;
+    for (size_t i = 0; i < (size_t)M * K; ++i)
+      if (std::isnan(A[i]))
+        nnan_A++;
+    fprintf(stderr,
+            "[SHGEMM] pre-gemm: B(fp16-src) nan=%zu B_(converted) nan=%zu "
+            "A(weight) nan=%zu\n",
+            nnan_src, nnan_conv, nnan_A);
     fflush(stderr);
   }
 
@@ -69,10 +82,16 @@ void shgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
                    ldb, beta, C, ldc);
 #endif
   if (std::getenv("NNTR_SHGEMM_DEBUG")) {
-    size_t nfin=0, nnan=0;
-    size_t ntot = (size_t)M*N;
-    for (size_t i=0;i<ntot;++i) { if (std::isnan(C[i])) nnan++; else nfin++; }
-    fprintf(stderr, "[SHGEMM] output finite=%zu nan=%zu / %zu\n", nfin, nnan, ntot);
+    size_t nfin = 0, nnan = 0;
+    size_t ntot = (size_t)M * N;
+    for (size_t i = 0; i < ntot; ++i) {
+      if (std::isnan(C[i]))
+        nnan++;
+      else
+        nfin++;
+    }
+    fprintf(stderr, "[SHGEMM] output finite=%zu nan=%zu / %zu\n", nfin, nnan,
+            ntot);
     fflush(stderr);
   }
 

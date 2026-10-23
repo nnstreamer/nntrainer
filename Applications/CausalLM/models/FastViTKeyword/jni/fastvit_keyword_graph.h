@@ -34,6 +34,7 @@
  *   output: split -> logits[1,507], features[1,512]
  *
  * @author Seungbaek Hong <sb92.hong@samsung.com>
+ * @bug    No known bugs except for NYI items
  */
 
 #ifndef __FASTVIT_KEYWORD_GRAPH_H__
@@ -77,8 +78,6 @@ inline bool convQuantEligible(int in_ch, int out_ch, int k, int groups = 1) {
   return groups == 1 && out_ch % 32 == 0 && (in_ch * k * k) % 32 == 0;
 }
 
-
-
 // ===== Primitive graph block builders =====
 
 /**
@@ -108,9 +107,9 @@ inline Tensor convGelu(const std::string &name, int in_ch, int out_ch, int k,
     nntrainer::withKey("padding", padding),
     nntrainer::withKey("groups", groups)};
   if (quantWeightDtype() != "FP32" && eligible)
-    conv_props.push_back(nntrainer::withKey("weight_dtype", quantWeightDtype()));
+    conv_props.push_back(
+      nntrainer::withKey("weight_dtype", quantWeightDtype()));
   LayerHandle conv(createLayer("conv2d", conv_props));
-
 
   auto x = conv(input);
   LayerHandle gelu(
@@ -136,12 +135,11 @@ inline Tensor convOnly(const std::string &name, int in_ch, int out_ch, int k,
     nntrainer::withKey("padding", padding),
     nntrainer::withKey("groups", groups)};
   if (quantWeightDtype() != "FP32" && eligible)
-    conv_props.push_back(nntrainer::withKey("weight_dtype", quantWeightDtype()));
+    conv_props.push_back(
+      nntrainer::withKey("weight_dtype", quantWeightDtype()));
   LayerHandle conv(createLayer("conv2d", conv_props));
   return conv(input);
 }
-
-
 
 /**
  * @brief Build a depthwise Conv2d (BN fused at conversion time, no activation).
@@ -165,9 +163,9 @@ inline Tensor conv1x1Gelu(const std::string &name, int in_ch, int out_ch,
     nntrainer::withKey("filters", out_ch), nntrainer::withKey("stride", {1, 1}),
     nntrainer::withKey("padding", 0)};
   if (quantWeightDtype() != "FP32" && eligible)
-    conv_props.push_back(nntrainer::withKey("weight_dtype", quantWeightDtype()));
+    conv_props.push_back(
+      nntrainer::withKey("weight_dtype", quantWeightDtype()));
   LayerHandle conv(createLayer("conv2d", conv_props));
-
 
   auto x = conv(input);
   LayerHandle gelu(
@@ -193,11 +191,11 @@ inline Tensor conv1x1Only(const std::string &name, int in_ch, int out_ch,
   if (no_bias)
     conv_props.push_back(nntrainer::withKey("disable_bias", "true"));
   if (quantWeightDtype() != "FP32" && eligible)
-    conv_props.push_back(nntrainer::withKey("weight_dtype", quantWeightDtype()));
+    conv_props.push_back(
+      nntrainer::withKey("weight_dtype", quantWeightDtype()));
   LayerHandle conv(createLayer("conv2d", conv_props));
   return conv(input);
 }
-
 
 /** @brief Elementwise addition of two tensors. */
 
@@ -269,7 +267,8 @@ inline Tensor downsampleBlock(const std::string &name, int in_ch, int out_ch,
                               Tensor input, int expose_down0_stop = 0) {
   // dw 7x7 conv, stride 2 (fused large+small conv)
   auto x = convOnly(name + "/down0", in_ch, out_ch, 7, 2, 3, in_ch, input);
-  if (expose_down0_stop) return x; // bisect: after down0 only
+  if (expose_down0_stop)
+    return x; // bisect: after down0 only
   // 1x1 conv + GELU
   return convGelu(name + "/down1", out_ch, out_ch, 1, 1, 0, 1, x);
 }
@@ -427,36 +426,47 @@ inline Tensor buildBackbone(Tensor xIn, int stop_at) {
   // === Stage 0: 2x RepMixerBlock(64) -> [1,64,80,80] ===
   x = repMixerBlock("s0b0", 64, x);
   x = repMixerBlock("s0b1", 64, x);
-  if (stop_at == 0) return x;
+  if (stop_at == 0)
+    return x;
 
   // === Stage 1: downsample + 2x RepMixerBlock(128) -> [1,128,40,40] ===
-  x = downsampleBlock("s1_down", 64, 128, x, /*expose_down0_stop=*/(stop_at == -12));
-  if (stop_at == -12) return x;
-  if (stop_at == -10) return x; // after s1_downsample only [1,128,40,40]
+  x = downsampleBlock("s1_down", 64, 128, x,
+                      /*expose_down0_stop=*/(stop_at == -12));
+  if (stop_at == -12)
+    return x;
+  if (stop_at == -10)
+    return x; // after s1_downsample only [1,128,40,40]
   x = repMixerBlock("s1b0", 128, x);
-  if (stop_at == -11) return x; // after s1 block0 [1,128,40,40]
+  if (stop_at == -11)
+    return x; // after s1 block0 [1,128,40,40]
   x = repMixerBlock("s1b1", 128, x);
-  if (stop_at == 1) return x;
+  if (stop_at == 1)
+    return x;
 
   // === Stage 2: downsample + 6x RepMixerBlock(256) -> [1,256,20,20] ===
   x = downsampleBlock("s2_down", 128, 256, x);
-  if (stop_at == -20) return x; // after s2 downsample only [1,256,20,20]
+  if (stop_at == -20)
+    return x; // after s2 downsample only [1,256,20,20]
   for (int b = 0; b < 6; ++b)
     x = repMixerBlock("s2b" + std::to_string(b), 256, x);
-  if (stop_at == 2) return x;
+  if (stop_at == 2)
+    return x;
 
-  // === Stage 3: downsample + pos_emb + 2x AttentionBlock(512) -> [1,512,10,10] ===
-  // FastViT-S12 stage3 downsample (256->512, stride2), then RepConditionalPosEnc
-  // (depthwise 7x7 conv, groups=512) applied to the downsampled features, then
-  // 2 reparameterized AttentionBlocks.
+  // === Stage 3: downsample + pos_emb + 2x AttentionBlock(512) -> [1,512,10,10]
+  // === FastViT-S12 stage3 downsample (256->512, stride2), then
+  // RepConditionalPosEnc (depthwise 7x7 conv, groups=512) applied to the
+  // downsampled features, then 2 reparameterized AttentionBlocks.
   x = downsampleBlock("s3_down", 256, 512, x);
-  if (stop_at == -30) return x; // after s3 downsample only [1,512,10,10]
+  if (stop_at == -30)
+    return x; // after s3 downsample only [1,512,10,10]
   x = convOnly("s3_posemb", 512, 512, 7, 1, 3, 512, x);
   x = attentionBlock("s3b0", 512, x);
   x = attentionBlock("s3b1", 512, x);
-  if (stop_at == 3) return x;
+  if (stop_at == 3)
+    return x;
 
-  // === Final conv: 512 -> 1024 (dw3x3 reparam + SE + GELU) -> [1,1024,10,10] ===
+  // === Final conv: 512 -> 1024 (dw3x3 reparam + SE + GELU) -> [1,1024,10,10]
+  // ===
   x = finalConvBlock("final_conv", 512, 1024, x);
   return x;
 }

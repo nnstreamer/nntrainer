@@ -1506,8 +1506,8 @@ void gelu_v2_fp16(const unsigned int N, const _FP16 *X, _FP16 *Y) {
 #endif
   while (i < N) {
     float x = static_cast<float>(X[i]);
-    Y[i] = static_cast<_FP16>(0.5f * x *
-                              (1.0f + std::erf(x / std::sqrt(2.0f))));
+    Y[i] =
+      static_cast<_FP16>(0.5f * x * (1.0f + std::erf(x / std::sqrt(2.0f))));
     ++i;
   }
 }

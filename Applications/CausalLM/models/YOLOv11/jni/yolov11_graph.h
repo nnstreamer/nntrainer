@@ -19,6 +19,7 @@
  *   auto outputs = yolov11::buildHead(m4, m6, m10, nc, cfg, q40);
  *
  * @author Seungbaek Hong <sb92.hong@samsung.com>
+ * @bug    No known bugs except for NYI items
  */
 
 #ifndef __YOLOV11_GRAPH_H__

@@ -28,10 +28,10 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
-#include <vector>
 #include <math.h>
 #include <stdint.h>
 #include <thread_manager.h>
+#include <vector>
 
 #if defined(__ARM_NEON)
 #include <arm_neon.h>
@@ -923,11 +923,10 @@ void __ggml_q8_0_q8_0_indirect_GEMM_fp16(const unsigned int M,
       unsigned int c = (unsigned int)(i % col_loop);
       unsigned int r0 = r * row_chunk, r1 = std::min(r0 + row_chunk, M);
       unsigned int c0 = c * col_chunk, c1 = std::min(c0 + col_chunk, N);
-      nntr_gemm_q8_0_q8_0_fp16(
-        (int)K, C + (size_t)r0 * N + c0, N,
-        (const void *)&Wp_ptr[(size_t)c0 * nbp],
-        (const void *)&Ap_ptr[(size_t)r0 * nbp], (int)(r1 - r0),
-        (int)(c1 - c0));
+      nntr_gemm_q8_0_q8_0_fp16((int)K, C + (size_t)r0 * N + c0, N,
+                               (const void *)&Wp_ptr[(size_t)c0 * nbp],
+                               (const void *)&Ap_ptr[(size_t)r0 * nbp],
+                               (int)(r1 - r0), (int)(c1 - c0));
     });
     return;
   }

@@ -123,23 +123,24 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
   output_dims[0].setTensorType(
     {context.getFormat(), context.getActivationDataType()});
 
-  // W8A8 int8-resident MLP (NNTR_W8A8, see W8A8_DESIGN.md): an MLP up-projection
-  // FC (name ends in "ffn_up") with a Q8_0 weight emits a per-tensor-scale QINT8
-  // activation that GELU consumes and ffn_down reads as a QINT8 input, so the
-  // MLP's intermediate activation (768-dim x N tokens x 12 blocks) is stored at
-  // 1 byte instead of 4. Every FC that is NOT an up-projection -- the
-  // attention qkv/out_proj, the head, and ffn_down (whose consumer is the FP32
-  // residual addition) -- outputs FP32; if such an FC is fed a QINT8 input it
-  // dequantizes (ffn_down's exit from the int8 region), exactly as conv2d does
-  // at its FP32 boundary. Env-gated so every other mode is untouched. This
-  // runs AFTER setTensorType so the QINT8 override is not clobbered.
+  // W8A8 int8-resident MLP (NNTR_W8A8, see W8A8_DESIGN.md): an MLP
+  // up-projection FC (name ends in "ffn_up") with a Q8_0 weight emits a
+  // per-tensor-scale QINT8 activation that GELU consumes and ffn_down reads as
+  // a QINT8 input, so the MLP's intermediate activation (768-dim x N tokens x
+  // 12 blocks) is stored at 1 byte instead of 4. Every FC that is NOT an
+  // up-projection -- the attention qkv/out_proj, the head, and ffn_down (whose
+  // consumer is the FP32 residual addition) -- outputs FP32; if such an FC is
+  // fed a QINT8 input it dequantizes (ffn_down's exit from the int8 region),
+  // exactly as conv2d does at its FP32 boundary. Env-gated so every other mode
+  // is untouched. This runs AFTER setTensorType so the QINT8 override is not
+  // clobbered.
   const bool w8a8_mode = std::getenv("NNTR_W8A8") != nullptr;
   const bool weight_is_q8 =
     context.getWeightDataType() == TensorDim::DataType::Q8_0;
   if (w8a8_mode && weight_is_q8) {
     const std::string &lname = context.getName();
-    const bool mlp_up = lname.size() >= 6 &&
-      lname.compare(lname.size() - 6, 6, "ffn_up") == 0;
+    const bool mlp_up =
+      lname.size() >= 6 && lname.compare(lname.size() - 6, 6, "ffn_up") == 0;
     if (mlp_up) {
       output_dims[0].setDataType(TensorDim::DataType::QINT8);
     } else if (output_dims[0].getDataType() == TensorDim::DataType::QINT8) {
@@ -369,8 +370,8 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
 }
 
 bool FullyConnectedLayer::dotW8A8(Tensor const &input_, Tensor const &weight,
-                                   Tensor &hidden_, Tensor const &bias,
-                                   bool bias_enabled) {
+                                  Tensor &hidden_, Tensor const &bias,
+                                  bool bias_enabled) {
   const bool out_qint8 = hidden_.getDataType() == Tdatatype::QINT8;
   const bool in_qint8 = input_.getDataType() == Tdatatype::QINT8;
   if (!out_qint8 && !in_qint8)
@@ -412,8 +413,8 @@ bool FullyConnectedLayer::dotW8A8(Tensor const &input_, Tensor const &weight,
     } else {
       aptr = input_.getData<float>();
     }
-    done = int8_gemm::gemmPerChannelA8(M, N, K, aptr,
-                                       weight.getData<uint8_t>(), cptr);
+    done = int8_gemm::gemmPerChannelA8(M, N, K, aptr, weight.getData<uint8_t>(),
+                                       cptr);
   }
   if (!done)
     return false; // per-block weight; caller falls back to generic dot()
@@ -438,8 +439,8 @@ bool FullyConnectedLayer::dotW8A8(Tensor const &input_, Tensor const &weight,
     const float inv = amax > 0.f ? 127.f / amax : 0.f;
     int8_t *qo = hidden_.getData<int8_t>();
     for (size_t i = 0; i < nout; ++i)
-      qo[i] = (int8_t)std::max(
-        -128.f, std::min(127.f, std::round(cptr[i] * inv)));
+      qo[i] =
+        (int8_t)std::max(-128.f, std::min(127.f, std::round(cptr[i] * inv)));
     hidden_.getScale<float>()[0] = sc;
   } else if (hidden_.getDataType() == Tdatatype::FP16) {
     // FP16 output (ffn_down leaving the region under Q8_0-FP16): cast the
@@ -511,7 +512,8 @@ void FullyConnectedLayer::incremental_forwarding(RunLayerContext &context,
     Tensor hidden_step = hidden_.getSharedDataTensor(
       hidden_step_dim, b * hidden_dim.getFeatureLen(), true);
 
-    if (w8a8_active && dotW8A8(input_step, weight, hidden_step, bias_ref, bias_en_i)) {
+    if (w8a8_active &&
+        dotW8A8(input_step, weight, hidden_step, bias_ref, bias_en_i)) {
       // int8-resident path handled the GEMM + bias + (de)quantize for this
       // step. Skip the generic dot/bias below; LoRA is unused by the CED
       // detector.

@@ -8,6 +8,7 @@
  * nntrainer.
  *
  * @author Seungbaek Hong <sb92.hong@samsung.com>
+ * @bug    No known bugs except for NYI items
  */
 
 #include <algorithm>

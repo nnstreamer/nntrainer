@@ -218,8 +218,7 @@ public:
    *       spun up and reports failure instead of silently doing nothing.
    */
   static bool setComputeThreads(uint32_t num_threads) {
-    if (num_threads == 0 ||
-        pool_initialized_.load(std::memory_order_acquire))
+    if (num_threads == 0 || pool_initialized_.load(std::memory_order_acquire))
       return false;
     config_.compute_threads = num_threads;
     return true;

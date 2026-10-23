@@ -333,8 +333,8 @@ void LayerNormalizationLayer::incremental_forwarding(RunLayerContext &context,
   if (!training &&
       canUseFusedWidthLayerNorm(normalize_axes, input, output, gamma, beta)) {
     const TensorDim &in_dim_fast = input.getDim();
-    const size_t rows =
-      (size_t)in_dim_fast.batch() * in_dim_fast.channel() * in_dim_fast.height();
+    const size_t rows = (size_t)in_dim_fast.batch() * in_dim_fast.channel() *
+                        in_dim_fast.height();
     fusedWidthLayerNormFp32(input.getData<float>(), output.getData<float>(),
                             gamma.getData<float>(), beta.getData<float>(), rows,
                             in_dim_fast.width(), epsilon);

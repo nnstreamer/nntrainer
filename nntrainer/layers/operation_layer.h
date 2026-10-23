@@ -62,7 +62,7 @@ public:
           constexpr float kActOff = 0.27846455f;
           for (size_t i = 0; i < hidden_.size(); ++i)
             buf[i] = perch_asym_env ? ((float)q[i] + 128.f) * sc - kActOff
-                                     : sc * (float)q[i];
+                                    : sc * (float)q[i];
         } else if (hidden_.getDataType() ==
                    ml::train::TensorDim::DataType::FP32) {
           const float *d = hidden_.getData<float>();

@@ -18,6 +18,7 @@
  *         bind by name. See res/yolov7_pose/ for the reference model.
  *
  * @author Seungbaek Hong <sb92.hong@samsung.com>
+ * @bug    No known bugs except for NYI items
  */
 
 #ifndef __YOLOV7_POSE_GRAPH_H__
@@ -39,13 +40,13 @@ namespace yolov7_pose {
 
 // ---- model hyper-parameters (widen_factor = 1.5, img 320, nkpt 87) --------
 inline constexpr int NKPT = 87;
-inline constexpr int SIMCC_BINS = 640;   // img_size * simcc_split_ratio(2.0)
-inline constexpr int GAU_HIDDEN = 256;   // token feature dim D
-inline constexpr int GAU_S = 128;        // key dim s
-inline constexpr int GAU_E = 512;        // expansion e (= D * 2)
-inline constexpr int EMBED_DIM = 128;    // reid embedding
-inline constexpr int FEATMAP = 10;       // 320 / 32
-inline constexpr int C_STEM = 48;        // round(32 * 1.5)
+inline constexpr int SIMCC_BINS = 640; // img_size * simcc_split_ratio(2.0)
+inline constexpr int GAU_HIDDEN = 256; // token feature dim D
+inline constexpr int GAU_S = 128;      // key dim s
+inline constexpr int GAU_E = 512;      // expansion e (= D * 2)
+inline constexpr int EMBED_DIM = 128;  // reid embedding
+inline constexpr int FEATMAP = 10;     // 320 / 32
+inline constexpr int C_STEM = 48;      // round(32 * 1.5)
 
 inline int chAxis() { return 1; }
 
@@ -65,13 +66,14 @@ inline std::vector<std::string> &quantizableConvs() {
 // True when a conv weight forms a real matmul matrix divisible by the block
 // size (Q8_0 block = 32). BOTH out_ch and CRS = in_ch*k*k must be multiples of
 // 32, and both constraints are real:
-//   - the quantized filter is stored as TensorDim(1,1,CRS,out_ch) and Q8_0_Tensor
+//   - the quantized filter is stored as TensorDim(1,1,CRS,out_ch) and
+//   Q8_0_Tensor
 //     block-quantizes along width == out_ch, so out_ch % 32 is enforced by the
 //     container (a width=48 tensor throws at construction);
 //   - the indirect GEMM derives nb = CRS/32 and drops any tail, so CRS % 32.
-// (An earlier attempt to relax out_ch to %4 crashed on out_ch=48 for exactly the
-// first reason -- widths like the ELAN bottleneck 48 need out_ch padding, which
-// the plain eligibility guard cannot express.)
+// (An earlier attempt to relax out_ch to %4 crashed on out_ch=48 for exactly
+// the first reason -- widths like the ELAN bottleneck 48 need out_ch padding,
+// which the plain eligibility guard cannot express.)
 inline bool convQuantEligible(int in_ch, int out_ch, int k) {
   return out_ch % 32 == 0 && (in_ch * k * k) % 32 == 0;
 }
@@ -79,13 +81,13 @@ inline bool convQuantEligible(int in_ch, int out_ch, int k) {
 // Conv2D (biased) + optional swish (SiLU) fused activation.
 // @a name is the PyTorch Conv module path (e.g.
 // "backbone.backbone.blocks.1.elan.conv1"); the nntrainer conv layer takes the
-// same name so weight_converter.py maps "<name>.conv.weight" -> "<name>:filter".
+// same name so weight_converter.py maps "<name>.conv.weight" ->
+// "<name>:filter".
 inline Tensor conv(const std::string &name, int in_ch, int out_ch, int k,
                    int stride, int padding, Tensor input, bool act,
                    bool conv_q = false) {
   std::vector<std::string> props = {
-    nntrainer::withKey("name", name),
-    nntrainer::withKey("kernel_size", {k, k}),
+    nntrainer::withKey("name", name), nntrainer::withKey("kernel_size", {k, k}),
     nntrainer::withKey("filters", out_ch),
     nntrainer::withKey("stride", {stride, stride}),
     nntrainer::withKey("padding", padding)};
@@ -116,12 +118,12 @@ inline Tensor concat(const std::string &name, std::vector<Tensor> xs) {
 
 inline Tensor maxpool(const std::string &name, int k, int stride, int pad,
                       Tensor input) {
-  LayerHandle mp(createLayer(
-    "pooling2d", {nntrainer::withKey("name", name),
-                  nntrainer::withKey("pooling", "max"),
-                  nntrainer::withKey("pool_size", {k, k}),
-                  nntrainer::withKey("stride", {stride, stride}),
-                  nntrainer::withKey("padding", pad)}));
+  LayerHandle mp(
+    createLayer("pooling2d", {nntrainer::withKey("name", name),
+                              nntrainer::withKey("pooling", "max"),
+                              nntrainer::withKey("pool_size", {k, k}),
+                              nntrainer::withKey("stride", {stride, stride}),
+                              nntrainer::withKey("padding", pad)}));
   return mp(input);
 }
 
@@ -130,10 +132,10 @@ inline Tensor maxpool(const std::string &name, int k, int stride, int pad,
 inline Tensor elan(const std::string &name, int c_in, int c_out,
                    int c_bottleneck, int n_blocks, Tensor input,
                    bool conv_q = false) {
-  auto x1 = convBnSilu(name + ".conv1", c_in, c_bottleneck, 1, 1, 0, input,
-                       conv_q);
-  auto x = convBnSilu(name + ".conv2", c_in, c_bottleneck, 1, 1, 0, input,
-                      conv_q);
+  auto x1 =
+    convBnSilu(name + ".conv1", c_in, c_bottleneck, 1, 1, 0, input, conv_q);
+  auto x =
+    convBnSilu(name + ".conv2", c_in, c_bottleneck, 1, 1, 0, input, conv_q);
   std::vector<Tensor> cbs;
   auto prev = x;
   for (int j = 0; j < n_blocks; ++j) {
@@ -233,8 +235,8 @@ inline std::vector<Tensor> buildBackbone(Tensor xIn, bool conv_q = false) {
   for (int i = 2; i <= 4; ++i) {
     int out = ch * 2;
     auto mp = maxpool(p + "." + std::to_string(i) + "/mp", 2, 2, 0, prev);
-    auto e = elan(p + "." + std::to_string(i) + ".elan", ch, out, ch, 2, mp,
-                  conv_q);
+    auto e =
+      elan(p + "." + std::to_string(i) + ".elan", ch, out, ch, 2, mp, conv_q);
     nodes.push_back(e);
     prev = e;
     ch = out;
@@ -255,14 +257,14 @@ inline Tensor buildNeck(const std::string &prefix,
   auto spp = sppcspc(prefix + ".spp", 768, 384, b4, conv_q); // 384
 
   // feature_up.0: up(spp) + route b3(384) -> base 384 ; elan -> 192
-  auto up0 = blockUp(prefix + ".feature_up.0", 384, 384, 192, 384, spp, b3,
-                     conv_q);
+  auto up0 =
+    blockUp(prefix + ".feature_up.0", 384, 384, 192, 384, spp, b3, conv_q);
   // feature_up.1: up(up0) + route b2(192) -> base 192 ; elan -> 96
-  auto up1 = blockUp(prefix + ".feature_up.1", 192, 192, 96, 192, up0, b2,
-                     conv_q);
+  auto up1 =
+    blockUp(prefix + ".feature_up.1", 192, 192, 96, 192, up0, b2, conv_q);
   // feature_down.0: down(up1) + route up0(192) -> base 384 ; elan -> 192
-  auto down0 = blockDown(prefix + ".feature_down.0", 96, 384, 192, 192, up1,
-                         up0, conv_q);
+  auto down0 =
+    blockDown(prefix + ".feature_down.0", 96, 384, 192, 192, up1, up0, conv_q);
   // feature_down.1: down(down0) + route spp(384) -> base 768 ; elan -> 384
   auto down1 = blockDown(prefix + ".feature_down.1", 192, 768, 384, 384, down0,
                          spp, conv_q);
@@ -279,13 +281,13 @@ inline Tensor buildPoseHead(Tensor feat, bool conv_q = false) {
   // final_layer: 7x7 conv 768 -> NKPT, pad 3  => [1, NKPT, 10, 10]
   auto fc = conv(p + ".final_layer", 16 * C_STEM, NKPT, 7, 1, 3, feat,
                  /*act=*/false, conv_q);
-  LayerHandle head(createLayer(
-    "rtmcc_head", {nntrainer::withKey("name", p),
-                   nntrainer::withKey("gau_expansion", GAU_E),
-                   nntrainer::withKey("gau_key_dim", GAU_S),
-                   nntrainer::withKey("gau_hidden", GAU_HIDDEN),
-                   nntrainer::withKey("simcc_bins", SIMCC_BINS),
-                   nntrainer::withKey("epsilon", "0.00001")}));
+  LayerHandle head(
+    createLayer("rtmcc_head", {nntrainer::withKey("name", p),
+                               nntrainer::withKey("gau_expansion", GAU_E),
+                               nntrainer::withKey("gau_key_dim", GAU_S),
+                               nntrainer::withKey("gau_hidden", GAU_HIDDEN),
+                               nntrainer::withKey("simcc_bins", SIMCC_BINS),
+                               nntrainer::withKey("epsilon", "0.00001")}));
   return head(fc);
 }
 
@@ -303,10 +305,10 @@ inline Tensor buildReidHead(Tensor feat) {
                 nntrainer::withKey("target_shape",
                                    "1:1:" + std::to_string(16 * C_STEM))}));
   auto flat = rs(pooled); // [1, 1, 1, 768]
-  LayerHandle fc(createLayer(
-    "fully_connected", {nntrainer::withKey("name", p + ".fc"),
-                        nntrainer::withKey("unit", EMBED_DIM),
-                        nntrainer::withKey("disable_bias", "false")}));
+  LayerHandle fc(createLayer("fully_connected",
+                             {nntrainer::withKey("name", p + ".fc"),
+                              nntrainer::withKey("unit", EMBED_DIM),
+                              nntrainer::withKey("disable_bias", "false")}));
   return fc(flat); // [1, 1, 1, EMBED_DIM]
 }
 

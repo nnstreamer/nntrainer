@@ -99,7 +99,7 @@ private:
   unsigned int WINDOW_SAMPLES = 0; /**< samples per inference window */
   unsigned int STRIDE_SAMPLES = 0; /**< hop between inference windows */
   float NORMALIZE_DIVISOR = 32768.0f; /**< int16 -> float scale divisor */
-  unsigned int TOP_K = 3;          /**< classes listed per window */
+  unsigned int TOP_K = 3;             /**< classes listed per window */
 };
 
 } // namespace causallm

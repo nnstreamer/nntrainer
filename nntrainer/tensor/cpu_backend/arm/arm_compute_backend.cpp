@@ -10,9 +10,9 @@
  * @brief  Compute backend for arm
  *
  */
-#include <cstring>
 #include <arm_compute_backend.h>
 #include <assert.h>
+#include <cstring>
 #ifdef USE_BLAS
 #include <cblas_interface.h>
 #endif
@@ -85,7 +85,7 @@ void gelu_v2(const unsigned int N, const float *X, float *Y) {
 
 #ifdef ENABLE_FP16
 void gelu_v2_fp16(const unsigned int N, const _FP16 *X, _FP16 *Y) {
-#if defined(__ARM_NEON) && (defined(__ARM_FEATURE_FP16_SCALAR_ARITHMETIC) || \
+#if defined(__ARM_NEON) && (defined(__ARM_FEATURE_FP16_SCALAR_ARITHMETIC) ||   \
                             defined(__ARM_FEATURE_FP16))
   nntrainer::neon::gelu_v2_fp16(N, X, Y);
 #else
@@ -583,7 +583,6 @@ void repack_q8_0(void *dst, void *src, size_t data_size, const unsigned int M,
     break;
   }
 }
-
 
 void repack_q4_K(void *dst, void *src, size_t data_size, const unsigned int M,
                  const unsigned int N) {

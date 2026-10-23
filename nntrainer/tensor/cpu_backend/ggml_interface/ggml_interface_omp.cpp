@@ -941,8 +941,8 @@ void __ggml_q8_0_q8_0_GEMM(const unsigned int M, const unsigned int N,
     // online quantization for all M activation rows (plain block layout)
     std::vector<char> QA = std::vector<char>((size_t)M * row_bytes);
     for (unsigned int i = 0; i < M; i++) {
-      nntr_quantize_row_q8_0(A + (size_t)i * K, QA.data() + (size_t)i * row_bytes,
-                             K);
+      nntr_quantize_row_q8_0(A + (size_t)i * K,
+                             QA.data() + (size_t)i * row_bytes, K);
     }
 
     // Compute with multithreaded GEMM over 2D row x column tiles
@@ -983,10 +983,10 @@ void __ggml_q8_0_q8_0_GEMM(const unsigned int M, const unsigned int N,
  * whole weight super-blocks (N %% 32 == 0 is guaranteed by the quantiser).
  */
 void __ggml_q8_0_4x8_smmla_q8_0_GEMM(const unsigned int M, const unsigned int N,
-                               const unsigned int K, const float *A,
-                               const unsigned int lda, const void *B,
-                               const unsigned int ldb, float *C,
-                               const unsigned int ldc) {
+                                     const unsigned int K, const float *A,
+                                     const unsigned int lda, const void *B,
+                                     const unsigned int ldb, float *C,
+                                     const unsigned int ldc) {
   (void)lda;
   (void)ldb;
   assert(N % 4 == 0);
@@ -994,8 +994,8 @@ void __ggml_q8_0_4x8_smmla_q8_0_GEMM(const unsigned int M, const unsigned int N,
   auto &tm = ThreadManager::Global();
 
   const unsigned int nb = (K + QK8_0 - 1) / QK8_0;
-  const size_t row_bytes = sizeof(block_q8_0) * nb;   // plain act row
-  const size_t sb_bytes = sizeof(block_q8_0x4) * nb;  // 4-row/4-col super-row
+  const size_t row_bytes = sizeof(block_q8_0) * nb;  // plain act row
+  const size_t sb_bytes = sizeof(block_q8_0x4) * nb; // 4-row/4-col super-row
 
   if (M == 1) { // GEMV
     std::vector<char> QA = std::vector<char>(row_bytes);

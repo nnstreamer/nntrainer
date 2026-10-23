@@ -10,6 +10,7 @@
  *         driven by the standalone fastvit_keyword_infer executable.
  *
  * @author Seungbaek Hong <sb92.hong@samsung.com>
+ * @bug    No known bugs except for NYI items
  */
 
 #ifndef __FASTVIT_KEYWORD_MODEL_H__
@@ -53,8 +54,7 @@ public:
         std::cerr << "failed to register factory: " << e.what() << std::endl;
       }
     };
-    tryRegister(
-      nntrainer::createLayer<fastvit_keyword::FastViTAttentionLayer>);
+    tryRegister(nntrainer::createLayer<fastvit_keyword::FastViTAttentionLayer>);
   }
 
   void initialize() override {

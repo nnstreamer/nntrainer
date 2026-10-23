@@ -1412,7 +1412,6 @@ void repack_q8_0(void *dst, void *src, size_t data_size, const unsigned int M,
                  const unsigned int N,
                  ml::train::ISA target_isa = ml::train::ISA::DEFAULT);
 
-
 /**
  * @brief repack q4K to q4Kx8
  *

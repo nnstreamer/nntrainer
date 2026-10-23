@@ -41,9 +41,9 @@
 
 namespace causallm {
 
-/* -------------------------------------------------------------------------
- * Image preprocessing helpers (identical to timm_vit_transformer.cpp)
- * --------------------------------------------------------------------- */
+// -------------------------------------------------------------------------
+// Image preprocessing helpers (identical to timm_vit_transformer.cpp)
+// -------------------------------------------------------------------------
 
 /**
  * @brief Precompute Pillow's resample coefficients for one axis.
@@ -301,9 +301,9 @@ siglip2LoadAndPreprocessImage(const std::string &filepath, int target_width,
   return output;
 }
 
-/* -------------------------------------------------------------------------
- * Parameter setup
- * --------------------------------------------------------------------- */
+// -------------------------------------------------------------------------
+// Parameter setup
+// -------------------------------------------------------------------------
 
 /**
  * @brief Set SigLIP2 encoder parameters from model and runtime configs.
@@ -357,9 +357,9 @@ void Siglip2VisionEncoder::setupParameters(json &cfg, json &generation_cfg,
   MAX_POSITION_EMBEDDINGS = NUM_PATCHES;
 }
 
-/* -------------------------------------------------------------------------
- * Graph construction helpers
- * --------------------------------------------------------------------- */
+// -------------------------------------------------------------------------
+// Graph construction helpers
+// -------------------------------------------------------------------------
 
 /**
  * @brief Create patch embedding and positional embedding layers.
@@ -576,9 +576,9 @@ std::pair<Tensor, Tensor> Siglip2VisionEncoder::constructModel() {
   return {input, h};
 }
 
-/* -------------------------------------------------------------------------
- * Custom layer registration
- * --------------------------------------------------------------------- */
+// -------------------------------------------------------------------------
+// Custom layer registration
+// -------------------------------------------------------------------------
 
 /**
  * @brief Register custom layers required by the base transformer.
@@ -587,9 +587,9 @@ void Siglip2VisionEncoder::registerCustomLayers() {
   Transformer::registerCustomLayers();
 }
 
-/* -------------------------------------------------------------------------
- * Inference
- * --------------------------------------------------------------------- */
+// -------------------------------------------------------------------------
+// Inference
+// -------------------------------------------------------------------------
 
 /**
  * @brief Run the encoder on an image and return projected hidden states.

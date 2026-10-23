@@ -239,9 +239,9 @@ inline bool gemmPerChannelA8(unsigned int M, unsigned int N, unsigned int K,
  * @param a_scale per-tensor FP32 activation scale
  * @retval false the weight is not channel-wise; nothing was written
  */
-inline bool gemmPerChannelA8_q8in(unsigned int M, unsigned int N, unsigned int K,
-                                  const int8_t *Aq, float a_scale,
-                                  const void *B, float *C) {
+inline bool gemmPerChannelA8_q8in(unsigned int M, unsigned int N,
+                                  unsigned int K, const int8_t *Aq,
+                                  float a_scale, const void *B, float *C) {
   const PerChannelWeight &w = prepareWeight(B, N, K);
   if (!w.usable)
     return false;

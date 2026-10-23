@@ -668,7 +668,6 @@ int main(int argc, char *argv[]) {
     }
   }
 
-
   const std::string model_path = argv[1];
   std::string input_text;
   std::string system_head_prompt = "";

@@ -4159,8 +4159,8 @@ void nntr_gemm_q8_0x4_q8_0x4(int n, float *__restrict s, size_t bs,
 }
 
 void nntr_gemv_q8_0x4_q8_0(int n, float *__restrict s, size_t bs,
-                           const void *__restrict vx,
-                           const void *__restrict vy, int nc) {
+                           const void *__restrict vx, const void *__restrict vy,
+                           int nc) {
   (void)bs;
   const int qk = QK8_0;
   const int nb = n / qk;
@@ -4180,8 +4180,8 @@ void nntr_gemv_q8_0x4_q8_0(int n, float *__restrict s, size_t bs,
         for (int c = 0; c < 8; ++c)
           si += (int32_t)a[bi].qs[8 * sub + c] *
                 (int32_t)b[bi].qs[32 * sub + wr * 8 + c];
-      acc += nntr_fp16_to_fp32(a[bi].d) * nntr_fp16_to_fp32(b[bi].d[wr]) *
-             (float)si;
+      acc +=
+        nntr_fp16_to_fp32(a[bi].d) * nntr_fp16_to_fp32(b[bi].d[wr]) * (float)si;
     }
     s[j] = acc;
   }
@@ -4205,8 +4205,8 @@ void nntr_gemm_q8_0_q8_0_f32(int n, float *__restrict s, size_t bs,
         int32_t isum = 0;
         for (int t = 0; t < QK8_0; ++t)
           isum += (int32_t)arow[b].qs[t] * (int32_t)brow[b].qs[t];
-        acc += nntr_compute_fp16_to_fp32(arow[b].d) * nntr_compute_fp16_to_fp32(brow[b].d) *
-               (float)isum;
+        acc += nntr_compute_fp16_to_fp32(arow[b].d) *
+               nntr_compute_fp16_to_fp32(brow[b].d) * (float)isum;
       }
       s[(size_t)m * bs + j] = acc;
     }

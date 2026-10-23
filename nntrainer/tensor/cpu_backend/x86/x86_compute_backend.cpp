@@ -11,8 +11,8 @@
  *
  */
 
-#include <cstring>
 #include <assert.h>
+#include <cstring>
 
 #include <avx2_impl.h>
 #include <nntr_ggml_impl.h>
@@ -522,7 +522,6 @@ void repack_q8_0(void *dst, void *src, size_t data_size, const unsigned int M,
     break;
   }
 }
-
 
 void repack_q4_0_to_q4_0_8(void *dst, void *src, size_t data_size,
                            const unsigned int M, const unsigned int N) {

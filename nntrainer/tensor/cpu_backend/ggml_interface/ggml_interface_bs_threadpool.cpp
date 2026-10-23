@@ -843,10 +843,10 @@ void __ggml_q8_0_q8_0_GEMM(const unsigned int M, const unsigned int N,
  * whole weight super-blocks (N %% 32 == 0 is guaranteed by the quantiser).
  */
 void __ggml_q8_0_4x8_smmla_q8_0_GEMM(const unsigned int M, const unsigned int N,
-                               const unsigned int K, const float *A,
-                               const unsigned int lda, const void *B,
-                               const unsigned int ldb, float *C,
-                               const unsigned int ldc) {
+                                     const unsigned int K, const float *A,
+                                     const unsigned int lda, const void *B,
+                                     const unsigned int ldb, float *C,
+                                     const unsigned int ldc) {
   (void)lda;
   (void)ldb;
   assert(N % 4 == 0);
@@ -855,8 +855,8 @@ void __ggml_q8_0_4x8_smmla_q8_0_GEMM(const unsigned int M, const unsigned int N,
   unsigned int thread_num = tm.getComputeThreadCount();
 
   const unsigned int nb = (K + QK8_0 - 1) / QK8_0;
-  const size_t row_bytes = sizeof(block_q8_0) * nb;   // plain act row
-  const size_t sb_bytes = sizeof(block_q8_0x4) * nb;  // 4-row/4-col super-row
+  const size_t row_bytes = sizeof(block_q8_0) * nb;  // plain act row
+  const size_t sb_bytes = sizeof(block_q8_0x4) * nb; // 4-row/4-col super-row
 
   // Column ranges are split evenly across the compute threads and aligned
   // down to multiples of 4 so every call sees whole weight super-blocks.
@@ -899,8 +899,8 @@ void __ggml_q8_0_4x8_smmla_q8_0_GEMM(const unsigned int M, const unsigned int N,
       return;
     nntr_gemm_q8_0x4_q8_0x4(
       K, C + c_start, ldc,
-      (void *)((char *)B + (size_t)(c_start / 4) * sb_bytes), QA.data(),
-      M4 * 4, c_end - c_start);
+      (void *)((char *)B + (size_t)(c_start / 4) * sb_bytes), QA.data(), M4 * 4,
+      c_end - c_start);
   });
 
   // M % 4 tail rows: plain-quantised row x interleaved weights GEMV.

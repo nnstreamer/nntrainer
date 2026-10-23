@@ -377,9 +377,12 @@ void ScreenAICaption::generateFromEncoderHidden(
   if (log_output) {
     std::string escaped_caption = "";
     for (char c : caption_) {
-      if (c == '"') escaped_caption += "\\\"";
-      else if (c == '\\') escaped_caption += "\\\\";
-      else escaped_caption += c;
+      if (c == '"')
+        escaped_caption += "\\\"";
+      else if (c == '\\')
+        escaped_caption += "\\\\";
+      else
+        escaped_caption += c;
     }
     std::cout << "{\n"
               << "  \"caption\": \"" << escaped_caption << "\",\n"

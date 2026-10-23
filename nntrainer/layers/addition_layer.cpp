@@ -64,8 +64,7 @@ void AdditionLayer::forwarding(RunLayerContext &context, bool training) {
     }
   }
 
-  if (any_qint8_input &&
-      hidden_.getDataType() == nntrainer::Tdatatype::FP32) {
+  if (any_qint8_input && hidden_.getDataType() == nntrainer::Tdatatype::FP32) {
     // See finalize(): dequantize QINT8 inputs and sum in FP32 directly,
     // skipping the QINT8 output requantization that doesn't bind correctly.
     static const bool perch_asym_env =
@@ -121,12 +120,15 @@ void AdditionLayer::forwarding(RunLayerContext &context, bool training) {
     const float sc = hidden_.getScale<float>()[0];
     int8_t qmin = 127, qmax = -128;
     for (size_t i = 0; i < hidden_.size(); ++i) {
-      if (q[i] < qmin) qmin = q[i];
-      if (q[i] > qmax) qmax = q[i];
+      if (q[i] < qmin)
+        qmin = q[i];
+      if (q[i] > qmax)
+        qmax = q[i];
     }
-    std::cerr << "[CONCATDBG] " << context.getName() << " (producer) scale="
-              << sc << " qmin=" << (int)qmin << " qmax=" << (int)qmax
-              << " n=" << hidden_.size() << " ptr=" << (const void *)q << "\n"
+    std::cerr << "[CONCATDBG] " << context.getName()
+              << " (producer) scale=" << sc << " qmin=" << (int)qmin
+              << " qmax=" << (int)qmax << " n=" << hidden_.size()
+              << " ptr=" << (const void *)q << "\n"
               << std::flush;
   }
 
@@ -152,7 +154,7 @@ void AdditionLayer::forwarding(RunLayerContext &context, bool training) {
         constexpr float kActOff = 0.27846455f;
         for (unsigned int i = 0; i < hidden_.size(); ++i)
           buf[i] = perch_asym_env ? ((float)q[i] + 128.f) * sc - kActOff
-                                   : sc * (float)q[i];
+                                  : sc * (float)q[i];
       } else {
         const float *d = hidden_.getData<float>();
         std::copy(d, d + hidden_.size(), buf.begin());

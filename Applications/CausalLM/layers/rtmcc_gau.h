@@ -15,6 +15,7 @@
  *         Inference only. Activations are FP32 (covers W32A32 and WQ8_0A32).
  *
  * @author Seungbaek Hong <sb92.hong@samsung.com>
+ * @bug    No known bugs except for NYI items
  */
 
 #ifndef __RTMCC_GAU_LAYER_H__
@@ -87,7 +88,7 @@ public:
 
   WIN_EXPORT void
   exportTo(nntrainer::Exporter &exporter,
-           const ml::train::ExportMethods &method) const override {};
+           const ml::train::ExportMethods &method) const override{};
 
   WIN_EXPORT const std::string getType() const override {
     return RTMCCGauLayer::type;
@@ -105,10 +106,10 @@ private:
   enum GauParams { uv_w, o_w, gamma, beta, ln_g, res_scale, NUM_PARAMS };
   std::array<unsigned int, NUM_PARAMS> wt_idx;
 
-  unsigned int in_dims = 0;  // D (token feature dim)
+  unsigned int in_dims = 0;   // D (token feature dim)
   unsigned int num_token = 0; // N (keypoints)
-  unsigned int e_dims = 0;   // expansion e
-  unsigned int s_dims = 0;   // key dim s
+  unsigned int e_dims = 0;    // expansion e
+  unsigned int s_dims = 0;    // key dim s
 };
 
 } // namespace causallm

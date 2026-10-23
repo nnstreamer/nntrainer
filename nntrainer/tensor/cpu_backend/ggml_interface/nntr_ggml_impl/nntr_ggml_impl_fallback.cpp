@@ -387,8 +387,8 @@ void nntr_gemm_q8_0_q8_0_f32(int n, float *__restrict s, size_t bs,
         int32_t isum = 0;
         for (int t = 0; t < QK8_0; ++t)
           isum += (int32_t)arow[b].qs[t] * (int32_t)brow[b].qs[t];
-        acc += nntr_compute_fp16_to_fp32(arow[b].d) * nntr_compute_fp16_to_fp32(brow[b].d) *
-               (float)isum;
+        acc += nntr_compute_fp16_to_fp32(arow[b].d) *
+               nntr_compute_fp16_to_fp32(brow[b].d) * (float)isum;
       }
       s[(size_t)m * bs + j] = acc;
     }
@@ -1121,15 +1121,26 @@ int nntr_repack_q4_K_to_q4_K_8_bl(void *__restrict dst, int interleave_block,
 void nntr_gemm_q8_0x4_q8_0x4(int n, float *__restrict s, size_t bs,
                              const void *__restrict vx,
                              const void *__restrict vy, int nr, int nc) {
-  (void)n; (void)s; (void)bs; (void)vx; (void)vy; (void)nr; (void)nc;
+  (void)n;
+  (void)s;
+  (void)bs;
+  (void)vx;
+  (void)vy;
+  (void)nr;
+  (void)nc;
   throw std::runtime_error("NYI: nntr_gemm_q8_0x4_q8_0x4 - use the AVX2 or "
                            "NEON build for the interleaved Q8_0 path");
 }
 
 void nntr_gemv_q8_0x4_q8_0(int n, float *__restrict s, size_t bs,
-                           const void *__restrict vx,
-                           const void *__restrict vy, int nc) {
-  (void)n; (void)s; (void)bs; (void)vx; (void)vy; (void)nc;
+                           const void *__restrict vx, const void *__restrict vy,
+                           int nc) {
+  (void)n;
+  (void)s;
+  (void)bs;
+  (void)vx;
+  (void)vy;
+  (void)nc;
   throw std::runtime_error("NYI: nntr_gemv_q8_0x4_q8_0 - use the AVX2 or "
                            "NEON build for the interleaved Q8_0 path");
 }

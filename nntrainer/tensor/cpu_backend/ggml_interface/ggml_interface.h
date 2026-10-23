@@ -139,10 +139,10 @@ void __ggml_repack_q8_0_to_q8_0_4(void *dst, void *src, size_t data_size,
  *        quantisation time for ISA::ARM). Requires N % 4 == 0.
  */
 void __ggml_q8_0_4x8_smmla_q8_0_GEMM(const unsigned int M, const unsigned int N,
-                               const unsigned int K, const float *A,
-                               const unsigned int lda, const void *B,
-                               const unsigned int ldb, float *C,
-                               const unsigned int ldc);
+                                     const unsigned int K, const float *A,
+                                     const unsigned int lda, const void *B,
+                                     const unsigned int ldb, float *C,
+                                     const unsigned int ldc);
 
 /**
  * @brief Q8_0 weight x Q8_0 activation GEMM dispatcher.
@@ -312,13 +312,10 @@ void __ggml_q8_0_q8_0_indirect_GEMM_fp32(const unsigned int M,
  * the fp32 variant; the activation gather is a pure byte shuffle (constant-d
  * block packing), no per-conv re-quantization.
  */
-void __ggml_q8_0_q8_0_indirect_GEMM_i8a(const unsigned int M,
-                                        const unsigned int N,
-                                        const unsigned int K, const int8_t *in,
-                                        const float act_scale,
-                                        const ConvGatherParams &geom,
-                                        const void *B, const unsigned int ldb,
-                                        float *C, const unsigned int ldc);
+void __ggml_q8_0_q8_0_indirect_GEMM_i8a(
+  const unsigned int M, const unsigned int N, const unsigned int K,
+  const int8_t *in, const float act_scale, const ConvGatherParams &geom,
+  const void *B, const unsigned int ldb, float *C, const unsigned int ldc);
 
 /**
  * @brief A conv weight converted to the per-channel int8 form the
@@ -329,17 +326,17 @@ void __ggml_q8_0_q8_0_indirect_GEMM_i8a(const unsigned int M,
  * conversion lives here rather than in the conv layer).
  */
 struct PerChConvWeight {
-  std::vector<char> qs;    /**< block_q8_0x4 stream (qs used; d bytes are 0) */
+  std::vector<char> qs; /**< block_q8_0x4 stream (qs used; d bytes are 0) */
   const void *qs_ext = nullptr; /**< when set, the int8 payload is shared
                                  * zero-copy with the source weight buffer and
                                  * `qs` stays empty (no duplicate allocation) */
-  std::vector<float> scale; /**< [out_ch] per-output-channel FP32 scale */
-  std::vector<int32_t> colsum; /**< [out_ch] sum of the row's int8 quants; used
-                                * by the asymmetric-activation path to fold the
-                                * shared activation offset into the bias */
-  unsigned int Kpad = 0;  /**< CRS padded to a multiple of 32 */
-  unsigned int Npad = 0;  /**< out_ch padded to a multiple of 4 */
-  unsigned int Nreal = 0; /**< real out_ch */
+  std::vector<float> scale;     /**< [out_ch] per-output-channel FP32 scale */
+  std::vector<int32_t> colsum;  /**< [out_ch] sum of the row's int8 quants; used
+                                 * by the asymmetric-activation path to fold the
+                                 * shared activation offset into the bias */
+  unsigned int Kpad = 0;        /**< CRS padded to a multiple of 32 */
+  unsigned int Npad = 0;        /**< out_ch padded to a multiple of 4 */
+  unsigned int Nreal = 0;       /**< real out_ch */
   bool taps_last = false; /**< K permuted to [k_h][k_w][in_ch]; the GEMM must
                            * gather activations in the same taps-last order
                            * (pack-free path). Integer accumulation is
@@ -364,12 +361,10 @@ struct PerChConvWeight {
  * reverts), and requantizes zero-copy in place into the source when
  * NNTR_W8A8_PERCH_INPLACE=1 and the layouts coincide.
  */
-const PerChConvWeight &
-__ggml_q8ch_prepare_conv_weight(const void *key, const void *q8_src_x4,
-                                const float *fp32_src, unsigned int out_ch,
-                                unsigned int CRS, unsigned int khkw = 1,
-                                unsigned int in_ch = 0,
-                                const void *q4_src_x4 = nullptr);
+const PerChConvWeight &__ggml_q8ch_prepare_conv_weight(
+  const void *key, const void *q8_src_x4, const float *fp32_src,
+  unsigned int out_ch, unsigned int CRS, unsigned int khkw = 1,
+  unsigned int in_ch = 0, const void *q4_src_x4 = nullptr);
 
 /**
  * @brief Offline PER-CHANNEL Q8_0 quantizer: writes a plain block_q8_0 stream

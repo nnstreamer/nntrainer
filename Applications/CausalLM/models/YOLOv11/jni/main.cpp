@@ -314,8 +314,9 @@ int main(int argc, char *argv[]) {
           yolov11::quantWeightDtype() = "Q8_0";
         }
         std::cout << "[YOLO] preset = w8a16 (Q8_0 weights + FP16 act + NHWC)"
-                  << (quantize_mode ? " [quantize mode: FP32 graph, Q8_0 target]"
-                                    : "")
+                  << (quantize_mode
+                        ? " [quantize mode: FP32 graph, Q8_0 target]"
+                        : "")
                   << std::endl;
       } else {
         model->setProperty({nntrainer::withKey("model_tensor_type", tt)});

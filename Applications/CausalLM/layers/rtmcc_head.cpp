@@ -6,6 +6,7 @@
  * @date   15 July 2026
  * @brief  RTMCC SimCC pose head layer implementation (NCHW/NHWC-agnostic).
  * @author Seungbaek Hong <sb92.hong@samsung.com>
+ * @bug    No known bugs except for NYI items
  */
 
 #include <algorithm>
@@ -52,15 +53,15 @@ void RTMCCHeadLayer::finalize(nntrainer::InitLayerContext &context) {
   context.setOutputDimensions({out_dim});
 
   // Head weights + all internal token tensors are kept NCHW-typed regardless
-  // of the model format: the input gather below is format-aware, but Tensor::dot
-  // extracts its M/N/K from the (logical) last two dims assuming NCHW, so a
-  // NHWC-typed operand would mis-shape the GEMM.
+  // of the model format: the input gather below is format-aware, but
+  // Tensor::dot extracts its M/N/K from the (logical) last two dims assuming
+  // NCHW, so a NHWC-typed operand would mis-shape the GEMM.
   auto wtype = nntrainer::TensorDim::TensorType(
     nntrainer::Tformat::NCHW, nntrainer::TensorDim::DataType::FP32);
   auto req = [&](const nntrainer::TensorDim &d, const std::string &name) {
-    return context.requestWeight(d, nntrainer::props::InitializerInfo::Enum::NONE,
-                                 nntrainer::WeightRegularizer::NONE, 1.0f, 0.0f,
-                                 name, true);
+    return context.requestWeight(
+      d, nntrainer::props::InitializerInfo::Enum::NONE,
+      nntrainer::WeightRegularizer::NONE, 1.0f, 0.0f, name, true);
   };
 
   wt_idx[mlp_ln_g] = req({1, 1, 1, 1, wtype}, "mlp_ln_g");
@@ -124,7 +125,6 @@ void RTMCCHeadLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
   const float mlp_scale = 1.0f / std::sqrt(static_cast<float>(F));
   const float gau_scale = 1.0f / std::sqrt(static_cast<float>(D));
   const float sqrt_s = std::sqrt(static_cast<float>(S));
-
 
   Tensor &w_mlp_g = context.getWeight(wt_idx[mlp_ln_g]);
   Tensor &w_mlp = context.getWeight(wt_idx[mlp_w]);
@@ -193,7 +193,6 @@ void RTMCCHeadLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
         xp[k * F + s] *= inv;
     }
 
-
     // 2. mlp: H = X @ Wmlp  -> [K, D]
     Tensor H = X.dot(w_mlp);
 
@@ -213,7 +212,6 @@ void RTMCCHeadLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       for (unsigned int d = 0; d < D; ++d)
         hlp[k * D + d] = hp[k * D + d] * inv;
     }
-
 
     // 3b. uv = SiLU(H_ln @ Wuv) ; split u, v, base ; build q, k.
     Tensor uv = H_ln.dot(w_uv);

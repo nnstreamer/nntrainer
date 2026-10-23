@@ -216,8 +216,8 @@ void Upsample2dLayer::forwarding(nntrainer::RunLayerContext &context,
   if (out.getDataType() == ml::train::TensorDim::DataType::QINT8) {
     // W8A8: nearest upsample is pure byte replication on the shared
     // per-tensor scale; the output keeps the input's scale.
-    NNTR_THROW_IF(upsampling_type != props::UpsampleModeInfo::Interpolation::
-                                       nearest,
+    NNTR_THROW_IF(upsampling_type !=
+                    props::UpsampleModeInfo::Interpolation::nearest,
                   std::invalid_argument)
       << "[Upsample2d] QINT8 input supports nearest mode only";
     out.getScale<float>()[0] = in.getScale<float>()[0];

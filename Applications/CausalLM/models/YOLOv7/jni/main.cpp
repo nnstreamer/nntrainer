@@ -7,6 +7,7 @@
  * @brief  YOLOv7 box-detector (320x320, nc=5) inference example on nntrainer.
  *
  * @author Seungbaek Hong <sb92.hong@samsung.com>
+ * @bug    No known bugs except for NYI items
  */
 
 #include <algorithm>
@@ -78,14 +79,14 @@ inline float iou(const Detection &a, const Detection &b) {
   return inter / (area_a + area_b - inter);
 }
 
-// YOLOv7 anchors in pixel space (model's stride-divided anchor buffer × stride),
-// extracted from weights/yolov7-package-apc-sstk-v001-ratio4.pt IDetect.anchors.
-// These are NOT the stock COCO anchors — this model was trained with its own
-// anchor set, so decoding with stock anchors shifts box w/h and produces spurious
-// boxes that diverge from the PyTorch reference.
+// YOLOv7 anchors in pixel space (model's stride-divided anchor buffer ×
+// stride), extracted from weights/yolov7-package-apc-sstk-v001-ratio4.pt
+// IDetect.anchors. These are NOT the stock COCO anchors — this model was
+// trained with its own anchor set, so decoding with stock anchors shifts box
+// w/h and produces spurious boxes that diverge from the PyTorch reference.
 const float ANCHORS[3][3][2] = {
-  {{10.0f, 13.0f}, {16.0f, 30.0f}, {33.0f, 23.0f}},   // det0, stride 8
-  {{30.0f, 61.0f}, {62.0f, 45.0f}, {59.0f, 119.0f}},  // det1, stride 16
+  {{10.0f, 13.0f}, {16.0f, 30.0f}, {33.0f, 23.0f}},     // det0, stride 8
+  {{30.0f, 61.0f}, {62.0f, 45.0f}, {59.0f, 119.0f}},    // det1, stride 16
   {{116.0f, 90.0f}, {156.0f, 198.0f}, {373.0f, 326.0f}} // det2, stride 32
 };
 

@@ -294,14 +294,25 @@ void BatchNormalizationLayer::forwarding(RunLayerContext &context,
       const float *hd = hidden_.getData<float>();
       for (unsigned int i = 0; i < hn; ++i) {
         float v = hd[i];
-        if (std::isnan(v)) h_nan++;
-        else if (std::isinf(v)) h_inf++;
-        else { h_fin++; float a = std::fabs(v); if (a > h_max) h_max = a; if (a < h_min) h_min = a; if (a > 65504.0f) h_over++; }
+        if (std::isnan(v))
+          h_nan++;
+        else if (std::isinf(v))
+          h_inf++;
+        else {
+          h_fin++;
+          float a = std::fabs(v);
+          if (a > h_max)
+            h_max = a;
+          if (a < h_min)
+            h_min = a;
+          if (a > 65504.0f)
+            h_over++;
+        }
       }
       std::cerr << "[NANTRACE-BN32] " << context.getName() << " n=" << hn
-                << " fin=" << h_fin << " nan=" << h_nan
-                << " inf=" << h_inf << " >65504=" << h_over
-                << " maxAbs=" << h_max << "\n" << std::flush;
+                << " fin=" << h_fin << " nan=" << h_nan << " inf=" << h_inf
+                << " >65504=" << h_over << " maxAbs=" << h_max << "\n"
+                << std::flush;
     }
     const Tensor &out = context.getOutput(SINGLE_INOUT_IDX);
     const unsigned int n = out.size();
@@ -312,24 +323,49 @@ void BatchNormalizationLayer::forwarding(RunLayerContext &context,
       const _FP16 *d = out.getData<_FP16>();
       for (unsigned int i = 0; i < n; ++i) {
         float v = (float)d[i];
-        if (std::isnan(v)) n_nan++;
-        else if (std::isinf(v)) n_inf++;
-        else { n_fin++; float a = std::fabs(v); if (a > max_abs) max_abs = a; if (a < min_abs) min_abs = a; if (a > 65504.0f) n_over++; }
+        if (std::isnan(v))
+          n_nan++;
+        else if (std::isinf(v))
+          n_inf++;
+        else {
+          n_fin++;
+          float a = std::fabs(v);
+          if (a > max_abs)
+            max_abs = a;
+          if (a < min_abs)
+            min_abs = a;
+          if (a > 65504.0f)
+            n_over++;
+        }
       }
 #endif
     } else {
       const float *d = out.getData<float>();
       for (unsigned int i = 0; i < n; ++i) {
         float v = d[i];
-        if (std::isnan(v)) n_nan++;
-        else if (std::isinf(v)) n_inf++;
-        else { n_fin++; float a = std::fabs(v); if (a > max_abs) max_abs = a; if (a < min_abs) min_abs = a; if (a > 65504.0f) n_over++; }
+        if (std::isnan(v))
+          n_nan++;
+        else if (std::isinf(v))
+          n_inf++;
+        else {
+          n_fin++;
+          float a = std::fabs(v);
+          if (a > max_abs)
+            max_abs = a;
+          if (a < min_abs)
+            min_abs = a;
+          if (a > 65504.0f)
+            n_over++;
+        }
       }
     }
-    std::cerr << "[NANTRACE-BN] " << context.getName() << " n=" << n
-              << " dt=" << (out.getDataType() == nntrainer::Tdatatype::FP16 ? "FP16" : "FP32")
+    std::cerr << "[NANTRACE-BN] " << context.getName() << " n=" << n << " dt="
+              << (out.getDataType() == nntrainer::Tdatatype::FP16 ? "FP16"
+                                                                  : "FP32")
               << " fin=" << n_fin << " nan=" << n_nan << " inf=" << n_inf
-              << " >65504=" << n_over << " maxAbs=" << max_abs << " minAbs=" << min_abs << "\n" << std::flush;
+              << " >65504=" << n_over << " maxAbs=" << max_abs
+              << " minAbs=" << min_abs << "\n"
+              << std::flush;
   }
 
   // Dump one named layer's real pre-narrow FP32 output (hidden_, from inside

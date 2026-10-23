@@ -2673,8 +2673,8 @@ NeuralNetwork::inference(unsigned int batch_size,
       float *dst = fp32_output_cache.back().getData<float>();
       const size_t n = out_t.size();
       for (size_t i = 0; i < n; ++i)
-        dst[i] = perch_asym ? ((float)q[i] + 128.f) * sc - kActOff
-                            : (float)q[i] * sc;
+        dst[i] =
+          perch_asym ? ((float)q[i] + 128.f) * sc - kActOff : (float)q[i] * sc;
       output.push_back(dst);
     } else {
       fp32_output_cache.emplace_back(out_t.clone(TensorDim::DataType::FP32));

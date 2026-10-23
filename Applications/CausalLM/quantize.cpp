@@ -115,7 +115,6 @@
 #include "FastViTKeyword/fastvit_keyword_model.h"
 #include "YOLOv7Pose/yolov7_pose.h"
 
-
 using json = nlohmann::json;
 using DataType = ml::train::TensorDim::DataType;
 
@@ -176,8 +175,9 @@ DataType strToDataType(const std::string &s) {
                  [](unsigned char c) { return std::toupper(c); });
   auto it = dtype_str_map.find(upper);
   if (it == dtype_str_map.end()) {
-    throw std::invalid_argument("Unsupported data type: " + s +
-                                ". Supported: FP32, FP16, Q4_0, Q8_0, Q6_K, Q4_K, QS4CX");
+    throw std::invalid_argument(
+      "Unsupported data type: " + s +
+      ". Supported: FP32, FP16, Q4_0, Q8_0, Q6_K, Q4_K, QS4CX");
   }
   return it->second;
 }
@@ -246,9 +246,9 @@ std::string generateOutputBinName(const std::string &original_bin,
 
   // Remove old dtype suffix patterns (e.g., _fp32, _q40_fp32)
   // Common patterns: _fp32, _fp16, _q40, _q6k, _q4k, etc.
-  std::vector<std::string> dtype_suffixes = {
-    "_fp32", "_fp16", "_q40",   "_q4_0", "_q6k",  "_q6_k",
-    "_q4k",  "_q4_k", "_qs4cx", "_q80",  "_q8_0"};
+  std::vector<std::string> dtype_suffixes = {"_fp32",  "_fp16", "_q40", "_q4_0",
+                                             "_q6k",   "_q6_k", "_q4k", "_q4_k",
+                                             "_qs4cx", "_q80",  "_q8_0"};
   for (const auto &suffix : dtype_suffixes) {
     auto pos = base.rfind(suffix);
     if (pos != std::string::npos && pos + suffix.size() == base.size()) {
@@ -488,18 +488,17 @@ void registerAllModels() {
                             cfg, generation_cfg, nntr_cfg);
                         });
 #endif
-  factory.registerModel(
-    "YOLOv7ReIDtiny", [](json cfg, json generation_cfg, json nntr_cfg) {
-      return std::make_unique<causallm::Yolov7Pose>(cfg, generation_cfg,
-                                                    nntr_cfg);
-    });
-  factory.registerModel(
-    "FastViTKeyword", [](json cfg, json generation_cfg, json nntr_cfg) {
-      return std::make_unique<causallm::FastViTKeywordModel>(cfg, generation_cfg,
-                                                             nntr_cfg);
-    });
+  factory.registerModel("YOLOv7ReIDtiny",
+                        [](json cfg, json generation_cfg, json nntr_cfg) {
+                          return std::make_unique<causallm::Yolov7Pose>(
+                            cfg, generation_cfg, nntr_cfg);
+                        });
+  factory.registerModel("FastViTKeyword", [](json cfg, json generation_cfg,
+                                             json nntr_cfg) {
+    return std::make_unique<causallm::FastViTKeywordModel>(cfg, generation_cfg,
+                                                           nntr_cfg);
+  });
 }
-
 
 /**
  * @brief Print usage information
@@ -1019,10 +1018,11 @@ int main(int argc, char *argv[]) {
   std::string fc_dtype_str = "Q4_0";
   std::string embd_dtype_str = "FP32";
   std::string lmhead_dtype_str = "";
-  // Activation dtype of the emitted model_tensor_type ("<weight>-<activation>").
-  // FP32 activations against Q8_0 weights run ggml's W8A8 path (activations are
-  // dynamically re-quantized to Q8_0 per block); FP16 keeps the activations in
-  // half precision, which roughly halves the end-to-end quantization error.
+  // Activation dtype of the emitted model_tensor_type
+  // ("<weight>-<activation>"). FP32 activations against Q8_0 weights run ggml's
+  // W8A8 path (activations are dynamically re-quantized to Q8_0 per block);
+  // FP16 keeps the activations in half precision, which roughly halves the
+  // end-to-end quantization error.
   std::string act_dtype_str = "FP32";
   std::string conv_dtype_str =
     ""; // empty = FP32 (default: don't quantize convs)

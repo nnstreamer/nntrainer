@@ -464,8 +464,8 @@ TEST(nntrainer_activation, gelu_fp16_01_p) {
     -0.13808367f, -0.16565408f, -0.16455182f, -0.11462659f, 0.0f,
     0.18537343f,  0.43544820f,  0.73434591f,  1.06191635f,  1.39978909f};
 
-  nntrainer::TensorDim::TensorType t_type_fp16 = {
-    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+  nntrainer::TensorDim::TensorType t_type_fp16 = {nntrainer::Tformat::NCHW,
+                                                  nntrainer::Tdatatype::FP16};
 
   nntrainer::Tensor input(batch, channel, height, width, t_type_fp16);
   GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
@@ -493,10 +493,10 @@ TEST(nntrainer_activation, tanh_gelu_fp16_01_p) {
   int height = 1;
   int width = 10;
 
-  nntrainer::TensorDim::TensorType t_type_fp16 = {
-    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
-  nntrainer::TensorDim::TensorType t_type_fp32 = {
-    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+  nntrainer::TensorDim::TensorType t_type_fp16 = {nntrainer::Tformat::NCHW,
+                                                  nntrainer::Tdatatype::FP16};
+  nntrainer::TensorDim::TensorType t_type_fp32 = {nntrainer::Tformat::NCHW,
+                                                  nntrainer::Tdatatype::FP32};
 
   nntrainer::Tensor input(batch, channel, height, width, t_type_fp16);
   GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));

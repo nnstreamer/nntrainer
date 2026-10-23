@@ -48,7 +48,7 @@ def fp32_to_fp16_u16(x):
 
 def quantize_row_q8_0_per_channel(row):
     """Per-channel Q8_0 quantization for one output-channel row.
-    
+
     Mirrors __ggml_quantize_q8_0_per_channel (ggml_interface.cpp:652):
     - amax over the ENTIRE row (not per 32-element block)
     - d = amax / 127, stored as fp16
@@ -58,17 +58,17 @@ def quantize_row_q8_0_per_channel(row):
     assert row.size % QK == 0, row.size
     nb = row.size // QK
     out = bytearray()
-    
+
     # Per-channel: amax over the entire row
     amax = float(np.abs(row).max())
     d = amax / 127.0 if amax > 0.0 else 1.0
     d16 = fp32_to_fp16_u16(d)
     d_used = np.float16(d).astype(np.float32)  # exact runtime value after fp16 round-trip
     inv = 1.0 / d_used if d_used > 0.0 else 0.0
-    
+
     # Quantize all elements
     qs = np.clip(np.rint(row * inv), -127, 127).astype(np.int8)
-    
+
     # Write blocks — all with the same d
     for j in range(nb):
         out += struct.pack('<H', d16)
@@ -105,7 +105,7 @@ def repack_q8_0(plain, N, K):
 
 def quantize_filter_per_channel_x4(w):
     """w: FP32 [out_ch, in_ch, kh, kw]. Returns (x4_bytes, N, K).
-    
+
     Per-channel quantization: one scale per output channel row.
     """
     N = w.shape[0]

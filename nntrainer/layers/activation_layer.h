@@ -108,10 +108,10 @@ private:
   /**
    * @brief W8A8 int8-resident GELU pass-through.
    *
-   * Dequantizes a QINT8 input via its inline per-tensor scale, applies exact-erf
-   * GELU in FP32, then requantizes symmetric (amax/127) and writes the new
-   * scale. Returns true if it handled the op; false if the input is not QINT8
-   * or the activation is not GELU (caller falls back to acti_func).
+   * Dequantizes a QINT8 input via its inline per-tensor scale, applies
+   * exact-erf GELU in FP32, then requantizes symmetric (amax/127) and writes
+   * the new scale. Returns true if it handled the op; false if the input is not
+   * QINT8 or the activation is not GELU (caller falls back to acti_func).
    */
   bool geluQint8(Tensor const &input_, Tensor &hidden_);
 };

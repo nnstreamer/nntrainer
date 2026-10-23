@@ -180,9 +180,18 @@ void Pooling2DLayer::forwarding(RunLayerContext &context, bool training) {
     auto scan = [&](auto get) {
       for (unsigned int i = 0; i < n; ++i) {
         float v = get(i);
-        if (std::isnan(v)) n_nan++;
-        else if (std::isinf(v)) n_inf++;
-        else { n_fin++; float a = std::fabs(v); if (a > max_abs) max_abs = a; if (a > 65504.0f) n_over++; }
+        if (std::isnan(v))
+          n_nan++;
+        else if (std::isinf(v))
+          n_inf++;
+        else {
+          n_fin++;
+          float a = std::fabs(v);
+          if (a > max_abs)
+            max_abs = a;
+          if (a > 65504.0f)
+            n_over++;
+        }
       }
     };
     if (hidden_.getDataType() == nntrainer::Tdatatype::FP16) {
@@ -194,10 +203,12 @@ void Pooling2DLayer::forwarding(RunLayerContext &context, bool training) {
       const float *d = hidden_.getData<float>();
       scan([&](unsigned int i) { return d[i]; });
     }
-    std::cerr << "[NANTRACE] " << context.getName() << " n=" << n
-              << " dt=" << (hidden_.getDataType() == nntrainer::Tdatatype::FP16 ? "FP16" : "FP32")
+    std::cerr << "[NANTRACE] " << context.getName() << " n=" << n << " dt="
+              << (hidden_.getDataType() == nntrainer::Tdatatype::FP16 ? "FP16"
+                                                                      : "FP32")
               << " fin=" << n_fin << " nan=" << n_nan << " inf=" << n_inf
-              << " >65504=" << n_over << " maxAbs=" << max_abs << "\n" << std::flush;
+              << " >65504=" << n_over << " maxAbs=" << max_abs << "\n"
+              << std::flush;
   }
 
   // Dump one named layer's real output (from inside the untruncated
@@ -408,12 +419,13 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output,
   const bool is_nhwc =
     in.getFormat() == Tformat::NHWC && output.getFormat() == Tformat::NHWC;
   if (std::getenv("PFLD_POOL_DEBUG")) {
-    fprintf(stderr,
-            "[pool2d dbg] pooling_type=%d in_fmt=%d out_fmt=%d is_nhwc=%d "
-            "channel=%u in_h=%d in_w=%d patch_h=%u patch_w=%u out_h=%zu out_w=%zu\n",
-            (int)pooling_type, (int)in.getFormat(), (int)output.getFormat(),
-            (int)is_nhwc, channel, in_height, in_width, patch_height,
-            patch_width, (size_t)output.height(), (size_t)output.width());
+    fprintf(
+      stderr,
+      "[pool2d dbg] pooling_type=%d in_fmt=%d out_fmt=%d is_nhwc=%d "
+      "channel=%u in_h=%d in_w=%d patch_h=%u patch_w=%u out_h=%zu out_w=%zu\n",
+      (int)pooling_type, (int)in.getFormat(), (int)output.getFormat(),
+      (int)is_nhwc, channel, in_height, in_width, patch_height, patch_width,
+      (size_t)output.height(), (size_t)output.width());
   }
   if (is_nhwc) {
     if (pooling_type == props::PoolingTypeInfo::Enum::max) {
@@ -454,9 +466,9 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output,
                     const T *row_ptr =
                       in_data + (size_t)((h0 + kh) * Wi + w0) * Co + c;
                     for (int kw = kw_lo; kw < kw_hi; ++kw)
-                      acc = vmaxq_s8(
-                        acc, vld1q_s8(reinterpret_cast<const int8_t *>(
-                               row_ptr + (size_t)kw * Co)));
+                      acc =
+                        vmaxq_s8(acc, vld1q_s8(reinterpret_cast<const int8_t *>(
+                                        row_ptr + (size_t)kw * Co)));
                   }
                   vst1q_s8(reinterpret_cast<int8_t *>(out_ptr + c), acc);
                 }
@@ -543,7 +555,8 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output,
             int eff_end_w = std::min(end_w, Wi);
 
             int cnt = (eff_end_h - eff_start_h) * (eff_end_w - eff_start_w);
-            if (cnt <= 0) cnt = 1;
+            if (cnt <= 0)
+              cnt = 1;
 
             for (int c = 0; c < Co; ++c) {
               float total = 0.0f;

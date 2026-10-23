@@ -127,8 +127,7 @@ static inline void nntr_quantize_affine_i8(const float *src, int8_t *dst,
       vcvtaq_s32_f32(vmulq_f32(vaddq_f32(vld1q_f32(src + i + 8), voff), vinv)),
       vm128);
     const int32x4_t q3 = vaddq_s32(
-      vcvtaq_s32_f32(
-        vmulq_f32(vaddq_f32(vld1q_f32(src + i + 12), voff), vinv)),
+      vcvtaq_s32_f32(vmulq_f32(vaddq_f32(vld1q_f32(src + i + 12), voff), vinv)),
       vm128);
     const int16x8_t p0 = vcombine_s16(vqmovn_s32(q0), vqmovn_s32(q1));
     const int16x8_t p1 = vcombine_s16(vqmovn_s32(q2), vqmovn_s32(q3));

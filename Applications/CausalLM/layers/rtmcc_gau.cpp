@@ -6,6 +6,7 @@
  * @date   14 July 2026
  * @brief  RTMCC Gated Attention Unit (GAU) layer implementation.
  * @author Seungbaek Hong <sb92.hong@samsung.com>
+ * @bug    No known bugs except for NYI items
  */
 
 #include <cmath>
@@ -119,10 +120,10 @@ void RTMCCGauLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
   nntrainer::TensorDim step_dim(1, 1, N, D, in_dim.getTensorType());
 
   for (unsigned int b = 0; b < batch; ++b) {
-    Tensor x = in.getSharedDataTensor(step_dim, b * in_dim.getFeatureLen(),
-                                      true);
-    Tensor y = out.getSharedDataTensor(step_dim, b * in_dim.getFeatureLen(),
-                                       true);
+    Tensor x =
+      in.getSharedDataTensor(step_dim, b * in_dim.getFeatureLen(), true);
+    Tensor y =
+      out.getSharedDataTensor(step_dim, b * in_dim.getFeatureLen(), true);
     const float *xp = x.getData<float>();
 
     // 1. ScaleNorm: per-token RMS over feature dim, scaled by scalar g.
@@ -165,8 +166,8 @@ void RTMCCGauLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       float *qrow = qp + n * S;
       float *krow = kp + n * S;
       for (unsigned int s = 0; s < S; ++s) {
-        qrow[s] = base[s] * gamma_p[s] + beta_p[s];             // row 0
-        krow[s] = base[s] * gamma_p[S + s] + beta_p[S + s];     // row 1
+        qrow[s] = base[s] * gamma_p[s] + beta_p[s];         // row 0
+        krow[s] = base[s] * gamma_p[S + s] + beta_p[S + s]; // row 1
       }
     }
 

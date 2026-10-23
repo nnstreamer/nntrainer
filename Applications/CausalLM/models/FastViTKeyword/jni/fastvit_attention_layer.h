@@ -5,6 +5,8 @@
  * @file   fastvit_attention_layer.h
  * @date   7 July 2026
  * @brief  Multi-head attention custom layer for FastViT-S12 stage 3.
+ * @author Seungbaek Hong <sb92.hong@samsung.com>
+ * @bug    No known bugs except for NYI items
  *
  * This layer implements the attention mechanism used in timm's FastViT
  * AttentionBlock (stages.3.blocks.*). It is weight-free: the qkv projection

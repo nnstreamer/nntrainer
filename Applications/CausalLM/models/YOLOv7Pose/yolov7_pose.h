@@ -10,6 +10,7 @@
  *         driven by the standalone yolov7_pose_infer executable.
  *
  * @author Seungbaek Hong <sb92.hong@samsung.com>
+ * @bug    No known bugs except for NYI items
  */
 
 #ifndef __YOLOV7_POSE_MODEL_H__
@@ -25,8 +26,8 @@
 #include <model.h>
 
 #include "jni/yolov7_pose_graph.h"
-#include "transformer.h"
 #include "rtmcc_head.h"
+#include "transformer.h"
 
 namespace causallm {
 
@@ -70,13 +71,11 @@ public:
     // Build FP32 graph (no weight_dtype); collect quantizable conv names.
     yolov7_pose::quantizableConvs().clear();
     auto x = ml::train::Tensor(
-      ml::train::TensorDim(1, 3, 320, 320,
-                           ml::train::TensorDim::Format::NCHW,
+      ml::train::TensorDim(1, 3, 320, 320, ml::train::TensorDim::Format::NCHW,
                            ml::train::TensorDim::DataType::FP32),
       "input0");
     auto nodes = yolov7_pose::buildBackbone(x, /*conv_q=*/false);
-    auto pose_feat =
-      yolov7_pose::buildNeck("backbone.features", nodes, false);
+    auto pose_feat = yolov7_pose::buildNeck("backbone.features", nodes, false);
     auto pose_out = yolov7_pose::buildPoseHead(pose_feat, false);
     quantizable_convs_ = yolov7_pose::quantizableConvs();
 

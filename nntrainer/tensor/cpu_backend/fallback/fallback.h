@@ -1365,7 +1365,6 @@ void depthwise_conv2d_fp16(const _FP16 *input, const float *kernel,
                            unsigned int dilation_h, unsigned int dilation_w);
 #endif
 
-
 /**
  * @brief     Create a Q4_0 weights (without XOR 0x88) from int4 weights
  *

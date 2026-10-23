@@ -152,12 +152,14 @@ void __ggml_repack_q4_K_to_q4_K_8(void *dst, void *src, size_t data_size,
 void __ggml_repack_q8_0_to_q8_0_4(void *dst, void *src, size_t data_size,
                                   const unsigned int M, const unsigned int N) {
   // The SMMLA q8_0x4 kernels consume the 8-byte interleave (block_q8_0x4 with
-  // qs[32*sub + row*8 + c]), i.e. the same layout as __ggml_repack_q8_0_to_q8_0_4x8.
+  // qs[32*sub + row*8 + c]), i.e. the same layout as
+  // __ggml_repack_q8_0_to_q8_0_4x8.
   nntr_repack_q8_0_to_q8_0_4_bl(dst, 8, src, data_size, M, N);
 }
 
 /**
- * @brief De-interleave + gather + plain-SMMLA W8A32 fallback (NNTR_Q8A32_PLAIN).
+ * @brief De-interleave + gather + plain-SMMLA W8A32 fallback
+ * (NNTR_Q8A32_PLAIN).
  *
  * The original W8A32 pipeline: de-interleaves the pre-repacked q8_0x4 weight
  * back to plain block_q8_0 (cached per weight pointer), quantizes each gathered
@@ -460,13 +462,10 @@ static inline bool conv_gather_is_identity(const ConvGatherParams &g,
  * once here (block_q8_0.d is fp16); the producer must quantize with the SAME
  * fp16-rounded value so (q, d) reproduces its FP32 values exactly.
  */
-void __ggml_q8_0_q8_0_indirect_GEMM_i8a(const unsigned int M,
-                                        const unsigned int N,
-                                        const unsigned int K, const int8_t *in,
-                                        const float act_scale,
-                                        const ConvGatherParams &geom,
-                                        const void *B, const unsigned int ldb,
-                                        float *C, const unsigned int ldc) {
+void __ggml_q8_0_q8_0_indirect_GEMM_i8a(
+  const unsigned int M, const unsigned int N, const unsigned int K,
+  const int8_t *in, const float act_scale, const ConvGatherParams &geom,
+  const void *B, const unsigned int ldb, float *C, const unsigned int ldc) {
   (void)ldb;
   (void)ldc;
   auto &tm = ThreadManager::Global();
@@ -482,7 +481,8 @@ void __ggml_q8_0_q8_0_indirect_GEMM_i8a(const unsigned int M,
   std::vector<char> QA((size_t)M4c * qa_4_rows_size);
   char *QA_ptr = QA.data();
 
-  // 1x1 unit-stride convs gather the identity: pack straight from `in`, no tile.
+  // 1x1 unit-stride convs gather the identity: pack straight from `in`, no
+  // tile.
   const bool ident = conv_gather_is_identity(geom, K);
 
   const unsigned int QCHUNK = 64; // multiple of 4
@@ -610,7 +610,8 @@ static inline uint16_t perch_fp32_to_fp16_bits(float f) {
     const uint32_t rem = man & ((1u << shift) - 1u);
     const uint32_t half = 1u << (shift - 1);
     if (rem > half || (rem == half && (hm & 1u)))
-      ++hm; // ties-to-even; may carry hm up to 0x400 = smallest normal (correct)
+      ++hm; // ties-to-even; may carry hm up to 0x400 = smallest normal
+            // (correct)
     return (uint16_t)(sign | hm);
   }
   uint32_t m = man >> 13;
@@ -654,8 +655,7 @@ const PerChConvWeight &
 __ggml_q8ch_prepare_conv_weight(const void *key, const void *q8_src_x4,
                                 const float *fp32_src, unsigned int out_ch,
                                 unsigned int CRS, unsigned int khkw,
-                                unsigned int in_ch,
-                                const void *q4_src_x4) {
+                                unsigned int in_ch, const void *q4_src_x4) {
   static std::mutex mtx;
   static std::unordered_map<const void *, PerChConvWeight> cache;
   std::lock_guard<std::mutex> lk(mtx);
@@ -845,7 +845,8 @@ __ggml_q8ch_prepare_conv_weight(const void *key, const void *q8_src_x4,
                 int x1 = (q >> 4) - 8;
                 unsigned int col_start = j * QK8_0 + src_offset;
                 wf_ptr[(size_t)r * CRS + col_start + b] = (float)x0 * d_vals[r];
-                wf_ptr[(size_t)r * CRS + col_start + b + 16] = (float)x1 * d_vals[r];
+                wf_ptr[(size_t)r * CRS + col_start + b + 16] =
+                  (float)x1 * d_vals[r];
               }
             }
           }
@@ -925,8 +926,8 @@ void __ggml_q8ch_indirect_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int K, const int8_t *in,
                                const float act_scale,
                                const ConvGatherParams &geom, const void *B,
-                               const float *w_scale, float *C,
-                               int8_t pad_value, bool taps_last) {
+                               const float *w_scale, float *C, int8_t pad_value,
+                               bool taps_last) {
   auto &tm = ThreadManager::Global();
   const unsigned int nb = K / QK8_0;
   const unsigned int qa_4_rows_size = sizeof(block_q8_0x4) * nb;
@@ -980,8 +981,7 @@ void __ggml_q8ch_indirect_GEMM(const unsigned int M, const unsigned int N,
         nntr_gemm_q8ch_plainA_f32(
           (int)K, scratch_ptr + c_start, N,
           (const void *)((const char *)B + (size_t)c_start * B_step),
-          w_scale + c_start, tail_a, K, act_scale, 4,
-          (int)(c_end - c_start));
+          w_scale + c_start, tail_a, K, act_scale, 4, (int)(c_end - c_start));
       });
       for (unsigned int rr = 0; rr < rem; ++rr)
         std::memcpy(C + (size_t)(Mfull + rr) * N, scratch_ptr + (size_t)rr * N,
@@ -1046,8 +1046,7 @@ void __ggml_q8ch_indirect_GEMM(const unsigned int M, const unsigned int N,
         nntr_gemm_q8ch_plainA_f32(
           (int)K, scratch_ptr + c_start, N,
           (const void *)((const char *)B + (size_t)c_start * B_step),
-          w_scale + c_start, tail_a, K, act_scale, 4,
-          (int)(c_end - c_start));
+          w_scale + c_start, tail_a, K, act_scale, 4, (int)(c_end - c_start));
       });
       for (unsigned int rr = 0; rr < rem; ++rr)
         std::memcpy(C + (size_t)(Mfull + rr) * N, scratch_ptr + (size_t)rr * N,
@@ -1074,8 +1073,8 @@ void __ggml_q8ch_indirect_GEMM(const unsigned int M, const unsigned int N,
         const unsigned int r1 = std::min(r0 + QCHUNK, Mfull);
         std::vector<int8_t> tile((size_t)4 * K);
         for (unsigned int r = r0; r < r1; r += 4) {
-          gather_conv_act_rows<int8_t>(tile.data(), in, geom, (int)r, 4,
-                                       (int)K, pad_value);
+          gather_conv_act_rows<int8_t>(tile.data(), in, geom, (int)r, 4, (int)K,
+                                       pad_value);
           pack_i8_rows_q8_0x4(tile.data(), K, d16,
                               QA_ptr + (size_t)(r / 4) * qa_4_rows_size);
         }
