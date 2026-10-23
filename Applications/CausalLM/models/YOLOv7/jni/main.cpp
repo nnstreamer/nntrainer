@@ -66,8 +66,7 @@ struct InferenceIO {
 #ifdef ENABLE_FP16
   std::vector<std::vector<_FP16>> in16; /**< narrowed FP16 inputs */
 #endif
-  std::vector<std::vector<float>> out32;      /**< widened FP32 outputs */
-  std::vector<ml::train::TensorDim> out_dims; /**< output dimensions */
+  std::vector<std::vector<float>> out32; /**< widened FP32 outputs */
   bool fp16 = false; /**< true for an FP16-activation preset */
 
   /**
@@ -93,7 +92,6 @@ struct InferenceIO {
         in16[i][j] = static_cast<_FP16>(src[i][j]);
       in[i] = reinterpret_cast<float *>(in16[i].data());
     }
-    out_dims = model.getOutputDimension();
 #else
     (void)model;
 #endif
@@ -102,23 +100,26 @@ struct InferenceIO {
   /**
    * @brief Widen FP16 outputs of inference() to float
    * @param outs pointers returned by inference()
+   * @param lens element count of each output. Model::getOutputDimension()
+   *        lists label (loss) dimensions, and these graphs have no loss layer.
    * @return FP32 views of the outputs (owned by this object)
    */
-  std::vector<float *> widen(std::vector<float *> outs) {
+  std::vector<float *> widen(std::vector<float *> outs,
+                             const std::vector<size_t> &lens) {
 #ifdef ENABLE_FP16
     if (!fp16)
       return outs;
     out32.assign(outs.size(), {});
-    for (size_t i = 0; i < outs.size() && i < out_dims.size(); ++i) {
-      if (out_dims[i].getDataType() != ml::train::TensorDim::DataType::FP16)
-        continue;
-      const size_t n = out_dims[i].getDataLen();
+    for (size_t i = 0; i < outs.size() && i < lens.size(); ++i) {
+      const size_t n = lens[i];
       const _FP16 *h = reinterpret_cast<const _FP16 *>(outs[i]);
       out32[i].resize(n);
       for (size_t j = 0; j < n; ++j)
         out32[i][j] = static_cast<float>(h[j]);
       outs[i] = out32[i].data();
     }
+#else
+    (void)lens;
 #endif
     return outs;
   }
@@ -506,7 +507,13 @@ int main(int argc, char **argv) {
       auto t1 = std::chrono::steady_clock::now();
       total_ms += std::chrono::duration<double, std::milli>(t1 - t0).count();
     }
-    outs = io.widen(outs);
+    // Each scale has 30 channels per grid cell, as decodeAllScales reads it.
+    const std::vector<std::array<int, 2>> grid_sizes = {
+      {40, 40}, {20, 20}, {10, 10}};
+    std::vector<size_t> out_lens;
+    for (const auto &g : grid_sizes)
+      out_lens.push_back(static_cast<size_t>(g[0]) * g[1] * 30);
+    outs = io.widen(outs, out_lens);
     std::cout << "[YOLOv7] Inference done (" << outs.size() << " outputs)."
               << std::endl;
 
@@ -515,7 +522,6 @@ int main(int argc, char **argv) {
     printPeakRSS();
 
     // Decode and NMS
-    std::vector<std::array<int, 2>> grid_sizes = {{40, 40}, {20, 20}, {10, 10}};
     float conf_thres =
       std::getenv("YOLO_CONF") ? std::stof(std::getenv("YOLO_CONF")) : 0.001f;
     float iou_thres =
