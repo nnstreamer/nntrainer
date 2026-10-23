@@ -9,6 +9,8 @@
  * @bug		No known bugs except for NYI items
  */
 
+#include <cstdio>
+#include <cstdlib>
 #include <iomanip>
 #include <iostream>
 #include <mutex>
@@ -17,7 +19,9 @@
 #include <chrono>
 #include <cpu_backend.h>
 #include <float_tensor.h>
+#include <ggml_interface.h>
 #include <int4_utils.h>
+#include <int8_gemm.h>
 #include <q4_0_utils.h>
 #include <qs4cx_tensor.h> // refuseIfQs4cxPayloadDropped
 #include <thread_manager.h>
@@ -750,10 +754,11 @@ Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
   case Tdatatype::FP16:
     dotFloat32Float16(input, output, trans, trans_in, beta);
     break;
-  /** applying gemm_q4_k / gemm_q6_k / gemm_q4_0 */
+  /** applying gemm_q4_k / gemm_q6_k / gemm_q4_0 / gemm_q8_0 */
   case Tdatatype::Q4_K:
   case Tdatatype::Q6_K:
   case Tdatatype::Q4_0:
+  case Tdatatype::Q8_0:
     dotQnK(input, output, trans, trans_in, beta, input.getDataType());
     break;
   case Tdatatype::QINT16:
@@ -899,8 +904,28 @@ Tensor &FloatTensor::dotFloat32Float16(Tensor const &input, Tensor &output,
 
   const float *data = (float *)getData();
   const _FP16 *mdata = input.getData<_FP16>();
-  float *rdata = output.getData<float>();
   const float alpha = 1.0f;
+
+  // The mixed-precision BLAS kernels (shgemm/shgemv/hsgemv) always accumulate
+  // and write FP32 output. When the destination tensor is FP16 (e.g. an
+  // FP32-weight / FP16-activation conv whose output activation is FP16), we
+  // cannot hand them the FP16 buffer reinterpreted as float* — that overruns
+  // the half-sized storage and yields NaN. Stage the GEMM through an owned FP32
+  // buffer and convert FP32->FP16 once at the boundary via the Tensor system.
+  const bool out_fp16 = output.getDataType() == Tdatatype::FP16;
+  std::vector<float> out_staging;
+  float *rdata;
+  if (out_fp16) {
+    out_staging.resize(output.size());
+    if (beta != 0.0f) {
+      const _FP16 *od = output.getData<_FP16>();
+      for (size_t i = 0; i < out_staging.size(); ++i)
+        out_staging[i] = static_cast<float>(od[i]);
+    }
+    rdata = out_staging.data();
+  } else {
+    rdata = output.getData<float>();
+  }
 
   /// shortcut handling in case of vector
   /// for vector, (1 * K) == (K * 1) in current memory layout...
@@ -929,6 +954,12 @@ Tensor &FloatTensor::dotFloat32Float16(Tensor const &input, Tensor &output,
   else {
     o->shgemm((unsigned int)dim.getStorageOrder(), trans, trans_in, M, N, K,
               alpha, data, lda, mdata, ldb, beta, rdata, ldc);
+  }
+
+  if (out_fp16) {
+    _FP16 *od = output.getData<_FP16>();
+    for (size_t i = 0; i < out_staging.size(); ++i)
+      od[i] = static_cast<_FP16>(out_staging[i]);
   }
 
   return output;
@@ -992,6 +1023,21 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
     }
     break;
   }
+  case Tdatatype::Q8_0: {
+    // W8A8. Both operands are 8-bit at compute time; the two paths differ only
+    // in where the scales live.
+    M = getDim().height();
+    K = getDim().width();
+    N = input.getDim().width();
+    // Channel-wise weight scale plus a tensor-wise activation scale: the inner
+    // loop is a pure int8 dot into int32 and the scales apply once per output
+    // element. Returns false for a genuine per-block file, which then takes the
+    // block-scaled kernel below (it quantizes activations per row into
+    // block_q8_0 and carries a scale multiply per 32 values).
+    if (!int8_gemm::gemmPerChannelA8(M, N, K, data, (void *)mdata, rdata))
+      o->gemm_q8_0_fp32(M, N, K, data, K, (void *)mdata, N, rdata, N);
+    break;
+  }
 
   default:
     throw std::invalid_argument("Error: unsupported datatype");
@@ -1006,6 +1052,34 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
   }
 #endif
 
+  return output;
+}
+
+Tensor &FloatTensor::convQ4_0Indirect(Tensor const &weight, Tensor &output,
+                                      const ConvGatherParams &geom) const {
+  // `this` is the NCHW FP32 input (gathered on the fly), `weight` is the Q4_0
+  // filter [CRS, out_ch], `output` is [OH*OW, out_ch]. The fused backend op
+  // mirrors col.dot(weight): M = output rows (OH*OW), N = out_ch, K = CRS.
+  const float *in = (const float *)getData();
+  uint8_t *wdata = weight.getData<uint8_t>();
+  float *rdata = output.getData<float>();
+
+  unsigned int M = output.getDim().height();
+  unsigned int N = output.getDim().width();
+  unsigned int K =
+    (unsigned int)geom.in_ch * (unsigned int)geom.k_h * (unsigned int)geom.k_w;
+
+  // Q8_0 weights use the FP32-activation Q8_0xQ8_0 indirect kernel (W8A32):
+  // FP32 activations are kept between layers (no FP16 rounding accumulation ->
+  // FP32-level accuracy) with int8 compute. Q4_0 weights keep the existing
+  // ISA-dispatched Q4_0 path. Both are gathered on the fly (no im2col).
+  if (weight.getDataType() == Tdatatype::Q8_0) {
+    __ggml_q8_0_q8_0_indirect_GEMM_fp32(M, N, K, in, geom, (void *)wdata, N,
+                                        rdata, N);
+  } else {
+    getOps()->gemm_q4_0_indirect_conv_fp32(M, N, K, in, geom, (void *)wdata, N,
+                                           rdata, N);
+  }
   return output;
 }
 
@@ -1134,7 +1208,7 @@ void FloatTensor::copyData(const Tensor &from) {
     << getName() << " is not contiguous, cannot copy.";
 
   NNTR_THROW_IF(size() != from.size(), std::invalid_argument)
-    << "Size of tensor to copy must match";
+    << "Size of tensor to copy must match: " << size() << " vs " << from.size();
 
   switch (from.getDataType()) {
   case ml::train::TensorDim::DataType::FP32:
@@ -1679,24 +1753,54 @@ void FloatTensor::apply_broadcast(
 
   NNTR_THROW_IF(getData() == nullptr, std::invalid_argument)
     << getName() << " is not allocated";
-  NNTR_THROW_IF(m.getData<float>() == nullptr, std::invalid_argument)
-    << m.getName() << " is not allocated";
-  NNTR_THROW_IF(output.getData<float>() == nullptr, std::invalid_argument)
-    << output.getName() << " is not allocated";
+
+  // m's and output's raw buffers are always read/written below as float*
+  // with no dtype check -- see the symmetric comment on
+  // HalfTensor::apply_broadcast for the mixed-precision-graph scenario this
+  // guards against (e.g. bn_layer.cpp upcasting only some of its
+  // FP16-graph tensors to FP32 for a computation whose other operand or
+  // destination stayed FP16).
+  Tensor m_fp32_owner;
+  const Tensor *m_ptr = &m;
+  if (m.getDataType() != ml::train::TensorDim::DataType::FP32) {
+    m_fp32_owner = m.clone(ml::train::TensorDim::DataType::FP32);
+    m_ptr = &m_fp32_owner;
+  }
+  const Tensor &mm = *m_ptr;
+
+  NNTR_THROW_IF(mm.getData<float>() == nullptr, std::invalid_argument)
+    << mm.getName() << " is not allocated";
+
+  const bool out_mismatched =
+    output.getDataType() != ml::train::TensorDim::DataType::FP32;
+  Tensor out_fp32_owner;
+  Tensor *out_ptr = &output;
+  if (out_mismatched) {
+    TensorDim out_fp32_dim = output.getDim();
+    out_fp32_dim.setDataType(ml::train::TensorDim::DataType::FP32);
+    out_fp32_owner = Tensor(out_fp32_dim, true);
+    out_ptr = &out_fp32_owner;
+  } else {
+    NNTR_THROW_IF(output.getData<float>() == nullptr, std::invalid_argument)
+      << output.getName() << " is not allocated";
+  }
+  Tensor &out = *out_ptr;
 
   /// shortcut to cover when dimension matches
   /// note that buffer_size, the last stride is only used in v_func but it
   /// might be changed
-  if (dim == m.getDim()) {
+  if (dim == mm.getDim()) {
     BroadcastInfo e;
     e.buffer_size = size();
     e.strides[3] = 1;
     e.tensor_type = getTensorType();
-    v_func(e, (float *)getData(), m.getData<float>(), output.getData<float>());
-    return;
+    v_func(e, (float *)getData(), mm.getData<float>(), out.getData<float>());
+  } else {
+    apply_broadcast_util(mm, v_func, out, this->computeBroadcastInfo(mm));
   }
 
-  return apply_broadcast_util(m, v_func, output, this->computeBroadcastInfo(m));
+  if (out_mismatched)
+    output.copyData(out);
 }
 
 bool FloatTensor::isValid() const {

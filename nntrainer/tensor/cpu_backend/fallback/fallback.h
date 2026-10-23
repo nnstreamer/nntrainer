@@ -550,6 +550,19 @@ void swiglu(const unsigned int N, float *X, float *Y, float *Z, float alpha);
  */
 void tanh_gelu(const unsigned int N, const float *X, float *Y);
 
+#ifdef ENABLE_FP16
+/**
+ * @brief FP16-storage exact-erf GELU (fallback: scalar __fallback_gelu_v2).
+ * Used by ActiFunc::gelu for FP16 (W8A16) tensors; ARM provides the NEON
+ * vectorized version.
+ *
+ * @param N number of elements in X
+ * @param X _FP16 * for Vector X (input, FP16 storage)
+ * @param Y _FP16 * for Vector Y (output, FP16 storage)
+ */
+void gelu_v2_fp16(const unsigned int N, const _FP16 *X, _FP16 *Y);
+#endif
+
 /**
  * @brief tanh_gelu function
  * Y = 0.5 * X * (1 + tanh(sqrt(2/pi) * (X
@@ -1015,6 +1028,14 @@ void gemm_q4_0(const unsigned int M, std::vector<unsigned int> Ns,
                const unsigned int K, const float *A, const unsigned int lda,
                std::vector<void *> Bs, std::vector<unsigned int> ldbs,
                std::vector<float *> Cs, std::vector<unsigned int> ldcs);
+
+/**
+ * @brief q8_0 GEMM (scalar fallback). See __fallback_gemm_q8_0 for semantics.
+ */
+template <typename T = float>
+void gemm_q8_0(const unsigned int M, const unsigned int N, const unsigned int K,
+               const T *A, const unsigned int lda, const void *B,
+               const unsigned int ldb, T *C, const unsigned int ldc);
 /**
  * @brief q4_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
  *
@@ -1317,6 +1338,34 @@ template <typename T = float>
 void clamp(const T *input, T *output, size_t length,
            T lower_bound = std::numeric_limits<T>::lowest(),
            T upper_bound = std::numeric_limits<T>::max());
+/**
+ * @brief Depthwise convolution FP32 free function (fallback backend).
+ *        Delegates to __fallback_depthwise_conv2d_fp32.
+ *        See fallback_internal.h for full parameter documentation.
+ */
+void depthwise_conv2d_fp32(const float *input, const float *kernel,
+                           float *output, unsigned int batch,
+                           unsigned int channels, unsigned int in_h,
+                           unsigned int in_w, unsigned int out_h,
+                           unsigned int out_w, unsigned int kh, unsigned int kw,
+                           unsigned int stride_h, unsigned int stride_w,
+                           unsigned int pad_top, unsigned int pad_left,
+                           unsigned int dilation_h, unsigned int dilation_w);
+
+#ifdef ENABLE_FP16
+/**
+ * @brief Depthwise convolution FP16 free function (fallback backend).
+ *        Delegates to __fallback_depthwise_conv2d_fp16.
+ */
+void depthwise_conv2d_fp16(const _FP16 *input, const float *kernel,
+                           _FP16 *output, unsigned int batch,
+                           unsigned int channels, unsigned int in_h,
+                           unsigned int in_w, unsigned int out_h,
+                           unsigned int out_w, unsigned int kh, unsigned int kw,
+                           unsigned int stride_h, unsigned int stride_w,
+                           unsigned int pad_top, unsigned int pad_left,
+                           unsigned int dilation_h, unsigned int dilation_w);
+#endif
 
 /**
  * @brief     Create a Q4_0 weights (without XOR 0x88) from int4 weights
